@@ -346,6 +346,19 @@ def test_models_are_frozen() -> None:
         v.estimate = 2.0  # type: ignore[misc]
 
 
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        spec().env,
+        machine().missing,
+        BenchmarkSpec.model_validate({**as_json(spec()), "env": {}}).env,
+    ],
+)
+def test_mapping_fields_are_read_only(mapping: Any) -> None:
+    with pytest.raises(TypeError):
+        mapping["OMP_NUM_THREADS"] = "8"
+
+
 def test_root_documents_carry_schema_version() -> None:
     for model in (spec(), EXAMPLES["lock_manifest"], record()):
         assert as_json(model)["schema_version"] == schema.SCHEMA_VERSION
@@ -482,6 +495,7 @@ INCONSISTENT: list[tuple[str, dict[str, Any]]] = [
     ("verdict_inconclusive", {"reason": "performance"}),
     ("verdict_inconclusive", {"regression": True}),
     ("verdict_inconclusive", {"looks": 0}),
+    ("verdict_keep", {"rounds": 1}),
     ("verdict_integrity", {"gate": None}),
     ("verdict_integrity", {"gate": "correctness"}),
     ("verdict_correctness", {"gate": "lock"}),
@@ -534,6 +548,9 @@ def test_inconclusive_without_interval_is_allowed() -> None:
         ("interval", {"lower": 1.2, "upper": 1.1}),
         ("hotspot", {"self_fraction": 0.8, "total_fraction": 0.7}),
         ("hotspot", {"file": None}),
+        ("hotspot", {"file": ""}),
+        ("difference", {"baseline": None}),
+        ("spec", {"harness": ["."]}),
         ("machine", {"host_id": None}),
         ("machine", {"missing": {}}),
         (
@@ -578,7 +595,7 @@ def test_lock_manifest_files_are_sorted() -> None:
 @pytest.mark.parametrize(
     "update",
     [
-        {"gates": (lock_failed(),)},
+        {"gates": (lock_failed(), *gates_passed()[2:])},
         {"verdict": integrity()},
         {
             "verdict": integrity(),
@@ -587,6 +604,12 @@ def test_lock_manifest_files_are_sorted() -> None:
             ),
         },
         {"gates": (*gates_passed(), GateResult(gate="lock", status="passed"))},
+        {"gates": ()},
+        {"gates": gates_passed()[1:]},
+        {"verdict": inconclusive(), "gates": gates_passed()[:4]},
+        {"verdict": keep().model_copy(update={"rounds": 201})},
+        {"verdict": keep().model_copy(update={"looks": 6})},
+        {"verdict": inconclusive()},
         {"finished_at": T0 - timedelta(seconds=1)},
         {"machines": ()},
         {"verdict": keep().model_copy(update={"cross_host": True})},
@@ -598,7 +621,7 @@ def test_lock_manifest_files_are_sorted() -> None:
         },
         {
             "gates": (
-                *gates_passed()[:3],
+                *gates_passed()[:4],
                 GateResult(gate="same_host", status="waived", detail="x"),
             )
         },
@@ -703,6 +726,12 @@ def test_spec_hash_changes_with_nested_field() -> None:
     data = as_json(spec())
     data["correctness"]["outputs"][0]["rtol"] = 1e-8
     assert BenchmarkSpec.model_validate(data).spec_hash != spec().spec_hash
+
+
+def test_stored_null_spec_hash_is_checked() -> None:
+    data = {**as_json(spec()), "spec_hash": None}
+    with pytest.raises(ValidationError, match="spec_hash"):
+        BenchmarkSpec.model_validate(data)
 
 
 def test_stored_spec_hash_is_checked() -> None:

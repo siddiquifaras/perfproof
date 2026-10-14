@@ -18,7 +18,8 @@ import itertools
 import json
 import sys
 from collections.abc import Mapping
-from typing import Annotated, Any, Final, Literal, Self, cast
+from types import MappingProxyType
+from typing import Annotated, Any, Final, Literal, Self, cast, get_args
 
 from pydantic import (
     AfterValidator,
@@ -27,6 +28,7 @@ from pydantic import (
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
+    PlainSerializer,
     Strict,
     StringConstraints,
     computed_field,
@@ -100,7 +102,9 @@ Procedure = Literal[
 TargetClass = Literal["python_cpu", "native", "gpu_kernel", "llm_serving"]
 CalibrationStatus = Literal["calibrated", "uncalibrated"]
 
+_ALL_GATES: Final[frozenset[str]] = frozenset(get_args(GateName))
 _WAIVABLE_GATES: Final = frozenset({"runtime", "same_host"})
+_ABSENT: Final = object()
 _RULE_OUTCOME: Final[Mapping[int, tuple[Outcome, frozenset[str]]]] = {
     1: ("REJECT", frozenset({"correctness", "integrity"})),
     2: ("KEEP", frozenset({"performance"})),
@@ -116,8 +120,6 @@ def _check_relative_path(value: str) -> str:
     directory. Requiring the normalized form keeps one spelling per
     file, so hashes and lock manifests compare equal across machines.
     """
-    if value == ".":
-        return value
     parts = value.split("/")
     if (
         not value
@@ -131,6 +133,26 @@ def _check_relative_path(value: str) -> str:
     return value
 
 
+def _check_relative_dir(value: str) -> str:
+    """Accept a normalized relative directory, or ``"."`` for root."""
+    return value if value == "." else _check_relative_path(value)
+
+
+def _read_only(value: Mapping[str, str]) -> Mapping[str, str]:
+    """Copy ``value`` into a read-only mapping.
+
+    Pydantic's ``frozen`` stops attribute assignment but not writes into
+    a dict field, and a write into `BenchmarkSpec.env` would silently
+    change the spec's hash.
+    """
+    return MappingProxyType(dict(value))
+
+
+def _empty_map() -> Mapping[str, str]:
+    """Return an empty read-only mapping, the default for map fields."""
+    return MappingProxyType({})
+
+
 # Scalars are strict: JSON numbers, booleans and strings are taken as
 # they are, never coerced from another type ("3" is not 3, 1 is not
 # True). Containers and datetimes stay lax so JSON arrays and ISO
@@ -138,6 +160,7 @@ def _check_relative_path(value: str) -> str:
 Str = Annotated[str, Strict()]
 Flag = Annotated[bool, Strict()]
 RelPath = Annotated[str, Strict(), AfterValidator(_check_relative_path)]
+RelDir = Annotated[str, Strict(), AfterValidator(_check_relative_dir)]
 Sha256Hex = Annotated[
     str, StringConstraints(strict=True, pattern=r"^[0-9a-f]{64}$")
 ]
@@ -165,6 +188,9 @@ NonNegative = Annotated[float, Strict(), Field(ge=0)]
 Fraction = Annotated[float, Strict(), Field(ge=0, le=1)]
 Ratio = Positive
 Level = Annotated[float, Strict(), Field(gt=0, lt=1)]
+_AsDict = PlainSerializer(dict, return_type=dict[str, str])
+EnvMap = Annotated[Mapping[EnvName, Str], AfterValidator(_read_only), _AsDict]
+ReasonMap = Annotated[Mapping[Str, Text], AfterValidator(_read_only), _AsDict]
 
 
 def _sha256_json(payload: object) -> str:
@@ -283,7 +309,7 @@ class CorrectnessSpec(_Model):
     command: Argv | None = None
     """Test command run in the candidate tree, as an argv list. Exit
     status 0 passes."""
-    cwd: RelPath = "."
+    cwd: RelDir = "."
     """Working directory of ``command``, relative to the tree."""
     timeout_seconds: Seconds | None = None
     """Time limit for ``command``, in seconds."""
@@ -354,9 +380,9 @@ class BenchmarkSpec(_Model):
     ``.perfproof/benchmarks/``."""
     command: Argv
     """Benchmark command as an argv list, launched without a shell."""
-    cwd: RelPath = "."
+    cwd: RelDir = "."
     """Working directory, relative to the tree root."""
-    env: Mapping[EnvName, Str] = Field(default_factory=dict[str, str])
+    env: EnvMap = Field(default_factory=_empty_map)
     """Declared environment variables, set for every execution and
     covered by the procedure gate."""
     metric: MetricSpec
@@ -409,13 +435,13 @@ class BenchmarkSpec(_Model):
     def _check_stored_hash(
         cls, data: object, handler: ModelWrapValidatorHandler[Self]
     ) -> Self:
-        claimed: object = None
+        claimed: object = _ABSENT
         if isinstance(data, Mapping) and "spec_hash" in data:
             fields = cast("Mapping[str, object]", data)
             claimed = fields["spec_hash"]
             data = {k: v for k, v in fields.items() if k != "spec_hash"}
         spec = handler(data)
-        if claimed is not None and claimed != spec.spec_hash:
+        if claimed is not _ABSENT and claimed != spec.spec_hash:
             msg = (
                 f"stored spec_hash {claimed!r} does not match the content "
                 f"hash {spec.spec_hash}"
@@ -515,7 +541,13 @@ class Sample(_Model):
 
 
 class Difference(_Model):
-    """One recorded difference between the two arms."""
+    """One recorded difference between the two arms.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If both sides are ``None``.
+    """
 
     item: Text
     """What differs: a file path, environment variable, setting or
@@ -524,6 +556,13 @@ class Difference(_Model):
     """Value in the baseline; ``None`` when absent there."""
     candidate: Str | None
     """Value in the candidate; ``None`` when absent there."""
+
+    @model_validator(mode="after")
+    def _check_sides(self) -> Self:
+        if self.baseline is None and self.candidate is None:
+            msg = f"{self.item!r} is absent in both arms, so not a difference"
+            raise ValueError(msg)
+        return self
 
 
 class GateResult(_Model):
@@ -632,8 +671,9 @@ class Verdict(_Model):
     ------
     pydantic.ValidationError
         If the fields contradict each other as described above, a
-        performance verdict lacks its estimate, interval or a look, or a
-        calibrated verdict names no target class.
+        performance verdict lacks its estimate or interval, an interval
+        comes without a look on at least 2 rounds, or a calibrated
+        verdict names no target class.
     """
 
     outcome: Outcome
@@ -688,8 +728,11 @@ class Verdict(_Model):
         ):
             msg = "a performance verdict needs an estimate and interval"
             raise ValueError(msg)
-        if self.interval is not None and self.looks < 1:
-            msg = "an interval comes from a look, but looks is 0"
+        if self.interval is not None and (self.looks < 1 or self.rounds < 2):
+            msg = (
+                "an interval comes from a look on at least 2 rounds, not "
+                f"{self.looks} looks on {self.rounds} rounds"
+            )
             raise ValueError(msg)
         if self.regression and self.rule != 3:
             msg = "only a performance REJECT (rule 3) flags a regression"
@@ -729,7 +772,7 @@ class Hotspot(_Model):
 
     function: Text
     """Function or kernel name."""
-    file: Str | None
+    file: Text | None
     """Source file, relative to the project root when inside it;
     ``None`` when the profiler gives none."""
     line: PositiveInt | None
@@ -820,7 +863,7 @@ class MachineFingerprint(_Model):
     """Version of the Python running perfproof."""
     gpus: tuple[GpuInfo, ...] | None = None
     """NVIDIA GPUs; empty when there are none."""
-    missing: Mapping[str, Text] = Field(default_factory=dict[str, str])
+    missing: ReasonMap = Field(default_factory=_empty_map)
     """Reason for each probe left ``None``, keyed by field name."""
 
     @model_validator(mode="after")
@@ -852,10 +895,13 @@ class RunRecord(_Model):
     ------
     pydantic.ValidationError
         If the verdict disagrees with the gates (a failed gate must
-        decide, and the deciding gate must be one that failed), a gate
+        decide, the deciding gate must be one that failed, and any other
+        verdict needs every gate present and passed or waived), a gate
         is listed twice, a waiver or cross-host verdict lacks the spec's
-        opt-in, rounds ran without a samples path, or ``finished_at``
-        precedes ``started_at``.
+        opt-in, rounds ran without a samples path, rounds or looks
+        exceed the spec's budget, a ``wall_interval`` appears for a
+        metric other than ``reported``, or ``finished_at`` precedes
+        ``started_at``.
     """
 
     schema_version: Literal[1] = SCHEMA_VERSION
@@ -877,7 +923,9 @@ class RunRecord(_Model):
     verdict: Verdict
     """The verdict."""
     gates: tuple[GateResult, ...]
-    """Gate results, including recorded differences between arms."""
+    """Gate results, including recorded differences between arms. A
+    gate verdict may list only the gates that ran; any other verdict
+    lists all five."""
     machines: Annotated[tuple[MachineFingerprint, ...], Field(min_length=1)]
     """Fingerprint per session, indexed by `Sample.session`; one entry
     on one machine."""
@@ -907,6 +955,12 @@ class RunRecord(_Model):
         if v.gate is not None and v.gate not in failed:
             msg = f"verdict names gate {v.gate}, which did not fail"
             raise ValueError(msg)
+        if v.rule != 1 and frozenset(status) != _ALL_GATES:
+            msg = (
+                f"a rule {v.rule} verdict needs all five gates listed, "
+                f"got {status}"
+            )
+            raise ValueError(msg)
         if status.get("runtime") == "waived" and not (
             self.spec.allow_runtime_change
         ):
@@ -922,7 +976,27 @@ class RunRecord(_Model):
         if v.rounds and self.samples_path is None:
             msg = f"{v.rounds} rounds ran but samples_path is None"
             raise ValueError(msg)
+        self._check_against_spec()
         return self
+
+    def _check_against_spec(self) -> None:
+        """Check the verdict fits the spec's budget and metric."""
+        v, spec = self.verdict, self.spec
+        if v.rounds > spec.budget.max_rounds:
+            msg = (
+                f"{v.rounds} rounds exceed max_rounds = "
+                f"{spec.budget.max_rounds}"
+            )
+            raise ValueError(msg)
+        if v.looks > spec.looks.max_looks:
+            msg = f"{v.looks} looks exceed max_looks = {spec.looks.max_looks}"
+            raise ValueError(msg)
+        if (
+            v.diagnostics.wall_interval is not None
+            and spec.metric.kind != "reported"
+        ):
+            msg = "a wall_interval is computed only for a reported metric"
+            raise ValueError(msg)
 
 
 MODELS: Final[tuple[type[BaseModel], ...]] = (

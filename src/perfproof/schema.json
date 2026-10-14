@@ -34,12 +34,10 @@
           "type": "string"
         },
         "env": {
-          "description": "Declared environment variables, set for every execution and\ncovered by the procedure gate.",
-          "patternProperties": {
-            "^[A-Za-z_][A-Za-z0-9_]*$": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
+          "description": "Declared environment variables, set for every execution and\ncovered by the procedure gate.",
           "title": "Env",
           "type": "object"
         },
@@ -327,7 +325,7 @@
     },
     "Difference": {
       "additionalProperties": false,
-      "description": "One recorded difference between the two arms.",
+      "description": "One recorded difference between the two arms.\n\nRaises\n------\npydantic.ValidationError\n    If both sides are ``None``.",
       "properties": {
         "item": {
           "description": "What differs: a file path, environment variable, setting or\noutput.",
@@ -474,6 +472,7 @@
         "file": {
           "anyOf": [
             {
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -941,7 +940,6 @@
         },
         "missing": {
           "additionalProperties": {
-            "minLength": 1,
             "type": "string"
           },
           "description": "Reason for each probe left ``None``, keyed by field name.",
@@ -1057,7 +1055,7 @@
     },
     "RunRecord": {
       "additionalProperties": false,
-      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, and the deciding gate must be one that failed), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, rounds ran without a samples path, or ``finished_at``\n    precedes ``started_at``.",
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate present and passed or waived), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, rounds ran without a samples path, rounds or looks\n    exceed the spec's budget, a ``wall_interval`` appears for a\n    metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``.",
       "properties": {
         "schema_version": {
           "const": 1,
@@ -1111,7 +1109,7 @@
           "description": "The verdict."
         },
         "gates": {
-          "description": "Gate results, including recorded differences between arms.",
+          "description": "Gate results, including recorded differences between arms. A\ngate verdict may list only the gates that ran; any other verdict\nlists all five.",
           "items": {
             "$ref": "#/$defs/GateResult"
           },
@@ -1297,7 +1295,7 @@
     },
     "Verdict": {
       "additionalProperties": false,
-      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a\n    performance verdict lacks its estimate, interval or a look, or a\n    calibrated verdict names no target class.",
+      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a\n    performance verdict lacks its estimate or interval, an interval\n    comes without a look on at least 2 rounds, or a calibrated\n    verdict names no target class.",
       "properties": {
         "outcome": {
           "description": "KEEP, REJECT or INCONCLUSIVE.",
