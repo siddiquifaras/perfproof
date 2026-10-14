@@ -787,49 +787,66 @@ def test_rejects_inconsistent_record(update: dict[str, Any]) -> None:
         record(**update)
 
 
+def at_bar(rule: int, lower: float, upper: float) -> Verdict:
+    """Return a validated verdict of ``rule`` with the given bounds."""
+    base = {2: keep(), 3: regression(), 5: inconclusive()}[rule]
+    return Verdict.model_validate(
+        {
+            **as_json(base),
+            "interval": as_json(iv(lower, upper)),
+            "regression": rule == 3 and upper < 1,
+            "diagnostics": {},
+        }
+    )
+
+
+def near(where: str | float, bar: float) -> float:
+    """Return the float64 just below, at or just above ``bar``."""
+    if where == "below":
+        return math.nextafter(bar, 0)
+    if where == "bar":
+        return bar
+    if where == "above":
+        return math.nextafter(bar, 2)
+    return float(where)
+
+
+@pytest.mark.parametrize("min_effect", [0.03, 0.0])
 @pytest.mark.parametrize(
-    ("verdict", "accepted"),
+    ("rule", "bounds", "accepted"),
     [
         # KEEP needs L strictly above the bar.
-        (keep().model_copy(update={"interval": iv(BAR, 1.1)}), False),
-        (
-            keep().model_copy(
-                update={"interval": iv(math.nextafter(BAR, 2), 1.1)}
-            ),
-            True,
-        ),
+        (2, ("below", 1.5), False),
+        (2, ("bar", 1.5), False),
+        (2, ("above", 1.5), True),
+        (2, ("above", "above"), True),
         # A performance REJECT needs U at or below the bar.
-        (
-            regression().model_copy(
-                update={"interval": iv(1.0, BAR), "regression": False}
-            ),
-            True,
-        ),
-        (
-            regression().model_copy(
-                update={
-                    "interval": iv(1.0, math.nextafter(BAR, 2)),
-                    "regression": False,
-                }
-            ),
-            False,
-        ),
-        # INCONCLUSIVE needs the interval to straddle the bar.
-        (inconclusive().model_copy(update={"interval": iv(1.04, 1.1)}), False),
-        (inconclusive().model_copy(update={"interval": iv(0.9, 1.0)}), False),
-        (inconclusive().model_copy(update={"interval": iv(BAR, 1.1)}), True),
+        (3, (0.5, "below"), True),
+        (3, (0.5, "bar"), True),
+        (3, ("bar", "bar"), True),
+        (3, (0.5, "above"), False),
+        # INCONCLUSIVE needs L at or below the bar and U above it.
+        (5, ("below", "above"), True),
+        (5, ("bar", "above"), True),
+        (5, (0.5, "bar"), False),
+        (5, ("bar", "bar"), False),
+        (5, ("above", 1.5), False),
     ],
 )
 def test_verdict_must_agree_with_the_bar(
-    verdict: Verdict, accepted: bool
+    min_effect: float,
+    rule: int,
+    bounds: tuple[str | float, str | float],
+    accepted: bool,
 ) -> None:
-    # Diagnostics are dropped so only the bar rule is under test.
-    v = verdict.model_copy(update={"diagnostics": Diagnostics()})
+    bar = 1 + min_effect
+    s = spec().model_copy(update={"min_effect": min_effect})
+    v = at_bar(rule, near(bounds[0], bar), near(bounds[1], bar))
     if accepted:
-        record(verdict=v)
+        record(verdict=v, spec=s)
     else:
         with pytest.raises(ValidationError, match="contradicts the interval"):
-            record(verdict=v)
+            record(verdict=v, spec=s)
 
 
 def cross_record(verdict: Verdict) -> RunRecord:
