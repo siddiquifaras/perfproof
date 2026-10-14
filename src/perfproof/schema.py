@@ -17,8 +17,7 @@ import hashlib
 import itertools
 import json
 import sys
-from collections.abc import Mapping
-from types import MappingProxyType
+from collections.abc import Iterator, Mapping
 from typing import Annotated, Any, Final, Literal, Self, cast, get_args
 
 from pydantic import (
@@ -138,19 +137,42 @@ def _check_relative_dir(value: str) -> str:
     return value if value == "." else _check_relative_path(value)
 
 
-def _read_only(value: Mapping[str, str]) -> Mapping[str, str]:
-    """Copy ``value`` into a read-only mapping.
+class _FrozenMap(Mapping[str, str]):
+    """Read-only, hashable and picklable mapping of str to str.
 
     Pydantic's ``frozen`` stops attribute assignment but not writes into
     a dict field, and a write into `BenchmarkSpec.env` would silently
-    change the spec's hash.
+    change the spec's hash. ``MappingProxyType`` would block the write
+    but cannot be pickled or deep-copied.
     """
-    return MappingProxyType(dict(value))
 
+    __slots__ = ("_data",)
 
-def _empty_map() -> Mapping[str, str]:
-    """Return an empty read-only mapping, the default for map fields."""
-    return MappingProxyType({})
+    def __init__(self, data: Mapping[str, str] | None = None) -> None:
+        self._data = dict(data or {})
+
+    def __getitem__(self, key: str) -> str:
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self._data.items()))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        return self._data == dict(cast("Mapping[object, object]", other))
+
+    def __reduce__(self) -> tuple[type[Self], tuple[dict[str, str]]]:
+        return (type(self), (self._data,))
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self._data!r})"
 
 
 # Scalars are strict: JSON numbers, booleans and strings are taken as
@@ -188,9 +210,18 @@ NonNegative = Annotated[float, Strict(), Field(ge=0)]
 Fraction = Annotated[float, Strict(), Field(ge=0, le=1)]
 Ratio = Positive
 Level = Annotated[float, Strict(), Field(gt=0, lt=1)]
-_AsDict = PlainSerializer(dict, return_type=dict[str, str])
-EnvMap = Annotated[Mapping[EnvName, Str], AfterValidator(_read_only), _AsDict]
-ReasonMap = Annotated[Mapping[Str, Text], AfterValidator(_read_only), _AsDict]
+# The serializers' return types repeat the key and value constraints so
+# the exported JSON Schema keeps them.
+EnvMap = Annotated[
+    Mapping[EnvName, Str],
+    AfterValidator(_FrozenMap),
+    PlainSerializer(dict, return_type=dict[EnvName, Str]),
+]
+ReasonMap = Annotated[
+    Mapping[Str, Text],
+    AfterValidator(_FrozenMap),
+    PlainSerializer(dict, return_type=dict[Str, Text]),
+]
 
 
 def _sha256_json(payload: object) -> str:
@@ -382,7 +413,7 @@ class BenchmarkSpec(_Model):
     """Benchmark command as an argv list, launched without a shell."""
     cwd: RelDir = "."
     """Working directory, relative to the tree root."""
-    env: EnvMap = Field(default_factory=_empty_map)
+    env: EnvMap = Field(default_factory=_FrozenMap)
     """Declared environment variables, set for every execution and
     covered by the procedure gate."""
     metric: MetricSpec
@@ -863,7 +894,7 @@ class MachineFingerprint(_Model):
     """Version of the Python running perfproof."""
     gpus: tuple[GpuInfo, ...] | None = None
     """NVIDIA GPUs; empty when there are none."""
-    missing: ReasonMap = Field(default_factory=_empty_map)
+    missing: ReasonMap = Field(default_factory=_FrozenMap)
     """Reason for each probe left ``None``, keyed by field name."""
 
     @model_validator(mode="after")

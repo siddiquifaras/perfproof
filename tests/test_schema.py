@@ -1,6 +1,7 @@
 import copy
 import json
 import math
+import pickle
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
@@ -344,6 +345,16 @@ def test_models_are_frozen() -> None:
     v = keep()
     with pytest.raises(ValidationError, match="frozen"):
         v.estimate = 2.0  # type: ignore[misc]
+
+
+def test_records_copy_pickle_and_hash() -> None:
+    r = record()
+    # Round-trips bytes this test just produced, nothing untrusted.
+    assert pickle.loads(pickle.dumps(r)) == r  # noqa: S301
+    assert copy.deepcopy(r) == r
+    assert r.model_copy(deep=True) == r
+    assert hash(spec()) == hash(spec())
+    assert hash(machine()) == hash(machine())
 
 
 @pytest.mark.parametrize(

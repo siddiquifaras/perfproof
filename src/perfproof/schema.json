@@ -34,10 +34,12 @@
           "type": "string"
         },
         "env": {
-          "additionalProperties": {
-            "type": "string"
-          },
           "description": "Declared environment variables, set for every execution and\ncovered by the procedure gate.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "type": "string"
+            }
+          },
           "title": "Env",
           "type": "object"
         },
@@ -940,6 +942,7 @@
         },
         "missing": {
           "additionalProperties": {
+            "minLength": 1,
             "type": "string"
           },
           "description": "Reason for each probe left ``None``, keyed by field name.",
