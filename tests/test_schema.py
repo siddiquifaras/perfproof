@@ -710,6 +710,27 @@ def test_lock_manifest_files_are_sorted() -> None:
     assert [f.path for f in manifest.files] == ["bench.py", "data/in.bin"]
 
 
+BAR = 1 + spec().min_effect
+
+
+def iv(lower: float, upper: float) -> Interval:
+    return Interval(lower=lower, upper=upper, confidence=0.99)
+
+
+def cross(
+    verdict: Verdict, pairs: int, interval: Interval | None = None
+) -> Verdict:
+    data: dict[str, Any] = {
+        **as_json(verdict),
+        "cross_host": True,
+        "session_pairs": pairs,
+        "diagnostics": {},
+    }
+    if interval is not None:
+        data["interval"] = as_json(interval)
+    return Verdict.model_validate(data)
+
+
 @pytest.mark.parametrize(
     "update",
     [
@@ -745,10 +766,10 @@ def test_lock_manifest_files_are_sorted() -> None:
         },
         {"finished_at": T0 - timedelta(seconds=1)},
         {"machines": ()},
-        {"verdict": keep().model_copy(update={"cross_host": True})},
+        {"verdict": cross(keep(), 10)},
         {"samples_path": None},
         {
-            "verdict": keep().model_copy(update={"cross_host": True}),
+            "verdict": cross(keep(), 10),
             "spec": spec().model_copy(update={"allow_cross_host": True}),
             "gates": gates_passed(),
         },
@@ -764,13 +785,6 @@ def test_lock_manifest_files_are_sorted() -> None:
 def test_rejects_inconsistent_record(update: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         record(**update)
-
-
-BAR = 1 + spec().min_effect
-
-
-def iv(lower: float, upper: float) -> Interval:
-    return Interval(lower=lower, upper=upper, confidence=0.99)
 
 
 @pytest.mark.parametrize(
@@ -818,28 +832,9 @@ def test_verdict_must_agree_with_the_bar(
             record(verdict=v)
 
 
-def test_cross_host_inconclusive_may_clear_the_bar() -> None:
-    # Fewer than n0 session pairs is INCONCLUSIVE whatever the interval.
-    v = inconclusive().model_copy(
-        update={
-            "interval": iv(1.04, 1.1),
-            "cross_host": True,
-            "diagnostics": Diagnostics(),
-        }
-    )
-    record(
-        verdict=v,
-        spec=spec().model_copy(update={"allow_cross_host": True}),
-        gates=(
-            *gates_passed()[:4],
-            GateResult(gate="same_host", status="waived", detail="opt-in"),
-        ),
-    )
-
-
-def test_cross_host_record_needs_opt_in_and_waived_gate() -> None:
-    cross = record(
-        verdict=keep().model_copy(update={"cross_host": True}),
+def cross_record(verdict: Verdict) -> RunRecord:
+    return record(
+        verdict=verdict,
         spec=spec().model_copy(update={"allow_cross_host": True}),
         gates=(
             *gates_passed()[:4],
@@ -847,7 +842,63 @@ def test_cross_host_record_needs_opt_in_and_waived_gate() -> None:
         ),
         machines=(machine(), machine()),
     )
-    assert cross.verdict.cross_host
+
+
+@pytest.mark.parametrize(
+    ("verdict", "accepted"),
+    [
+        # Below n0 = 10 pairs, only INCONCLUSIVE, whatever the interval.
+        (cross(inconclusive(), 9, iv(1.04, 1.1)), True),
+        (cross(inconclusive(), 9, iv(0.9, 1.0)), True),
+        (cross(keep(), 9), False),
+        (cross(regression(), 9), False),
+        # From n0 pairs on, the usual rules apply.
+        (cross(inconclusive(), 10, iv(1.04, 1.1)), False),
+        (cross(inconclusive(), 10, iv(0.9, 1.0)), False),
+        (cross(inconclusive(), 10, iv(1.0, 1.1)), True),
+        (cross(keep(), 10), True),
+        (cross(regression(), 10), True),
+    ],
+)
+def test_cross_host_verdict_needs_n0_session_pairs(
+    verdict: Verdict, accepted: bool
+) -> None:
+    if accepted:
+        assert cross_record(verdict).verdict.cross_host
+    else:
+        with pytest.raises(ValidationError, match=r"n0|contradicts"):
+            cross_record(verdict)
+
+
+def test_session_pairs_go_with_cross_host() -> None:
+    with pytest.raises(ValidationError, match="session_pairs"):
+        Verdict.model_validate({**as_json(keep()), "cross_host": True})
+    with pytest.raises(ValidationError, match="session_pairs"):
+        Verdict.model_validate({**as_json(keep()), "session_pairs": 10})
+
+
+@pytest.mark.parametrize(
+    ("upper", "regression", "accepted"),
+    [
+        (1.0, False, True),
+        (1.0, True, False),
+        (math.nextafter(1.0, 0), True, True),
+        (math.nextafter(1.0, 0), False, False),
+    ],
+)
+def test_regression_flag_is_exactly_u_below_one(
+    upper: float, regression: bool, accepted: bool
+) -> None:
+    data = {
+        **as_json(EXAMPLES["verdict_regression"]),
+        "interval": as_json(iv(0.9, upper)),
+        "regression": regression,
+    }
+    if accepted:
+        assert Verdict.model_validate(data).regression is regression
+    else:
+        with pytest.raises(ValidationError, match="regression"):
+            Verdict.model_validate(data)
 
 
 # Spec hash

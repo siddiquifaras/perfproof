@@ -794,6 +794,9 @@ class Verdict(_Model):
     """Decided under the cross-host session design. It rests on the
     assumption that the pool allocates hosts independently of which
     version runs."""
+    session_pairs: Count | None = None
+    """Consecutive baseline and candidate session pairs measured, the
+    observations of the cross-host design; ``None`` on one host."""
     target_class: TargetClass | None = None
     """Target class judged under; ``None`` when unknown."""
     calibration: CalibrationStatus
@@ -832,6 +835,9 @@ class Verdict(_Model):
                 "regression is set exactly for a performance REJECT (rule "
                 "3) whose upper bound is below 1"
             )
+            raise ValueError(msg)
+        if self.cross_host != (self.session_pairs is not None):
+            msg = "session_pairs is set for cross-host verdicts and only them"
             raise ValueError(msg)
         if self.calibration == "calibrated" and self.target_class is None:
             msg = "a calibrated verdict must name its target class"
@@ -1094,7 +1100,9 @@ class RunRecord(_Model):
         session, or name a session with no machine, rounds ran without a
         samples path, rounds or looks
         exceed the spec's budget, the interval contradicts the verdict
-        against the bar ``1 + min_effect``, a ``wall_interval`` appears
+        against the bar ``1 + min_effect``, a cross-host verdict with
+        fewer than ``n0`` session pairs is not INCONCLUSIVE or a gate
+        REJECT, a ``wall_interval`` appears
         for a
         metric other than ``reported``, or ``finished_at`` precedes
         ``started_at``.
@@ -1184,13 +1192,23 @@ class RunRecord(_Model):
         The comparisons are exactly those of ``docs/method.md``:
         strict ``L > 1 + min_effect`` for KEEP, inclusive
         ``U <= 1 + min_effect`` for a performance REJECT, and neither
-        for INCONCLUSIVE. No
-        tolerance is applied, so the decision code must decide on these
-        same float64 bounds and bar. A cross-host INCONCLUSIVE is exempt
-        from the straddle check, because fewer than ``n0`` session pairs
-        is INCONCLUSIVE whatever the interval shows.
+        for INCONCLUSIVE. No tolerance is applied, so the decision code
+        must decide on these same float64 bounds and bar.
+
+        Cross host, a comparison with fewer than ``n0`` session pairs is
+        INCONCLUSIVE whatever its interval shows, so it may not be KEEP
+        or a performance REJECT, and its INCONCLUSIVE is exempt from the
+        straddle check. From ``n0`` pairs on, the usual rules apply.
         """
         v = self.verdict
+        n0 = self.spec.looks.n0
+        too_few_pairs = v.session_pairs is not None and v.session_pairs < n0
+        if too_few_pairs and v.rule in (2, 3):
+            msg = (
+                f"a cross-host comparison with {v.session_pairs} session "
+                f"pairs, fewer than n0 = {n0}, is INCONCLUSIVE"
+            )
+            raise ValueError(msg)
         if v.interval is None:
             return
         bar = 1 + self.spec.min_effect
@@ -1199,7 +1217,7 @@ class RunRecord(_Model):
         if (
             (v.rule == 2 and not keep)
             or (v.rule == 3 and not reject)
-            or (v.rule == 5 and not v.cross_host and (keep or reject))
+            or (v.rule == 5 and not too_few_pairs and (keep or reject))
         ):
             msg = (
                 f"rule {v.rule} contradicts the interval "
