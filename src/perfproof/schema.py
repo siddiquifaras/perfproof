@@ -1100,8 +1100,9 @@ class RunRecord(_Model):
         session, or name a session with no machine, rounds ran without a
         samples path, rounds or looks
         exceed the spec's budget, the interval contradicts the verdict
-        against the bar ``1 + min_effect``, a cross-host verdict with
-        fewer than ``n0`` session pairs is not INCONCLUSIVE or a gate
+        against the bar ``1 + min_effect``, a cross-host verdict claims
+        more session pairs than ``machines`` holds sessions for, or has
+        fewer than ``n0`` pairs and is not INCONCLUSIVE or a gate
         REJECT, a ``wall_interval`` appears
         for a
         metric other than ``reported``, or ``finished_at`` precedes
@@ -1195,13 +1196,23 @@ class RunRecord(_Model):
         for INCONCLUSIVE. No tolerance is applied, so the decision code
         must decide on these same float64 bounds and bar.
 
-        Cross host, a comparison with fewer than ``n0`` session pairs is
+        Cross host, ``session_pairs`` cannot exceed half the recorded
+        sessions. A comparison with fewer than ``n0`` session pairs is
         INCONCLUSIVE whatever its interval shows, so it may not be KEEP
         or a performance REJECT, and its INCONCLUSIVE is exempt from the
         straddle check. From ``n0`` pairs on, the usual rules apply.
         """
         v = self.verdict
         n0 = self.spec.looks.n0
+        if v.session_pairs is not None and 2 * v.session_pairs > len(
+            self.machines
+        ):
+            msg = (
+                f"{v.session_pairs} session pairs need at least "
+                f"{2 * v.session_pairs} sessions in machines, not "
+                f"{len(self.machines)}"
+            )
+            raise ValueError(msg)
         too_few_pairs = v.session_pairs is not None and v.session_pairs < n0
         if too_few_pairs and v.rule in (2, 3):
             msg = (

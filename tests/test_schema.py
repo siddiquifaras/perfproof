@@ -536,22 +536,29 @@ def test_rejects_nan_in_json_text() -> None:
 
 @pytest.mark.parametrize("factory", [integrity, correctness_reject])
 @pytest.mark.parametrize(
-    ("path", "value"),
+    ("path", "value", "message"),
     [
-        ("estimate", 1.2),
-        ("interval", {"lower": 1.1, "upper": 1.3, "confidence": 0.99}),
+        ("estimate", 1.2, "carries no speedup estimate"),
+        (
+            "interval",
+            {"lower": 1.1, "upper": 1.3, "confidence": 0.99},
+            "carries no speedup estimate",
+        ),
         (
             "diagnostics.wall_interval",
             {"lower": 1.1, "upper": 1.3, "confidence": 0.99},
+            "carries no speedup estimate",
         ),
-        ("regression", True),
+        ("regression", True, "regression"),
     ],
 )
 def test_gate_verdict_carries_no_speed_claim(
-    factory: Any, path: str, value: Any
+    factory: Any, path: str, value: Any, message: str
 ) -> None:
-    data = with_value(as_json(factory()), path, value)
-    with pytest.raises(ValidationError):
+    # After rounds and looks, so only the no-speed-claim rule refuses.
+    data = {**as_json(factory()), "rounds": 30, "looks": 2}
+    data = with_value(data, path, value)
+    with pytest.raises(ValidationError, match=message):
         Verdict.model_validate(data)
 
 
@@ -734,7 +741,6 @@ def cross(
 @pytest.mark.parametrize(
     "update",
     [
-        {"gates": (lock_failed(), *gates_passed()[2:])},
         {"verdict": integrity()},
         {
             "verdict": integrity(),
@@ -849,16 +855,54 @@ def test_verdict_must_agree_with_the_bar(
             record(verdict=v, spec=s)
 
 
-def cross_record(verdict: Verdict) -> RunRecord:
+def cross_gates() -> tuple[GateResult, ...]:
+    return (
+        *gates_passed()[:4],
+        GateResult(gate="same_host", status="waived", detail="opt-in"),
+    )
+
+
+def cross_record(
+    verdict: Verdict, gates: tuple[GateResult, ...] | None = None
+) -> RunRecord:
     return record(
         verdict=verdict,
         spec=spec().model_copy(update={"allow_cross_host": True}),
-        gates=(
-            *gates_passed()[:4],
-            GateResult(gate="same_host", status="waived", detail="opt-in"),
-        ),
-        machines=(machine(), machine()),
+        gates=cross_gates() if gates is None else gates,
+        machines=(machine(),) * (2 * (verdict.session_pairs or 1)),
     )
+
+
+def test_session_pairs_need_their_sessions() -> None:
+    with pytest.raises(ValidationError, match="session pairs need"):
+        record(
+            verdict=cross(keep(), 10),
+            spec=spec().model_copy(update={"allow_cross_host": True}),
+            gates=cross_gates(),
+            machines=(machine(),) * 19,
+        )
+
+
+@pytest.mark.parametrize("on_cross_host", [False, True])
+@pytest.mark.parametrize(
+    "failed", ["correctness", "lock", "procedure", "runtime"]
+)
+def test_failed_gate_overrides_a_keep_worthy_interval(
+    on_cross_host: bool, failed: str
+) -> None:
+    passed = cross_gates() if on_cross_host else gates_passed()
+    gates = tuple(
+        GateResult(gate=g.gate, status="failed", detail="differs")
+        if g.gate == failed
+        else g
+        for g in passed
+    )
+    if on_cross_host:
+        with pytest.raises(ValidationError, match="must decide"):
+            cross_record(cross(keep(), 10), gates)
+    else:
+        with pytest.raises(ValidationError, match="must decide"):
+            record(gates=gates)
 
 
 @pytest.mark.parametrize(
