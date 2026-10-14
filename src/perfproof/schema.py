@@ -40,6 +40,7 @@ from pydantic import (
     AfterValidator,
     AwareDatetime,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
@@ -102,11 +103,26 @@ Outcome = Literal["KEEP", "REJECT", "INCONCLUSIVE"]
 Reason = Literal[
     "performance", "correctness", "integrity", "insufficient_evidence"
 ]
-Rule = Literal[1, 2, 3, 5]
+
+
+def _exact_int(value: object) -> object:
+    """Refuse a bool or float where an integer literal is expected.
+
+    Literal fields compare by equality, so without this ``2.0`` and
+    ``True`` would pass as ``2`` and ``1``.
+    """
+    if type(value) is not int:
+        msg = f"expected an integer, got {value!r}"
+        raise ValueError(msg)
+    return value
+
+
+Rule = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_exact_int)]
 """Decision rule that decided, numbered as in ``docs/method.md``.
 
 Rule 4 (continue) never ends a comparison, so no verdict carries it.
 """
+SchemaVersion = Annotated[Literal[1], BeforeValidator(_exact_int)]
 GateName = Literal["correctness", "lock", "procedure", "runtime", "same_host"]
 GateStatus = Literal["passed", "failed", "waived"]
 LockRole = Literal["harness", "oracle", "input", "config"]
@@ -447,7 +463,7 @@ class BenchmarkSpec(_Model):
         match the content.
     """
 
-    schema_version: Literal[1] = SCHEMA_VERSION
+    schema_version: SchemaVersion = SCHEMA_VERSION
     """Version of this format."""
     name: Name
     """Stable, human-facing benchmark identifier. Every version of a
@@ -478,7 +494,8 @@ class BenchmarkSpec(_Model):
     """Time limit for one benchmark execution, in seconds."""
     harness: Annotated[tuple[RelPath, ...], Field(min_length=1)]
     """Files of the benchmark and its harness, locked. For a `reported`
-    metric these include the code that times and prints the value."""
+    metric these include the code that times and prints the value. The
+    order of this and the other path lists is part of ``spec_hash``."""
     oracle: tuple[RelPath, ...] = ()
     """Correctness oracle files (tests, expected outputs), locked."""
     inputs: tuple[RelPath, ...] = ()
@@ -561,7 +578,7 @@ class LockManifest(_Model):
         If a path appears twice.
     """
 
-    schema_version: Literal[1] = SCHEMA_VERSION
+    schema_version: SchemaVersion = SCHEMA_VERSION
     """Version of this format."""
     spec_hash: Sha256Hex
     """`BenchmarkSpec.spec_hash` of the spec these files belong to."""
@@ -809,8 +826,12 @@ class Verdict(_Model):
                 f"{self.looks} looks on {self.rounds} rounds"
             )
             raise ValueError(msg)
-        if self.regression and self.rule != 3:
-            msg = "only a performance REJECT (rule 3) flags a regression"
+        below_one = self.interval is not None and self.interval.upper < 1
+        if self.regression != (self.rule == 3 and below_one):
+            msg = (
+                "regression is set exactly for a performance REJECT (rule "
+                "3) whose upper bound is below 1"
+            )
             raise ValueError(msg)
         if self.calibration == "calibrated" and self.target_class is None:
             msg = "a calibrated verdict must name its target class"
@@ -1072,12 +1093,14 @@ class RunRecord(_Model):
         opt-in, the environments miss a version, repeat a version and
         session, or name a session with no machine, rounds ran without a
         samples path, rounds or looks
-        exceed the spec's budget, a ``wall_interval`` appears for a
+        exceed the spec's budget, the interval contradicts the verdict
+        against the bar ``1 + min_effect``, a ``wall_interval`` appears
+        for a
         metric other than ``reported``, or ``finished_at`` precedes
         ``started_at``.
     """
 
-    schema_version: Literal[1] = SCHEMA_VERSION
+    schema_version: SchemaVersion = SCHEMA_VERSION
     """Version of this format."""
     run_id: Name
     """Run identifier; the directory name under ``.perfproof/runs/``."""
@@ -1155,6 +1178,36 @@ class RunRecord(_Model):
         self._check_against_spec()
         return self
 
+    def _check_bar(self) -> None:
+        """Check the recorded interval reproduces the recorded verdict.
+
+        The comparisons are exactly those of ``docs/method.md``:
+        strict ``L > 1 + min_effect`` for KEEP, inclusive
+        ``U <= 1 + min_effect`` for a performance REJECT, and neither
+        for INCONCLUSIVE. No
+        tolerance is applied, so the decision code must decide on these
+        same float64 bounds and bar. A cross-host INCONCLUSIVE is exempt
+        from the straddle check, because fewer than ``n0`` session pairs
+        is INCONCLUSIVE whatever the interval shows.
+        """
+        v = self.verdict
+        if v.interval is None:
+            return
+        bar = 1 + self.spec.min_effect
+        keep = v.interval.lower > bar
+        reject = v.interval.upper <= bar
+        if (
+            (v.rule == 2 and not keep)
+            or (v.rule == 3 and not reject)
+            or (v.rule == 5 and not v.cross_host and (keep or reject))
+        ):
+            msg = (
+                f"rule {v.rule} contradicts the interval "
+                f"[{v.interval.lower!r}, {v.interval.upper!r}] against the "
+                f"bar {bar!r}"
+            )
+            raise ValueError(msg)
+
     def _check_environments(self) -> None:
         """Check each tree environment belongs to a known session."""
         keys = [(e.version, e.session) for e in self.environments]
@@ -1172,8 +1225,9 @@ class RunRecord(_Model):
             raise ValueError(msg)
 
     def _check_against_spec(self) -> None:
-        """Check the verdict fits the spec's budget and metric."""
+        """Check the verdict fits the spec's budget, metric and bar."""
         v, spec = self.verdict, self.spec
+        self._check_bar()
         if v.rounds > spec.budget.max_rounds:
             msg = (
                 f"{v.rounds} rounds exceed max_rounds = "

@@ -488,6 +488,10 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("sample", "value", "0.1"),
     ("spec", "warmup", 2.5),
     ("verdict_keep", "regression", "false"),
+    ("verdict_keep", "rule", 2.0),
+    ("verdict_keep", "rule", True),
+    ("spec", "schema_version", True),
+    ("record", "schema_version", 1.0),
     # malformed identifiers and paths
     ("sample", "command_hash", "ABC"),
     ("record", "baseline_commit", "main"),
@@ -568,6 +572,11 @@ INCONSISTENT: list[tuple[str, dict[str, Any]]] = [
     ("verdict_keep", {"estimate": None}),
     ("verdict_keep", {"looks": 0}),
     ("verdict_keep", {"regression": True}),
+    ("verdict_regression", {"regression": False}),
+    (
+        "verdict_regression",
+        {"interval": {"lower": 0.95, "upper": 1.01, "confidence": 0.99}},
+    ),
     ("verdict_regression", {"interval": None}),
     ("verdict_inconclusive", {"reason": "performance"}),
     ("verdict_inconclusive", {"regression": True}),
@@ -755,6 +764,77 @@ def test_lock_manifest_files_are_sorted() -> None:
 def test_rejects_inconsistent_record(update: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         record(**update)
+
+
+BAR = 1 + spec().min_effect
+
+
+def iv(lower: float, upper: float) -> Interval:
+    return Interval(lower=lower, upper=upper, confidence=0.99)
+
+
+@pytest.mark.parametrize(
+    ("verdict", "accepted"),
+    [
+        # KEEP needs L strictly above the bar.
+        (keep().model_copy(update={"interval": iv(BAR, 1.1)}), False),
+        (
+            keep().model_copy(
+                update={"interval": iv(math.nextafter(BAR, 2), 1.1)}
+            ),
+            True,
+        ),
+        # A performance REJECT needs U at or below the bar.
+        (
+            regression().model_copy(
+                update={"interval": iv(1.0, BAR), "regression": False}
+            ),
+            True,
+        ),
+        (
+            regression().model_copy(
+                update={
+                    "interval": iv(1.0, math.nextafter(BAR, 2)),
+                    "regression": False,
+                }
+            ),
+            False,
+        ),
+        # INCONCLUSIVE needs the interval to straddle the bar.
+        (inconclusive().model_copy(update={"interval": iv(1.04, 1.1)}), False),
+        (inconclusive().model_copy(update={"interval": iv(0.9, 1.0)}), False),
+        (inconclusive().model_copy(update={"interval": iv(BAR, 1.1)}), True),
+    ],
+)
+def test_verdict_must_agree_with_the_bar(
+    verdict: Verdict, accepted: bool
+) -> None:
+    # Diagnostics are dropped so only the bar rule is under test.
+    v = verdict.model_copy(update={"diagnostics": Diagnostics()})
+    if accepted:
+        record(verdict=v)
+    else:
+        with pytest.raises(ValidationError, match="contradicts the interval"):
+            record(verdict=v)
+
+
+def test_cross_host_inconclusive_may_clear_the_bar() -> None:
+    # Fewer than n0 session pairs is INCONCLUSIVE whatever the interval.
+    v = inconclusive().model_copy(
+        update={
+            "interval": iv(1.04, 1.1),
+            "cross_host": True,
+            "diagnostics": Diagnostics(),
+        }
+    )
+    record(
+        verdict=v,
+        spec=spec().model_copy(update={"allow_cross_host": True}),
+        gates=(
+            *gates_passed()[:4],
+            GateResult(gate="same_host", status="waived", detail="opt-in"),
+        ),
+    )
 
 
 def test_cross_host_record_needs_opt_in_and_waived_gate() -> None:
