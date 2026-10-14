@@ -2,7 +2,7 @@
   "$defs": {
     "BenchmarkSpec": {
       "additionalProperties": false,
-      "description": "A frozen benchmark definition and its content hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, or a supplied ``spec_hash`` does not\n    match the content.",
+      "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, or a supplied ``spec_hash`` does not\n    match the content.",
       "properties": {
         "schema_version": {
           "const": 1,
@@ -12,7 +12,7 @@
           "type": "integer"
         },
         "name": {
-          "description": "Benchmark name; also its file name under\n``.perfproof/benchmarks/``.",
+          "description": "Stable, human-facing benchmark identifier. Every version of a\nbenchmark shares it, so it never identifies a spec on its own;\n``spec_hash`` does.",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
           "title": "Name",
           "type": "string"
@@ -235,6 +235,29 @@
       "title": "CorrectnessSpec",
       "type": "object"
     },
+    "DependencyLock": {
+      "additionalProperties": false,
+      "description": "Hash of one dependency lockfile in a tree, e.g. ``uv.lock``.",
+      "properties": {
+        "path": {
+          "description": "Lockfile path, relative to the tree root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file's bytes.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "DependencyLock",
+      "type": "object"
+    },
     "Diagnostics": {
       "additionalProperties": false,
       "description": "Measurements that qualify a verdict without deciding it.\n\n``None`` means not computed.\n\nRaises\n------\npydantic.ValidationError\n    If ``metric_disagreement`` is set without ``wall_interval``.",
@@ -425,7 +448,7 @@
     },
     "GpuInfo": {
       "additionalProperties": false,
-      "description": "One NVIDIA GPU as ``nvidia-smi`` reports it.",
+      "description": "One NVIDIA GPU as ``nvidia-smi`` reports it.\n\nA clock ``nvidia-smi`` cannot read (``[N/A]``) is ``None`` with a\nreason in ``missing``, so it never discards the rest of the GPU and\nis never recorded as 0.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` clock has no reason in ``missing``, or ``missing``\n    names a field that has a value or does not exist.",
       "properties": {
         "name": {
           "description": "Model name.",
@@ -440,23 +463,46 @@
           "type": "string"
         },
         "sm_clock_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "Current SM clock, in MHz.",
-          "exclusiveMinimum": 0,
-          "title": "Sm Clock Mhz",
-          "type": "number"
+          "title": "Sm Clock Mhz"
         },
         "memory_clock_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "description": "Current memory clock, in MHz.",
-          "exclusiveMinimum": 0,
-          "title": "Memory Clock Mhz",
-          "type": "number"
+          "title": "Memory Clock Mhz"
+        },
+        "missing": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Reason for each clock left ``None``, keyed by field name.",
+          "title": "Missing",
+          "type": "object"
         }
       },
       "required": [
         "name",
-        "driver_version",
-        "sm_clock_mhz",
-        "memory_clock_mhz"
+        "driver_version"
       ],
       "title": "GpuInfo",
       "type": "object"
@@ -1058,7 +1104,7 @@
     },
     "RunRecord": {
       "additionalProperties": false,
-      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate present and passed or waived), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, rounds ran without a samples path, rounds or looks\n    exceed the spec's budget, a ``wall_interval`` appears for a\n    metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``.",
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate present and passed or waived), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, the environments miss a version, repeat a version and\n    session, or name a session with no machine, rounds ran without a\n    samples path, rounds or looks\n    exceed the spec's budget, a ``wall_interval`` appears for a\n    metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``.",
       "properties": {
         "schema_version": {
           "const": 1,
@@ -1128,6 +1174,15 @@
           "title": "Machines",
           "type": "array"
         },
+        "environments": {
+          "description": "What each tree ran with, per session; both versions appear.",
+          "items": {
+            "$ref": "#/$defs/TreeEnvironment"
+          },
+          "minItems": 2,
+          "title": "Environments",
+          "type": "array"
+        },
         "warnings": {
           "default": [],
           "description": "Warnings for the report.",
@@ -1170,6 +1225,7 @@
         "verdict",
         "gates",
         "machines",
+        "environments",
         "samples_path"
       ],
       "title": "RunRecord",
@@ -1294,6 +1350,114 @@
         "command_hash"
       ],
       "title": "Sample",
+      "type": "object"
+    },
+    "TreeEnvironment": {
+      "additionalProperties": false,
+      "description": "What one version's tree ran with, recorded for the reader.\n\nNothing here is a gate by itself. The `runtime` gate compares\n``runtime_executable`` and ``runtime_version`` between the arms\nunless the spec allows runtime changes, and the `procedure` gate\ncovers only the spec's declared environment. Every other difference\nbetween the arms is recorded and reported as a warning.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field has no reason in ``missing`` or ``missing``\n    names a field that has a value; if ``env_values`` names a\n    variable not in ``env_names``; or if a name or lockfile path\n    repeats.",
+      "properties": {
+        "version": {
+          "description": "Which tree.",
+          "enum": [
+            "baseline",
+            "candidate"
+          ],
+          "title": "Version",
+          "type": "string"
+        },
+        "session": {
+          "default": 0,
+          "description": "Index into `RunRecord.machines` of the session this was probed\nin; always 0 on one machine.",
+          "minimum": 0,
+          "title": "Session",
+          "type": "integer"
+        },
+        "runtime_executable": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resolved interpreter or runtime that ran the benchmark, such as\nthe absolute path of the tree's Python.",
+          "title": "Runtime Executable"
+        },
+        "runtime_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Version that runtime reports.",
+          "title": "Runtime Version"
+        },
+        "env_names": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Names of every environment variable the benchmark ran with,\nsorted.",
+          "title": "Env Names"
+        },
+        "env_values": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Values of the variables known to affect performance, such as\n``OMP_NUM_THREADS`` and ``PYTHONHASHSEED``; other values are not\nrecorded.",
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Env Values",
+          "type": "object"
+        },
+        "dependency_locks": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DependencyLock"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dependency lockfile hashes, sorted by path; empty when the tree\nhas none.",
+          "title": "Dependency Locks"
+        },
+        "missing": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Reason for each field left ``None``, keyed by field name.",
+          "title": "Missing",
+          "type": "object"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "title": "TreeEnvironment",
       "type": "object"
     },
     "Verdict": {

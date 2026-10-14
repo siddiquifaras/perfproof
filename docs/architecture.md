@@ -40,7 +40,8 @@ repository, which it adds to `.git/info/exclude`:
 
 ```
 .perfproof/
-  benchmarks/<name>.json     spec and lock manifest
+  benchmarks/<name>/
+    <spec-hash>.json         one spec version and its lock manifest
   worktrees/<sha>/           baseline checkouts
   runs/<run-id>/
     record.json              the full machine-readable result
@@ -48,6 +49,12 @@ repository, which it adds to `.git/info/exclude`:
     samples.npz              raw per-round samples
     profiles/                profiler outputs, untouched
 ```
+
+A benchmark's name is how people and agents refer to it. Its spec hash
+identifies one exact version: changing any spec field gives a new hash
+and a new file beside the old one, never an overwrite. Every run record
+carries the full spec and its hash, and two specs are never treated as
+the same because they share a name.
 
 ## MCP tools
 

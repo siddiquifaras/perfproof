@@ -12,9 +12,11 @@ from pydantic import BaseModel, ValidationError
 from perfproof import schema
 from perfproof.schema import (
     MODELS,
+    Arm,
     BenchmarkSpec,
     Budget,
     CorrectnessSpec,
+    DependencyLock,
     Diagnostics,
     Difference,
     GateResult,
@@ -30,6 +32,7 @@ from perfproof.schema import (
     RunRecord,
     RunWarning,
     Sample,
+    TreeEnvironment,
     Verdict,
 )
 
@@ -37,6 +40,9 @@ SCHEMA_FILE = Path(schema.__file__).with_name("schema.json")
 T0 = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 HASH_A = "a" * 64
 HASH_B = "b" * 64
+PINNED_SPEC_HASH = (
+    "c96961a77154cbd14987e39382171f23a625e23d43bf78a7f8c2a46f3f52e55b"
+)
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
@@ -202,6 +208,32 @@ def machine() -> MachineFingerprint:
     )
 
 
+def gpu_no_clocks() -> GpuInfo:
+    return GpuInfo(
+        name="NVIDIA A10G",
+        driver_version="560.35.03",
+        missing={
+            "sm_clock_mhz": "nvidia-smi reported [N/A]",
+            "memory_clock_mhz": "nvidia-smi reported [N/A]",
+        },
+    )
+
+
+def environment(version: Arm = "baseline") -> TreeEnvironment:
+    return TreeEnvironment(
+        version=version,
+        runtime_executable=f"/work/{version}/.venv/bin/python",
+        runtime_version="3.12.12",
+        env_names=("PATH", "OMP_NUM_THREADS", "HOME"),
+        env_values={"OMP_NUM_THREADS": "1"},
+        dependency_locks=(DependencyLock(path="uv.lock", sha256=HASH_A),),
+    )
+
+
+def environments() -> tuple[TreeEnvironment, ...]:
+    return (environment("baseline"), environment("candidate"))
+
+
 def record(**update: Any) -> RunRecord:
     fields: dict[str, Any] = {
         "run_id": "20261015-120000-sum-loop",
@@ -214,6 +246,7 @@ def record(**update: Any) -> RunRecord:
         "verdict": keep(),
         "gates": gates_passed(),
         "machines": (machine(),),
+        "environments": environments(),
         "warnings": (
             RunWarning(code="high_load", message="load average 1.5"),
         ),
@@ -291,6 +324,18 @@ EXAMPLES: dict[str, BaseModel] = {
         memory_clock_mhz=2619.0,
     ),
     "machine": machine(),
+    "gpu_no_clocks": gpu_no_clocks(),
+    "dependency_lock": DependencyLock(path="uv.lock", sha256=HASH_B),
+    "environment": environment(),
+    "environment_unknown": TreeEnvironment(
+        version="candidate",
+        missing={
+            "runtime_executable": "interpreter not found on PATH",
+            "runtime_version": "interpreter not found on PATH",
+            "env_names": "environment not captured",
+            "dependency_locks": "tree unreadable",
+        },
+    ),
     "warning": RunWarning(code="on_battery", message="running on battery"),
     "record": record(),
     "record_integrity": record(
@@ -350,11 +395,24 @@ def test_models_are_frozen() -> None:
 def test_records_copy_pickle_and_hash() -> None:
     r = record()
     # Round-trips bytes this test just produced, nothing untrusted.
-    assert pickle.loads(pickle.dumps(r)) == r  # noqa: S301
-    assert copy.deepcopy(r) == r
-    assert r.model_copy(deep=True) == r
+    copies = [
+        pickle.loads(pickle.dumps(r)),  # noqa: S301
+        copy.deepcopy(r),
+        r.model_copy(deep=True),
+        RunRecord.model_validate_json(r.model_dump_json()),
+    ]
+    for c in copies:
+        # Each copy is equal, keeps the pinned spec hash, and stays
+        # read-only through its nested mappings.
+        assert c == r
+        assert c.spec.spec_hash == PINNED_SPEC_HASH
+        with pytest.raises(TypeError):
+            c.spec.env["OMP_NUM_THREADS"] = "8"  # type: ignore[index]
+        with pytest.raises(TypeError):
+            c.environments[0].env_values["X"] = "1"  # type: ignore[index]
     assert hash(spec()) == hash(spec())
     assert hash(machine()) == hash(machine())
+    assert hash(environment()) == hash(environment())
 
 
 @pytest.mark.parametrize(
@@ -362,6 +420,8 @@ def test_records_copy_pickle_and_hash() -> None:
     [
         spec().env,
         machine().missing,
+        environment().env_values,
+        gpu_no_clocks().missing,
         BenchmarkSpec.model_validate({**as_json(spec()), "env": {}}).env,
     ],
 )
@@ -440,6 +500,12 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("spec", "command", []),
     ("spec", "env", {"BAD-NAME": "1"}),
     ("warning", "code", "Not Snake"),
+    ("environment", "session", -1),
+    ("environment", "version", "both"),
+    ("environment", "env_names.0", ""),
+    ("dependency_lock", "sha256", "x"),
+    ("dependency_lock", "path", "/abs/uv.lock"),
+    ("gpu", "sm_clock_mhz", 0.0),
     # unknown fields are refused, not dropped
     ("verdict_keep", "speedup", 1.08),
     ("sample", "note", "x"),
@@ -569,6 +635,17 @@ def test_inconclusive_without_interval_is_allowed() -> None:
             {"missing": {**machine().missing, "host_id": "probe failed"}},
         ),
         ("machine", {"missing": {**machine().missing, "no_such": "x"}}),
+        ("gpu", {"sm_clock_mhz": None}),
+        ("gpu_no_clocks", {"missing": {}}),
+        ("gpu_no_clocks", {"sm_clock_mhz": 1980.0}),
+        ("environment", {"runtime_version": None}),
+        ("environment", {"env_values": {"NOT_LISTED": "1"}}),
+        ("environment", {"env_names": ["HOME", "HOME"]}),
+        (
+            "environment",
+            {"dependency_locks": [as_json(EXAMPLES["dependency_lock"])] * 2},
+        ),
+        ("environment_unknown", {"env_values": {"HOME": "/root"}}),
         ("gate", {"detail": ""}),
         ("gate", {"gate": "lock", "status": "waived"}),
         ("spec", {"harness": []}),
@@ -596,6 +673,27 @@ def test_reported_metric_allows_either_direction() -> None:
         MetricSpec(kind="reported", direction=direction, unit="tokens/s")
 
 
+def test_environment_records_empty_values() -> None:
+    data = {**as_json(environment()), "env_values": {"OMP_NUM_THREADS": ""}}
+    assert TreeEnvironment.model_validate(data).env_values == {
+        "OMP_NUM_THREADS": ""
+    }
+
+
+def test_environment_names_and_locks_are_sorted() -> None:
+    data = as_json(environment())
+    data["dependency_locks"] = [
+        {"path": "web/package-lock.json", "sha256": HASH_B},
+        {"path": "uv.lock", "sha256": HASH_A},
+    ]
+    env = TreeEnvironment.model_validate(data)
+    assert env.env_names == ("HOME", "OMP_NUM_THREADS", "PATH")
+    assert [d.path for d in env.dependency_locks or ()] == [
+        "uv.lock",
+        "web/package-lock.json",
+    ]
+
+
 def test_lock_manifest_files_are_sorted() -> None:
     files = EXAMPLES["lock_manifest"].model_dump(mode="json")["files"]
     shuffled = {"spec_hash": HASH_B, "files": files[::-1]}
@@ -621,6 +719,21 @@ def test_lock_manifest_files_are_sorted() -> None:
         {"verdict": keep().model_copy(update={"rounds": 201})},
         {"verdict": keep().model_copy(update={"looks": 6})},
         {"verdict": inconclusive()},
+        {"environments": (environment(),)},
+        {"environments": (environment(), environment())},
+        {
+            "machines": (machine(), machine()),
+            "environments": (
+                environment(),
+                environment().model_copy(update={"session": 1}),
+            ),
+        },
+        {
+            "environments": (
+                environment(),
+                environment("candidate").model_copy(update={"session": 1}),
+            )
+        },
         {"finished_at": T0 - timedelta(seconds=1)},
         {"machines": ()},
         {"verdict": keep().model_copy(update={"cross_host": True})},
@@ -679,9 +792,15 @@ def test_spec_hash_is_sha256_hex() -> None:
 def test_spec_hash_is_pinned() -> None:
     # Pinned so a change to the canonical form, which would orphan every
     # stored spec, fails here instead of silently.
-    assert spec().spec_hash == (
-        "c96961a77154cbd14987e39382171f23a625e23d43bf78a7f8c2a46f3f52e55b"
-    )
+    assert spec().spec_hash == PINNED_SPEC_HASH
+
+
+def test_same_name_is_not_same_spec() -> None:
+    other = spec().model_copy(update={"warmup": 3})
+    other = BenchmarkSpec.model_validate(as_json(other))
+    assert other.name == spec().name
+    assert other != spec()
+    assert other.spec_hash != spec().spec_hash
 
 
 def test_spec_hash_ignores_key_order() -> None:

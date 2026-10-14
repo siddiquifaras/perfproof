@@ -11,6 +11,22 @@ documents (`BenchmarkSpec`, `LockManifest`, `RunRecord`) carry a
 ``schema_version``. The checked-in ``schema.json`` next to this module
 is the exported JSON Schema; regenerate it with
 ``uv run python -m perfproof.schema > src/perfproof/schema.json``.
+
+The JSON Schema checks structure: field names, types, enums, numeric
+bounds and string patterns. These models check more, and only they are
+authoritative. JSON Schema alone does not express:
+
+- relative-path normalization (no ``..``, ``.``, empty or absolute
+  parts);
+- cross-field rules, such as a verdict's rule, outcome, reason and gate
+  agreeing, gate verdicts carrying no estimate, ``missing`` reasons
+  matching the ``None`` probes, or a record's gates and verdict
+  agreeing;
+- the check that a stored ``spec_hash`` matches the spec's content;
+- the sorting and de-duplication of lock manifests, environment
+  variable names and lockfiles.
+
+A document that passes the JSON Schema can still be refused here.
 """
 
 import hashlib
@@ -44,6 +60,7 @@ __all__ = [
     "Budget",
     "CalibrationStatus",
     "CorrectnessSpec",
+    "DependencyLock",
     "Diagnostics",
     "Difference",
     "Direction",
@@ -69,6 +86,7 @@ __all__ = [
     "RunWarning",
     "Sample",
     "TargetClass",
+    "TreeEnvironment",
     "Verdict",
     "json_schema",
     "json_schema_text",
@@ -175,6 +193,22 @@ class _FrozenMap(Mapping[str, str]):
         return f"{type(self).__name__}({self._data!r})"
 
 
+def _check_reasons(model: BaseModel, missing: Mapping[str, str]) -> None:
+    """Require a reason in ``missing`` for exactly the ``None`` fields.
+
+    A probe that fails leaves ``None`` and says why, so an unknown value
+    is never mistaken for an absent one or filled with a default.
+    """
+    fields = set(type(model).model_fields) - {"missing"}
+    unset = {f for f in fields if getattr(model, f) is None}
+    if unset != set(missing):
+        msg = (
+            f"fields without a value {sorted(unset)} must match the "
+            f"reasons in missing {sorted(missing)}"
+        )
+        raise ValueError(msg)
+
+
 # Scalars are strict: JSON numbers, booleans and strings are taken as
 # they are, never coerced from another type ("3" is not 3, 1 is not
 # True). Containers and datetimes stay lax so JSON arrays and ISO
@@ -221,6 +255,11 @@ ReasonMap = Annotated[
     Mapping[Str, Text],
     AfterValidator(_FrozenMap),
     PlainSerializer(dict, return_type=dict[Str, Text]),
+]
+ValueMap = Annotated[
+    Mapping[Text, Str],
+    AfterValidator(_FrozenMap),
+    PlainSerializer(dict, return_type=dict[Text, Str]),
 ]
 
 
@@ -392,6 +431,10 @@ class LookSchedule(_Model):
 class BenchmarkSpec(_Model):
     """A frozen benchmark definition and its content hash.
 
+    ``name`` is how people refer to a benchmark; ``spec_hash`` is the
+    identity of one exact version of it. Two specs with the same name
+    are never assumed equal. Runs and lock manifests store the hash.
+
     Changing any field gives a different ``spec_hash`` and so a new
     spec, which needs a new baseline. When a stored spec is loaded with
     its ``spec_hash``, the hash is recomputed and must match.
@@ -407,8 +450,9 @@ class BenchmarkSpec(_Model):
     schema_version: Literal[1] = SCHEMA_VERSION
     """Version of this format."""
     name: Name
-    """Benchmark name; also its file name under
-    ``.perfproof/benchmarks/``."""
+    """Stable, human-facing benchmark identifier. Every version of a
+    benchmark shares it, so it never identifies a spec on its own;
+    ``spec_hash`` does."""
     command: Argv
     """Benchmark command as an argv list, launched without a shell."""
     cwd: RelDir = "."
@@ -832,16 +876,34 @@ class Hotspot(_Model):
 
 
 class GpuInfo(_Model):
-    """One NVIDIA GPU as ``nvidia-smi`` reports it."""
+    """One NVIDIA GPU as ``nvidia-smi`` reports it.
+
+    A clock ``nvidia-smi`` cannot read (``[N/A]``) is ``None`` with a
+    reason in ``missing``, so it never discards the rest of the GPU and
+    is never recorded as 0.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``None`` clock has no reason in ``missing``, or ``missing``
+        names a field that has a value or does not exist.
+    """
 
     name: Text
     """Model name."""
     driver_version: Text
     """Driver version."""
-    sm_clock_mhz: Positive
+    sm_clock_mhz: Positive | None = None
     """Current SM clock, in MHz."""
-    memory_clock_mhz: Positive
+    memory_clock_mhz: Positive | None = None
     """Current memory clock, in MHz."""
+    missing: ReasonMap = Field(default_factory=_FrozenMap)
+    """Reason for each clock left ``None``, keyed by field name."""
+
+    @model_validator(mode="after")
+    def _check_missing(self) -> Self:
+        _check_reasons(self, self.missing)
+        return self
 
 
 class MachineFingerprint(_Model):
@@ -899,14 +961,7 @@ class MachineFingerprint(_Model):
 
     @model_validator(mode="after")
     def _check_missing(self) -> Self:
-        probes = set(type(self).model_fields) - {"captured_at", "missing"}
-        unset = {p for p in probes if getattr(self, p) is None}
-        if unset != set(self.missing):
-            msg = (
-                f"probes without a value {sorted(unset)} must match the "
-                f"reasons in missing {sorted(self.missing)}"
-            )
-            raise ValueError(msg)
+        _check_reasons(self, self.missing)
         return self
 
 
@@ -919,6 +974,91 @@ class RunWarning(_Model):
     """Human-readable explanation."""
 
 
+class DependencyLock(_Model):
+    """Hash of one dependency lockfile in a tree, e.g. ``uv.lock``."""
+
+    path: RelPath
+    """Lockfile path, relative to the tree root."""
+    sha256: Sha256Hex
+    """SHA-256 of the file's bytes."""
+
+
+class TreeEnvironment(_Model):
+    """What one version's tree ran with, recorded for the reader.
+
+    Nothing here is a gate by itself. The `runtime` gate compares
+    ``runtime_executable`` and ``runtime_version`` between the arms
+    unless the spec allows runtime changes, and the `procedure` gate
+    covers only the spec's declared environment. Every other difference
+    between the arms is recorded and reported as a warning.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``None`` field has no reason in ``missing`` or ``missing``
+        names a field that has a value; if ``env_values`` names a
+        variable not in ``env_names``; or if a name or lockfile path
+        repeats.
+    """
+
+    version: Arm
+    """Which tree."""
+    session: Count = 0
+    """Index into `RunRecord.machines` of the session this was probed
+    in; always 0 on one machine."""
+    runtime_executable: Text | None = None
+    """Resolved interpreter or runtime that ran the benchmark, such as
+    the absolute path of the tree's Python."""
+    runtime_version: Text | None = None
+    """Version that runtime reports."""
+    env_names: tuple[Text, ...] | None = None
+    """Names of every environment variable the benchmark ran with,
+    sorted."""
+    env_values: ValueMap = Field(default_factory=_FrozenMap)
+    """Values of the variables known to affect performance, such as
+    ``OMP_NUM_THREADS`` and ``PYTHONHASHSEED``; other values are not
+    recorded."""
+    dependency_locks: tuple[DependencyLock, ...] | None = None
+    """Dependency lockfile hashes, sorted by path; empty when the tree
+    has none."""
+    missing: ReasonMap = Field(default_factory=_FrozenMap)
+    """Reason for each field left ``None``, keyed by field name."""
+
+    @field_validator("env_names", mode="after")
+    @classmethod
+    def _sort_names(
+        cls, names: tuple[str, ...] | None
+    ) -> tuple[str, ...] | None:
+        if names is None:
+            return None
+        if len(set(names)) != len(names):
+            msg = f"environment variable names repeat: {names}"
+            raise ValueError(msg)
+        return tuple(sorted(names))
+
+    @field_validator("dependency_locks", mode="after")
+    @classmethod
+    def _sort_locks(
+        cls, locks: tuple[DependencyLock, ...] | None
+    ) -> tuple[DependencyLock, ...] | None:
+        if locks is None:
+            return None
+        paths = [lock.path for lock in locks]
+        if len(set(paths)) != len(paths):
+            msg = f"lockfile paths repeat: {paths}"
+            raise ValueError(msg)
+        return tuple(sorted(locks, key=lambda lock: lock.path))
+
+    @model_validator(mode="after")
+    def _check_fields(self) -> Self:
+        _check_reasons(self, self.missing)
+        unlisted = set(self.env_values) - set(self.env_names or ())
+        if unlisted:
+            msg = f"env_values for variables not in env_names: {unlisted}"
+            raise ValueError(msg)
+        return self
+
+
 class RunRecord(_Model):
     """Everything about one comparison; written as ``record.json``.
 
@@ -929,7 +1069,9 @@ class RunRecord(_Model):
         decide, the deciding gate must be one that failed, and any other
         verdict needs every gate present and passed or waived), a gate
         is listed twice, a waiver or cross-host verdict lacks the spec's
-        opt-in, rounds ran without a samples path, rounds or looks
+        opt-in, the environments miss a version, repeat a version and
+        session, or name a session with no machine, rounds ran without a
+        samples path, rounds or looks
         exceed the spec's budget, a ``wall_interval`` appears for a
         metric other than ``reported``, or ``finished_at`` precedes
         ``started_at``.
@@ -960,6 +1102,8 @@ class RunRecord(_Model):
     machines: Annotated[tuple[MachineFingerprint, ...], Field(min_length=1)]
     """Fingerprint per session, indexed by `Sample.session`; one entry
     on one machine."""
+    environments: Annotated[tuple[TreeEnvironment, ...], Field(min_length=2)]
+    """What each tree ran with, per session; both versions appear."""
     warnings: tuple[RunWarning, ...] = ()
     """Warnings for the report."""
     samples_path: RelPath | None
@@ -1007,8 +1151,25 @@ class RunRecord(_Model):
         if v.rounds and self.samples_path is None:
             msg = f"{v.rounds} rounds ran but samples_path is None"
             raise ValueError(msg)
+        self._check_environments()
         self._check_against_spec()
         return self
+
+    def _check_environments(self) -> None:
+        """Check each tree environment belongs to a known session."""
+        keys = [(e.version, e.session) for e in self.environments]
+        if len(set(keys)) != len(keys):
+            msg = f"a version and session repeat in environments: {keys}"
+            raise ValueError(msg)
+        if {e.version for e in self.environments} != {"baseline", "candidate"}:
+            msg = "environments must cover both versions"
+            raise ValueError(msg)
+        unknown = {e.session for e in self.environments} - set(
+            range(len(self.machines))
+        )
+        if unknown:
+            msg = f"environments name sessions with no machine: {unknown}"
+            raise ValueError(msg)
 
     def _check_against_spec(self) -> None:
         """Check the verdict fits the spec's budget and metric."""
@@ -1049,6 +1210,8 @@ MODELS: Final[tuple[type[BaseModel], ...]] = (
     GpuInfo,
     MachineFingerprint,
     RunWarning,
+    DependencyLock,
+    TreeEnvironment,
     RunRecord,
 )
 """Every public model, in the order they appear in the JSON Schema."""
