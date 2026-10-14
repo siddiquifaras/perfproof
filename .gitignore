@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# perfproof state when dogfooding on this repo
+.perfproof/
+
+# Scratch output: probes, dumps, one-off scripts
+scratch/
+
+# Local agent context, never committed
+CLAUDE.local.md
+.claude/local/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/agent-memory-local/
+
+# Secrets
+.env
+.env.*
+
+.DS_Store

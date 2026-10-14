@@ -1,0 +1,89 @@
+[project]
+name = "perfproof"
+version = "0.1.0"
+description = "Agents fix slow code; perfproof proves the speedup is real."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Faras Siddiqui", email = "siddiquifaras@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2",
+    "pydantic>=2.12",
+    "scipy>=1.15",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Benchmark",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/siddiquifaras/perfproof"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.140",
+    "pyright>=1.1.400",
+    "pytest>=8.4",
+    "ruff>=0.15",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.20,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 79
+target-version = "py312"
+extend-exclude = ["reference"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "D", "UP", "B", "A", "C4", "SIM", "RET",
+    "PIE", "PT", "PERF", "NPY", "S", "T20", "ERA", "FIX", "RUF",
+]
+ignore = [
+    "S603",  # subprocess calls with argv lists are the product's core job
+    "S607",  # tools are resolved from PATH on purpose (py-spy, perf, nsys)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "S101"]
+"src/perfproof/cli.py" = ["T20"]
+".claude/hooks/*.py" = ["T20"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 72
+
+[tool.pyright]
+include = ["src", "tests", ".claude/hooks"]
+exclude = ["reference", "**/__pycache__", ".venv"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "-m", "not calibration and not integration and not gpu",
+]
+markers = [
+    "calibration: Monte Carlo checks of the statistical procedures (slow)",
+    "integration: needs an external tool such as py-spy, perf or nsys",
+    "gpu: needs a CUDA device",
+]
+xfail_strict = true
+filterwarnings = ["error"]
