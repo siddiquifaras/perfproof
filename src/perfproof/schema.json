@@ -1,0 +1,1462 @@
+{
+  "$defs": {
+    "BenchmarkSpec": {
+      "additionalProperties": false,
+      "description": "A frozen benchmark definition and its content hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, or a supplied ``spec_hash`` does not\n    match the content.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Benchmark name; also its file name under\n``.perfproof/benchmarks/``.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "command": {
+          "description": "Benchmark command as an argv list, launched without a shell.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "cwd": {
+          "default": ".",
+          "description": "Working directory, relative to the tree root.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "env": {
+          "description": "Declared environment variables, set for every execution and\ncovered by the procedure gate.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "type": "string"
+            }
+          },
+          "title": "Env",
+          "type": "object"
+        },
+        "metric": {
+          "$ref": "#/$defs/MetricSpec",
+          "description": "The metric the verdict is decided on."
+        },
+        "correctness": {
+          "$ref": "#/$defs/CorrectnessSpec",
+          "description": "The correctness gate."
+        },
+        "warmup": {
+          "description": "Discarded executions per version before the first round.",
+          "minimum": 0,
+          "title": "Warmup",
+          "type": "integer"
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget",
+          "description": "Run budget."
+        },
+        "looks": {
+          "$ref": "#/$defs/LookSchedule",
+          "description": "Look schedule, fixed before the first round."
+        },
+        "min_effect": {
+          "default": 0.03,
+          "description": "Smallest speedup worth keeping; the bar is ``1 + min_effect``.",
+          "minimum": 0,
+          "title": "Min Effect",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 0.05,
+          "description": "Total error budget, split across looks.",
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "timeout_seconds": {
+          "description": "Time limit for one benchmark execution, in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "harness": {
+          "description": "Files of the benchmark and its harness, locked. For a `reported`\nmetric these include the code that times and prints the value.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Harness",
+          "type": "array"
+        },
+        "oracle": {
+          "default": [],
+          "description": "Correctness oracle files (tests, expected outputs), locked.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Oracle",
+          "type": "array"
+        },
+        "inputs": {
+          "default": [],
+          "description": "Declared input data, locked.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "config": {
+          "default": [],
+          "description": "Declared config files, locked.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Config",
+          "type": "array"
+        },
+        "allow_runtime_change": {
+          "default": false,
+          "description": "Opt-in: the interpreter or runtime may differ between trees.\nWaives the `runtime` gate and labels the verdict.",
+          "title": "Allow Runtime Change",
+          "type": "boolean"
+        },
+        "allow_cross_host": {
+          "default": false,
+          "description": "Opt-in: compare across hosts with the alternating fresh-host\nsession design. Waives the `same_host` gate and labels the\nverdict.",
+          "title": "Allow Cross Host",
+          "type": "boolean"
+        },
+        "spec_hash": {
+          "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order.",
+          "readOnly": true,
+          "title": "Spec Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "command",
+        "metric",
+        "correctness",
+        "warmup",
+        "budget",
+        "looks",
+        "timeout_seconds",
+        "harness",
+        "spec_hash"
+      ],
+      "title": "BenchmarkSpec",
+      "type": "object"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "description": "Run budget; the comparison never runs past either limit.",
+      "properties": {
+        "max_rounds": {
+          "description": "Most rounds to run. One round is one baseline and one candidate\nexecution.",
+          "minimum": 1,
+          "title": "Max Rounds",
+          "type": "integer"
+        },
+        "max_seconds": {
+          "description": "Most wall-clock time to spend on rounds, in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Max Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_rounds",
+        "max_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "CorrectnessSpec": {
+      "additionalProperties": false,
+      "description": "How the correctness gate decides the candidate is right.\n\nAt least one check is required: a gate that checks nothing would\npass every candidate.\n\nRaises\n------\npydantic.ValidationError\n    If there is neither a command nor an output, if a command has no\n    timeout or a timeout has no command, or if an output path\n    repeats.",
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Test command run in the candidate tree, as an argv list. Exit\nstatus 0 passes.",
+          "title": "Command"
+        },
+        "cwd": {
+          "default": ".",
+          "description": "Working directory of ``command``, relative to the tree.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time limit for ``command``, in seconds.",
+          "title": "Timeout Seconds"
+        },
+        "outputs": {
+          "default": [],
+          "description": "Declared outputs compared between the two trees.",
+          "items": {
+            "$ref": "#/$defs/OutputCheck"
+          },
+          "title": "Outputs",
+          "type": "array"
+        }
+      },
+      "title": "CorrectnessSpec",
+      "type": "object"
+    },
+    "Diagnostics": {
+      "additionalProperties": false,
+      "description": "Measurements that qualify a verdict without deciding it.\n\n``None`` means not computed.\n\nRaises\n------\npydantic.ValidationError\n    If ``metric_disagreement`` is set without ``wall_interval``.",
+      "properties": {
+        "metric_disagreement": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For a `reported` metric: whether one of the spec-metric and\nwall-clock intervals shows the candidate faster and the other\nexcludes that.",
+          "title": "Metric Disagreement"
+        },
+        "wall_interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Wall-clock interval computed alongside a `reported` metric."
+        },
+        "lag1_autocorrelation": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lag-1 autocorrelation of the log ratios; above 0.3 is warned.",
+          "title": "Lag1 Autocorrelation"
+        },
+        "cv_baseline": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Coefficient of variation of the baseline's values.",
+          "title": "Cv Baseline"
+        },
+        "cv_candidate": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Coefficient of variation of the candidate's values.",
+          "title": "Cv Candidate"
+        },
+        "sd_log_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Standard deviation of the per-round log ratios.",
+          "title": "Sd Log Ratio"
+        }
+      },
+      "title": "Diagnostics",
+      "type": "object"
+    },
+    "Difference": {
+      "additionalProperties": false,
+      "description": "One recorded difference between the two arms.",
+      "properties": {
+        "item": {
+          "description": "What differs: a file path, environment variable, setting or\noutput.",
+          "minLength": 1,
+          "title": "Item",
+          "type": "string"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Value in the baseline; ``None`` when absent there.",
+          "title": "Baseline"
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Value in the candidate; ``None`` when absent there.",
+          "title": "Candidate"
+        }
+      },
+      "required": [
+        "item",
+        "baseline",
+        "candidate"
+      ],
+      "title": "Difference",
+      "type": "object"
+    },
+    "GateResult": {
+      "additionalProperties": false,
+      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a failed or waived gate has no ``detail``, or a gate other\n    than `runtime` or `same_host` is waived.",
+      "properties": {
+        "gate": {
+          "description": "`correctness`, or one of the integrity gates `lock`, `procedure`,\n`runtime` and `same_host`.",
+          "enum": [
+            "correctness",
+            "lock",
+            "procedure",
+            "runtime",
+            "same_host"
+          ],
+          "title": "Gate",
+          "type": "string"
+        },
+        "status": {
+          "description": "`waived` only for `runtime` and `same_host` under the spec's\nopt-ins.",
+          "enum": [
+            "passed",
+            "failed",
+            "waived"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "detail": {
+          "default": "",
+          "description": "Why the gate failed or was waived.",
+          "title": "Detail",
+          "type": "string"
+        },
+        "differences": {
+          "default": [],
+          "description": "Differences found, first ones first.",
+          "items": {
+            "$ref": "#/$defs/Difference"
+          },
+          "title": "Differences",
+          "type": "array"
+        },
+        "truncated": {
+          "default": false,
+          "description": "Whether more differences existed than are listed.",
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "gate",
+        "status"
+      ],
+      "title": "GateResult",
+      "type": "object"
+    },
+    "GpuInfo": {
+      "additionalProperties": false,
+      "description": "One NVIDIA GPU as ``nvidia-smi`` reports it.",
+      "properties": {
+        "name": {
+          "description": "Model name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "driver_version": {
+          "description": "Driver version.",
+          "minLength": 1,
+          "title": "Driver Version",
+          "type": "string"
+        },
+        "sm_clock_mhz": {
+          "description": "Current SM clock, in MHz.",
+          "exclusiveMinimum": 0,
+          "title": "Sm Clock Mhz",
+          "type": "number"
+        },
+        "memory_clock_mhz": {
+          "description": "Current memory clock, in MHz.",
+          "exclusiveMinimum": 0,
+          "title": "Memory Clock Mhz",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "driver_version",
+        "sm_clock_mhz",
+        "memory_clock_mhz"
+      ],
+      "title": "GpuInfo",
+      "type": "object"
+    },
+    "Hotspot": {
+      "additionalProperties": false,
+      "description": "One ranked entry of a profile.\n\nRaises\n------\npydantic.ValidationError\n    If ``self_fraction`` exceeds ``total_fraction`` or ``line`` is\n    given without ``file``.",
+      "properties": {
+        "function": {
+          "description": "Function or kernel name.",
+          "minLength": 1,
+          "title": "Function",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source file, relative to the project root when inside it;\n``None`` when the profiler gives none.",
+          "title": "File"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1-based line in ``file``; ``None`` when unknown.",
+          "title": "Line"
+        },
+        "frame_kind": {
+          "description": "Kind of frame; frames of different kinds are never merged.",
+          "enum": [
+            "python",
+            "native",
+            "gpu_kernel"
+          ],
+          "title": "Frame Kind",
+          "type": "string"
+        },
+        "is_library": {
+          "description": "Whether the frame is outside the project's own code.",
+          "title": "Is Library",
+          "type": "boolean"
+        },
+        "self_fraction": {
+          "description": "Share of the profile's total spent in this frame itself.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Self Fraction",
+          "type": "number"
+        },
+        "total_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Share including callees; ``None`` if the profiler gives none.",
+          "title": "Total Fraction"
+        }
+      },
+      "required": [
+        "function",
+        "file",
+        "line",
+        "frame_kind",
+        "is_library",
+        "self_fraction",
+        "total_fraction"
+      ],
+      "title": "Hotspot",
+      "type": "object"
+    },
+    "Interval": {
+      "additionalProperties": false,
+      "description": "Two-sided confidence interval for a speedup, on the ratio scale.\n\nRaises\n------\npydantic.ValidationError\n    If ``lower > upper``.",
+      "properties": {
+        "lower": {
+          "description": "Lower bound ``L``; above 1 means faster.",
+          "exclusiveMinimum": 0,
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "description": "Upper bound ``U``.",
+          "exclusiveMinimum": 0,
+          "title": "Upper",
+          "type": "number"
+        },
+        "confidence": {
+          "description": "Confidence level of this interval, per look.",
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper",
+        "confidence"
+      ],
+      "title": "Interval",
+      "type": "object"
+    },
+    "LockManifest": {
+      "additionalProperties": false,
+      "description": "Hashes of every locked file of one spec, sorted by path.\n\nRaises\n------\npydantic.ValidationError\n    If a path appears twice.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "spec_hash": {
+          "description": "`BenchmarkSpec.spec_hash` of the spec these files belong to.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Spec Hash",
+          "type": "string"
+        },
+        "files": {
+          "description": "Locked files, sorted by path.",
+          "items": {
+            "$ref": "#/$defs/LockedFile"
+          },
+          "title": "Files",
+          "type": "array"
+        }
+      },
+      "required": [
+        "spec_hash",
+        "files"
+      ],
+      "title": "LockManifest",
+      "type": "object"
+    },
+    "LockedFile": {
+      "additionalProperties": false,
+      "description": "One file covered by the lock gate.",
+      "properties": {
+        "path": {
+          "description": "Path relative to the tree root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "description": "Which declared group the file belongs to.",
+          "enum": [
+            "harness",
+            "oracle",
+            "input",
+            "config"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file's bytes.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "description": "File size in bytes.",
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "LockedFile",
+      "type": "object"
+    },
+    "LookSchedule": {
+      "additionalProperties": false,
+      "description": "When the sequential procedure looks at the data.\n\nThe first look comes after ``n0`` rounds, then one every ``k``\nrounds, for at most ``max_looks`` looks.",
+      "properties": {
+        "n0": {
+          "description": "Rounds before the first look; at least 10, because t intervals on\nfewer rounds are too fragile under heavy tails.",
+          "minimum": 10,
+          "title": "N0",
+          "type": "integer"
+        },
+        "k": {
+          "description": "Rounds between looks.",
+          "minimum": 1,
+          "title": "K",
+          "type": "integer"
+        },
+        "max_looks": {
+          "description": "Most looks, ``K`` in ``docs/method.md``. Each look's confidence\nis ``1 - alpha / max_looks``.",
+          "minimum": 1,
+          "title": "Max Looks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "n0",
+        "k",
+        "max_looks"
+      ],
+      "title": "LookSchedule",
+      "type": "object"
+    },
+    "MachineFingerprint": {
+      "additionalProperties": false,
+      "description": "The machine one session ran on, probed once per session.\n\nEvery probe is optional. A probe that fails leaves its field\n``None`` and records why in ``missing``; it never fills in a\nplausible value.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` probe has no reason in ``missing``, or ``missing``\n    names a probe that has a value or does not exist.",
+      "properties": {
+        "captured_at": {
+          "description": "When the probes ran, with time zone.",
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stable identity of the host, compared by the `same_host` gate.",
+          "title": "Host Id"
+        },
+        "os": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Operating system name, such as ``\"Darwin\"`` or ``\"Linux\"``.",
+          "title": "Os"
+        },
+        "os_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Operating system version.",
+          "title": "Os Version"
+        },
+        "kernel": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Kernel release.",
+          "title": "Kernel"
+        },
+        "arch": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Machine architecture, such as ``\"arm64\"``.",
+          "title": "Arch"
+        },
+        "cpu_model": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CPU model name.",
+          "title": "Cpu Model"
+        },
+        "physical_cores": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Physical CPU cores.",
+          "title": "Physical Cores"
+        },
+        "logical_cores": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical CPUs.",
+          "title": "Logical Cores"
+        },
+        "frequency_policy": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CPU frequency governor or policy.",
+          "title": "Frequency Policy"
+        },
+        "load_average": {
+          "anyOf": [
+            {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "minimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "1, 5 and 15 minute load averages.",
+          "title": "Load Average"
+        },
+        "power_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "ac",
+                "battery",
+                "ups"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power source.",
+          "title": "Power Source"
+        },
+        "battery_percent": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Battery charge, in percent.",
+          "title": "Battery Percent"
+        },
+        "thermal_state": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Thermal or throttling state as the OS reports it.",
+          "title": "Thermal State"
+        },
+        "memory_bytes": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Physical memory, in bytes.",
+          "title": "Memory Bytes"
+        },
+        "python_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Version of the Python running perfproof.",
+          "title": "Python Version"
+        },
+        "gpus": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/GpuInfo"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "NVIDIA GPUs; empty when there are none.",
+          "title": "Gpus"
+        },
+        "missing": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Reason for each probe left ``None``, keyed by field name.",
+          "title": "Missing",
+          "type": "object"
+        }
+      },
+      "required": [
+        "captured_at"
+      ],
+      "title": "MachineFingerprint",
+      "type": "object"
+    },
+    "MetricSpec": {
+      "additionalProperties": false,
+      "description": "The one metric a benchmark is judged on.\n\n``wall`` and ``cpu`` are times in seconds and ``counter`` is an\nevent count, so all three are lower-is-better. Only ``reported``\nmetrics choose a direction.\n\nRaises\n------\npydantic.ValidationError\n    If the direction or unit contradicts the kind, or ``event`` is\n    set for anything but a ``counter`` metric or missing for one.",
+      "properties": {
+        "kind": {
+          "description": "`wall`, `cpu`, `reported` (``PERFPROOF {\"value\": ...}`` line on\nstdout) or `counter` (``perf stat``, Linux).",
+          "enum": [
+            "wall",
+            "cpu",
+            "reported",
+            "counter"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Whether smaller or larger values are better. Orients the ratio so\nthat above 1 always means the candidate is faster.",
+          "enum": [
+            "lower_is_better",
+            "higher_is_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "unit": {
+          "description": "Unit of `Sample.value`; ``\"s\"`` for `wall` and `cpu`.",
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "event": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``perf`` event name for a `counter` metric, such as\n``\"instructions\"``; ``None`` for every other kind.",
+          "title": "Event"
+        }
+      },
+      "required": [
+        "kind",
+        "direction",
+        "unit"
+      ],
+      "title": "MetricSpec",
+      "type": "object"
+    },
+    "OutputCheck": {
+      "additionalProperties": false,
+      "description": "One declared output compared between the baseline and candidate.\n\nRaises\n------\npydantic.ValidationError\n    If a tolerance or ``equal_nan`` is set for a ``bytes`` or\n    ``text`` comparison.",
+      "properties": {
+        "path": {
+          "description": "Output file, relative to the tree it is produced in.",
+          "title": "Path",
+          "type": "string"
+        },
+        "compare": {
+          "description": "Exact bytes, exact text, or numbers within tolerance (numbers in\ntext, or ``.npy`` arrays).",
+          "enum": [
+            "bytes",
+            "text",
+            "numbers"
+          ],
+          "title": "Compare",
+          "type": "string"
+        },
+        "rtol": {
+          "default": 0.0,
+          "description": "Relative tolerance for ``numbers``, dimensionless.",
+          "minimum": 0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "atol": {
+          "default": 0.0,
+          "description": "Absolute tolerance for ``numbers``, in the output's own units.",
+          "minimum": 0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "equal_nan": {
+          "default": false,
+          "description": "Whether NaN equals NaN for ``numbers``.",
+          "title": "Equal Nan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "compare"
+      ],
+      "title": "OutputCheck",
+      "type": "object"
+    },
+    "RunRecord": {
+      "additionalProperties": false,
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, and the deciding gate must be one that failed), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, rounds ran without a samples path, or ``finished_at``\n    precedes ``started_at``.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "run_id": {
+          "description": "Run identifier; the directory name under ``.perfproof/runs/``.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "perfproof_version": {
+          "description": "perfproof version that ran the comparison.",
+          "minLength": 1,
+          "title": "Perfproof Version",
+          "type": "string"
+        },
+        "started_at": {
+          "description": "When the comparison started, with time zone.",
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "description": "When it finished, with time zone.",
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/BenchmarkSpec",
+          "description": "The spec compared under."
+        },
+        "baseline_commit": {
+          "description": "Git commit of the baseline.",
+          "pattern": "^[0-9a-f]{40}(?:[0-9a-f]{24})?$",
+          "title": "Baseline Commit",
+          "type": "string"
+        },
+        "order_seed": {
+          "description": "Seed for the in-round order of the two versions.",
+          "minimum": 0,
+          "title": "Order Seed",
+          "type": "integer"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict",
+          "description": "The verdict."
+        },
+        "gates": {
+          "description": "Gate results, including recorded differences between arms.",
+          "items": {
+            "$ref": "#/$defs/GateResult"
+          },
+          "title": "Gates",
+          "type": "array"
+        },
+        "machines": {
+          "description": "Fingerprint per session, indexed by `Sample.session`; one entry\non one machine.",
+          "items": {
+            "$ref": "#/$defs/MachineFingerprint"
+          },
+          "minItems": 1,
+          "title": "Machines",
+          "type": "array"
+        },
+        "warnings": {
+          "default": [],
+          "description": "Warnings for the report.",
+          "items": {
+            "$ref": "#/$defs/RunWarning"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "samples_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Raw samples file, relative to the run directory; ``None`` when no\nround ran.",
+          "title": "Samples Path"
+        },
+        "profile_paths": {
+          "default": [],
+          "description": "Profiler outputs, relative to the run directory.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Profile Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "run_id",
+        "perfproof_version",
+        "started_at",
+        "finished_at",
+        "spec",
+        "baseline_commit",
+        "order_seed",
+        "verdict",
+        "gates",
+        "machines",
+        "samples_path"
+      ],
+      "title": "RunRecord",
+      "type": "object"
+    },
+    "RunWarning": {
+      "additionalProperties": false,
+      "description": "Something the report flags that does not change the verdict.",
+      "properties": {
+        "code": {
+          "description": "Stable snake_case identifier, such as ``on_battery``.",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable explanation.",
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "RunWarning",
+      "type": "object"
+    },
+    "Sample": {
+      "additionalProperties": false,
+      "description": "One measured execution of one version.\n\nWarmup executions are discarded and never become samples.",
+      "properties": {
+        "version": {
+          "description": "Which tree ran.",
+          "enum": [
+            "baseline",
+            "candidate"
+          ],
+          "title": "Version",
+          "type": "string"
+        },
+        "round": {
+          "description": "Round index, from 0.",
+          "minimum": 0,
+          "title": "Round",
+          "type": "integer"
+        },
+        "position": {
+          "description": "Order within the round: 0 ran first, 1 second.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Position",
+          "type": "integer"
+        },
+        "session": {
+          "default": 0,
+          "description": "Index into `RunRecord.machines` of the host session this ran in;\nalways 0 on one machine.",
+          "minimum": 0,
+          "title": "Session",
+          "type": "integer"
+        },
+        "value": {
+          "description": "Metric value in `MetricSpec.unit`; positive, since ratios are\ntaken.",
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "wall_seconds": {
+          "description": "Wall-clock time of the whole command, in seconds, recorded for\nevery metric.",
+          "minimum": 0,
+          "title": "Wall Seconds",
+          "type": "number"
+        },
+        "cpu_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "User plus system CPU time from ``wait4``, in seconds; ``None``\nwhen not available.",
+          "title": "Cpu Seconds"
+        },
+        "max_rss_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Peak resident set size from ``wait4``, in bytes; ``None`` when\nnot available.",
+          "title": "Max Rss Bytes"
+        },
+        "exit_code": {
+          "description": "Exit status; negative for termination by a signal.",
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "command_hash": {
+          "description": "SHA-256 of the executed argv, declared environment, working\ndirectory and resolved executable, as launched.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Command Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "round",
+        "position",
+        "value",
+        "wall_seconds",
+        "cpu_seconds",
+        "max_rss_bytes",
+        "exit_code",
+        "command_hash"
+      ],
+      "title": "Sample",
+      "type": "object"
+    },
+    "Verdict": {
+      "additionalProperties": false,
+      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a\n    performance verdict lacks its estimate, interval or a look, or a\n    calibrated verdict names no target class.",
+      "properties": {
+        "outcome": {
+          "description": "KEEP, REJECT or INCONCLUSIVE.",
+          "enum": [
+            "KEEP",
+            "REJECT",
+            "INCONCLUSIVE"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why: `performance`, `correctness`, `integrity` or\n`insufficient_evidence`.",
+          "enum": [
+            "performance",
+            "correctness",
+            "integrity",
+            "insufficient_evidence"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "rule": {
+          "description": "The decision rule that decided.",
+          "enum": [
+            1,
+            2,
+            3,
+            5
+          ],
+          "title": "Rule",
+          "type": "integer"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "enum": [
+                "correctness",
+                "lock",
+                "procedure",
+                "runtime",
+                "same_host"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The failed gate, for rule 1; ``None`` otherwise.",
+          "title": "Gate"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speedup estimate (geometric-mean ratio for the primary\nprocedure); above 1 means the candidate is faster.",
+          "title": "Estimate"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Interval of the deciding look."
+        },
+        "rounds": {
+          "description": "Rounds measured.",
+          "minimum": 0,
+          "title": "Rounds",
+          "type": "integer"
+        },
+        "looks": {
+          "description": "Looks taken.",
+          "minimum": 0,
+          "title": "Looks",
+          "type": "integer"
+        },
+        "procedure": {
+          "description": "Interval procedure in force.",
+          "enum": [
+            "t_log_ratio",
+            "t_log_ratio_batch_means",
+            "hodges_lehmann_wilcoxon",
+            "bootstrap_median_ratio"
+          ],
+          "title": "Procedure",
+          "type": "string"
+        },
+        "regression": {
+          "default": false,
+          "description": "Performance REJECT with ``U < 1``: the candidate is slower.",
+          "title": "Regression",
+          "type": "boolean"
+        },
+        "cross_host": {
+          "default": false,
+          "description": "Decided under the cross-host session design. It rests on the\nassumption that the pool allocates hosts independently of which\nversion runs.",
+          "title": "Cross Host",
+          "type": "boolean"
+        },
+        "target_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "python_cpu",
+                "native",
+                "gpu_kernel",
+                "llm_serving"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target class judged under; ``None`` when unknown.",
+          "title": "Target Class"
+        },
+        "calibration": {
+          "description": "Whether the procedure is calibrated for ``target_class``.",
+          "enum": [
+            "calibrated",
+            "uncalibrated"
+          ],
+          "title": "Calibration",
+          "type": "string"
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/Diagnostics",
+          "description": "Diagnostics such as ``metric_disagreement``."
+        }
+      },
+      "required": [
+        "outcome",
+        "reason",
+        "rule",
+        "rounds",
+        "looks",
+        "procedure",
+        "calibration"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "title": "perfproof schema version 1"
+}
