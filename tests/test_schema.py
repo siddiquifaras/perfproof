@@ -883,26 +883,59 @@ def test_session_pairs_need_their_sessions() -> None:
         )
 
 
-@pytest.mark.parametrize("on_cross_host", [False, True])
-@pytest.mark.parametrize(
-    "failed", ["correctness", "lock", "procedure", "runtime"]
-)
-def test_failed_gate_overrides_a_keep_worthy_interval(
+def gates_with_failure(
     on_cross_host: bool, failed: str
-) -> None:
+) -> tuple[GateResult, ...]:
     passed = cross_gates() if on_cross_host else gates_passed()
-    gates = tuple(
+    return tuple(
         GateResult(gate=g.gate, status="failed", detail="differs")
         if g.gate == failed
         else g
         for g in passed
     )
+
+
+EVERY_GATE = ["correctness", "lock", "procedure", "runtime", "same_host"]
+
+
+@pytest.mark.parametrize("on_cross_host", [False, True])
+@pytest.mark.parametrize("failed", EVERY_GATE)
+def test_failed_gate_overrides_a_keep_worthy_interval(
+    on_cross_host: bool, failed: str
+) -> None:
+    gates = gates_with_failure(on_cross_host, failed)
     if on_cross_host:
         with pytest.raises(ValidationError, match="must decide"):
             cross_record(cross(keep(), 10), gates)
     else:
         with pytest.raises(ValidationError, match="must decide"):
             record(gates=gates)
+
+
+@pytest.mark.parametrize("on_cross_host", [False, True])
+@pytest.mark.parametrize("failed", EVERY_GATE)
+def test_failed_gate_rejects_before_any_session_pair(
+    on_cross_host: bool, failed: str
+) -> None:
+    # A gate can fail before any remote session exists. The record then
+    # holds the one machine that ran the gates and counts zero pairs.
+    gates = gates_with_failure(on_cross_host, failed)
+    still_cross = on_cross_host and failed != "same_host"
+    base = correctness_reject() if failed == "correctness" else integrity()
+    verdict = Verdict.model_validate(
+        {
+            **as_json(base),
+            "gate": failed,
+            "cross_host": still_cross,
+            "session_pairs": 0 if still_cross else None,
+        }
+    )
+    spec_ = BenchmarkSpec.model_validate(
+        {**as_json(spec()), "allow_cross_host": on_cross_host}
+    )
+    rec = record(verdict=verdict, spec=spec_, gates=gates, samples_path=None)
+    assert rec.verdict.gate == failed
+    assert rec.verdict.outcome == "REJECT"
 
 
 @pytest.mark.parametrize(

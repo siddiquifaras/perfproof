@@ -125,7 +125,7 @@ all run at once: their files don't overlap.
     failing commit going red.
   - Effort: medium
 
-- [ ] **T0.3 Schema contracts**
+- [x] **T0.3 Schema contracts** (siddiquifaras/perfproof#1, `40f12a7`)
   - Owns: `src/perfproof/schema.py`, `tests/test_schema.py`
   - Needs: none
   - Do: frozen Pydantic models with a `schema_version`:
@@ -204,17 +204,69 @@ by `stats-auditor` before its PR opens.
 - [ ] **T1.3 Decision rule**
   - Owns: `src/perfproof/stats/decision.py`,
     `tests/stats/test_decision.py`
-  - Needs: none
-  - Do: a pure function from gate results, interval, `min_effect` and
-    whether budget remains to `KEEP`, `REJECT`, `INCONCLUSIVE` or
-    continue, plus the reason, the deciding gate or rule, and the
-    regression flag, exactly as in `docs/method.md`. Decide how values
-    a few ulps from the bar are compared, document it in the docstring,
-    and test it.
-  - Done when: every row of the method table passes as written; tests
-    cover each rule, a bound exactly at the bar on each side, a
-    regression, a gate failure that overrides a KEEP-worthy interval,
-    and invalid parameters.
+  - Needs: T0.3
+  - Do: a pure function from gate results, interval, `min_effect`,
+    whether budget remains, and (cross host) completed session pairs
+    and `n0`, to `KEEP`, `REJECT`, `INCONCLUSIVE` or continue, plus the
+    reason, the deciding gate or rule, and the regression flag, exactly
+    as in `docs/method.md`.
+  - Numerical contract. The verdict is a function of the float64
+    ratio-scale bounds `L` and `U` that go into `Verdict.interval`,
+    compared with `bar = 1 + min_effect` computed in float64 (not
+    `exp(log1p(min_effect))`):
+    - KEEP iff `L > bar`;
+    - performance REJECT iff `U <= bar`;
+    - INCONCLUSIVE iff `L <= bar < U` and no budget remains; continue
+      iff `L <= bar < U` and budget remains;
+    - regression iff the verdict is a performance REJECT and `U < 1`;
+    - any failed gate decides first (rule 1), whatever the interval
+      and whether the host is local or remote.
+    No epsilon, tolerance, rounding or log-scale comparison may decide.
+    Intervals can be computed on the log scale, but the decision is
+    made after `exp`, on the exact floats that are recorded, and those
+    floats are never rounded before they are recorded or compared. The
+    docstring states how `L` and `U` are computed and converted.
+    `perfproof.schema.RunRecord` refuses any record that breaks these
+    rules: a log-scale comparison can call KEEP when the recorded `L`
+    is exactly 1.03 after `exp`, and that record could not be written.
+  - Cross-host evidence. The decision takes a count; this task also
+    owns the pure helper that produces it, and T2.5 and T5.2 must build
+    records with it:
+    - One `MachineFingerprint` per session started, probed on the host
+      that session ran on, including sessions that never pair (crashed,
+      timed out, gate failed). A probe that fails leaves its fields
+      `None` with a reason in `missing`; nothing is filled in.
+    - `completed_session_pairs` counts a pair only when a baseline
+      session and the candidate session launched right after it both
+      completed. A failed or incomplete session voids its pair, and
+      sessions are never re-paired across the gap.
+    - Fewer than `n0` completed pairs: INCONCLUSIVE whatever the
+      interval. From `n0` on, the bar rules above apply.
+    - A gate that fails before any remote host exists: rule 1 REJECT
+      with zero rounds and `session_pairs = 0`, and `machines` holds
+      exactly one fingerprint, of the machine that ran the gates. No
+      fingerprint is recorded for a host that was never allocated.
+  - Done when:
+    - every row of the method table passes as written;
+    - `L` and `U` at `bar` and one float64 ulp either side
+      (`math.nextafter`), for `min_effect` 0.03 and 0; `U == 1` and
+      `nextafter(1, 0)` for the regression flag;
+    - bounds come out of the function bit-identical to what went in;
+    - every gate failing, in both host modes, overrides a KEEP-worthy
+      interval;
+    - a property test: for intervals sampled near the bar, including
+      ones computed as `exp(log-scale bounds)`, every verdict the
+      function returns validates as a `RunRecord`, and changing its
+      rule to either of the other two makes the record invalid;
+    - cross-host tests at `n0 - 1`, `n0` and `n0 + 1` completed pairs,
+      and pair-counting tests for a failed middle session, a trailing
+      unpaired baseline, and an incomplete candidate;
+    - invalid parameters raise `ValueError` naming the value.
+  - Ticked off only when, beyond the merge: T1.5's sequential driver
+    calls this function as its only decision path, and T1.6 meets the
+    false-KEEP and false-REJECT acceptance rule in every cell through
+    it, with no scenario excluded. That is evidence under the scenarios
+    and assumptions tested, not proof of validity in general.
   - Effort: high
 
 - [ ] **T1.4 Noise simulator**
@@ -227,8 +279,9 @@ by `stats-auditor` before its PR opens.
     The development scenarios are presets on top. Two modes: one host
     (offsets shared within a round) and cross host (random per-session
     offsets, alternating session-pair design). In-round order is
-    randomized per round, so the order effect is meaningful. Seeded `Generator` in, arrays out.
-    The audit ranges in `docs/method.md` must be expressible.
+    randomized per round, so the order effect is meaningful. Seeded
+    `Generator` in, arrays out. The audit ranges in `docs/method.md`
+    must be expressible.
   - Done when: each model's sample statistics (CV, tail mass, drift
     slope, variance step, lag-1 autocorrelation, order effect, bimodal
     fraction, outlier rate) match its parameters within stated
@@ -242,7 +295,9 @@ by `stats-auditor` before its PR opens.
   - Do: the look schedule from `docs/method.md` (`n0 >= 10`, `k`, `K`,
     budget cut-off with a final look that replaces the remaining
     looks), the Bonferroni split, and a driver that takes the paired
-    samples so far and returns the decision at each look.
+    samples so far and returns the decision at each look. The driver
+    decides only through T1.3's function, never a second copy of the
+    rule.
   - Done when: driver output on fixed inputs is checked by hand in
     tests, including a budget that runs out between looks; a test feeds
     a clearly faster candidate whose interval still straddles the bar at
@@ -367,7 +422,9 @@ Mac and on Linux CI, with decoys that must be refused.
     `samples.npz`. Re-check the procedure and same-host gates on the
     finished samples. For a `reported` metric, compute the wall-clock
     interval too and set the `metric_disagreement` diagnostic per
-    `docs/method.md`. Uses the procedure fixed by T1.6 and T1.7.
+    `docs/method.md`. Decides through T1.3's function and builds
+    cross-host evidence by T1.3's rules. Uses the procedure fixed by
+    T1.6 and T1.7.
   - Done when: an end-to-end test on a temporary repo with a sleep-based
     benchmark returns, with the right reason field each time: KEEP
     (`performance`) for a large speedup, REJECT (`performance`) for no
@@ -576,7 +633,8 @@ Starts after the M2 exit. Anything that spends money goes through the
   pull the record back. Needs open question 3.
 - [ ] **T5.2 Modal runner**: one sandbox runs baseline and candidate
   interleaved; image chosen per benchmark; volumes for caches; fail
-  fast with log tail. Paid.
+  fast with log tail. Cross-host sessions record fingerprints and count
+  pairs by T1.3's rules. Paid.
 - [ ] **T5.3 GPU timing and fingerprint**: CUDA event timing helper for
   `reported` benchmarks, GPU clocks and throttle reasons, optional clock
   locking where permitted.
