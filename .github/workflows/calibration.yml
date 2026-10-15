@@ -1,0 +1,58 @@
+# Monte Carlo calibration of the statistical procedures. Too slow for
+# every PR, so it runs nightly on main. A PR that edits this file runs
+# it too, so a change to the job is exercised before it merges.
+name: Calibration
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/calibration.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibration:
+    name: ubuntu-latest / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.12.20"
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - run: uv run --frozen python --version
+
+      # pytest exits 5 when no test is collected. Until
+      # tests/calibration/ exists that is expected and only warns; once
+      # it exists, collecting nothing is a failure.
+      - name: pytest -m calibration
+        run: |
+          set +e
+          uv run --frozen pytest -m calibration
+          status=$?
+          if [ "$status" -eq 5 ] && [ ! -d tests/calibration ]; then
+            echo "::warning::No calibration tests yet:" \
+              "tests/calibration/ does not exist."
+            exit 0
+          fi
+          exit "$status"
