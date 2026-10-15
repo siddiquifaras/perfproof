@@ -505,9 +505,12 @@ Mac and on Linux CI, with decoys that must be refused.
     high load, non-performance governor, thermal limits. Probes run
     once per comparison, never between rounds.
   - Done when: parsers are tested on captured outputs of each command
-    (`pmset -g batt`, `pmset -g therm`, `sysctl`, `/proc/cpuinfo`,
-    `nvidia-smi`), and an integration test fingerprints the machine it
-    runs on.
+    (`pmset -g batt`, `pmset -g therm`, `sysctl`, `/proc/cpuinfo` from an
+    arm64 Linux container), and an integration test fingerprints the
+    machine it runs on. The x86 `/proc/cpuinfo` and `nvidia-smi` captures
+    need a Linux x86 or GPU host and move to T5.12, in the GPU session;
+    until then those parsers are tested on constructed samples, labelled
+    as such.
   - Effort: medium
 
 - [ ] **T2.2 Spec, lock, procedure and snapshot**
@@ -1114,7 +1117,8 @@ the write-up says so. Paid steps go through the `gpu-run` skill.
   open question 1. Paid, small.
 - [ ] **T5.12 GPU fingerprint and timing**: GPU, driver, clocks and
   throttle reasons; CUDA-event timing for `reported` benchmarks; peak
-  GPU memory as a guardrail. Needs T2.1, T2.3.
+  GPU memory as a guardrail; the real `nvidia-smi` and x86
+  `/proc/cpuinfo` captures moved here from T2.1. Needs T2.1, T2.3.
 - [ ] **T5.13 Serving contract and playbook.** `vllm bench serve` and
   SGLang bench as workloads with `/metrics` counters, building on the
   reference scripts; fixed-seed greedy token equality or a declared
