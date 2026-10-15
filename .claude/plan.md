@@ -444,8 +444,25 @@ by `stats-auditor` before its PR opens.
     looks), the Bonferroni split, and a driver that takes the paired
     samples so far and returns the decision at each look. The driver
     decides only through T1.3's function, never a second copy of the
-    rule.
-  - Done when: driver output on fixed inputs is checked by hand in
+    rule. Once PR #13 merges: looks on complete balanced pairs only
+    (even `n0` and `k`), per-look confidence `1 - alpha / max(K, 2)`,
+    and the `coarse_resolution` floor. Also add balanced order to
+    T1.4's simulator (`simulate.py`, a small change this task may
+    make): today it draws a fair coin per round.
+  - Inputs from the T1.1 audit (auditor's own simulator, probes in
+    `scratch/audit-pr11-probes/`, to re-measure on T1.4's):
+    - AR(1) 0.5 in `d` defeated both the t primary (651/4000 false
+      KEEP at S = 1.03, six looks) and the batch-means fallback
+      (113/4000; limit 83). Batch means at `n = 10` (two blocks, one
+      df) also under-covers under bimodal and outlier noise. The
+      fallback as written won't rescue autocorrelation at short `n`.
+      Candidate remedies, to choose under calibration: wait for enough
+      rounds for at least 10 blocks before a decision when lag-1
+      autocorrelation is high, a HAC variance with a small-sample df
+      correction, or INCONCLUSIVE with a diagnostic. Whatever is
+      chosen is written into `docs/method.md` before T1.7.
+    - Hodges-Lehmann passed every order-effect cell the t primary
+      failed.
     tests, including a budget that runs out between looks; a test feeds
     a clearly faster candidate whose interval still straddles the bar at
     the budget and gets INCONCLUSIVE, never KEEP; the per-target
@@ -474,6 +491,11 @@ by `stats-auditor` before its PR opens.
     budgets at heavy tails: T1.4's audit found 59% of replications at
     the heavy-tail corner contain a run over 100 times the typical
     time, so accumulate time in log space (`np.logaddexp.accumulate`).
+  - Decision for Faras, not taken: under the acceptance rule as
+    written, an exact procedure on the bar (one-sided error 1.61% at
+    six looks) passes each S = 1.03 cell with probability 0.990 and
+    all of about 20 such cells with probability 0.82 (T1.1 audit). A
+    failing cell is written up, never rerun.
   - Done when: results table in `docs/method.md` with seed, `R`,
     counts and Clopper-Pearson bounds; every cell passes for the primary
     procedure (or the batch-means fallback, or a challenger switched in
@@ -551,7 +573,10 @@ Mac and on Linux CI, with decoys that must be refused.
     declared env, cwd and resolved executable actually launched in
     every `Sample`, and wall time alongside every `reported` value.
     Stdout and stderr go to files, not memory. Warmup, then rounds with
-    in-round order drawn from a recorded seed.
+    in-round order drawn from a recorded seed; once PR #13 merges,
+    rounds come in balanced pairs (one each order, which first drawn
+    from the seed). Record each `reported` value's resolution from the
+    digits printed, for the `coarse_resolution` floor.
   - Done when: each metric is tested against a real child process;
     runner overhead per invocation is measured against a bare
     `subprocess.run` of the same command and reported in the PR.
