@@ -107,6 +107,8 @@ calibration criteria.
 | Record and replay for agentic and LLM apps | M2 exit | Record an app's model and tool calls once, then replay them so the benchmark measures the app's own code with no API cost, rate limits or network noise. Replays must be checked against a live sample so they stay faithful. |
 | Settings search | T3.7 | Many inference and GPU wins are settings, not code: batch size, thread counts, `torch.compile`, data types, serving flags, compiler flags. Each setting tried is a candidate under T3.7's choose-then-confirm rule, so searching many settings never inflates the claim. |
 | Coverage for native code | T2.14 | gcov or llvm-cov, so C, C++ and Rust changes stop needing the "coverage not checked" opt-in. |
+| History bisect | M2 exit | Benchmark across git history to find when a path got slower, using `compare` at each bisect step. Many steps mean many chances to be wrong, so the commit it blames is confirmed by a fresh, independent `compare` of that commit against its parent, and only that run is claimed. |
+| CI regression check | T3.1, no-regression mode | `perfproof compare --base origin/main` as a PR check that fails when a measured path is shown slower than its allowance. CI runners are noisy, so it uses the `counter` metric on Linux where available. Optionally a ratchet that tightens the allowance when a path gets faster. |
 
 ## Lanes
 
@@ -123,7 +125,8 @@ M2  T2.1 T2.2 T2.3 T2.4 T2.6 T2.7 T2.9 ─┬─ T2.5 (after M1 exit)
                  T2.10 (after T2.7, T2.9)├─ T2.11 real traces
                                          └─ T2.8 local loop ══ M2 exit
                                                     │
-M3  T3.1 ─ T3.2 ─ T3.3 ─ T3.4 ─ T3.6 ─ T3.5, T3.7 ◄─┤
+M3  T3.1 ─ T3.2 ─ T3.3, T3.4, T3.8, T3.9 ─ T3.6 ◄───┤
+    then T3.5, T3.7                                 │
 M4  T4.2 … T4.6 (parallel), T4.8, T4.9 ◄────────────┤
 M5  T5.1 T5.2 T5.3 ─ T5.4 ─ T5.5, T5.6 ◄────────────┘
 ```
@@ -725,10 +728,57 @@ Starts after the M2 exit.
     client layout; skill check from `skills/AGENTS.md` done.
   - Effort: medium
 
+- [ ] **T3.8 Discover: where else to look**
+  - Owns: `src/perfproof/discover/`, `tests/discover/`, the `discover`
+    MCP tool and CLI subcommand
+  - Needs: T3.2, T2.10, T2.13
+  - Do: a ranked list of optimization opportunities for one benchmark,
+    built for repos whose obvious hotspots are already fixed. Each
+    angle is a source with an availability check, so the ones whose
+    tools aren't built yet report "not available" with the reason
+    instead of disappearing:
+    - CPU hotspots, from the profiler adapters;
+    - waiting rather than computing: the gap between wall and CPU time;
+    - repeated identical work: calls with the same arguments, from the
+      differential checks' call capture;
+    - growth with input size: the benchmark run at two or three input
+      sizes, fitting how time scales, to find super-linear code;
+    - startup and import time (`python -X importtime`);
+    - later, as their adapters land: allocations (memray, T4.3),
+      off-CPU and lock waits, GPU idle time (T4.7), N+1 queries (web
+      target), settings (settings search).
+    Every opportunity carries its angle, its evidence (profile paths,
+    numbers), and the most it could gain with how that cap was derived.
+    A cap is an upper bound from a model, labelled as such, never a
+    measured speedup.
+  - Done when: on the examples, each angle the M3 build supports finds
+    the opportunity planted for it (add one planted case per angle to
+    `examples/` in this task), the list is ranked by cap, and unbuilt
+    angles report themselves unavailable.
+  - Effort: high
+
+- [ ] **T3.9 Memory of past attempts**
+  - Owns: `src/perfproof/attempts.py`, `tests/test_attempts.py`
+  - Needs: T3.2
+  - Do: an append-only record of every attempt under
+    `.perfproof/attempts/<benchmark>.jsonl`: the opportunity (file,
+    qualified function name, and a hash of the function's source at the
+    time), the approach in the agent's words, the diff hash, the
+    verdict and reason, and the run record's path. `discover` attaches
+    matching past attempts to each opportunity, marking those made on
+    an older version of the code. Whether a new idea is the same as an
+    old one is the model's call; finding and showing the history is
+    the code's.
+  - Done when: tests cover appending, matching after the function moves
+    within its file, an attempt on changed source marked as older, a
+    corrupt line skipped with a warning rather than losing the file,
+    and two sessions appending at once.
+  - Effort: medium
+
 - [ ] **T3.6 One-command optimize loop**
   - Owns: `skills/perfproof/`, `src/perfproof/optimize.py`,
     `tests/test_optimize.py`, the `optimize` subcommand in `cli.py`
-  - Needs: T3.2, T3.4
+  - Needs: T3.2, T3.4, T3.8, T3.9
   - Do: the skill a user starts with `/perfproof` (Claude Code) or
     `$perfproof` (Codex), and the engine code that holds its state.
     The model decides what to try; deterministic code owns everything
@@ -736,17 +786,20 @@ Starts after the M2 exit.
     and undoing.
     1. Detect the project and find or propose a benchmark; the user
        confirms it before anything is measured.
-    2. Profile the baseline and rank hotspots by the most a fix could
-       gain (Amdahl's law: a share `p` of runtime caps the speedup at
-       `1 / (1 - p)`).
-    3. For the top hotspot, the agent makes one change using the
-       target's playbook.
+    2. Run `discover` on the baseline: opportunities from every
+       available angle, ranked by the most a fix could gain (for a
+       hotspot, Amdahl's law: a share `p` of runtime caps the speedup
+       at `1 / (1 - p)`), each with its past attempts from T3.9.
+    3. For the top opportunity, the agent makes one change using the
+       target's playbook, skipping approaches already rejected on the
+       same code unless it says what is different this time. Every
+       attempt is appended to the T3.9 record, whatever its verdict.
     4. `compare` against the last kept state. KEEP becomes a commit on
        a `perfproof/<session>` branch; anything else is undone, file
        by file, for the files that attempt changed.
-    5. Move to the next hotspot, re-profiling after each KEEP. Stop when
-       the budget (time, attempts, hotspots) runs out, or when the
-       largest remaining hotspot's cap is below the bar.
+    5. Move to the next opportunity, re-running `discover` after each
+       KEEP. Stop when the budget (time, attempts, opportunities) runs
+       out, or when the largest remaining cap is below the bar.
     6. Compare the original baseline against the final stacked state
        once more, and write one report listing every attempt, its
        verdict and its evidence.

@@ -28,6 +28,8 @@ verdict lives in them.
 | `perfproof.machine` | Fingerprint and warnings (power, load, thermal, frequency policy, GPU clocks) | Read-only probes. A missing probe is `unknown`, never a guess. |
 | `perfproof.profilers` | One adapter per profiler, all returning `Hotspot` lists | Adapters stream large outputs and return the top N. |
 | `perfproof.targets` | Detect the project type and propose a benchmark | Heuristics with explicit confidence. |
+| `perfproof.discover` | Rank optimization opportunities across angles (CPU hotspots, waiting, repeated work, input-size growth, startup, and more as adapters land) | Every gain is a labelled upper bound with its derivation, never a measurement. |
+| `perfproof.attempts` | Append-only memory of what was tried, how, and its verdict | The code finds and shows history; the model judges whether an idea repeats one. |
 | `perfproof.remote` | SSH and Modal runners | The remote side runs the same engine, so interleaving happens on one host. |
 | `perfproof.report` | JSON record and Markdown report | Renders the record. Computes nothing new. |
 | `perfproof.mcp` | MCP tool definitions | Thin. |
@@ -48,6 +50,7 @@ repository, which it adds to `.git/info/exclude`:
     report.md                the readable report
     samples.npz              raw per-round samples
     profiles/                profiler outputs, untouched
+  attempts/<name>.jsonl      every attempt on a benchmark, append-only
 ```
 
 A benchmark's name is how people and agents refer to it. Its spec hash
@@ -68,6 +71,7 @@ clean. Raw data goes to disk and the tool returns its path.
 | `snapshot` | Baseline commit and worktree path |
 | `measure` | Median, spread, noise estimate, rounds |
 | `profile` | Top hotspots with `file:line`, profile path |
+| `discover` | Ranked opportunities, each with its angle, evidence, gain cap and past attempts |
 | `explain_hotspot` | Source excerpt and profile detail for one hotspot |
 | `check_correctness` | Pass or fail, with the first differences |
 | `compare` | Verdict, rule, speedup, interval, gates, warnings |
