@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `a141718` | Spec: a test that fails only on the candidate is re-run five more times on each tree before the candidate is blamed (three baseline runs catch a 50%-flaky test only 75% of the time; found by the T2.7 worker) |
 | `0efbd4b` | T2.9 folded-stack summariser merged (PR #8), squash, at `f317b70` after three reviews (two blocked on frame normalisation, fixed); CI 4/4 on that head |
 | `0eb8160` | T1.3 decision rule merged (PR #3), squash, at reviewed head `bd14548`: reviewer and stats-auditor both PASS on that commit, CI 4/4 green on it |
 | `aa6ef93` | Plan rebuilt as a small exact CLI plus skills; failure modes, CLI spec, evaluation design, target contracts |
@@ -61,7 +62,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-T1.1, T1.4, T2.12, T2.2, T2.3, T2.7.
+T1.1, T1.4, T2.12, T2.2, T2.3, T2.7, T4.1.
+
+- PR #9 (T2.12): reviewer blocks fixed at `0e04280` (CI 4/4); waiting
+  on the stats-auditor's findings from `2e3206e` before the final
+  review on the new head.
+- PR #12 (T2.7): reviewer running at `c88c077`.
 
 ### Blockers
 
