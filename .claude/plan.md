@@ -416,7 +416,7 @@ by `stats-auditor` before its PR opens.
     and assumptions tested, not proof of validity in general.
   - Effort: high
 
-- [ ] **T1.4 Noise simulator**
+- [x] **T1.4 Noise simulator**
   - Owns: `src/perfproof/stats/simulate.py`,
     `tests/stats/test_simulate.py`
   - Needs: none
@@ -448,7 +448,15 @@ by `stats-auditor` before its PR opens.
     (even `n0` and `k`), per-look confidence `1 - alpha / max(K, 2)`,
     and the `coarse_resolution` floor. Also add balanced order to
     T1.4's simulator (`simulate.py`, a small change this task may
-    make): today it draws a fair coin per round.
+    make): today it draws a fair coin per round. With it, three test
+    gaps from the T1.4 final audit (probes in
+    `scratch/audit-pr6c-probes/`): a stream that ignores the seed
+    passes the suite, since the different-seed test runs every effect
+    at once (test each stream alone with two seeds); noise passed
+    through `exp` and back isn't caught (a heavy-tailed `cv=1e154`
+    case is); and `NoiseScenario` accepts a CV large enough to make
+    every log time non-finite, against its "finite" docstring
+    (refuse it).
   - Inputs from the T1.1 audit (auditor's own simulator, probes in
     `scratch/audit-pr11-probes/`, to re-measure on T1.4's):
     - AR(1) 0.5 in `d` defeated both the t primary (651/4000 false

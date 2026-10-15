@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `879bbb7` | T1.4 noise simulator merged (PR #6), squash, at `49fe296`; reviewer PASS and stats-auditor PASS on that commit (19/19 mutants killed, chunk bound measured), CI 4/4. Earlier audit blocked on a normal-noise RNG test gap, fixed |
 | `e80e399` | T2.1 machine fingerprint merged (PR #7), squash, at reviewed head `a376647`; reviewer PASS on that commit after two blocked rounds (Linux `host_id` collision fixed with boot_id; real cpuinfo captured), CI 4/4 |
 | `a141718` | Spec: a test that fails only on the candidate is re-run five more times on each tree before the candidate is blamed (three baseline runs catch a 50%-flaky test only 75% of the time; found by the T2.7 worker) |
 | `0efbd4b` | T2.9 folded-stack summariser merged (PR #8), squash, at `f317b70` after three reviews (two blocked on frame normalisation, fixed); CI 4/4 on that head |
@@ -90,7 +91,6 @@ As of 04:50 PKT. Resume point if the usage limit hits (reset 06:50).
 | PR | Task | State |
 |---|---|---|
 | #5 | T2.2 | Worker fixing review round 4 (B1 slashless shebang, B2 macOS relative rpath cwd, B3 tox/nox launchers); then reviewer, bounded to the stated contract |
-| #6 | T1.4 | Reviewer PASS at `49fe296`; stats-auditor running on `49fe296`; merge if PASS |
 | #9 | T2.12 | Reviewer PASS at `cf5bed7`; stats-auditor finishing `67c6f40` then `cf5bed7`; merge if PASS |
 | #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
 | #11 | T1.1 | Stats-auditor PASS at `be1b21e`; worker adding HL memory, eps, layout tests on top of `eee6e74`; then final reviewer + stats-auditor |
