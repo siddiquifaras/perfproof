@@ -30,14 +30,83 @@ the record, so a tool or an agent never has to parse prose to learn why.
 |---|---|---|
 | Interval shows the speedup clears the bar | KEEP | `performance` |
 | Interval rules out a speedup above the bar | REJECT | `performance` |
-| Candidate gives wrong results | REJECT | `correctness` |
+| Faster, but a guardrail metric is shown worse than its allowance | REJECT | `guardrail` |
+| Candidate gives wrong results | REJECT | `correctness`, gate `correctness` |
+| Changed code that no check ever ran | REJECT | `correctness`, gate `coverage` |
 | The experiment itself is not valid (locked files, procedure, host) | REJECT | `integrity`, with the gate named |
+| The benchmark would reach a service that isn't local | Refused before anything runs | `integrity`, gate `side_effects` |
 | Interval still straddles the bar when the budget runs out | INCONCLUSIVE | `insufficient_evidence` |
 
 A correctness or integrity REJECT says nothing about speed. Gates run
 before any timing, so those verdicts carry no speedup estimate at all.
 A performance REJECT says nothing about correctness beyond the gate
-having passed.
+having passed. A guardrail REJECT keeps the speedup estimate, because
+the point is to show what the speed cost.
+
+## What perfproof promises
+
+perfproof cannot prove a change correct. It promises something narrower
+that it can keep: **it never keeps a change that failed a check, and
+every report says what was checked and what wasn't.** How much that is
+worth depends on the checks, so they are built to be strong:
+
+- the project's own tests, run on the baseline first to find flaky ones;
+- differential checks: old and new code on the same inputs, including
+  real inputs captured while the benchmark ran;
+- a coverage gate: every changed line must have run under those checks;
+- guardrails: the speed must not be bought with memory or tail latency;
+- a side-effect guard: nothing runs against a service that isn't local.
+
+## Correctness
+
+The `correctness` and `coverage` gates decide whether the candidate
+still does what the baseline did.
+
+**Flaky tests.** Before judging the candidate, perfproof runs the
+correctness command on the baseline three times. A test that doesn't
+give the same result every time is flaky: it is quarantined, listed in
+the report, and not used to judge the candidate. Quarantine never
+weakens the coverage gate, because lines only the quarantined tests
+ran count as unverified.
+
+**Differential checks.** Tests check what their authors thought of.
+Differential checks compare the two versions directly:
+
+- Declared outputs of the benchmark run are compared between the trees,
+  as bytes, text, or numbers within `rtol` and `atol`.
+- While the baseline benchmark runs, perfproof captures up to a fixed
+  number of real calls to each function the candidate changed: the
+  arguments, and the return value. Each captured call is replayed
+  against the candidate in a separate process, and the results must
+  match. Calls whose arguments can't be captured faithfully (open
+  files, sockets, live objects) are skipped and counted in the report.
+- Where type hints allow, generated inputs (Hypothesis) are run through
+  both versions as well.
+- For model outputs: fixed-seed greedy decoding must give the same
+  tokens, or logprobs must agree within a declared tolerance.
+
+Any mismatch fails the `correctness` gate, with the first differences
+in the record.
+
+**Coverage gate.** perfproof takes the lines the candidate changed from
+`git diff` and runs the correctness command and the differential checks
+under coverage. Every changed executable line must have run. A change
+in code no check executed is unverified, and an unverified change is
+not kept. For a target where perfproof cannot measure coverage yet, a
+KEEP needs the spec's explicit opt-in, and the verdict is labelled
+"coverage not checked".
+
+## Side effects
+
+A benchmark that writes to a real database or calls a paid API is not
+safe to run blindly. Before anything executes, perfproof checks the
+spec's environment and the process environment for service addresses,
+such as `DATABASE_URL`, `REDIS_URL`, and variables ending in `_HOST` or
+`_URL`. If any points at a host that isn't local (`localhost`,
+`127.0.0.1`, `::1`, a Unix socket, or a container started for the run),
+the run is refused with gate `side_effects`, unless the spec opts in.
+A spec can declare a reset command that perfproof runs before every
+execution, so a database starts each round in the same state.
 
 ## Integrity
 
@@ -235,10 +304,12 @@ tests it under the complete stopping procedure, not at fixed `n` alone.
 The first rule that matches decides:
 
 1. **REJECT** (`correctness` or `integrity`) if a gate failed. When
-   several gates fail, the first in this order is named: `lock`,
-   `procedure`, `runtime`, `same_host`, `correctness`. Integrity comes
-   first because a correctness check run under a broken lock or
-   procedure tests nothing.
+   several gates fail, the first in this order is named:
+   `side_effects`, `lock`, `procedure`, `runtime`, `same_host`,
+   `correctness`, `coverage`. Integrity comes first because a
+   correctness check run under a broken lock or procedure tests
+   nothing, and coverage comes last because it asks whether passing
+   checks reached the change.
 2. **KEEP** (`performance`) if `L > 1 + min_effect`.
 3. **REJECT** (`performance`) if `U <= 1 + min_effect`. If `U < 1`, the
    record also flags a regression.
@@ -261,6 +332,31 @@ With the default bar of +3%:
 A promising point estimate never turns into a KEEP. If the budget ends
 with the interval straddling the bar, the answer is INCONCLUSIVE
 however good the estimate looks.
+
+### Guardrails
+
+A guardrail is a second metric that must not get worse beyond an
+allowance while the primary metric improves. Peak memory (max RSS,
+recorded for every execution) is always a guardrail; tail latency (p99)
+is one for service targets, and specs can declare others. Allowances
+are set per guardrail in the spec.
+
+- Each guardrail has its own paired interval on its worsening ratio,
+  built the same way as the primary one.
+- A guardrail is **breached** when its interval's lower bound shows it
+  worse than `1 + allowance`.
+- A breach blocks KEEP only. When the primary interval would give KEEP
+  and any guardrail is breached, the verdict is REJECT with reason
+  `guardrail`, and the record keeps both intervals. A guardrail that
+  isn't shown breached doesn't block, and its interval is reported.
+- With `G` guardrails, each guardrail look uses confidence
+  `1 - alpha / (K G)`. By the same union bound as under "Stopping",
+  the chance that any guardrail falsely blocks a change whose
+  guardrails are truly within their allowances is at most 2.5%. That
+  is a separate bound from the 2.5% on a false performance REJECT, and
+  calibration measures both. The primary interval is unchanged, and
+  guardrails can only remove KEEPs, so they never raise the false-KEEP
+  rate.
 
 ### Numerics
 

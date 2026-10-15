@@ -35,6 +35,28 @@ the honest answer when they back neither, and perfproof gives it
 instead of guessing. A change that edits the benchmark or breaks the
 answers is a REJECT however fast it runs.
 
+## What it promises, and what it doesn't
+
+No tool can prove a code change correct. Here's what perfproof does
+promise: **it never keeps a change that failed a check, and every
+report says what it checked and what it couldn't.**
+
+The checks are built to catch "faster but wrong":
+
+- **Your tests**, run on the old code first, so a flaky test gets set
+  aside instead of blamed on the change.
+- **Old and new code side by side** on the same inputs, including real
+  inputs recorded while the benchmark ran.
+- **Every changed line has to run** under those checks. If the tests
+  never reach the code that changed, the change isn't kept.
+- **No speed bought with something else.** Faster but using several
+  times the memory, or with worse tail latency, gets refused.
+- **No side effects.** perfproof won't run a benchmark that points at a
+  real database or any other service that isn't on your machine.
+
+If your tests are thin, perfproof's own checks fill part of the gap,
+and the report tells you exactly which lines nothing verified.
+
 ## Why it exists
 
 During a hand-run investigation of a vLLM performance report, the exact

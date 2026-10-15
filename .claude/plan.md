@@ -65,7 +65,7 @@ trustworthy.
 | Calibration scope | Development scenarios, held-out audit scenarios at fresh seeds, and real A/A traces per target class with a held-out machine; uncalibrated target classes are labelled in every report |
 | Metrics | `wall`, `cpu`, `reported`, and `counter` (Linux `perf stat`) in v1 |
 | Shared data types | Pydantic models in `perfproof.schema`; NumPy arrays inside `stats` |
-| Runtime dependencies | `numpy` for the stats core. `pydantic` for the schema; the MCP SDK requires `pydantic>=2.12` anyway, so it adds nothing to the install. `scipy` for the t quantiles of the primary procedure and the Wilcoxon challenger. `mcp` arrives with T3.2. Test and lint tools stay in the `dev` group. |
+| Runtime dependencies | `coverage` and `hypothesis` join the runtime dependencies in T2.12, for the coverage gate and differential checks. `numpy` for the stats core. `pydantic` for the schema; the MCP SDK requires `pydantic>=2.12` anyway, so it adds nothing to the install. `scipy` for the t quantiles of the primary procedure and the Wilcoxon challenger. `mcp` arrives with T3.2. Test and lint tools stay in the `dev` group. |
 | Entry point | `perfproof mcp` starts the MCP server; MCP clients launch `uvx perfproof mcp` |
 | Remote | `host` argument on `measure`, `profile` and `compare`; the remote side runs the same engine |
 | Local-only files | `.claude/local/` (handoff, budget) and `CLAUDE.local.md`, gitignored, copied into worktrees by `.worktreeinclude`. Nothing needed to build, test or run perfproof lives there. |
@@ -84,6 +84,8 @@ Ask Faras; don't decide silently.
    a cheap Linux VM, or a Modal sandbox with sshd.
 4. Installing Codex locally (standalone binary, no Homebrew) for T0.4
    and T3.3.
+5. Default guardrail allowances: how much worse may peak memory and p99
+   latency get before a speedup is refused? Needed before T2.15.
 
 Repository admin (Faras): make the CI checks required on `main` so a red
 PR can't merge. T0.2 delivered the checks; enforcing them is a setting.
@@ -102,6 +104,9 @@ calibration criteria.
 | Background execution | T3.2 design | Long `measure`, `profile` and `compare` calls as jobs with progress and resume, so MCP clients never time out mid-run. Decided in T3.2's design, built when needed. |
 | Web-service target | M2 exit | Start, health check, warm-up, constant-rate load, latency percentiles and throughput per round, database reset between rounds. vLLM serving becomes a preset. Acceptance: a real CRUD app end to end, with the bottleneck layer identified, and no claim that a generic load is representative. |
 | CPU pinning and isolation | T2.3 | Linux only, where permissions allow; never a requirement. |
+| Record and replay for agentic and LLM apps | M2 exit | Record an app's model and tool calls once, then replay them so the benchmark measures the app's own code with no API cost, rate limits or network noise. Replays must be checked against a live sample so they stay faithful. |
+| Settings search | T3.7 | Many inference and GPU wins are settings, not code: batch size, thread counts, `torch.compile`, data types, serving flags, compiler flags. Each setting tried is a candidate under T3.7's choose-then-confirm rule, so searching many settings never inflates the claim. |
+| Coverage for native code | T2.14 | gcov or llvm-cov, so C, C++ and Rust changes stop needing the "coverage not checked" opt-in. |
 
 ## Lanes
 
@@ -114,6 +119,7 @@ M1  T1.1 ─┬──────┼─ T1.5 ─┐
     T1.4 ────────┼────────┘
                  │
 M2  T2.1 T2.2 T2.3 T2.4 T2.6 T2.7 T2.9 ─┬─ T2.5 (after M1 exit)
+    T2.12 (after T1.3) ─ T2.13…T2.16 ───┤
                  T2.10 (after T2.7, T2.9)├─ T2.11 real traces
                                          └─ T2.8 local loop ══ M2 exit
                                                     │
@@ -454,18 +460,23 @@ Mac and on Linux CI, with decoys that must be refused.
   - Owns: `src/perfproof/bench/correctness.py`,
     `tests/bench/test_correctness.py`
   - Needs: T0.3
-  - Do: run the spec's test command in the candidate tree; compare
-    declared outputs between trees as bytes, text, or numbers with
-    `rtol` and `atol` (text numbers and `.npy` files). Return the first
-    differences, capped.
+  - Do: run the spec's test command on the baseline three times first
+    and quarantine any test whose result changes (flaky), per
+    "Correctness" in `docs/method.md`; then run it in the candidate
+    tree. Compare declared outputs between trees as bytes, text, or
+    numbers with `rtol` and `atol` (text numbers and `.npy` files).
+    Return the first differences, capped.
   - Done when: tests cover equal, unequal, within-tolerance, NaN
-    handling, and a missing output file.
+    handling, a missing output file, a flaky test quarantined rather
+    than blamed on the candidate, and a test that fails on all three
+    baseline runs (the baseline itself is broken: the run stops).
   - Effort: medium
 
 - [ ] **T2.5 Compare**
   - Owns: `src/perfproof/bench/compare.py`,
     `tests/bench/test_compare.py`
-  - Needs: M1 exit, T2.1, T2.2, T2.3, T2.4
+  - Needs: M1 exit, T2.1, T2.2, T2.3, T2.4, T2.13, T2.14, T2.15,
+    T2.16
   - Do: gates, then interleaved rounds per the look schedule, then the
     sequential decision, then a `RunRecord` with samples saved to
     `samples.npz`. Re-check the procedure and same-host gates on the
@@ -506,8 +517,12 @@ Mac and on Linux CI, with decoys that must be refused.
     pure-Python loop that NumPy vectorizes, and a quadratic membership
     check that a set fixes. Each example also ships decoy candidates
     that must not be kept: one edits the benchmark, one returns wrong
-    output, one is a no-op refactor, and one is genuinely but only
-    slightly faster (about 1.5%), so its evidence can't clear the bar.
+    output, one is a no-op refactor, one is genuinely but only
+    slightly faster (about 1.5%) so its evidence can't clear the bar,
+    one is faster but changes a branch no test reaches, and one is
+    faster by caching everything at several times the memory. One
+    example's suite includes a deliberately flaky test, and one spec
+    points `DATABASE_URL` at a non-local host.
     Add a C or Rust kernel with a cache-unfriendly access pattern for
     M4.
   - Done when: each example's test passes before and after its fix, and
@@ -551,9 +566,94 @@ Mac and on Linux CI, with decoys that must be refused.
     calibrated or the gap is written up as a task.
   - Effort: high
 
+- [ ] **T2.12 Schema for the safety checks**
+  - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
+    `tests/test_schema.py`, the gate list and precedence in
+    `src/perfproof/stats/decision.py` and its tests, `pyproject.toml`
+    and `uv.lock` (adds `coverage` and moves `hypothesis` to runtime
+    dependencies, so T2.13 and T2.14 never touch the lockfile)
+  - Needs: T1.3 merged
+  - Do: the schema and decision changes `docs/method.md` now needs:
+    gates `side_effects` and `coverage`, with the precedence
+    `side_effects`, `lock`, `procedure`, `runtime`, `same_host`,
+    `correctness`, `coverage`; reason `guardrail` for a REJECT that
+    keeps the speedup estimate; guardrail specs (metric, allowance) and
+    results (interval, breached); the opt-ins for remote services and
+    for targets without coverage; a reset command; quarantined flaky
+    tests; differential-check results (calls captured, replayed,
+    skipped with reasons, first differences). One task, because the
+    schema is the shared contract.
+  - Done when: round-trip and refusal tests for every new field; a
+    guardrail REJECT validates only with its intervals present; the
+    JSON Schema drift test passes; all existing tests still pass.
+  - Effort: high
+
+- [ ] **T2.13 Differential checks**
+  - Owns: `src/perfproof/bench/differential.py`,
+    `tests/bench/test_differential.py`
+  - Needs: T2.12, T2.3
+  - Do: per "Differential checks" in `docs/method.md`, for Python:
+    capture up to a fixed number of real calls to each changed
+    function while the baseline benchmark runs, replay each against
+    the candidate in a separate process and compare results; run
+    Hypothesis-generated inputs through both versions where type hints
+    allow; count and explain every call that couldn't be captured.
+    Capture adds overhead, so it runs in its own pass, never during a
+    measured round.
+  - Done when: tests show a changed function with a subtle bug (wrong
+    on one input in fifty) caught by replayed real calls, an
+    unpicklable argument skipped with its reason, and no capture code
+    running during measured rounds.
+  - Effort: high
+
+- [ ] **T2.14 Coverage gate**
+  - Owns: `src/perfproof/bench/coverage_gate.py`,
+    `tests/bench/test_coverage_gate.py`
+  - Needs: T2.12, T2.4, T2.13
+  - Do: changed executable lines from `git diff` between the trees;
+    run the correctness command and the differential checks under
+    coverage.py; fail the `coverage` gate, listing the unverified
+    lines, when any changed line didn't run. Lines only quarantined
+    flaky tests reached count as unverified. Non-Python changes report
+    coverage as not checked, which needs the spec's opt-in for a KEEP.
+  - Done when: tests cover a fully covered change, a change in a branch
+    no test reaches, a change reached only by a quarantined test, a
+    deleted line, and a non-Python change without the opt-in.
+  - Effort: high
+
+- [ ] **T2.15 Guardrails**
+  - Owns: `src/perfproof/stats/guardrails.py`,
+    `tests/stats/test_guardrails.py`, the guardrail step in
+    `src/perfproof/stats/decision.py`, guardrail cells in
+    `tests/calibration/`
+  - Needs: T2.12, T1.6
+  - Do: per "Guardrails" in `docs/method.md`: a paired interval on each
+    guardrail's worsening ratio at confidence `1 - alpha / (K G)`, the
+    breach rule, and the REJECT with reason `guardrail` that blocks a
+    KEEP. Peak memory is always a guardrail.
+  - Done when: tests cover a breach blocking a KEEP, an unresolved
+    guardrail not blocking, and a breach alongside a performance REJECT
+    or INCONCLUSIVE leaving that verdict alone; calibration shows the
+    false-block rate for guardrails within their allowances passes the
+    acceptance rule in `docs/method.md`, reported per cell.
+  - Effort: high
+
+- [ ] **T2.16 Side-effect guard**
+  - Owns: `src/perfproof/bench/side_effects.py`,
+    `tests/bench/test_side_effects.py`
+  - Needs: T2.12
+  - Do: the preflight in "Side effects" in `docs/method.md`: refuse a
+    run whose spec or process environment points a service address at
+    a host that isn't local, unless the spec opts in; run the spec's
+    reset command before every execution.
+  - Done when: tests cover each variable pattern, local and non-local
+    hosts, IPv6, Unix sockets, the opt-in, and a reset command that
+    fails (the run stops, with its output in the record).
+  - Effort: medium
+
 - [ ] **T2.8 Local loop end to end**
   - Owns: `tests/e2e/`, the A/A section of `docs/method.md`
-  - Needs: T2.5, T2.6, T2.10, T2.11
+  - Needs: T2.5, T2.6, T2.10, T2.11, T2.13, T2.14, T2.15, T2.16
   - Do: for each Python example, through the engine's Python API:
     define and lock the benchmark, snapshot the baseline, profile it,
     apply the fix, check correctness, compare, write the report. Then
@@ -561,7 +661,11 @@ Mac and on Linux CI, with decoys that must be refused.
   - Done when, on this Mac and on Linux CI: the profile ranks the known
     bottleneck in the top 3; every fix returns KEEP; the benchmark-edit
     decoy is REJECTed by the lock gate, the wrong-output decoy by the
-    correctness gate, the no-op decoy is never KEEP, and the
+    correctness gate or the differential checks, the untested-branch
+    decoy by the coverage gate, the memory decoy by the peak-memory
+    guardrail, the remote-database spec is refused before anything
+    runs, the flaky test is quarantined without blaming any candidate,
+    the no-op decoy is never KEEP, and the
     slightly-faster decoy ends INCONCLUSIVE or REJECT, never KEEP, with
     its outcome counts reported; the report regenerated from
     `record.json` is byte-identical to the original; A/A never
