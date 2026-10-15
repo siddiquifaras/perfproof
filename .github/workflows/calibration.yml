@@ -1,0 +1,80 @@
+# Monte Carlo calibration of the statistical procedures. Too slow for
+# every PR, so it runs nightly on main. A PR that edits this file runs
+# it too, so a change to the job is exercised before it merges.
+name: Calibration
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/calibration.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  calibration:
+    # Distinct from the CI job names, so a required check by name can
+    # only match one job.
+    name: calibration / ubuntu-latest / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.12.20"
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      # --frozen installs from uv.lock without checking it still matches
+      # pyproject.toml; this fails when the lockfile is stale.
+      - run: uv lock --check
+
+      - name: Check the interpreter is Python ${{ matrix.python }}
+        env:
+          WANT: ${{ matrix.python }}
+        run: |
+          got=$(uv run --frozen python -c \
+            'import sys; print("%d.%d" % sys.version_info[:2])')
+          echo "Python $got"
+          test "$got" = "$WANT"
+
+      # pytest exits 5 when no test is collected. Until
+      # tests/calibration/ exists that is expected: the run passes but
+      # says NOT CALIBRATED in a warning and the job summary. Once the
+      # directory exists, collecting nothing is a failure.
+      - name: pytest -m calibration
+        run: |
+          set +e
+          uv run --frozen pytest -m calibration
+          status=$?
+          if [ "$status" -eq 5 ] && [ ! -d tests/calibration ]; then
+            echo "::warning::NOT CALIBRATED: no calibration tests exist" \
+              "(tests/calibration/ is missing)."
+            {
+              echo "## NOT CALIBRATED"
+              echo
+              echo "No calibration tests exist yet" \
+                "(tests/calibration/ is missing)."
+              echo "This green run does not mean the statistics are" \
+                "calibrated."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          exit "$status"
