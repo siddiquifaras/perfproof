@@ -13,6 +13,11 @@
 - When a step doesn't need input, keep going. Stop and ask only when you
   can't continue without a decision, before paid compute, or before
   anything destructive.
+- The lead session in the main checkout merges reviewed PRs and pushes
+  plan, docs and work-log updates to `main` without asking. A PR merges
+  when CI is green on its head, the `reviewer` (and `stats-auditor` for
+  statistics) passed on that same head, and its Done-when is shown.
+  Record each merge in `.claude/worklog.md`.
 - Give subagents bounded units (one module, one command) and check the
   evidence they return before accepting it.
 - A hook formats and lints every Python file you edit. Fix what it
