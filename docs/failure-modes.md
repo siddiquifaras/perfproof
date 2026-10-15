@@ -35,7 +35,7 @@ because a later code mechanism catches the result.
 
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
-| 10 | Faster but wrong | `correctness` gate: the project's tests, output comparison between versions, replay of captured real calls | Code, plus a contract per target class for what "same output" means | Mutation testing of the fixtures; the wrong-output decoy | Wrong behaviour no test, output or captured call exercises |
+| 10 | Faster but wrong, or crashing under the benchmark | `correctness` gate: the project's tests, output comparison between versions, replay of captured real calls; any benchmark execution that fails gives no sample and fails the candidate | Code, plus a contract per target class for what "same output" means | Mutation testing of the fixtures; the wrong-output decoy | Wrong behaviour no test, output or captured call exercises |
 | 11 | The change is never exercised by any check | `coverage` gate on changed lines; where coverage can't be measured, no KEEP without an explicit opt-in | Code | Untested-branch decoy | Lines that run but whose results nothing inspects |
 | 12 | A flaky test blamed on the change, or hiding a break | Tests run three times on the baseline first; flaky ones quarantined; lines only they reach count as unverified | Code | Flaky-test fixture | Flakiness that never shows in three runs |
 | 13 | Speed bought with memory or tail latency | Guardrails with statuses and absolute limits; KEEP needs compliance shown | Code, plus a contract per target class for which guardrails apply | Memory decoy; guardrail calibration | Costs nobody declared as a guardrail |

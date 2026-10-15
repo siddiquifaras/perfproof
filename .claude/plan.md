@@ -579,7 +579,10 @@ Mac and on Linux CI, with decoys that must be refused.
     interleaved rounds per the look schedule, then the
     sequential decision, then a `RunRecord` with samples saved to
     `samples.npz`. Re-check the procedure and same-host gates on the
-    finished samples. For a `reported` metric, compute the wall-clock
+    finished samples. A candidate execution that exits non-zero, is
+    signalled or times out is a correctness REJECT with its exit status
+    and output tail; a baseline one stops the comparison with no
+    verdict. For a `reported` metric, compute the wall-clock
     interval too and set the `metric_disagreement` diagnostic per
     `docs/method.md`. Decides through T1.3's function and builds
     cross-host evidence by T1.3's rules. Uses the procedure fixed by

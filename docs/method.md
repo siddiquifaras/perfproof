@@ -63,6 +63,14 @@ worth depends on the checks, so they are built to be strong:
 The `correctness` and `coverage` gates decide whether the candidate
 still does what the baseline did.
 
+**Failed executions.** An execution of the benchmark, warmup or
+measured, that exits non-zero, is killed by a signal or times out
+produces no sample; its time never enters the statistics. If the
+candidate fails this way, the candidate fails the `correctness` gate:
+REJECT with reason `correctness`, the exit status and the tail of its
+output in the record. If the baseline fails, the experiment itself is
+broken: the comparison stops with no verdict and reports the error.
+
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
 give the same result every time is flaky: it is quarantined, listed in
