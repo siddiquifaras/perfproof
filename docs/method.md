@@ -341,6 +341,24 @@ The first rule that matches decides:
 5. **INCONCLUSIVE** (`insufficient_evidence`): the interval still
    straddles the bar when the budget runs out.
 
+**Gate statuses.** Every gate ends `passed`, `failed`, `waived` or
+`not_available`. Only a gate with its own opt-in can be `waived`, and
+the opt-in is recorded. `not_available` means the gate couldn't be
+checked here, for example coverage for a language perfproof can't
+instrument. It blocks KEEP. When rule 2 matches with any gate
+`not_available`, the result is **INCONCLUSIVE**
+(`insufficient_evidence`) at that look, naming the gate, because more
+rounds can't make it available. Rules 1 and 3 still give REJECT,
+because a REJECT keeps nothing.
+
+**Before calibration.** Until the procedure has passed calibration
+(see "Calibration"), rules 2 and 3 never match. A comparison runs to
+the end of its budget and ends **INCONCLUSIVE**
+(`insufficient_evidence`), with the diagnostic
+`procedure_uncalibrated` recorded. Rule 1 still gives REJECT when a
+gate fails. Every record states whether it was made by a calibrated
+procedure, and that field has no default.
+
 With the default bar of +3%:
 
 | Speedup | Interval | Rule | Result |
@@ -401,8 +419,8 @@ absolute limit.
 | Status | Meaning |
 |---|---|
 | `passed` | Shown within its allowance and every limit: the upper bound of its worsening ratio is at most `1 + allowance`, and the candidate's upper bound is within each limit |
-| `breached` | Shown worse: the lower bound of its worsening ratio exceeds `1 + allowance`, or the candidate's lower bound exceeds a limit |
-| `not_established` | Measured, but the data can't tell yet |
+| `breached` | Shown worse: the lower bound of its worsening ratio exceeds `1 + allowance`, or the candidate's lower bound exceeds a limit. One check showing a breach is enough, even if another check's interval is missing |
+| `not_established` | Measured, but the data can't tell yet; at least one of its intervals was computed |
 | `unmeasurable` | Applicable, but perfproof could not measure it here; the reason is recorded |
 | `not_applicable` | Marked not applicable for this workload; the reason is recorded |
 
@@ -411,7 +429,8 @@ give KEEP:
 
 - every guardrail `passed` or `not_applicable`: **KEEP**;
 - any guardrail `breached`: **REJECT** with reason `guardrail`, keeping
-  both the primary and the guardrail intervals in the record;
+  the primary interval and every guardrail interval that was measured,
+  the breaching one always among them;
 - otherwise, some guardrail `not_established` or `unmeasurable`:
   continue while budget remains, then **INCONCLUSIVE**
   (`insufficient_evidence`), naming the guardrails that couldn't be
