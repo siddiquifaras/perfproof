@@ -20,7 +20,9 @@ concurrency:
 
 jobs:
   calibration:
-    name: ubuntu-latest / Python ${{ matrix.python }}
+    # Distinct from the CI job names, so a required check by name can
+    # only match one job.
+    name: calibration / ubuntu-latest / Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
@@ -40,6 +42,10 @@ jobs:
 
       - run: uv sync --frozen
 
+      # --frozen installs from uv.lock without checking it still matches
+      # pyproject.toml; this fails when the lockfile is stale.
+      - run: uv lock --check
+
       - name: Check the interpreter is Python ${{ matrix.python }}
         env:
           WANT: ${{ matrix.python }}
@@ -50,16 +56,25 @@ jobs:
           test "$got" = "$WANT"
 
       # pytest exits 5 when no test is collected. Until
-      # tests/calibration/ exists that is expected and only warns; once
-      # it exists, collecting nothing is a failure.
+      # tests/calibration/ exists that is expected: the run passes but
+      # says NOT CALIBRATED in a warning and the job summary. Once the
+      # directory exists, collecting nothing is a failure.
       - name: pytest -m calibration
         run: |
           set +e
           uv run --frozen pytest -m calibration
           status=$?
           if [ "$status" -eq 5 ] && [ ! -d tests/calibration ]; then
-            echo "::warning::No calibration tests yet:" \
-              "tests/calibration/ does not exist."
+            echo "::warning::NOT CALIBRATED: no calibration tests exist" \
+              "(tests/calibration/ is missing)."
+            {
+              echo "## NOT CALIBRATED"
+              echo
+              echo "No calibration tests exist yet" \
+                "(tests/calibration/ is missing)."
+              echo "This green run does not mean the statistics are" \
+                "calibrated."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           exit "$status"
