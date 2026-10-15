@@ -336,7 +336,7 @@ by `stats-auditor` before its PR opens.
     the PR.
   - Effort: high
 
-- [ ] **T1.3 Decision rule**
+- [ ] **T1.3 Decision rule** (merged: siddiquifaras/perfproof#3, `0eb8160`; ticked after T1.5 and T1.6)
   - Owns: `src/perfproof/stats/decision.py`,
     `tests/stats/test_decision.py`
   - Needs: T0.3
