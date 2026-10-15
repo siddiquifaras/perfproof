@@ -55,7 +55,7 @@ calibration don't apply, and the report says so.
 | Workload | `vllm bench serve` or SGLang's benchmark against a server perfproof starts; throughput or latency, with `/metrics` counters |
 | Oracle | Fixed-seed greedy decoding gives identical tokens, or logprobs agree within a declared tolerance |
 | Coverage | coverage.py for the Python layers; kernels reported as not checked |
-| Guardrails | Peak GPU memory 10%; p99 latency 5% when it isn't the primary |
+| Guardrails | Peak memory 10%; peak GPU memory 10%; p99 latency 5% when it isn't the primary |
 | Where | A GPU host over SSH or Modal; one host per comparison when the versions share an image, the cross-machine design when they don't |
 | Supported | vLLM and SGLang on one NVIDIA GPU |
 | Outside | Multi-node serving, AMD GPUs, hosted inference APIs |
