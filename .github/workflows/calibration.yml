@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   calibration:
@@ -40,7 +40,14 @@ jobs:
 
       - run: uv sync --frozen
 
-      - run: uv run --frozen python --version
+      - name: Check the interpreter is Python ${{ matrix.python }}
+        env:
+          WANT: ${{ matrix.python }}
+        run: |
+          got=$(uv run --frozen python -c \
+            'import sys; print("%d.%d" % sys.version_info[:2])')
+          echo "Python $got"
+          test "$got" = "$WANT"
 
       # pytest exits 5 when no test is collected. Until
       # tests/calibration/ exists that is expected and only warns; once

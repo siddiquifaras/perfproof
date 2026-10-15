@@ -42,9 +42,16 @@ jobs:
       - id: sync
         run: uv sync --frozen
 
-      # python-version sets UV_PYTHON, which overrides .python-version;
-      # print the interpreter so the log shows the matrix took effect.
-      - run: uv run --frozen python --version
+      # python-version sets UV_PYTHON, which overrides .python-version.
+      # Fail rather than quietly test 3.12 twice if that ever stops.
+      - name: Check the interpreter is Python ${{ matrix.python }}
+        env:
+          WANT: ${{ matrix.python }}
+        run: |
+          got=$(uv run --frozen python -c \
+            'import sys; print("%d.%d" % sys.version_info[:2])')
+          echo "Python $got"
+          test "$got" = "$WANT"
 
       # The checks below run even when an earlier one fails, so one run
       # reports every problem, as the local `verify` skill does.
