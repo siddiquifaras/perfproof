@@ -495,7 +495,7 @@ by `stats-auditor` before its PR opens.
 The first working product: the whole loop on Python examples, on this
 Mac and on Linux CI, with decoys that must be refused.
 
-- [ ] **T2.1 Machine fingerprint**
+- [x] **T2.1 Machine fingerprint**
   - Owns: `src/perfproof/machine/`, `tests/machine/`
   - Needs: T0.3
   - Do: probes for macOS and Linux: host identity, CPU model, physical
@@ -1117,12 +1117,18 @@ the write-up says so. Paid steps go through the `gpu-run` skill.
   the host,
   the same engine runs there, the record comes back. One sandbox runs
   baseline and candidate interleaved; volumes for caches; fail fast
-  with log tail. Cross-host sessions follow T1.3's rules. Needs T2.5,
-  open question 1. Paid, small.
+  with log tail. Cross-host sessions follow T1.3's rules. A host
+  restored from a memory snapshot keeps its boot_id and machine-id, so
+  `host_id` can't tell such hosts apart: the runner must not use
+  snapshot restore for cross-host sessions, or must add its own host
+  identity. Needs T2.5, open question 1. Paid, small.
 - [ ] **T5.12 GPU fingerprint and timing**: GPU, driver, clocks and
   throttle reasons; CUDA-event timing for `reported` benchmarks; peak
   GPU memory as a guardrail; the real `nvidia-smi` and x86
-  `/proc/cpuinfo` captures moved here from T2.1. Needs T2.1, T2.3.
+  `/proc/cpuinfo` captures moved here from T2.1. Check what
+  `nvidia-smi` prints with no GPU: T2.1's parser reads empty output as
+  "no GPUs", which is wrong if it can exit 0 with nothing printed.
+  Needs T2.1, T2.3.
 - [ ] **T5.13 Serving contract and playbook.** `vllm bench serve` and
   SGLang bench as workloads with `/metrics` counters, building on the
   reference scripts; fixed-seed greedy token equality or a declared
