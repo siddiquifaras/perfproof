@@ -27,6 +27,13 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Runtime gate scope (PR #5 reviews):** the gate compares what comes
+  from outside the tree and fails closed on anything it can't identify.
+  A native binary built in the tree is code under test, so its
+  outside-tree linked libraries are compared instead; a committed binary
+  that differs is a swap and fails; in-tree dependencies stay recorded,
+  not gated, as `docs/method.md` already says.
+
 - **Cross-host drift and order effect (T1.4):** in the alternating
   session design these effects either cancel within a session or bias
   the known speedup, so the simulator refuses them in cross-host mode.

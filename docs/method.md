@@ -129,7 +129,7 @@ classes.
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | Interpreter or runtime path and version, for example the Python executable each tree runs, unless the spec allows runtime changes |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
 
 **Recorded, not gated:** the full environment variable list (names, and
