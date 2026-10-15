@@ -85,12 +85,21 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-T1.1, T1.4, T2.12, T2.2, T2.3, T2.7, T4.1.
+As of 04:50 PKT. Resume point if the usage limit hits (reset 06:50).
 
-- PR #9 (T2.12): reviewer blocks fixed at `0e04280` (CI 4/4); waiting
-  on the stats-auditor's findings from `2e3206e` before the final
-  review on the new head.
-- PR #12 (T2.7): reviewer running at `c88c077`.
+| PR | Task | State |
+|---|---|---|
+| #5 | T2.2 | Worker fixing review round 4 (B1 slashless shebang, B2 macOS relative rpath cwd, B3 tox/nox launchers); then reviewer, bounded to the stated contract |
+| #6 | T1.4 | Reviewer PASS at `49fe296`; stats-auditor running on `49fe296`; merge if PASS |
+| #9 | T2.12 | Reviewer PASS at `cf5bed7`; stats-auditor finishing `67c6f40` then `cf5bed7`; merge if PASS |
+| #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
+| #11 | T1.1 | Stats-auditor PASS at `be1b21e`; worker adding HL memory, eps, layout tests on top of `eee6e74`; then final reviewer + stats-auditor |
+| #12 | T2.7 | Worker retuning rolling slight-speedup to ~1.5%, `peak_rss` timeout; then reviewer |
+| #13 | spec | Method changes from the T1.1 audit; stats-auditor running |
+| #4 | T2.3 | Waits for #5; then rebase on `command_hash`, add `procedure_gate` test, balanced pairs and resolution once #13 merges |
+| — | T4.1 | Worker still building the evaluation task set |
+
+Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
 
 ### Blockers
 
