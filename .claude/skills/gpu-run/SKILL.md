@@ -17,7 +17,7 @@ Write the estimate and wait for a yes:
 - Cost: GPU rate plus CPU and memory rate, times wall time, rounded up
 - What result the run produces, and what decision it informs
 
-**Budget.** The release has at most $50 out of pocket for GPUs.
+**Budget.** Free credit only: nothing out of pocket, ever, and no paid run without Faras present.
 
 1. Read live rates and the remaining credit before every paid run:
    `modal billing rates` and `modal billing summary`. Never use
@@ -30,9 +30,8 @@ Write the estimate and wait for a yes:
    provider, GPU, reserved CPU and memory, timeout, worst-case cost,
    actual cost afterwards from `modal billing report`, and how much
    credit covered it.
-4. Refuse to start a run whose worst case, added to the out-of-pocket
-   total so far, would pass $50, counting only credit the billing
-   summary shows as remaining.
+4. Refuse to start a run whose worst case is more than the free credit
+   the billing summary shows as remaining.
 5. Every `modal run`, `modal deploy` and `modal sandbox` command also
    needs Faras's approval through the project's permission rules.
 

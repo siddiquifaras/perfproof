@@ -126,7 +126,7 @@ edits to `stats/decision.py` (T1.3, T2.12, T2.15), one at a time.
 | Remote | `--host ssh://…` or `--host modal:<image>`; the remote side runs the same engine |
 | Evaluation | External, fixed in advance in `docs/evaluation.md`. Ground truth comes from an independent measurement procedure, never from perfproof. Primary scores: precision of claims and false-KEEP rate |
 | Release scope | Six target classes: Python, native, web and CRUD services, LLM serving, GPU kernels and PyTorch, agentic apps. A class is claimed only when its contract, fixture, real-trace calibration and case study all pass, and the claim names what it was shown on |
-| GPU budget | At most $50 out of pocket for the release, tracked in `.claude/local/gpu-spend.md` by the `gpu-run` skill; free tiers first (Modal credit, Lightning AI, Kaggle); T4 and L4 GPUs and small models |
+| GPU budget | Free credit only: nothing out of pocket. Modal's monthly credit (about $8 left this period on 16 October, $30 next), plus Lightning AI and Kaggle free hours; tracked in `.claude/local/gpu-spend.md` by the `gpu-run` skill. Paid GPU runs happen only when Faras is present. T4 and L4 GPUs and small models |
 | Case studies | Python: frames2py. Native: picolm. Web: NetBox (Django REST API, Postgres and Redis in local containers). Serving: vLLM with a small model on an L4. GPU and PyTorch: nanoGPT on a T4, with llm.c's CUDA kernels as evaluation tasks. Agentic: gpt-researcher, its model and search calls replayed |
 | Evaluation scale | 30 held-out tasks (Python 8, native 6, web 5, agentic 5, serving 3, GPU 3) and about 12 development tasks; Claude Code and Codex, with and without perfproof, two repetitions: about 240 held-out runs, on Faras's existing plans |
 | Codex | Installed with `npm install -g @openai/codex` (Node is already on this Mac through nvm), then `codex login` by Faras |
@@ -145,8 +145,8 @@ metered, $21.67 covered by credit, $0.00 billed. Against the Starter
 plan's $30 monthly credit (from modal.com/pricing), about $8 of credit
 is left this period. No Modal apps were running.
 
-**Budget:** at most $50 out of pocket for the whole release, with free
-tiers used first: Modal's monthly credit, Lightning AI's free GPU hours
+**Budget:** free credit only, nothing out of pocket, and GPU runs only
+while Faras is present. Free tiers: Modal's monthly credit, Lightning AI's free GPU hours
 through the SSH runner, and Kaggle's weekly GPU quota where a job fits
 a notebook. Work is sized for T4 and L4 GPUs and small models; nothing
 in the plan needs an A100.
@@ -163,9 +163,9 @@ in the plan needs an A100.
 
 With 2 cores and 8 GiB per job, that is about $26 run as Modal
 Functions (T4 about $0.75 an hour, L4 about $0.96) or about $36 as
-Sandboxes. Spread across this period's remaining credit and next
-month's $30, out-of-pocket spend should be close to zero, and the
-ceiling is $50 either way. The original A100 prefix-caching finding is
+Sandboxes, so it must be spread across this period's remaining credit
+and next month's $30, with Lightning and Kaggle hours taking the rest;
+the ceiling is the free credit available, never out-of-pocket spend. The original A100 prefix-caching finding is
 not re-run: it stays in `docs/case-studies/` as hand-run prior work,
 and the vLLM case is a new study on hardware the budget covers.
 
@@ -1100,8 +1100,8 @@ the write-up says so. Paid steps go through the `gpu-run` skill.
   they fit, since Sandboxes bill CPU and memory at three times the
   rate. Before any Modal run, the runner reads `modal billing rates`
   and `modal billing summary`, computes the worst case (hard timeout
-  times everything reserved), and refuses if that would take
-  out-of-pocket spend past the release's $50 ceiling. Both trees go to
+  times everything reserved), and refuses if that is more than the free
+  credit remaining. Both trees go to
   the host,
   the same engine runs there, the record comes back. One sandbox runs
   baseline and candidate interleaved; volumes for caches; fail fast
