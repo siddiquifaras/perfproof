@@ -31,6 +31,28 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Method changes from the T1.1 audit (PR #13, awaiting stats-auditor):**
+  balanced order in pairs of rounds; a resolution floor
+  (`coarse_resolution`, from 4000/4000 false KEEPs on millisecond-printed
+  timings in the auditor's simulation); per-look confidence
+  `1 - alpha / max(K, 2)`; float64 ratios are the observations; rare
+  one-arm slowdowns and runtime-gate blind spots stated as limits.
+  AR(1) 0.5 beating both the primary and batch means goes to T1.5/T1.6.
+  The acceptance rule's multiplicity at the bar (an exact procedure
+  passes all ~20 S = 1.03 cells with probability ~0.82) is left for
+  Faras.
+- **Runtime gate contract (PR #5, fourth review):** static launch
+  analysis can't see what a program spawns. The gate covers what
+  perfproof launches, followed through the launch forms it knows, and
+  fails closed on known launchers (tox, nox, poetry, uvx...). The rest
+  is a stated limit, not further review rounds.
+- **A `not_available` gate blocks KEEP but not REJECT** (PR #9 audit):
+  a REJECT keeps nothing. Written into `docs/method.md`.
+- **A guardrail is `breached` when one check shows it**, even if another
+  check's interval is missing (PR #9 audit F1).
+- **Target classes in the schema are the six release classes**; an
+  unknown class must declare every default guardrail (PR #9 review).
+
 - **Runtime gate scope (PR #5 reviews):** the gate compares what comes
   from outside the tree and fails closed on anything it can't identify.
   A native binary built in the tree is code under test, so its
