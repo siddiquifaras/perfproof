@@ -467,7 +467,13 @@ by `stats-auditor` before its PR opens.
     sequential looks may be), run it at a smaller `R` and report the
     wider standard error rather than skipping cells. The seed
     comes from `PERFPROOF_CALIBRATION_SEED` when set, so the auditor can
-    rerun with a different one.
+    rerun with a different one. In cross-host mode every development
+    scenario gets random per-session offsets, as `docs/method.md`
+    says; T1.4's presets set `session_offset_cv` only in the
+    `session_offset` preset, so add it to each scenario here. Time
+    budgets at heavy tails: T1.4's audit found 59% of replications at
+    the heavy-tail corner contain a run over 100 times the typical
+    time, so accumulate time in log space (`np.logaddexp.accumulate`).
   - Done when: results table in `docs/method.md` with seed, `R`,
     counts and Clopper-Pearson bounds; every cell passes for the primary
     procedure (or the batch-means fallback, or a challenger switched in
