@@ -812,6 +812,9 @@ Mac and on Linux CI, with decoys that must be refused.
     define and lock the benchmark, snapshot the baseline, profile it,
     apply the fix, check correctness, compare, write the report. Then
     run every decoy, and the same commit against itself.
+  - Also: CI runs `uv run pytest examples` (T2.7's own checks of the
+    examples and decoys); today CI runs only `tests/`, so they never
+    run on Linux.
   - Done when, on this Mac and on Linux CI: the profile ranks the known
     bottleneck in the top 3; every fix returns KEEP; the benchmark-edit
     decoy is REJECTed by the lock gate, the wrong-output decoy by the
