@@ -10,7 +10,9 @@ a benchmark twice and the number moves, so a "20% speedup" from one
 before-and-after run is often just that movement.
 
 perfproof does both halves of the job, inside your coding agent (Claude
-Code, Codex, or any other MCP client):
+Code, Codex, or any agent that can run commands). It's a skill that
+does the thinking and a small command-line tool that does everything
+that has to be exact:
 
 - **It finds what you haven't tried.** It profiles your real workloads
   and looks from angles that are easy to miss: time spent waiting
@@ -122,11 +124,19 @@ the verdicts on them can be trusted.
 
 ## Docs
 
+- [The CLI and a session](docs/cli.md): what using it looks like
 - [Understand and discover](docs/discovery.md): how perfproof builds its
   picture of a project and finds what to try
 - [Method](docs/method.md): how a change is proven, and the exact
   KEEP / REJECT / INCONCLUSIVE rule
-- [Architecture](docs/architecture.md): how the pieces fit
+- [Target classes](docs/targets.md): what "correct" means for each
+  kind of code, and what's supported
+- [Failure modes](docs/failure-modes.md): every way this could go wrong,
+  and what stops it
+- [Evaluation](docs/evaluation.md): how we test that it works, on tasks
+  we didn't write
+- [Architecture](docs/architecture.md): how the pieces fit, and what it
+  reuses from existing tools
 - [vLLM case study](docs/case-studies/vllm-prefix-caching.md)
 
 ## License

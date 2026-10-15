@@ -17,8 +17,28 @@ Write the estimate and wait for a yes:
 - Cost: GPU rate plus CPU and memory rate, times wall time, rounded up
 - What result the run produces, and what decision it informs
 
-Check the budget notes in `.claude/local/HANDOFF.md` when that file is
-present.
+**Budget.** The release has at most $50 out of pocket for GPUs.
+
+1. Read live rates and the remaining credit before every paid run:
+   `modal billing rates` and `modal billing summary`. Never use
+   remembered rates.
+2. Estimate the **worst case**, not the expected cost: the run's hard
+   timeout times the hourly rate of everything it reserves (GPU, CPU,
+   memory). Sandboxes bill CPU and memory at three times the Function
+   rate, so reserve the fewest cores and least memory the job needs.
+3. Keep the ledger in `.claude/local/gpu-spend.md`: date, task,
+   provider, GPU, reserved CPU and memory, timeout, worst-case cost,
+   actual cost afterwards from `modal billing report`, and how much
+   credit covered it.
+4. Refuse to start a run whose worst case, added to the out-of-pocket
+   total so far, would pass $50, counting only credit the billing
+   summary shows as remaining.
+5. Every `modal run`, `modal deploy` and `modal sandbox` command also
+   needs Faras's approval through the project's permission rules.
+
+Use free tiers first: Modal's monthly credit, Lightning AI's free hours
+through the SSH runner, Kaggle's weekly quota for jobs that fit a
+notebook. Size work for T4 and L4 GPUs and small models.
 
 ## During the run
 

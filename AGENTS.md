@@ -4,11 +4,17 @@ perfproof is a performance engineering system for coding agents. It
 does two jobs: it **discovers** where a codebase can get faster, from
 angles its developers haven't tried, and it **proves** which changes are
 real improvements, keeping only those. Under it sits a model of the
-project (**understand**): its workloads, goals and constraints. It ships
-as an MCP server, a CLI and agent skills, and has to work equally well
-from Claude Code, Codex or any other MCP client, on code it has never
-seen and on code it has worked on for years. Target classes: Python,
-native, web services, LLM serving, GPU kernels, agentic apps.
+project (**understand**): its workloads, goals and constraints. It is
+a small exact core, the `perfproof` CLI, plus Markdown skills that
+drive it. The CLI owns everything that must be exact; the skills own
+judgment. It has to work equally well from Claude Code, Codex or any
+agent that can run shell commands, on code it has never seen and on
+code it has worked on for years. Target classes: Python, native, web
+services, LLM serving, GPU kernels, agentic apps.
+
+Every component exists to stop a failure listed in
+`docs/failure-modes.md`. If a change adds a component that stops none,
+it doesn't belong.
 
 Discovery without proof is a list of suggestions someone still has to
 check. Proof without discovery needs someone else's ideas. A verdict
@@ -36,9 +42,13 @@ worktree.
 | `src/perfproof/stats/` | `src/perfproof/stats/AGENTS.md` |
 | `src/perfproof/profilers/` | `src/perfproof/profilers/AGENTS.md` |
 | `skills/` | `skills/AGENTS.md` |
+| any new component | `docs/failure-modes.md`: which failure it stops |
+| a CLI command or its `--json` output | `docs/cli.md` (the interface) |
 | project model, discovery angles, hypotheses | `docs/discovery.md` (the spec) |
 | decision logic, gates, metrics | `docs/method.md` (the spec) |
-| module boundaries, MCP tools, on-disk layout | `docs/architecture.md` |
+| a target class's oracle, guardrails or boundary | `docs/targets.md` |
+| `eval/` | `docs/evaluation.md` |
+| module boundaries, on-disk layout, prior art | `docs/architecture.md` |
 
 ## Evidence
 

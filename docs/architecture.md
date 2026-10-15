@@ -1,52 +1,56 @@
 # Architecture
 
 The design target for the release. `.claude/plan.md` tracks what
-exists. [discovery.md](discovery.md) specifies understand and discover;
-[method.md](method.md) specifies prove.
+exists. Each component's reason to exist is in
+[failure-modes.md](failure-modes.md); the interface is in
+[cli.md](cli.md); prove is specified in [method.md](method.md), and
+understand and discover in [discovery.md](discovery.md).
 
 ## Shape
 
-Three parts behind one engine, reached three ways:
+A small exact core and the skills that drive it:
 
 ```
- Claude Code ─┐
- Codex ───────┼─ MCP (stdio) ─┐       ┌─ understand: project model, workloads, goals
- other client ┘               ├─ engine ─ discover: angles, hypotheses, cheap tests
- shell, CI ───── CLI ─────────┘       └─ prove: gates, interleaved rounds, verdict
-                                              │
-                                  local runner ── remote runner (SSH, Modal)
- skills/ ── playbooks per target, and the /perfproof loop
+ developer ──▶ agent (Claude Code, Codex, anything with a shell)
+                 │ reads
+                 ▼
+          skills/: /perfproof loop + one playbook per target class
+                 │ runs
+                 ▼
+          perfproof CLI ── understand: project model (persisted, invalidated)
+                        ── discover:   profile summaries, scaling runs,
+                                       stub-out bounds, hypothesis log
+                        ── prove:      gates, interleaved rounds, verdict,
+                                       guardrails, confirm, record, report
+                 │
+          local runner ── remote runner (SSH host, Modal)
 ```
 
-The split of responsibility is fixed:
-
-- **Deterministic code** owns state, measurement, statistics, gates,
-  undo, budgets and every record.
-- **The agent** owns judgment: which hypothesis to pursue, how to write
-  a candidate, and whether a new idea repeats an old one.
-
-The MCP server and the CLI are thin. They parse arguments, call the
-engine, and turn its results into compact JSON. Nothing that decides a
-verdict lives in them.
+- **The CLI** owns everything that must be exact: state, measurement,
+  statistics, gates, undo and records. Agents use it through the shell
+  with `--json`, and long comparisons with `--detach` and `status`.
+- **The skills** own judgment: understanding the project with the
+  developer, choosing what to look at, forming hypotheses, choosing a
+  cheap test, writing candidates. They are Markdown. If the agent
+  skips a step, the CLI's gates still stand between its output and a
+  kept change.
 
 ## Packages
 
-| Package | Part | Job | Rules |
-|---|---|---|---|
-| `perfproof.schema` | all | Pydantic models every other package exchanges | The only shared vocabulary. Changing it is its own task. |
-| `perfproof.understand` | understand | The project model in `project.json`: targets, workloads, goals, constraints, how to run; confirmation and staleness | Unknown stays unknown; the developer confirms before anything is measured. |
-| `perfproof.targets` | understand | One module per target class behind one shared interface: detection, workloads, runner, metrics, guardrail measurement, correctness oracle, coverage support, angles, settings space | Every module passes the same conformance suite. Detection carries its evidence and confidence. |
-| `perfproof.discover` | discover | Measurement angles, ranking by cap, cheap tests, settings search, choosing among candidates | Every cap is a labelled bound; only prove makes claims. |
-| `perfproof.hypotheses` | discover | The append-only hypotheses log | The code finds and shows history; the agent judges whether an idea repeats one. |
-| `perfproof.stats` | prove | Intervals, sequential looks, decision rule, guardrails, noise simulation | Pure functions on NumPy arrays. No I/O, no clock, no global RNG. |
-| `perfproof.bench` | prove | Spec and lock, snapshots, runner, correctness, differential checks, coverage gate, side-effect guard, compare | Owns subprocesses and timing. |
-| `perfproof.machine` | prove | Fingerprint and warnings | Read-only probes. A missing probe is `unknown`, never a guess. |
-| `perfproof.profilers` | discover | One adapter per profiler, all returning `Hotspot` lists | Adapters stream large outputs and return the top N. |
-| `perfproof.remote` | prove | SSH and Modal runners | The remote side runs the same engine, so interleaving happens on one host. |
-| `perfproof.jobs` | all | Long calls as background jobs with progress and resume | No call blocks longer than a client's tool timeout. |
-| `perfproof.report` | prove | JSON record and Markdown report | Renders the record. Computes nothing new. |
-| `perfproof.optimize` | all | State of a `/perfproof` session: the cycle, budgets, kept changes, undo | Never discards a change it didn't make. |
-| `perfproof.mcp`, `perfproof.cli` | all | MCP tools and command line | Thin. |
+| Package | Job |
+|---|---|
+| `perfproof.schema` | Pydantic models for every record: spec, sample, gate, verdict, guardrail, project model, hypothesis |
+| `perfproof.stats` | Intervals, sequential looks, decision rule, guardrails, noise simulation. Pure functions on NumPy arrays |
+| `perfproof.bench` | Spec and lock, snapshots, runner, correctness, differential checks, coverage, side-effect guard, compare, confirm |
+| `perfproof.machine` | Fingerprint and warnings |
+| `perfproof.project` | The project model: proposal, confirmation, staleness, history |
+| `perfproof.hypotheses` | The append-only hypothesis log |
+| `perfproof.profilers` | Run a profiler, summarise folded stacks to the top frames |
+| `perfproof.helpers` | `load` (constant-rate HTTP driver) and `replay` (model and tool calls) |
+| `perfproof.remote` | SSH and Modal runners; the remote side runs the same engine |
+| `perfproof.session` | The `/perfproof` session: branch, undo, dirty-tree refusal, resume |
+| `perfproof.report` | Renders a record. Computes nothing new |
+| `perfproof.cli` | One module per command under `perfproof/commands/` |
 
 ## On disk
 
@@ -56,12 +60,15 @@ repository, which it adds to `.git/info/exclude`:
 ```
 .perfproof/
   project.json                 targets, workloads, goals, constraints
+  project.history.jsonl        every earlier version of every entry
   benchmarks/<name>/
     <spec-hash>.json           one spec version and its lock manifest
-  hypotheses/<workload>.jsonl  every hypothesis, test and verdict, append-only
-  worktrees/<sha>/             baseline and candidate checkouts
-  jobs/<job-id>.json           progress of a background job
+  hypotheses/<workload>.jsonl  every hypothesis event, append-only
+  worktrees/<name>/            baseline and candidate checkouts
   runs/<run-id>/
+    progress.json              where a detached compare has got to
+    pid                        the detached process and its start time
+    samples.jsonl              one line per completed round, for resume
     record.json                the full machine-readable result
     report.md                  the readable report
     samples.npz                raw per-round samples
@@ -70,43 +77,29 @@ repository, which it adds to `.git/info/exclude`:
 
 A benchmark's name is how people and agents refer to it. Its spec hash
 identifies one exact version: changing any spec field gives a new hash
-and a new file beside the old one, never an overwrite. Every run record
-carries the full spec and its hash, and two specs are never treated as
-the same because they share a name.
+and a new file beside the old one, never an overwrite.
 
-## MCP tools
+## What perfproof reuses and what it adds
 
-Tool outputs stay small and structured so the agent's context stays
-clean. Raw data goes to disk and the tool returns its path. Any call
-that can outlast a client's tool timeout returns a job ID at once.
+Checked against each tool's own documentation.
 
-| Tool | Part | Returns |
+| Tool | What it already does well | What it doesn't do |
 |---|---|---|
-| `project` | understand | The project model; proposes changes for the developer to confirm |
-| `detect_target` | understand | Target classes, entry points, candidate workloads, with evidence |
-| `define_benchmark` | prove | Spec ID and the locked file manifest |
-| `snapshot` | prove | Baseline commit and worktree path |
-| `profile` | discover | Top hotspots with `file:line`, profile path |
-| `discover` | discover | Ranked opportunities, each with its angle, evidence, cap and past hypotheses |
-| `hypothesis` | discover | Records or updates a hypothesis and its cheap test |
-| `explain_hotspot` | discover | Source excerpt and profile detail for one hotspot |
-| `measure` | prove | Median, spread, noise estimate, rounds |
-| `check_correctness` | prove | Pass or fail, with the first differences |
-| `compare` | prove | Verdict, rule, speedup, interval, gates, guardrails, warnings |
-| `job` | all | Status, progress and result of a background job |
-| `report` | prove | Path to the report and a short summary |
+| [hyperfine](https://github.com/sharkdp/hyperfine) | Warmup, a per-run prepare hook, shell-startup correction, outlier warnings, JSON export | Runs each command's batch separately, not interleaved; no significance test or verdict |
+| [pyperf](https://pyperf.readthedocs.io/en/latest/analyze.html) | Worker processes, loop calibration, `system tune` to cut jitter, a t-test in `compare_to` | Unpaired comparison; no minimum effect, no INCONCLUSIVE, no correctness gate |
+| [Criterion](https://bheisler.github.io/criterion.rs/book/analysis.html) | Bootstrap intervals, Tukey outlier classification, comparison with a saved baseline, a noise threshold | Compares against a stored earlier run rather than interleaving; Rust only |
+| Google Benchmark | Automatic iteration counts, repetitions, a comparison script | Same as above, C++ only |
+| [Bencher](https://bencher.dev/docs/explanation/thresholds) | CI thresholds with a t-test or z-score against history, alerts | Compares against history, not a paired run; no correctness gate |
+| CodSpeed | Low-noise CI measurement through CPU simulation | A hosted CI service; no correctness gate or agent loop |
 
-Remote execution is a `host` argument on `measure`, `profile` and
-`compare`, not a separate tool.
+perfproof reuses their lessons: warmup, calibrated inner loops for
+in-process timing (the `reported` metric), outlier reporting, system
+tuning advice in `doctor`, and instruction counts on Linux. What it adds,
+and what none of them does:
 
-## Agent integration
-
-- **MCP:** a stdio server started by `perfproof mcp`. Any MCP client can
-  launch it with `uvx perfproof mcp`.
-- **Skills:** `skills/perfproof/` is the `/perfproof` loop; one
-  playbook per target class sits beside it. Agent Skills format, with
-  only the `name` and `description` frontmatter every client accepts.
-  `perfproof install-skills` copies them to `.claude/skills/` for
-  Claude Code or `.agents/skills/` for Codex.
-- **CLI:** every MCP tool has a CLI equivalent, for CI and for agents
-  without MCP.
+- old and new interleaved in randomly ordered pairs on one machine;
+- a verdict with a minimum effect and an honest INCONCLUSIVE, with
+  calibrated error rates under sequential looks;
+- gates that make "faster but wrong" and "faster by cheating" a REJECT;
+- choose-then-confirm when many candidates are tried;
+- the agent loop that finds what to try.

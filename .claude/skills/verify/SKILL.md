@@ -19,11 +19,11 @@ If `git diff origin/main --name-only` lists anything under
 uv run pytest -m calibration
 ```
 
-If the diff touches a profiler adapter or the runner and the tool it
+If the diff touches the profiler summariser or the runner and the tool it
 wraps is installed, run its integration tests:
 
 ```bash
-uv run pytest -m integration -k <adapter or module name>
+uv run pytest -m integration -k <module name>
 ```
 
 Report one line per step: the command, pass or fail, and the counts

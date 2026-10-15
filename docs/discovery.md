@@ -140,20 +140,21 @@ hypothesis records that its outcome describes an earlier version.
 
 ### Where hypotheses come from
 
-**Measurement angles**, computed by code:
+**Measurement angles.** The measurements are made by the CLI; which
+angles to try, and in what order, is the playbook's checklist:
 
 | Angle | What it finds | Evidence |
 |---|---|---|
-| CPU hotspots | Functions that dominate CPU time | Profiler adapters |
+| CPU hotspots | Functions that dominate CPU time | `perfproof profile` on folded stacks |
 | Waiting, not computing | Time lost to I/O, locks, the GIL or network calls | Gap between wall time and CPU time; off-CPU profiles |
 | Repeated identical work | The same call with the same arguments, again and again | Calls captured by the differential checks |
-| Growth with input size | Code that gets worse than linear as inputs grow | The workload at two or three input sizes, fitted |
+| Growth with input size | Code that gets worse than linear as inputs grow | `perfproof measure --sizes` |
 | Startup and imports | Slow starts and cold paths | `python -X importtime`, startup timing |
 | Allocation churn | Objects created and thrown away in hot paths | Allocation profiles |
 | Database patterns | N+1 queries, missing batching | Queries counted per request |
 | Serialization | Time spent encoding and decoding | Stage timing in service workloads |
 | GPU idle time | Data loading, tiny kernels, host-to-device copies | GPU timelines |
-| Settings | Batch sizes, thread counts, flags, backends | Settings search |
+| Settings | Batch sizes, thread counts, flags, backends | `perfproof measure --set`, then `perfproof confirm` across settings |
 
 **Code reasoning**, by the agent, guided by the target's playbook:
 expensive abstractions, redundant work, algorithmic alternatives,

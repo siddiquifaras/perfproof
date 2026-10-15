@@ -13,7 +13,7 @@
 - When a step doesn't need input, keep going. Stop and ask only when you
   can't continue without a decision, before paid compute, or before
   anything destructive.
-- Give subagents bounded units (one adapter, one module) and check the
+- Give subagents bounded units (one module, one command) and check the
   evidence they return before accepting it.
 - A hook formats and lints every Python file you edit. Fix what it
   reports before moving on.
