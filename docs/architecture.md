@@ -35,7 +35,7 @@ verdict lives in them.
 |---|---|---|---|
 | `perfproof.schema` | all | Pydantic models every other package exchanges | The only shared vocabulary. Changing it is its own task. |
 | `perfproof.understand` | understand | The project model in `project.json`: targets, workloads, goals, constraints, how to run; confirmation and staleness | Unknown stays unknown; the developer confirms before anything is measured. |
-| `perfproof.targets` | understand | One module per target class: detection, workload runner, metrics, and its discovery angles | Detection carries its evidence and confidence. |
+| `perfproof.targets` | understand | One module per target class behind one shared interface: detection, workloads, runner, metrics, guardrail measurement, correctness oracle, coverage support, angles, settings space | Every module passes the same conformance suite. Detection carries its evidence and confidence. |
 | `perfproof.discover` | discover | Measurement angles, ranking by cap, cheap tests, settings search, choosing among candidates | Every cap is a labelled bound; only prove makes claims. |
 | `perfproof.hypotheses` | discover | The append-only hypotheses log | The code finds and shows history; the agent judges whether an idea repeats one. |
 | `perfproof.stats` | prove | Intervals, sequential looks, decision rule, guardrails, noise simulation | Pure functions on NumPy arrays. No I/O, no clock, no global RNG. |

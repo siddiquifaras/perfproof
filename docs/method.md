@@ -30,7 +30,8 @@ the record, so a tool or an agent never has to parse prose to learn why.
 |---|---|---|
 | Interval shows the speedup clears the bar | KEEP | `performance` |
 | Interval rules out a speedup above the bar | REJECT | `performance` |
-| Faster, but a guardrail metric is shown worse than its allowance | REJECT | `guardrail` |
+| Faster, but a guardrail is shown worse than its allowance or an absolute limit | REJECT | `guardrail` |
+| Faster, but a guardrail's compliance can't be established | INCONCLUSIVE | `insufficient_evidence`, naming the guardrail |
 | Candidate gives wrong results | REJECT | `correctness`, gate `correctness` |
 | Changed code that no check ever ran | REJECT | `correctness`, gate `coverage` |
 | The experiment itself is not valid (locked files, procedure, host) | REJECT | `integrity`, with the gate named |
@@ -310,7 +311,11 @@ The first rule that matches decides:
    correctness check run under a broken lock or procedure tests
    nothing, and coverage comes last because it asks whether passing
    checks reached the change.
-2. **KEEP** (`performance`) if `L > 1 + min_effect`.
+2. If `L > 1 + min_effect`, the guardrails decide, as set out under
+   "Guardrails": **KEEP** (`performance`) when every guardrail passed or
+   is not applicable, **REJECT** (`guardrail`) when any is breached, and
+   otherwise continue while budget remains, then **INCONCLUSIVE**
+   (`insufficient_evidence`).
 3. **REJECT** (`performance`) if `U <= 1 + min_effect`. If `U < 1`, the
    record also flags a regression.
 4. **Continue** if budget remains.
@@ -335,28 +340,80 @@ however good the estimate looks.
 
 ### Guardrails
 
-A guardrail is a second metric that must not get worse beyond an
-allowance while the primary metric improves. Peak memory (max RSS,
-recorded for every execution) is always a guardrail; tail latency (p99)
-is one for service targets, and specs can declare others. Allowances
-are set per guardrail in the spec.
+The **primary objective** is the one metric the goal is about, set per
+workload in the project model, such as p99 latency for a web workload
+or throughput for a serving one. It decides whether a change is faster.
+**Guardrails** are the other metrics that must not get worse while it
+does. For a given workload a metric is the primary or a guardrail,
+never both.
 
-- Each guardrail has its own paired interval on its worsening ratio,
-  built the same way as the primary one.
-- A guardrail is **breached** when its interval's lower bound shows it
-  worse than `1 + allowance`.
-- A breach blocks KEEP only. When the primary interval would give KEEP
-  and any guardrail is breached, the verdict is REJECT with reason
-  `guardrail`, and the record keeps both intervals. A guardrail that
-  isn't shown breached doesn't block, and its interval is reported.
-- With `G` guardrails, each guardrail look uses confidence
-  `1 - alpha / (K G)`. By the same union bound as under "Stopping",
-  the chance that any guardrail falsely blocks a change whose
-  guardrails are truly within their allowances is at most 2.5%. That
-  is a separate bound from the 2.5% on a false performance REJECT, and
-  calibration measures both. The primary interval is unchanged, and
-  guardrails can only remove KEEPs, so they never raise the false-KEEP
-  rate.
+**Applicability.** Which guardrails apply depends on the target class.
+The project can override that per workload, and the reason is recorded.
+
+| Guardrail | Applies by default to | Provisional allowance |
+|---|---|---|
+| Peak memory: max RSS of the whole process tree | every target class | 10% |
+| Peak GPU memory | LLM serving, GPU kernels and PyTorch | 10% |
+| p99 latency, when it isn't the primary | web services, LLM serving, agentic apps | 5% |
+
+Any other guardrail, such as throughput when latency is the primary,
+has no default: the project declares it with its allowance. For each
+workload, every guardrail in the table is either applied or marked
+`not_applicable` with a reason. Nothing is left implicit.
+
+**The defaults are not permission to regress.** 10% and 5% are the
+refusal thresholds used until the project sets its own. They are not a
+budget to spend. Every guardrail's measured change is reported, and a
+change that costs memory or latency within its allowance is flagged
+with how much, so the developer sees the trade. The record keeps which
+allowances applied and where each came from: the default, the target
+class, or the project.
+
+**Absolute limits.** A project can also set absolute limits, such as a
+memory ceiling (a container limit, the GPU's capacity) or a latency
+SLO. A limit is checked on the candidate's own measurements, not on a
+ratio: compliance is shown when the upper bound of the candidate's
+metric is within the limit, a breach when its lower bound is beyond
+it. A change can sit within its relative allowance and still breach an
+absolute limit.
+
+**Status.** Every guardrail ends a comparison in exactly one state:
+
+| Status | Meaning |
+|---|---|
+| `passed` | Shown within its allowance and every limit: the upper bound of its worsening ratio is at most `1 + allowance`, and the candidate's upper bound is within each limit |
+| `breached` | Shown worse: the lower bound of its worsening ratio exceeds `1 + allowance`, or the candidate's lower bound exceeds a limit |
+| `not_established` | Measured, but the data can't tell yet |
+| `unmeasurable` | Applicable, but perfproof could not measure it here; the reason is recorded |
+| `not_applicable` | Marked not applicable for this workload; the reason is recorded |
+
+**Decision.** Guardrails matter only when the primary interval would
+give KEEP:
+
+- every guardrail `passed` or `not_applicable`: **KEEP**;
+- any guardrail `breached`: **REJECT** with reason `guardrail`, keeping
+  both the primary and the guardrail intervals in the record;
+- otherwise, some guardrail `not_established` or `unmeasurable`:
+  continue while budget remains, then **INCONCLUSIVE**
+  (`insufficient_evidence`), naming the guardrails that couldn't be
+  established. An applicable metric that can't be measured never
+  passes silently.
+
+A performance REJECT or INCONCLUSIVE stands as it is, with the
+guardrails reported alongside. Requiring compliance to be shown, not
+merely not disproved, means a noisy guardrail such as p99 can hold a
+change at INCONCLUSIVE; the evidence planning report names it as the
+blocker.
+
+**Error control.** Let `G` count every allowance and limit checked. Each
+guardrail check at a look uses confidence `1 - alpha / (K G)`. By the
+union bound under "Stopping", the chance of a KEEP while some
+guardrail is truly beyond its allowance or limit is at most 2.5%, and
+the chance that a guardrail shows a breach when all are truly within
+is at most 2.5%. The primary interval and its false-KEEP bound are
+unchanged, because guardrails can only turn a KEEP into a REJECT or an
+INCONCLUSIVE. Calibration measures guardrail false passes and false
+breaches per cell under the acceptance rule.
 
 ### Numerics
 

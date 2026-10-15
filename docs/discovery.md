@@ -35,42 +35,108 @@ what must not change. perfproof records that picture in
 | Constraints | Public APIs that must not change, numeric tolerance, target hardware, dependencies that are off-limits, files perfproof must not edit |
 | How to run | Build and setup commands, services the workload needs, the reset command between rounds |
 
-Rules:
+### Project model contract
 
-- **The developer confirms** workloads, goals and constraints before
-  anything is measured. perfproof proposes; it doesn't assume.
-- **Unknown stays unknown.** A field perfproof can't establish from
-  evidence is left empty and asked about, never filled with a default
-  that looks plausible.
-- **Staleness is detected.** Each entry records the files it was derived
-  from. When those change, the entry is flagged and checked again
-  rather than trusted.
-- **Switching goals is cheap.** Asking "now make it use less memory"
-  reuses the model; only the goal and its guardrails change.
+**Persistence.**
+
+- `project.json` holds the current model; `project.history.jsonl` holds
+  every earlier version of every entry, append-only. Nothing is deleted:
+  an entry that no longer applies is retired, with the reason.
+- The file carries a schema version and is written atomically (a
+  temporary file, then a rename), so a crash never leaves half a model.
+- Every entry has an ID, a status, and its provenance: the files it was
+  derived from with their content hashes, the commands that produced it,
+  the perfproof version, and when. A confirmed entry also records that
+  the developer confirmed it, in which session, and when.
+
+**Status.** Each entry is in exactly one state:
+
+| Status | Meaning |
+|---|---|
+| `proposed` | perfproof derived it; nobody has confirmed it |
+| `confirmed` | The developer confirmed it |
+| `stale` | Something it depends on changed; the trigger is recorded |
+| `retired` | No longer applies; the reason is recorded |
+
+**Invalidation.** An entry becomes `stale`, never silently updated,
+when:
+
+- any file it was derived from changes content;
+- the command that defines a workload fails, or its output changes
+  shape;
+- a dependency lockfile its workload runs under changes;
+- the machine differs from the one a hardware-bound goal or limit was
+  set for;
+- the developer edits a goal or constraint it depends on;
+- a perfproof upgrade changes how that kind of entry is derived.
+
+**Revalidation.** Before a session uses an entry, and before anything
+is measured:
+
+1. Every stale entry the session needs is derived again.
+2. If the result is identical, the entry returns to its previous
+   status, and the revalidation is recorded.
+3. If it differs, the new version is `proposed`. A confirmed workload,
+   goal or constraint needs the developer's confirmation again before
+   it is used.
+4. A measurement never runs against a `proposed`, `stale` or `retired`
+   workload, goal or constraint.
+
+Unknowns stay unknown throughout: a field perfproof can't establish from
+evidence is left empty and asked about, never filled with a default
+that looks plausible. Switching goals reuses every entry the new goal
+doesn't depend on.
 
 ## Discover
 
 ### Hypotheses
 
 The unit of discovery is a hypothesis, not a code change. Experts don't
-start by editing code; they form a belief about where time goes, test it
-cheaply, and only then write the change. Each hypothesis is recorded in
-`.perfproof/hypotheses/<workload>.jsonl`, append-only:
+start by editing code: they look at evidence, form a belief about the
+mechanism, try to kill that belief cheaply, and only then write and
+prove the change. perfproof makes every one of those steps a record.
 
-| Field | Meaning |
+**The chain.** A hypothesis links six steps, and none may be skipped
+without a recorded reason:
+
+| Step | What is recorded |
 |---|---|
-| Claim | What is believed, such as "serializing the response is 30% of request time" |
-| Mechanism | Why it would be slow, and why a change would help |
-| Evidence | The measurements behind the claim, with paths to profiles and records |
-| Cap | The most a fix could gain, with how that bound was derived |
-| Cheap test | An experiment that confirms or kills the claim before code is written, with the result expected if the claim is true |
-| Status | Proposed, confirmed, refuted, implemented, then the verdict |
-| Links | The candidate's diff hash and the run records that judged it |
+| Observation | The evidence: measurements, profiles, captured calls, each by path and content hash so it can be re-read later |
+| Mechanism | Why the observed cost exists and why a change would remove it, stated as a claim that could be false |
+| Prediction | The gain cap with its derivation, and what the cheap test should show if the mechanism is right and if it is wrong |
+| Falsification | The cheap test that was run and its result: `supported`, `refuted` or `inconclusive` |
+| Implementation | The candidate: its diff hash, its worktree, and the approach in the agent's words |
+| Outcome | The prove verdict, its run record, and the measured effect next to the prediction |
 
-The log is what makes perfproof useful on a repo it has worked on
-before: past hypotheses, their tests and their verdicts are shown with
-every new opportunity. An idea already refuted on the same code is not
-tried again unless the agent says what is different this time.
+A hypothesis whose cheap test refuted it is not implemented. One with
+no possible cheap test may be implemented, but the record says why no
+test was possible. Comparing predictions with outcomes over time shows
+how well the agent's reasoning holds up on this codebase, and the
+report says so.
+
+**Persistence.** `.perfproof/hypotheses/<workload>.jsonl` is
+append-only. A hypothesis is a sequence of events, one per step and
+status change, each with a schema version and timestamp. Nothing is
+edited in place; a correction is a new event that names the one it
+corrects. A line that can't be read is skipped with a warning and kept,
+never dropped.
+
+**Anchors.** Each hypothesis is anchored to what it was about: the
+code (file, qualified name, and a hash of the source at observation
+time), the workload's spec hash, and the project-model entries it used.
+
+**Invalidation.** A hypothesis becomes stale when any anchor changes:
+the code it is about, the workload, or an entry of the project model
+it relied on. Its history is kept, and it is shown as "on older code"
+or "on an older workload".
+
+**Revalidation.** A stale hypothesis's conclusion is not used to rank
+or skip anything until its evidence is produced again on the current
+code: the observation measured again, and the cheap test run again if
+the result depended on it. A hypothesis refuted on older code may be
+tried again; the agent must say what differs. A kept change is a
+commit, so it stays kept; if the code it touched changes again, the
+hypothesis records that its outcome describes an earlier version.
 
 ### Where hypotheses come from
 
@@ -130,7 +196,16 @@ against the baseline. Only the confirmation run's verdict is claimed.
 ## Targets
 
 Each target class has its own workload, discovery angles and playbook.
-The loop is the same for all of them.
+The loop is the same for all of them, and every class implements one
+shared target interface, so the six can't drift apart.
+
+A class's release case study runs the whole cycle on a real
+repository: understand, discover with at least one falsification test,
+prove. It also includes negative cases: a candidate that gives wrong
+results, one that is slower, and one that can't be validated, all of
+which must be refused for the right reason. One successful case study
+is evidence that the cycle works on that repository, not proof that
+every codebase of that class is supported, and the release says so.
 
 | Target | Workload and metrics | Typical hypotheses | Release case study |
 |---|---|---|---|
