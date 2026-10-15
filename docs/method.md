@@ -150,8 +150,22 @@ So in v1:
   session is reduced to the mean log value of its rounds, and one
   observation is a consecutive A and B session pair. Host offsets then
   vary from pair to pair and become noise in the interval instead of a
-  bias. A comparison with fewer than `n0` session pairs is
-  INCONCLUSIVE.
+  bias. Only completed pairs count: a baseline session and the
+  candidate session launched right after it, both finished. A failed
+  or incomplete session voids its pair, and sessions are never
+  re-paired across the gap. A host that was never allocated is not a
+  session.
+- **Below `n0` completed pairs, speed never decides.** While budget
+  remains and another pair can be collected, the comparison continues.
+  When no more pairs can be collected, the verdict is INCONCLUSIVE. A
+  failed gate still decides by rule 1 at any pair count.
+
+  | Situation | Action |
+  |---|---|
+  | A gate failed | REJECT, naming the gate |
+  | Fewer than `n0` pairs, and another pair can be collected | Continue |
+  | Fewer than `n0` pairs, and no more can be collected | INCONCLUSIVE |
+  | `n0` pairs or more | Rules 2 to 5 of the decision rule |
 - **The design rests on an assumption perfproof can't check:** that the
   pool allocates hosts independently of which version runs. The verdict
   is labelled cross-host and states that assumption, the record keeps
@@ -220,7 +234,11 @@ tests it under the complete stopping procedure, not at fixed `n` alone.
 
 The first rule that matches decides:
 
-1. **REJECT** (`correctness` or `integrity`) if a gate failed.
+1. **REJECT** (`correctness` or `integrity`) if a gate failed. When
+   several gates fail, the first in this order is named: `lock`,
+   `procedure`, `runtime`, `same_host`, `correctness`. Integrity comes
+   first because a correctness check run under a broken lock or
+   procedure tests nothing.
 2. **KEEP** (`performance`) if `L > 1 + min_effect`.
 3. **REJECT** (`performance`) if `U <= 1 + min_effect`. If `U < 1`, the
    record also flags a regression.
@@ -244,11 +262,34 @@ A promising point estimate never turns into a KEEP. If the budget ends
 with the interval straddling the bar, the answer is INCONCLUSIVE
 however good the estimate looks.
 
-The comparisons are strict for KEEP (`>`) and inclusive for REJECT
-(`<=`), so an upper bound exactly at the bar is a REJECT. Bounds come
-out of `exp` of log-scale arithmetic, so a value meant to sit exactly
-on the bar can land a few ulps to either side. The implementation has
-to decide how it handles that and test it.
+### Numerics
+
+The decision and the interval have separate jobs, and floating-point
+error is handled in the interval, never in the decision.
+
+- **The decision** compares the exact float64 bounds that are recorded
+  with `bar = 1 + min_effect`, computed in float64 from the stored
+  `min_effect`. A typed `0.118` is the float64 nearest it; the report
+  prints the stored value so nobody has to guess. KEEP is strict
+  (`L > bar`), REJECT is inclusive (`U <= bar`), and no tolerance,
+  epsilon, display rounding or log-scale comparison is applied.
+- **The interval** must never come out more favourable to the
+  candidate than its exact value because of rounding. Measured on
+  macOS arm64: 48 rounds all exactly at the bar, with
+  `min_effect = 0.4730308035801494`, give a mean log ratio one ulp
+  high, a standard deviation of 5.6e-17 instead of 0, and
+  `L = U = bar + 1 ulp`, so a KEEP for a change that sits on the bar.
+  The mirror case gives false REJECTs. Two measures fix this:
+  - When every ratio is the same float, the interval is that ratio
+    exactly, with no arithmetic that can move it.
+  - Otherwise, each bound is widened outward by an error bound derived
+    from the operations that produced it. That is conservative
+    interval construction, not rounding: the width comes from an
+    analysis of the computation, never from observing which nudge
+    makes the tests pass, and a fixed one-ulp step is not a derived
+    bound.
+- **Rounding to a display precision** (1.0300000000000002 shown as
+  1.03) happens only in the rendered report, never before a decision.
 
 ## Calibration
 

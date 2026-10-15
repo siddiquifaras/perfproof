@@ -85,6 +85,24 @@ Ask Faras; don't decide silently.
 4. Installing Codex locally (standalone binary, no Homebrew) for T0.4
    and T3.3.
 
+Repository admin (Faras): make the CI checks required on `main` so a red
+PR can't merge. T0.2 delivered the checks; enforcing them is a setting.
+
+## Not scheduled yet
+
+Real needs, deliberately kept out of the path to the first working
+loop. Each gets a task with its own acceptance test when its
+prerequisite lands. None of them may loosen the decision rule or the
+calibration criteria.
+
+| Capability | Waits for | Note |
+|---|---|---|
+| Sample-size estimate and early INCONCLUSIVE | T1.6 | After pilot rounds, estimate the rounds a decision needs and say what would help. An early stop may only turn "continue" into INCONCLUSIVE at a scheduled look, never change the looks or their confidence; calibrated with the rest of the procedure. |
+| No-regression mode | T1.7 | "Is it no more than m slower?" as a signed `min_effect`. Needs a schema task if `min_effect` must go negative. |
+| Background execution | T3.2 design | Long `measure`, `profile` and `compare` calls as jobs with progress and resume, so MCP clients never time out mid-run. Decided in T3.2's design, built when needed. |
+| Web-service target | M2 exit | Start, health check, warm-up, constant-rate load, latency percentiles and throughput per round, database reset between rounds. vLLM serving becomes a preset. Acceptance: a real CRUD app end to end, with the bottleneck layer identified, and no claim that a generic load is representative. |
+| CPU pinning and isolation | T2.3 | Linux only, where permissions allow; never a requirement. |
+
 ## Lanes
 
 ```
@@ -114,7 +132,7 @@ all run at once: their files don't overlap.
   package guides, `.claude/` settings, lint hook, skills and subagents,
   README and docs, reference files from the vLLM study.
 
-- [ ] **T0.2 CI**
+- [x] **T0.2 CI** (siddiquifaras/perfproof#2, `c7aefda`)
   - Owns: `.github/workflows/`
   - Needs: T0.3
   - Do: GitHub Actions on `ubuntu-latest` and `macos-latest`, Python
@@ -179,10 +197,29 @@ by `stats-auditor` before its PR opens.
     split. Include the batch-means transform (block size argument) that
     `docs/method.md` names as the autocorrelation fallback. Return
     estimate and bounds on the ratio scale.
+  - Numerics, per "Numerics" in `docs/method.md`: no bound may come out
+    more favourable to the candidate than its exact value because of
+    rounding. When every ratio in a batch row is the same float, the
+    interval is exactly that ratio. Otherwise each bound is widened
+    outward by an error bound derived from the operations that
+    produced it (mean, variance, quantile, `exp`), stated in the
+    docstring with its derivation. No tolerance chosen by observation,
+    and no fixed one-ulp step.
   - Done when: results match `scipy.stats` reference computations to
-    1e-12 on fixed inputs; property tests from the stats guide pass;
-    10,000 batched replications of n = 40 run in one call, with the
-    timing in the PR.
+    1e-12 on fixed inputs (which alone cannot catch the numerics
+    defect); property tests from the stats guide pass; 10,000 batched
+    replications of n = 40 run in one call, with the timing in the PR;
+    and a full-path test runs observations through this interval,
+    `decide` and `RunRecord` validation for every case below, with no
+    false KEEP and no false REJECT:
+    - the reproducer: `min_effect = 0.4730308035801494`, 48 rounds all
+      at `b = 1 + min_effect`;
+    - all rounds at the bar and at one ulp either side of it, for the
+      `min_effect` values T1.3 tested (0, 0.03, 0.118, 0.124,
+      0.4730308035801494) and for a sweep of at least 300 bars;
+    - tiny-noise rounds around each of those bars.
+    The PR states the defect, its reproducer, the fix, the error-bound
+    derivation, and the before and after counts.
   - Effort: high
 
 - [ ] **T1.2 Bootstrap ratio of medians**
@@ -220,11 +257,17 @@ by `stats-auditor` before its PR opens.
       iff `L <= bar < U` and budget remains;
     - regression iff the verdict is a performance REJECT and `U < 1`;
     - any failed gate decides first (rule 1), whatever the interval
-      and whether the host is local or remote.
+      and whether the host is local or remote; when several fail, the
+      first in `lock`, `procedure`, `runtime`, `same_host`,
+      `correctness` is named, whatever order they ran in.
     No epsilon, tolerance, rounding or log-scale comparison may decide.
     Intervals can be computed on the log scale, but the decision is
-    made after `exp`, on the exact floats that are recorded, and those
-    floats are never rounded before they are recorded or compared. The
+    made after `exp`, on the exact floats that are recorded. Nothing is
+    rounded to a display precision before a decision. Conservative
+    outward widening is allowed only inside T1.1's interval
+    construction, justified by its derived error bound; the bounds that
+    result are what gets recorded and decided on. The bar uses the
+    stored float64 `min_effect`, not the decimal the user typed. The
     docstring states how `L` and `U` are computed and converted.
     `perfproof.schema.RunRecord` refuses any record that breaks these
     rules: a log-scale comparison can call KEEP when the recorded `L`
@@ -239,9 +282,14 @@ by `stats-auditor` before its PR opens.
     - `completed_session_pairs` counts a pair only when a baseline
       session and the candidate session launched right after it both
       completed. A failed or incomplete session voids its pair, and
-      sessions are never re-paired across the gap.
-    - Fewer than `n0` completed pairs: INCONCLUSIVE whatever the
-      interval. From `n0` on, the bar rules above apply.
+      sessions are never re-paired across the gap. A host that was
+      never allocated is not a session; the session launched in its
+      place takes its turn.
+    - Fewer than `n0` completed pairs: never KEEP or a performance
+      REJECT. Continue while budget remains and another pair can be
+      collected; INCONCLUSIVE when no more can be. A failed gate still
+      decides by rule 1 at any pair count. From `n0` on, the bar rules
+      above apply.
     - A gate that fails before any remote host exists: rule 1 REJECT
       with zero rounds and `session_pairs = 0`, and `machines` holds
       exactly one fingerprint, of the machine that ran the gates. No
@@ -542,7 +590,10 @@ Starts after the M2 exit.
   - Do: stdio server with the tools in `docs/architecture.md`, built on
     the official Python SDK (check its current API before starting).
     Short tool descriptions, expressive typed parameters, compact JSON
-    results with paths to raw data.
+    results with paths to raw data. Decide, before writing tools, how
+    calls longer than a client's tool timeout behave (see background
+    execution under "Not scheduled yet"), and write the decision into
+    `docs/architecture.md`.
   - Done when: an in-process MCP client test calls every tool; a real
     `uvx --from . perfproof mcp` subprocess answers `tools/list`.
   - Effort: high
