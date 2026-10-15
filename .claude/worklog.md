@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `0efbd4b` | T2.9 folded-stack summariser merged (PR #8), squash, at `f317b70` after three reviews (two blocked on frame normalisation, fixed); CI 4/4 on that head |
 | `0eb8160` | T1.3 decision rule merged (PR #3), squash, at reviewed head `bd14548`: reviewer and stats-auditor both PASS on that commit, CI 4/4 green on it |
 | `aa6ef93` | Plan rebuilt as a small exact CLI plus skills; failure modes, CLI spec, evaluation design, target contracts |
 
@@ -17,6 +18,7 @@ lead; task branches don't edit it.
 
 | When | Where | Result |
 |---|---|---|
+| after `0efbd4b` | main, this Mac | 781 passed, 1 skipped |
 | after `0eb8160` | main, this Mac | 727 passed, 1 skipped (`longdouble` is float64 on macOS arm64) |
 
 ### GPU spend

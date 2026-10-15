@@ -636,7 +636,7 @@ Mac and on Linux CI, with decoys that must be refused.
     each one and each decoy demonstrates.
   - Effort: medium
 
-- [ ] **T2.9 Folded-stack summariser**
+- [x] **T2.9 Folded-stack summariser** (siddiquifaras/perfproof#8, `0efbd4b`)
   - Owns: `src/perfproof/profilers/folded.py`,
     `tests/profilers/test_folded.py`
   - Needs: T0.3
