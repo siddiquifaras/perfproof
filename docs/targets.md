@@ -20,7 +20,7 @@ calibration don't apply, and the report says so.
 | Oracle | The project's tests, output comparison, replay of captured real calls |
 | Coverage | coverage.py on changed lines |
 | Guardrails | Peak memory of the process tree, 10% |
-| Profiling | py-spy built in; Scalene and memray through the playbook |
+| Profiling | py-spy on Linux; on macOS an in-process sampler (pyinstrument), since py-spy needs root there; Scalene and memray through the playbook |
 | Supported | CPython 3.10 and later on macOS arm64 and Linux x86_64 |
 | Outside | Free-threaded builds, PyPy, notebooks as workloads |
 

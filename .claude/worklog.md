@@ -27,6 +27,20 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Cross-host drift and order effect (T1.4):** in the alternating
+  session design these effects either cancel within a session or bias
+  the known speedup, so the simulator refuses them in cross-host mode.
+  Calibration excludes those two cross-host cells with that reason, and
+  campaign-wide drift is recorded as a limit of the cross-machine
+  design.
+- **Python profiling on macOS (T2.9 finding):** py-spy, austin and
+  CPython 3.15's sampler all refuse to run on macOS without root. T2.10
+  uses an in-process sampler (pyinstrument) on macOS and py-spy on
+  Linux. T2.9's py-spy fixtures were captured on Linux in Docker.
+- **Codex models:** the ChatGPT Go login rejects `gpt-5.3-codex` (the
+  model in Faras's global config) and older slugs; `gpt-5.6-luna` works
+  and is passed explicitly.
+
 - **Workers run as background subagents in isolated worktrees.** The
   app refused to start new sessions from this turn, because a session
   event triggered it. Subagents with `isolation: worktree` give the

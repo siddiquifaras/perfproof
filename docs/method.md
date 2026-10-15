@@ -244,6 +244,12 @@ So in v1:
 - Calibration of this design simulates random per-session offsets. It
   cannot cover a pool that hands one version systematically different
   hosts, and the report says so.
+- Drift and order effects inside a session cancel in the session-pair
+  design, and drift across a whole campaign biases a pair by about
+  `log(1 + D) / (2n - 1)` for total drift `D` over `n` pairs, because the
+  candidate session always follows the baseline one. Calibration does
+  not cover those two effects across hosts, and that is a stated limit
+  of cross-machine verdicts.
 
 ## Speedup and interval
 

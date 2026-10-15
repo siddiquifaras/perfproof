@@ -648,9 +648,13 @@ Mac and on Linux CI, with decoys that must be refused.
     `tests/profilers/test_run.py`, `tests/fixtures/py-spy/`, the
     `profile` command
   - Needs: T2.7, T2.9, T2.17
-  - Do: run a profiler on a workload, with py-spy built in, and summarise
-    its folded stacks with wall versus CPU time; other profilers plug in
-    as a command that emits folded stacks, which the playbooks supply.
+  - Do: run a profiler on a workload and summarise its folded stacks
+    with wall versus CPU time. Built in: py-spy on Linux, and on macOS an
+    in-process sampler that needs no root (pyinstrument, run through
+    `uv run --with pyinstrument`, its output converted to folded
+    stacks), because py-spy refuses to run on macOS without root (found
+    in T2.9). Other profilers plug in as a command that emits folded
+    stacks, which the playbooks supply.
   - Done when: parser tests on captured fixtures; an integration test
     runs py-spy on each Python example and finds its known bottleneck
     in the top 3; parse time and peak memory on the largest fixture in
