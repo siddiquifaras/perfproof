@@ -265,14 +265,15 @@ M6  release bar, README, release
     it drifts.
   - Effort: high
 
-- [ ] **T0.4 Check Codex discovery** (lead)
-  - Needs: Codex installed (see Decisions)
-  - Do: in a fresh Codex session in this repo, confirm it loads
-    `AGENTS.md`, lists the skills through the `.agents/skills`
-    symlink, and reads a nested `AGENTS.md` when working in
-    `src/perfproof/stats/`. If the symlink or nested files are not
-    picked up, change the layout and record what Codex actually does.
-  - Done when: the observed behaviour is written into this file.
+- [x] **T0.4 Check Codex discovery** (lead). Observed on 16 October
+  2026 with codex-cli 0.163.0 and `gpt-5.6-luna`, read-only, in this
+  repo: Codex loads the root `AGENTS.md` at start; it lists `gpu-run`,
+  `run-task` and `verify` through the `.agents/skills` symlink; it does
+  not load nested `AGENTS.md` files on its own, but reads them when the
+  root file's "Where to read before editing" table sends it there, so
+  the layout stays. The ChatGPT login rejects `gpt-5.3-codex`,
+  `gpt-5.5`, `gpt-5.4` and older slugs; `gpt-5.6-luna` and `gpt-6-luna`
+  work, so evaluation runs pass `-m` explicitly.
 
 ## M1 Statistics core
 
