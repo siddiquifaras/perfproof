@@ -1,24 +1,49 @@
 # perfproof
 
-**Your coding agent says it made the code 20% faster. perfproof checks.**
+**Find out where your code can get faster, and keep only the changes
+that really are.**
 
-Agents are good at changing code. They're bad at knowing whether a
-change actually helped. Run a benchmark twice and the number moves.
-Run it after the laptop warms up, or on a different cloud machine, and
-it moves more. A "20% speedup" from one before-and-after run is often
-nothing more than that movement.
+Most developers hit a wall with performance. You know your codebase,
+you've already fixed the obvious slow parts, and you're out of ideas.
+Or you have ideas, but no reliable way to tell whether one helped: run
+a benchmark twice and the number moves, so a "20% speedup" from one
+before-and-after run is often just that movement.
 
-perfproof gives the agent a process that won't let it fool itself, or
-you:
+perfproof does both halves of the job, inside your coding agent (Claude
+Code, Codex, or any other MCP client):
 
-1. **Lock the benchmark.** If the change edits the benchmark or the
-   tests, it's rejected. No winning by moving the goalposts.
-2. **Run old and new code in turns** (old, new, old, new...) on the same
-   machine, so heat, caches and background load hit both equally.
-3. **Profile** to find where the time actually goes, instead of guessing.
-4. **Check the answers still match**, within a tolerance for numeric code.
-5. **Keep the change only if the whole confidence interval clears the
-   bar.** By default that bar is a 3% speedup.
+- **It finds what you haven't tried.** It profiles your real workloads
+  and looks from angles that are easy to miss: time spent waiting
+  rather than computing, the same work done over and over, code that
+  gets worse as inputs grow, database queries per request, idle GPUs,
+  settings nobody tuned. Each idea becomes a hypothesis, tested cheaply
+  before any code is written.
+- **It proves which changes to keep.** Old and new code run in turns on
+  the same machine, the answers are checked, and a change is kept only
+  if the measurements say it's a real improvement.
+
+It works on code you've never seen and on code you've worked on for
+years. It remembers what it has already tried and why it was rejected,
+so every session starts where the last one stopped.
+
+## How a session goes
+
+Run `/perfproof` in your agent:
+
+1. **Understand.** perfproof works out what your project is, which
+   workloads matter, what "faster" means for you (latency, throughput,
+   memory, startup, cost), and what must not change. You confirm it.
+2. **Discover.** It ranks opportunities by the most each could gain,
+   with the evidence for each one and anything tried before.
+3. **Try.** The agent writes a change for the best opportunity, or
+   several different ones.
+4. **Prove.** perfproof checks the change still gives the same answers,
+   measures it against the original, and gives a verdict. Kept changes
+   stack up on their own branch; everything else is undone.
+5. **Repeat** until the budget runs out or nothing left could clear the
+   bar. You get one report with every attempt and its evidence.
+
+## The verdict
 
 Every comparison ends with one of three answers:
 
@@ -57,6 +82,20 @@ The checks are built to catch "faster but wrong":
 If your tests are thin, perfproof's own checks fill part of the gap,
 and the report tells you exactly which lines nothing verified.
 
+## What it works on
+
+| Kind of code | What perfproof measures | Where it looks for wins |
+|---|---|---|
+| Python | Benchmarks, slow tests, entry points | Vectorization, algorithms, caching, allocations, imports |
+| C, C++, Rust | Benchmark binaries, instruction counts on Linux | Memory layout, SIMD, allocation, branches |
+| Web and CRUD services | Latency percentiles and throughput under steady load | N+1 queries, serialization, connection pools, caching |
+| LLM serving (vLLM, SGLang) | Throughput and latency from the serving benchmarks | Batching, scheduling, KV cache, attention backends, settings |
+| GPU kernels and PyTorch | CUDA-event timing, Nsight, torch.profiler | Occupancy, memory access, launch overhead, fusion, `torch.compile` |
+| Agentic and LLM apps | A recorded run of the app, replayed with no API cost | Wasted calls, calls that could run in parallel, prompt caching |
+
+GPU work runs on a remote host over SSH or on Modal. The agent edits
+code locally and perfproof ships the measurement to the GPU.
+
 ## Why it exists
 
 During a hand-run investigation of a vLLM performance report, the exact
@@ -70,37 +109,22 @@ not only the headline number. Reading the prefix-cache hit rate from the
 server's metrics changed the conclusion. The full story, with every
 number, is in the [vLLM case study](docs/case-studies/vllm-prefix-caching.md).
 
-perfproof turns those lessons into defaults: run both versions on one
-machine, record what that machine was, and report the interval instead
-of a single number.
-
-## What v1 will cover
-
-| Target | Profilers | Runs on a laptop? |
-|---|---|---|
-| Python | py-spy, Scalene, memray | Yes |
-| C, C++, Rust | samply, perf | Yes (samply), Linux for perf |
-| PyTorch | torch.profiler | CPU and Apple MPS locally, CUDA remotely |
-| CUDA kernels | Nsight Systems, Nsight Compute | Remote GPU host |
-| LLM serving | `vllm bench serve`, SGLang bench, `/metrics` | Remote GPU host |
-
-GPU work runs on a remote host over SSH or on Modal. The agent edits
-code locally and perfproof ships the measurement to the GPU.
-
-perfproof talks to agents over MCP, so it works with Claude Code, Codex
-and any other MCP client. The same engine is available as a CLI for CI
-and for people who'd rather run it themselves.
+perfproof turns those lessons into defaults: look for the mechanism, run
+both versions on one machine, record what that machine was, and report
+the interval instead of a single number.
 
 ## Status
 
 Early development. Nothing is released yet, and there is no install
-command until there is something worth installing. The statistics core
-comes first, because every other part of perfproof depends on its
-verdicts being trustworthy.
+command until there is something worth installing. The proving engine
+comes first, because finding opportunities is only worth something once
+the verdicts on them can be trusted.
 
 ## Docs
 
-- [Method](docs/method.md): the measurement loop and the exact
+- [Understand and discover](docs/discovery.md): how perfproof builds its
+  picture of a project and finds what to try
+- [Method](docs/method.md): how a change is proven, and the exact
   KEEP / REJECT / INCONCLUSIVE rule
 - [Architecture](docs/architecture.md): how the pieces fit
 - [vLLM case study](docs/case-studies/vllm-prefix-caching.md)

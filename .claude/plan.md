@@ -65,25 +65,30 @@ trustworthy.
 | Calibration scope | Development scenarios, held-out audit scenarios at fresh seeds, and real A/A traces per target class with a held-out machine; uncalibrated target classes are labelled in every report |
 | Metrics | `wall`, `cpu`, `reported`, and `counter` (Linux `perf stat`) in v1 |
 | Shared data types | Pydantic models in `perfproof.schema`; NumPy arrays inside `stats` |
-| Runtime dependencies | `coverage` and `hypothesis` join the runtime dependencies in T2.12, for the coverage gate and differential checks. `numpy` for the stats core. `pydantic` for the schema; the MCP SDK requires `pydantic>=2.12` anyway, so it adds nothing to the install. `scipy` for the t quantiles of the primary procedure and the Wilcoxon challenger. `mcp` arrives with T3.2. Test and lint tools stay in the `dev` group. |
+| Runtime dependencies | `coverage` and `hypothesis` join the runtime dependencies in T2.12, for the coverage gate and differential checks. `numpy` for the stats core. `pydantic` for the schema; the MCP SDK requires `pydantic>=2.12` anyway, so it adds nothing to the install. `scipy` for the t quantiles of the primary procedure and the Wilcoxon challenger. `mcp` arrives with T3.3. Test and lint tools stay in the `dev` group. |
 | Entry point | `perfproof mcp` starts the MCP server; MCP clients launch `uvx perfproof mcp` |
 | Remote | `host` argument on `measure`, `profile` and `compare`; the remote side runs the same engine |
 | Local-only files | `.claude/local/` (handoff, budget) and `CLAUDE.local.md`, gitignored, copied into worktrees by `.worktreeinclude`. Nothing needed to build, test or run perfproof lives there. |
-| Client support claims | A client is named as supported only after T3.3 and T3.5 pass with it |
+| Client support claims | A client is named as supported only after T3.4 and T5.8 pass with it |
+| Product shape | Understand, discover, prove, repeated: `docs/discovery.md` specifies the first two, `docs/method.md` the third. Deterministic code owns state, measurement, statistics and records; the agent owns judgment |
+| Release scope | Six target classes: Python, native, web and CRUD services, LLM serving, GPU kernels and PyTorch, agentic apps. A class is claimed only when its real-repo case study and its real-trace calibration both pass |
 
 ## Open questions
 
 Ask Faras; don't decide silently.
 
-1. Libraries for case studies 2 and 3 (a NumPy/Python library with open
-   "slow" issues and its own benchmarks; a well-known PyTorch training
-   script).
-2. How to split the remaining GPU budget across T5.2, T5.5, T5.6 and the
-   case studies.
-3. A host for testing the SSH runner (T5.1): Remote Login to this Mac,
+1. Case-study repositories still to choose: a real CRUD app (T6.13), a
+   GPU kernel or PyTorch workload (T6.26), and an agentic app (T6.31).
+   Python is frames2py, native is picolm, serving is vLLM.
+2. GPU budget against the release. The serving and GPU-kernel tracks
+   need paid runs (T6.15, T6.18, T6.20, T6.22, T6.24, T6.26). Before M6
+   starts, estimate their total cost per the `gpu-run` skill and
+   compare it with the budget in `.claude/local/HANDOFF.md`. If it
+   doesn't fit, decide what changes; don't quietly drop a class.
+3. A host for testing the SSH runner (T6.14): Remote Login to this Mac,
    a cheap Linux VM, or a Modal sandbox with sshd.
 4. Installing Codex locally (standalone binary, no Homebrew) for T0.4
-   and T3.3.
+   and T3.4.
 5. Default guardrail allowances: how much worse may peak memory and p99
    latency get before a speedup is refused? Needed before T2.15.
 
@@ -92,21 +97,15 @@ PR can't merge. T0.2 delivered the checks; enforcing them is a setting.
 
 ## Not scheduled yet
 
-Real needs, deliberately kept out of the path to the first working
-loop. Each gets a task with its own acceptance test when its
-prerequisite lands. None of them may loosen the decision rule or the
-calibration criteria.
+Useful, but not needed for the release experience. Each gets a task
+with its own acceptance test when its prerequisite lands. None of them
+may loosen the decision rule or the calibration criteria. Everything
+the release needs is in a milestone, however hard it is to build.
 
 | Capability | Waits for | Note |
 |---|---|---|
-| Sample-size estimate and early INCONCLUSIVE | T1.6 | After pilot rounds, estimate the rounds a decision needs and say what would help. An early stop may only turn "continue" into INCONCLUSIVE at a scheduled look, never change the looks or their confidence. Calibrated as part of the procedure, reporting both the unconditional error rates the acceptance rule checks and the conditional rate among verdicts, as `docs/method.md` defines. |
 | No-regression mode | T1.7 | "Is it no more than m slower?" as a signed `min_effect`. Needs a schema task if `min_effect` must go negative. |
-| Background execution | T3.2 design | Long `measure`, `profile` and `compare` calls as jobs with progress and resume, so MCP clients never time out mid-run. Decided in T3.2's design, built when needed. |
-| Web-service target | M2 exit | Start, health check, warm-up, constant-rate load, latency percentiles and throughput per round, database reset between rounds. vLLM serving becomes a preset. Acceptance: a real CRUD app end to end, with the bottleneck layer identified, and no claim that a generic load is representative. |
 | CPU pinning and isolation | T2.3 | Linux only, where permissions allow; never a requirement. |
-| Record and replay for agentic and LLM apps | M2 exit | Record an app's model and tool calls once, then replay them so the benchmark measures the app's own code with no API cost, rate limits or network noise. Replays must be checked against a live sample so they stay faithful. |
-| Settings search | T3.7 | Many inference and GPU wins are settings, not code: batch size, thread counts, `torch.compile`, data types, serving flags, compiler flags. Each setting tried is a candidate under T3.7's choose-then-confirm rule, so searching many settings never inflates the claim. |
-| Coverage for native code | T2.14 | gcov or llvm-cov, so C, C++ and Rust changes stop needing the "coverage not checked" opt-in. |
 | History bisect | M2 exit | Benchmark across git history to find when a path got slower, using `compare` at each bisect step. Many steps mean many chances to be wrong, so the commit it blames is confirmed by a fresh, independent `compare` of that commit against its parent, and only that run is claimed. |
 | CI regression check | T3.1, no-regression mode | `perfproof compare --base origin/main` as a PR check that fails when a measured path is shown slower than its allowance. CI runners are noisy, so it uses the `counter` metric on Linux where available. Optionally a ratchet that tightens the allowance when a path gets faster. |
 
@@ -124,11 +123,13 @@ M2  T2.1 T2.2 T2.3 T2.4 T2.6 T2.7 T2.9 ─┬─ T2.5 (after M1 exit)
     T2.12 (after T1.3) ─ T2.13…T2.16 ───┤
                  T2.10 (after T2.7, T2.9)├─ T2.11 real traces
                                          └─ T2.8 local loop ══ M2 exit
-                                                    │
-M3  T3.1 ─ T3.2 ─ T3.3, T3.4, T3.8, T3.9 ─ T3.6 ◄───┤
-    then T3.5, T3.7                                 │
-M4  T4.2 … T4.6 (parallel), T4.8, T4.9 ◄────────────┤
-M5  T5.1 T5.2 T5.3 ─ T5.4 ─ T5.5, T5.6 ◄────────────┘
+
+after the M2 exit:
+M3  T3.1 CLI ─ T3.3 MCP ─ T3.4 clients; T3.2 jobs; T3.5 skills; T3.6 planning
+M4  T4.0 schema ─ T4.1 project model, T4.2 detection
+M5  T5.1…T5.6 discover ─ T5.7 /perfproof loop ─ T5.8 agents
+M6  six target tracks in parallel; each case study also needs T5.7
+M7  release bar, README, release
 ```
 
 Before the M1 exit, T1.1 to T1.4, T2.1 to T2.4, T2.6, T2.7 and T2.9 can
@@ -679,36 +680,50 @@ Mac and on Linux CI, with decoys that must be refused.
 
 ## M3 Agent interfaces
 
-Starts after the M2 exit.
+Starts after the M2 exit. Exposes prove to agents and makes long runs
+safe to start from any client.
 
 - [ ] **T3.1 CLI**
   - Owns: `src/perfproof/cli.py`, `src/perfproof/__main__.py`,
     `tests/test_cli.py`, `pyproject.toml` (script entry)
   - Needs: M2 exit
   - Do: argparse subcommands mirroring the MCP tools. JSON output with
-    `--json`. The `mcp` and `install-skills` subcommands come with
-    T3.2 and T3.4.
+    `--json`. Later tasks add their own subcommands.
   - Done when: each subcommand is tested through `main(argv)`.
   - Effort: medium
 
-- [ ] **T3.2 MCP server**
+- [ ] **T3.2 Background jobs**
+  - Owns: `src/perfproof/jobs/`, `tests/jobs/`
+  - Needs: M2 exit
+  - Do: long `measure`, `profile`, `discover` and `compare` calls run as
+    jobs: the call returns a job ID at once, progress is written to
+    `.perfproof/jobs/<id>.json`, and `job` reports status, progress and
+    result. Completed rounds are on disk, so a killed job resumes
+    without redoing them, and the record marks where it resumed. Every
+    job has a hard total timeout; cancel and timeout kill the whole
+    process tree.
+  - Done when: a compare that outlasts a 60-second client timeout
+    finishes through polling; `kill -9` mid-run resumes with no round
+    lost or repeated and a valid record; cancel leaves no child
+    process behind.
+  - Effort: high
+
+- [ ] **T3.3 MCP server**
   - Owns: `src/perfproof/mcp/`, `tests/mcp/`, the `mcp` subcommand in
     `cli.py`, `pyproject.toml`, `uv.lock` (adds `mcp`)
-  - Needs: T3.1
+  - Needs: T3.1, T3.2
   - Do: stdio server with the tools in `docs/architecture.md`, built on
     the official Python SDK (check its current API before starting).
     Short tool descriptions, expressive typed parameters, compact JSON
-    results with paths to raw data. Decide, before writing tools, how
-    calls longer than a client's tool timeout behave (see background
-    execution under "Not scheduled yet"), and write the decision into
-    `docs/architecture.md`.
+    results with paths to raw data. Every call that can outlast a
+    client's tool timeout returns a job ID.
   - Done when: an in-process MCP client test calls every tool; a real
     `uvx --from . perfproof mcp` subprocess answers `tools/list`.
   - Effort: high
 
-- [ ] **T3.3 Client setup, verified**
+- [ ] **T3.4 Client setup, verified**
   - Owns: `docs/install.md`
-  - Needs: T3.2, open question 4
+  - Needs: T3.3, open question 4
   - Do: setup for Claude Code (`claude mcp add`), Codex
     (`codex mcp add` and `.codex/config.toml`), and a generic MCP JSON
     config. Verify each by starting the client and listing perfproof's
@@ -717,221 +732,336 @@ Starts after the M2 exit.
     which client versions it was checked with.
   - Effort: medium
 
-- [ ] **T3.4 Python playbook and installer**
-  - Owns: `skills/perfproof-python/`, `src/perfproof/skills.py`,
-    `tests/test_skills.py`, the `install-skills` subcommand in `cli.py`
+- [ ] **T3.5 Skill packaging**
+  - Owns: `src/perfproof/skills.py`, `tests/test_skills.py`, the
+    `install-skills` subcommand in `cli.py`, the wheel's package data
   - Needs: T3.1
-  - Do: the Python skill per `skills/AGENTS.md`, and
-    `perfproof install-skills --client claude|codex|<dir>` that copies
-    packaged skills into place. Ship `skills/` inside the wheel.
+  - Do: `perfproof install-skills --client claude|codex|<dir>` copies
+    the packaged skills (the `/perfproof` loop and every target
+    playbook) into place. `skills/` ships inside the wheel.
   - Done when: install tested into temporary directories for each
-    client layout; skill check from `skills/AGENTS.md` done.
+    client layout, including an update over an older install.
   - Effort: medium
 
-- [ ] **T3.8 Discover: where else to look**
-  - Owns: `src/perfproof/discover/`, `tests/discover/`, the `discover`
-    MCP tool and CLI subcommand
-  - Needs: T3.2, T2.10, T2.13
-  - Do: a ranked list of optimization opportunities for one benchmark,
-    built for repos whose obvious hotspots are already fixed. Each
-    angle is a source with an availability check, so the ones whose
-    tools aren't built yet report "not available" with the reason
-    instead of disappearing:
-    - CPU hotspots, from the profiler adapters;
-    - waiting rather than computing: the gap between wall and CPU time;
-    - repeated identical work: calls with the same arguments, from the
-      differential checks' call capture;
-    - growth with input size: the benchmark run at two or three input
-      sizes, fitting how time scales, to find super-linear code;
-    - startup and import time (`python -X importtime`);
-    - later, as their adapters land: allocations (memray, T4.3),
-      off-CPU and lock waits, GPU idle time (T4.7), N+1 queries (web
-      target), settings (settings search).
-    Every opportunity carries its angle, its evidence (profile paths,
-    numbers), and the most it could gain with how that cap was derived.
-    A cap is an upper bound from a model, labelled as such, never a
-    measured speedup.
-  - Done when: on the examples, each angle the M3 build supports finds
-    the opportunity planted for it (add one planted case per angle to
-    `examples/` in this task), the list is ranked by cap, and unbuilt
+- [ ] **T3.6 Evidence planning and early INCONCLUSIVE**
+  - Owns: `src/perfproof/stats/planning.py`,
+    `tests/stats/test_planning.py`, its cells in `tests/calibration/`
+  - Needs: M1 exit
+  - Do: after the first look, estimate the rounds a decision needs at
+    the observed noise. When that is beyond the budget, stop at a
+    scheduled look with INCONCLUSIVE and say what would settle it: more
+    rounds and their time, a quieter metric (`counter` on Linux), a
+    quieter machine, or a larger input. The stop only replaces
+    "continue" at a scheduled look; looks and their confidence never
+    change.
+  - Done when: predicted rounds agree with realised rounds in
+    simulation within a stated tolerance; calibration with the early
+    stop on passes the acceptance rule in every cell, reporting both
+    the unconditional rates and the conditional rate among verdicts;
+    every early INCONCLUSIVE report names its estimate and options.
+  - Effort: high
+
+## M4 Understand
+
+Starts after T3.3. Builds the project model in `docs/discovery.md`.
+
+- [ ] **T4.0 Schema for understand and discover**
+  - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
+    `tests/test_schema.py`
+  - Needs: M2 exit
+  - Do: models for the project model (targets, workloads, goals,
+    constraints, how to run, the files each entry was derived from),
+    opportunities (angle, evidence, cap and its derivation), hypotheses
+    (every field in `docs/discovery.md`), cheap-test results, and jobs.
+    One task, because the schema is the shared contract.
+  - Done when: round-trip and refusal tests for every new model; a cap
+    can't be stored in a speedup field; the drift test passes.
+  - Effort: high
+
+- [ ] **T4.1 Project model**
+  - Owns: `src/perfproof/understand/`, `tests/understand/`, the
+    `project` MCP tool and CLI subcommand
+  - Needs: T4.0, T3.3
+  - Do: `.perfproof/project.json` per "Understand" in
+    `docs/discovery.md`: perfproof proposes, the developer confirms;
+    unknown fields stay empty and are asked about; entries record the
+    files they came from and are flagged when those change; switching
+    goals reuses the model.
+  - Done when: tests cover propose and confirm, a refused proposal, an
+    unknown field asked rather than filled, staleness after an edit,
+    and a goal switch that keeps workloads and constraints.
+  - Effort: high
+
+- [ ] **T4.2 Target detection and workload finding**
+  - Owns: `src/perfproof/targets/detect.py`,
+    `src/perfproof/targets/workloads.py`, `tests/targets/`, the
+    `detect_target` MCP tool
+  - Needs: T4.0
+  - Do: detect all six target classes from manifests, imports and
+    configs, each with its evidence and a confidence. Find candidate
+    workloads: existing benchmark suites (pytest-benchmark, asv,
+    criterion, Google Benchmark), the slowest tests, entry points and
+    console scripts, web routes, serving configs, agent entry points.
+  - Done when: correct on `examples/`, on a small synthetic tree per
+    class including ambiguous mixes, and, read-only, on frames2py and
+    picolm.
+  - Effort: high
+
+## M5 Discover
+
+Starts after T4.0. Builds the discovery side of `docs/discovery.md`.
+
+- [ ] **T5.1 Discover engine and measurement angles**
+  - Owns: `src/perfproof/discover/` (except the files below),
+    `tests/discover/`, the `discover` MCP tool and CLI subcommand
+  - Needs: T4.0, T2.10, T2.13
+  - Do: ranked opportunities from every angle in `docs/discovery.md`.
+    Each angle is a source with an availability check, so an angle
+    whose adapter isn't built yet reports "not available" with the
+    reason instead of disappearing. The angles buildable now: CPU
+    hotspots, waiting versus computing, repeated identical calls,
+    growth with input size, startup and imports. The others plug in
+    from their M6 tracks. Every opportunity carries its evidence and
+    its cap with the derivation, labelled as a bound.
+  - Done when: each buildable angle finds the case planted for it in
+    `examples/` (added in this task); the list is ranked by cap; unbuilt
     angles report themselves unavailable.
   - Effort: high
 
-- [ ] **T3.9 Memory of past attempts**
-  - Owns: `src/perfproof/attempts.py`, `tests/test_attempts.py`
-  - Needs: T3.2
-  - Do: an append-only record of every attempt under
-    `.perfproof/attempts/<benchmark>.jsonl`: the opportunity (file,
-    qualified function name, and a hash of the function's source at the
-    time), the approach in the agent's words, the diff hash, the
-    verdict and reason, and the run record's path. `discover` attaches
-    matching past attempts to each opportunity, marking those made on
-    an older version of the code. Whether a new idea is the same as an
-    old one is the model's call; finding and showing the history is
-    the code's.
+- [ ] **T5.2 Hypotheses log**
+  - Owns: `src/perfproof/hypotheses.py`, `tests/test_hypotheses.py`, the
+    `hypothesis` MCP tool
+  - Needs: T4.0
+  - Do: the append-only `.perfproof/hypotheses/<workload>.jsonl` from
+    `docs/discovery.md`. `discover` attaches matching past hypotheses
+    to each opportunity, marking those made on an older version of the
+    code. The code finds and shows history; the agent judges repeats.
   - Done when: tests cover appending, matching after the function moves
-    within its file, an attempt on changed source marked as older, a
+    within its file, a hypothesis on changed source marked as older, a
     corrupt line skipped with a warning rather than losing the file,
     and two sessions appending at once.
   - Effort: medium
 
-- [ ] **T3.6 One-command optimize loop**
+- [ ] **T5.3 Cheap tests**
+  - Owns: `src/perfproof/discover/experiments.py`,
+    `tests/discover/test_experiments.py`
+  - Needs: T5.2, T2.13
+  - Do: the cheap tests in `docs/discovery.md`: time one stage; count
+    calls, queries or allocations; microbenchmark an alternative in
+    isolation; bound a function's cost by replaying it from captured
+    calls instead of running it ("what if this were free?"); toggle one
+    setting. Results are stored on the hypothesis as evidence, never as
+    a verdict.
+  - Done when: each kind runs on a planted example; on every example,
+    the "what if free" bound is at least the speedup its real fix gets
+    (measured), so it holds as an upper bound there.
+  - Effort: high
+
+- [ ] **T5.4 Choose, then confirm**
+  - Owns: `src/perfproof/discover/search.py`,
+    `tests/discover/test_search.py`
+  - Needs: T5.2
+  - Do: up to `k` candidates for one hypothesis (default 3), each in its
+    own worktree from the same baseline, measured one at a time, never
+    concurrently. Every candidate goes through the gates and `compare`.
+    The best KEEP is chosen, then confirmed by a fresh, independent
+    `compare`; only that confirmation is claimed.
+  - Done when: on an example with fixes of known different strength,
+    the strongest is chosen and confirmed; with `k` candidates and no
+    real speedup, the confirmed false-KEEP rate passes the acceptance
+    rule in simulation; selection-stage verdicts never appear as claims.
+  - Effort: high
+
+- [ ] **T5.5 Settings search**
+  - Owns: `src/perfproof/discover/settings.py`,
+    `tests/discover/test_settings.py`
+  - Needs: T5.4
+  - Do: search a settings space (declared by the target module or the
+    spec: threads, batch sizes, flags, backends, compile options) by
+    screening one setting at a time, then trying small combinations of
+    the promising ones, within a budget. Every setting tried is a
+    candidate under T5.4's rule.
+  - Done when: on an example with a planted setting win, it is found
+    and confirmed; with many settings and no real effect, the confirmed
+    false-KEEP rate passes the acceptance rule in simulation.
+  - Effort: high
+
+- [ ] **T5.6 explain_hotspot**
+  - Owns: `src/perfproof/profilers/explain.py`,
+    `tests/profilers/test_explain.py`, the `explain_hotspot` MCP tool
+  - Needs: T2.10
+  - Do: the source excerpt and per-line profile detail for one hotspot.
+  - Effort: medium
+
+- [ ] **T5.7 The /perfproof loop**
   - Owns: `skills/perfproof/`, `src/perfproof/optimize.py`,
     `tests/test_optimize.py`, the `optimize` subcommand in `cli.py`
-  - Needs: T3.2, T3.4, T3.8, T3.9
+  - Needs: T3.5, T4.1, T4.2, T5.1, T5.2, T5.3, T5.4
   - Do: the skill a user starts with `/perfproof` (Claude Code) or
-    `$perfproof` (Codex), and the engine code that holds its state.
-    The model decides what to try; deterministic code owns everything
-    else: which hotspots were tried, which changes were kept, budgets,
-    and undoing.
-    1. Detect the project and find or propose a benchmark; the user
-       confirms it before anything is measured.
-    2. Run `discover` on the baseline: opportunities from every
-       available angle, ranked by the most a fix could gain (for a
-       hotspot, Amdahl's law: a share `p` of runtime caps the speedup
-       at `1 / (1 - p)`), each with its past attempts from T3.9.
-    3. For the top opportunity, the agent makes one change using the
-       target's playbook, skipping approaches already rejected on the
-       same code unless it says what is different this time. Every
-       attempt is appended to the T3.9 record, whatever its verdict.
-    4. `compare` against the last kept state. KEEP becomes a commit on
-       a `perfproof/<session>` branch; anything else is undone, file
-       by file, for the files that attempt changed.
-    5. Move to the next opportunity, re-running `discover` after each
-       KEEP. Stop when the budget (time, attempts, opportunities) runs
-       out, or when the largest remaining cap is below the bar.
-    6. Compare the original baseline against the final stacked state
-       once more, and write one report listing every attempt, its
-       verdict and its evidence.
-    It refuses to start on a dirty working tree unless the user says
-    how to set those changes aside, and it never discards a change it
-    didn't make. Every step has a timeout, and progress is written to
-    disk so an interrupted session can resume.
-  - Done when: on every example, a fresh Claude Code session given only
+    `$perfproof` (Codex), and the engine code that holds its state. The
+    agent decides what to try; deterministic code owns the cycle,
+    budgets, kept changes and undo.
+    1. **Understand**: load or build the project model; the developer
+       confirms workloads, goal and constraints.
+    2. **Discover**: rank opportunities, each with its evidence, cap and
+       past hypotheses. The agent turns the top ones into hypotheses
+       and runs their cheap tests.
+    3. **Try**: for the best surviving hypothesis, the agent writes one
+       candidate, or several through T5.4, or a settings search through
+       T5.5, using the target's playbook.
+    4. **Prove**: `compare` against the last kept state. A KEEP becomes
+       a commit on a `perfproof/<session>` branch; anything else is
+       undone, file by file, for the files that attempt changed. Every
+       hypothesis and verdict goes into the log.
+    5. **Repeat**, re-running discover after each KEEP, until the budget
+       (time, attempts, opportunities) runs out or the largest
+       remaining cap is below the bar.
+    6. Compare the original baseline with the final stacked state once
+       more, and write one report of every hypothesis, test, candidate
+       and verdict.
+    It refuses a dirty working tree unless the developer says how to
+    set those changes aside, never discards a change it didn't make,
+    runs every long step as a job, and resumes after a kill.
+  - Done when: on every example, a fresh Claude Code session with only
     perfproof's MCP server and skills runs `/perfproof` to the end with
-    no further input after confirming the benchmark: it finds the
-    planted bottleneck, keeps the real fix, ends with a combined
-    verdict that matches the per-step ones, and leaves pre-existing
-    uncommitted work untouched. Tests cover undo, resume after a kill,
-    every stop condition, and a dirty tree.
-  - Effort: high
+    no input after the confirmation: it finds the planted
+    opportunities, keeps the real fixes, refuses the decoys, ends with
+    a combined verdict consistent with the per-step ones, and leaves
+    pre-existing uncommitted work untouched. Tests cover undo, resume
+    after a kill, every stop condition, and a dirty tree.
+  - Effort: max
 
-- [ ] **T3.7 Several candidate fixes per hotspot**
-  - Owns: `src/perfproof/search.py`, `tests/test_search.py`, the
-    candidate step of `skills/perfproof/`
-  - Needs: T3.6
-  - Do: for one hotspot, the agent writes up to `k` candidates (default
-    3) that take different approaches, each in its own worktree from
-    the same baseline. Candidates are measured one at a time, never
-    concurrently, so they don't perturb each other. Every candidate
-    goes through the gates and `compare`. Picking the best of `k` noisy
-    estimates overstates the winner, so the choice and the claim are
-    separate: the candidate with the highest estimate among the KEEPs
-    is chosen, then confirmed by a fresh, independent `compare` against
-    the baseline. Only that confirmation run's verdict is reported and
-    kept, so its guarantees are the standard ones.
-  - Done when: on an example with several fixes of known different
-    strength, the strongest is chosen and confirmed; a simulation of
-    `k` candidates with no real speedup shows the confirmed false-KEEP
-    rate within the procedure's limit under the acceptance rule in
-    `docs/method.md`; and the selection-stage verdicts never appear in
-    the final report as claims.
-  - Effort: high
-
-- [ ] **T3.5 Agent in the loop**
+- [ ] **T5.8 Agent in the loop**
   - Owns: `tests/agents/`, `docs/case-studies/examples.md`
-  - Needs: T3.3, T3.6
+  - Needs: T3.4, T5.7
   - Do: fresh Claude Code and Codex sessions with only perfproof's MCP
-    server and skills, each running `/perfproof` (or `$perfproof`) on
-    an example, and each also handed a decoy. Record the verdicts, the
-    tool calls, and where the agent went wrong.
+    server and skills run `/perfproof` (or `$perfproof`) on every
+    example, each also handed a decoy. Record the verdicts, the tool
+    calls, and where the agent went wrong.
   - Done when: both clients reach the correct verdict on every example
     and decoy, or the failures are written up and turned into tasks.
   - Effort: high
 
-## M4 Profilers and targets
+## M6 Target tracks
 
-Starts after the M2 exit. Each adapter follows
-`src/perfproof/profilers/AGENTS.md`; T4.2 to T4.6 run in parallel.
+Starts after the M2 exit. The six tracks run in parallel. Each ends
+with a case study on a real repository through `/perfproof`, which is
+that class's release test: the project model confirmed by Faras, at
+least one hypothesis tested with a cheap test, every candidate's
+verdict recorded, and either a verified improvement or a written
+account of what was tried and why nothing was kept. A class is claimed
+in the release only when its case study and its real-trace calibration
+both pass. Every paid step goes through the `gpu-run` skill. Adapters
+follow `src/perfproof/profilers/AGENTS.md`; playbooks follow
+`skills/AGENTS.md`.
 
-- [ ] **T4.2 Scalene** · **T4.3 memray** · **T4.4 samply** ·
-  **T4.5 perf** (Linux) · **T4.6 torch.profiler**
-  - Owns: `src/perfproof/profilers/<tool>.py`,
-    `tests/profilers/test_<tool>.py`, `tests/fixtures/<tool>/`
-  - Needs: M2 exit
-  - Do: adapter per the contract; fixtures captured from `examples/`.
-  - Done when: parser tests on captured fixtures; integration test runs
-    the real tool on an example and finds the known hotspot in the top
-    3; parse time and peak memory on the largest fixture in the PR.
-  - Effort: medium
+Each track's tasks own `src/perfproof/targets/<class>.py` (or the
+adapter files named), their tests and fixtures, and their playbook
+under `skills/perfproof-<class>/`.
 
-- [ ] **T4.7 Nsight Systems and Nsight Compute**
-  - Owns: `src/perfproof/profilers/nsys.py`,
-    `src/perfproof/profilers/ncu.py`, matching tests and fixtures
-  - Needs: T5.2
-  - Do: kernel summaries from `nsys stats` and per-kernel metrics from
-    `ncu --csv`. Fixtures need a GPU, so capture them in one planned
-    paid session through the `gpu-run` skill.
-  - Effort: medium
+### Python
 
-- [ ] **T4.8 explain_hotspot**
-  - Owns: `src/perfproof/profilers/explain.py`,
-    `tests/profilers/test_explain.py`
-  - Needs: M2 exit
-  - Effort: medium
+- [ ] **T6.1 Scalene and memray adapters.** Needs M2 exit. Done when
+  parser tests pass on captured fixtures and each finds the planted
+  hotspot or allocation churn in the top 3; memray feeds the
+  allocation angle.
+- [ ] **T6.2 Python playbook.** Needs T6.1, T5.1. Done when an agent
+  with no other context gets a correct verdict on every Python example
+  with it.
+- [ ] **T6.3 Case study: frames2py.** Needs T5.7, T6.2. Effort: max.
 
-- [ ] **T4.9 detect_target**
-  - Owns: `src/perfproof/targets/`, `tests/targets/`
-  - Needs: M2 exit
-  - Do: detect Python, C/C++, Rust, PyTorch, CUDA and serving projects
-    from manifest files and imports; suggest a benchmark command with a
-    confidence and the evidence for it.
-  - Done when: tested on `examples/` and on small synthetic trees for
-    each target, including ambiguous ones.
-  - Effort: medium
+### Native
 
-- [ ] **T4.10 Real noise traces, native**: A/A traces for the C or Rust
-  example on this Mac and Linux CI, calibrated as in T2.11. Needs T4.4.
+- [ ] **T6.4 samply and perf adapters** (perf on Linux). Needs M2 exit.
+- [ ] **T6.5 Native coverage** with llvm-cov or gcov, so native changes
+  stop needing the "coverage not checked" opt-in. Needs T2.14.
+- [ ] **T6.6 Native noise traces**: A/A on this Mac (development) and
+  Linux CI (held out), calibrated as in T2.11. Needs T6.4.
+- [ ] **T6.7 Native playbook.** Needs T6.4, T5.1.
+- [ ] **T6.8 Case study: picolm.** Greedy fixed-seed decoding must give
+  identical tokens, or the tolerance is declared in the spec. Its
+  remote is upstream `RightNow-AI/picolm`: any upstream PR is Faras's
+  call. Needs T5.7, T6.5, T6.7. Effort: max.
 
-## M5 Remote and GPU
+### Web and CRUD services
 
-Starts after the M2 exit. Anything that spends money goes through the
-`gpu-run` skill.
+- [ ] **T6.9 Service workload runner**: start the server, wait for its
+  health check, warm up, drive load at a constant request rate (open
+  loop, so a slow response can't hide by delaying the next request),
+  record p50, p99 and throughput per round, run the reset command
+  between rounds, with the database in a local container. The request
+  mix comes from recorded traffic or a mix the developer confirms;
+  perfproof never claims a generated load is representative. Needs
+  T2.16. Effort: high.
+- [ ] **T6.10 Database and serialization angles**: queries counted per
+  request (driver hooks or query logs), N+1 patterns, serialization
+  stage timing, connection-pool waits. Needs T6.9, T5.1.
+- [ ] **T6.11 Service noise traces**, calibrated as in T2.11. Needs T6.9.
+- [ ] **T6.12 Web playbook.** Needs T6.10.
+- [ ] **T6.13 Case study: a real CRUD app** (open question 1). Needs
+  T5.7, T6.12. Effort: max.
 
-- [ ] **T5.1 SSH runner**: sync both trees, run the engine remotely,
+### LLM serving
+
+- [ ] **T6.14 SSH runner**: sync both trees, run the engine remotely,
   pull the record back. Needs open question 3.
-- [ ] **T5.2 Modal runner**: one sandbox runs baseline and candidate
+- [ ] **T6.15 Modal runner**: one sandbox runs baseline and candidate
   interleaved; image chosen per benchmark; volumes for caches; fail
   fast with log tail. Cross-host sessions record fingerprints and count
   pairs by T1.3's rules. Paid.
-- [ ] **T5.3 GPU timing and fingerprint**: CUDA event timing helper for
-  `reported` benchmarks, GPU clocks and throttle reasons, optional clock
-  locking where permitted.
-- [ ] **T5.4 Serving target**: `vllm bench serve` and SGLang bench
-  wrappers with `/metrics` counters, building on the reference scripts.
-  Comparing versions that need separate images uses the cross-machine
-  session design, opted in and labelled. Needs T5.2.
-- [ ] **T5.5 vLLM case study through perfproof**: re-run the prefix
-  caching comparison and compare with the hand-run numbers. Needs T5.4.
-  Paid.
-- [ ] **T5.6 Real noise traces, GPU and serving**: paid A/A traces on
-  one GPU type for a CUDA kernel benchmark and for serving throughput,
-  calibrated as in T2.11. Until this lands, those target classes are
-  reported as uncalibrated. Needs T5.3, T5.4. Paid.
-- [ ] **T5.7 Native, PyTorch, CUDA and serving playbooks**. Needs the
-  matching adapters.
+- [ ] **T6.16 GPU timing and fingerprint**: CUDA event timing helper for
+  `reported` benchmarks, GPU clocks and throttle reasons, optional
+  clock locking where permitted.
+- [ ] **T6.17 Serving workload and settings space**: `vllm bench serve`
+  and SGLang bench wrappers with `/metrics` counters, building on the
+  reference scripts; a declared settings space (batch limits,
+  scheduling, KV-cache and prefix-caching options, attention backend,
+  quantization) for T5.5. Comparing versions that need separate images
+  uses the cross-machine session design, opted in and labelled. Needs
+  T6.15, T5.5.
+- [ ] **T6.18 Serving noise traces**: paid A/A on one GPU type, a second
+  session held out. Needs T6.17. Paid.
+- [ ] **T6.19 Serving playbook.** Needs T6.17.
+- [ ] **T6.20 Case study: vLLM**: re-run the prefix-caching comparison
+  against the hand-run numbers, then a full `/perfproof` pass for new
+  opportunities. Needs T5.7, T6.19. Paid. Effort: max.
 
-## M6 Case studies
+### GPU kernels and PyTorch
 
-- [ ] **T6.1 Case study 2** and **T6.2 Case study 3**: libraries from
-  open question 1. Real issues, upstream PRs or comments, evidence
-  reports in `docs/case-studies/`.
+- [ ] **T6.21 torch.profiler adapter.** Needs M2 exit.
+- [ ] **T6.22 Nsight Systems and Nsight Compute adapters**: kernel
+  summaries from `nsys stats`, per-kernel metrics from `ncu --csv`.
+  Fixtures captured in one planned paid session. Needs T6.15. Paid.
+- [ ] **T6.23 GPU angles**: idle time, launch overhead, occupancy,
+  memory throughput, host-to-device copies. Needs T6.22, T5.1.
+- [ ] **T6.24 Kernel noise traces**: paid A/A, a second session held
+  out. Needs T6.16. Paid.
+- [ ] **T6.25 GPU and PyTorch playbook.** Needs T6.23.
+- [ ] **T6.26 Case study: a real GPU kernel or PyTorch workload** (open
+  question 1). Needs T5.7, T6.25. Paid. Effort: max.
 
-## M7 Launch
+### Agentic and LLM apps
 
-- [ ] **T7.1** README with real case-study numbers, demo recording,
-  docs pass, fresh prior-art check. Every claim in the README links to
-  the run that backs it; clients and target classes are named only if
-  their tasks passed.
-- [ ] **T7.2** Release: version, changelog, PyPI publish (Faras), repo
+- [ ] **T6.27 Record and replay**: record an app's model and tool calls
+  once, replay them so the workload measures the app's own code with no
+  API cost, rate limits or network noise. Replays are checked against a
+  live sample so they stay faithful, and a replay that diverges stops
+  the run. Needs T2.16. Effort: high.
+- [ ] **T6.28 Agentic angles**: wasted or repeated model calls,
+  sequential calls that could run in parallel, prompt-caching
+  opportunities, token and payload size, retries. Needs T6.27, T5.1.
+- [ ] **T6.29 Agentic noise traces.** Needs T6.27.
+- [ ] **T6.30 Agentic playbook.** Needs T6.28.
+- [ ] **T6.31 Case study: a real agentic app** (open question 1). Needs
+  T5.7, T6.30. Effort: max.
+
+## M7 Release
+
+- [ ] **T7.1 Release bar** (lead): for every target class, its case
+  study and real-trace calibration passed, or the class is not
+  claimed; Claude Code and Codex verified (T3.4, T5.8); every README
+  claim links to the run that backs it.
+- [ ] **T7.2** README with the case-study numbers, demo recording, docs
+  pass, fresh prior-art check.
+- [ ] **T7.3** Release: version, changelog, PyPI publish (Faras), repo
   public (Faras).

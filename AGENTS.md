@@ -1,14 +1,19 @@
 # perfproof
 
-perfproof lets coding agents prove a performance change is real. It
-locks a benchmark, runs baseline and candidate in turns on one machine,
-profiles, gates on correctness, and returns KEEP, REJECT or INCONCLUSIVE
-from a confidence interval. It ships as an MCP server, a CLI and agent
-skills, and has to work equally well from Claude Code, Codex or any
-other MCP client, on codebases we have never seen.
+perfproof is a performance engineering system for coding agents. It
+does two jobs: it **discovers** where a codebase can get faster, from
+angles its developers haven't tried, and it **proves** which changes are
+real improvements, keeping only those. Under it sits a model of the
+project (**understand**): its workloads, goals and constraints. It ships
+as an MCP server, a CLI and agent skills, and has to work equally well
+from Claude Code, Codex or any other MCP client, on code it has never
+seen and on code it has worked on for years. Target classes: Python,
+native, web services, LLM serving, GPU kernels, agentic apps.
 
-The verdict is the product. A tool that tells people a change is faster
-when it isn't is worse than no tool.
+Discovery without proof is a list of suggestions someone still has to
+check. Proof without discovery needs someone else's ideas. A verdict
+that calls a change faster when it isn't is worse than no tool, so
+every claim perfproof makes goes through prove.
 
 ## Commands
 
@@ -31,6 +36,7 @@ worktree.
 | `src/perfproof/stats/` | `src/perfproof/stats/AGENTS.md` |
 | `src/perfproof/profilers/` | `src/perfproof/profilers/AGENTS.md` |
 | `skills/` | `skills/AGENTS.md` |
+| project model, discovery angles, hypotheses | `docs/discovery.md` (the spec) |
 | decision logic, gates, metrics | `docs/method.md` (the spec) |
 | module boundaries, MCP tools, on-disk layout | `docs/architecture.md` |
 
