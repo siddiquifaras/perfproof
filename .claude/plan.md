@@ -558,7 +558,8 @@ Mac and on Linux CI, with decoys that must be refused.
   - Do: run the spec's test command on the baseline three times first
     and quarantine any test whose result changes (flaky), per
     "Correctness" in `docs/method.md`; then run it in the candidate
-    tree. Compare declared outputs between trees as bytes, text, or
+    tree; a test that fails only on the candidate is re-run five more
+    times on each tree before the candidate is blamed. Compare declared outputs between trees as bytes, text, or
     numbers with `rtol` and `atol` (text numbers and `.npy` files).
     Return the first differences, capped.
   - Done when: tests cover equal, unequal, within-tolerance, NaN

@@ -74,7 +74,12 @@ broken: the comparison stops with no verdict and reports the error.
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
 give the same result every time is flaky: it is quarantined, listed in
-the report, and not used to judge the candidate. Quarantine never
+the report, and not used to judge the candidate. Three runs catch a
+test that fails half the time only 75% of the time, so a test that
+fails on the candidate after passing every baseline run is run five
+more times on each tree before the candidate is blamed. If it fails on
+the baseline in any of those runs, it is flaky and quarantined; if it
+fails only on the candidate, the candidate fails the gate. Quarantine never
 weakens the coverage gate, because lines only the quarantined tests
 ran count as unverified.
 
