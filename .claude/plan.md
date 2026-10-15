@@ -117,7 +117,7 @@ M2  T2.1 T2.2 T2.3 T2.4 T2.6 T2.7 T2.9 ─┬─ T2.5 (after M1 exit)
                  T2.10 (after T2.7, T2.9)├─ T2.11 real traces
                                          └─ T2.8 local loop ══ M2 exit
                                                     │
-M3  T3.1 ─ T3.2 ─ T3.3 ─ T3.4 ─ T3.5   ◄────────────┤
+M3  T3.1 ─ T3.2 ─ T3.3 ─ T3.4 ─ T3.6 ─ T3.5, T3.7 ◄─┤
 M4  T4.2 … T4.6 (parallel), T4.8, T4.9 ◄────────────┤
 M5  T5.1 T5.2 T5.3 ─ T5.4 ─ T5.5, T5.6 ◄────────────┘
 ```
@@ -621,13 +621,73 @@ Starts after the M2 exit.
     client layout; skill check from `skills/AGENTS.md` done.
   - Effort: medium
 
+- [ ] **T3.6 One-command optimize loop**
+  - Owns: `skills/perfproof/`, `src/perfproof/optimize.py`,
+    `tests/test_optimize.py`, the `optimize` subcommand in `cli.py`
+  - Needs: T3.2, T3.4
+  - Do: the skill a user starts with `/perfproof` (Claude Code) or
+    `$perfproof` (Codex), and the engine code that holds its state.
+    The model decides what to try; deterministic code owns everything
+    else: which hotspots were tried, which changes were kept, budgets,
+    and undoing.
+    1. Detect the project and find or propose a benchmark; the user
+       confirms it before anything is measured.
+    2. Profile the baseline and rank hotspots by the most a fix could
+       gain (Amdahl's law: a share `p` of runtime caps the speedup at
+       `1 / (1 - p)`).
+    3. For the top hotspot, the agent makes one change using the
+       target's playbook.
+    4. `compare` against the last kept state. KEEP becomes a commit on
+       a `perfproof/<session>` branch; anything else is undone, file
+       by file, for the files that attempt changed.
+    5. Move to the next hotspot, re-profiling after each KEEP. Stop when
+       the budget (time, attempts, hotspots) runs out, or when the
+       largest remaining hotspot's cap is below the bar.
+    6. Compare the original baseline against the final stacked state
+       once more, and write one report listing every attempt, its
+       verdict and its evidence.
+    It refuses to start on a dirty working tree unless the user says
+    how to set those changes aside, and it never discards a change it
+    didn't make. Every step has a timeout, and progress is written to
+    disk so an interrupted session can resume.
+  - Done when: on every example, a fresh Claude Code session given only
+    perfproof's MCP server and skills runs `/perfproof` to the end with
+    no further input after confirming the benchmark: it finds the
+    planted bottleneck, keeps the real fix, ends with a combined
+    verdict that matches the per-step ones, and leaves pre-existing
+    uncommitted work untouched. Tests cover undo, resume after a kill,
+    every stop condition, and a dirty tree.
+  - Effort: high
+
+- [ ] **T3.7 Several candidate fixes per hotspot**
+  - Owns: `src/perfproof/search.py`, `tests/test_search.py`, the
+    candidate step of `skills/perfproof/`
+  - Needs: T3.6
+  - Do: for one hotspot, the agent writes up to `k` candidates (default
+    3) that take different approaches, each in its own worktree from
+    the same baseline. Candidates are measured one at a time, never
+    concurrently, so they don't perturb each other. Every candidate
+    goes through the gates and `compare`. Picking the best of `k` noisy
+    estimates overstates the winner, so the choice and the claim are
+    separate: the candidate with the highest estimate among the KEEPs
+    is chosen, then confirmed by a fresh, independent `compare` against
+    the baseline. Only that confirmation run's verdict is reported and
+    kept, so its guarantees are the standard ones.
+  - Done when: on an example with several fixes of known different
+    strength, the strongest is chosen and confirmed; a simulation of
+    `k` candidates with no real speedup shows the confirmed false-KEEP
+    rate within the procedure's limit under the acceptance rule in
+    `docs/method.md`; and the selection-stage verdicts never appear in
+    the final report as claims.
+  - Effort: high
+
 - [ ] **T3.5 Agent in the loop**
   - Owns: `tests/agents/`, `docs/case-studies/examples.md`
-  - Needs: T3.3, T3.4
+  - Needs: T3.3, T3.6
   - Do: fresh Claude Code and Codex sessions with only perfproof's MCP
-    server and skill, each asked to speed up an example, and each also
-    handed a decoy. Record the verdicts, the tool calls, and where the
-    agent went wrong.
+    server and skills, each running `/perfproof` (or `$perfproof`) on
+    an example, and each also handed a decoy. Record the verdicts, the
+    tool calls, and where the agent went wrong.
   - Done when: both clients reach the correct verdict on every example
     and decoy, or the failures are written up and turned into tasks.
   - Effort: high
