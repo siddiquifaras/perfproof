@@ -97,7 +97,7 @@ calibration criteria.
 
 | Capability | Waits for | Note |
 |---|---|---|
-| Sample-size estimate and early INCONCLUSIVE | T1.6 | After pilot rounds, estimate the rounds a decision needs and say what would help. An early stop may only turn "continue" into INCONCLUSIVE at a scheduled look, never change the looks or their confidence; calibrated with the rest of the procedure. |
+| Sample-size estimate and early INCONCLUSIVE | T1.6 | After pilot rounds, estimate the rounds a decision needs and say what would help. An early stop may only turn "continue" into INCONCLUSIVE at a scheduled look, never change the looks or their confidence. Calibrated as part of the procedure, reporting both the unconditional error rates the acceptance rule checks and the conditional rate among verdicts, as `docs/method.md` defines. |
 | No-regression mode | T1.7 | "Is it no more than m slower?" as a signed `min_effect`. Needs a schema task if `min_effect` must go negative. |
 | Background execution | T3.2 design | Long `measure`, `profile` and `compare` calls as jobs with progress and resume, so MCP clients never time out mid-run. Decided in T3.2's design, built when needed. |
 | Web-service target | M2 exit | Start, health check, warm-up, constant-rate load, latency percentiles and throughput per round, database reset between rounds. vLLM serving becomes a preset. Acceptance: a real CRUD app end to end, with the bottleneck layer identified, and no claim that a generic load is representative. |
@@ -209,9 +209,10 @@ by `stats-auditor` before its PR opens.
     1e-12 on fixed inputs (which alone cannot catch the numerics
     defect); property tests from the stats guide pass; 10,000 batched
     replications of n = 40 run in one call, with the timing in the PR;
-    and a full-path test runs observations through this interval,
-    `decide` and `RunRecord` validation for every case below, with no
-    false KEEP and no false REJECT:
+    and a committed full-path regression test in
+    `tests/stats/test_intervals.py` runs observations through this
+    interval, `decide` and `RunRecord` validation for every case below,
+    with no false KEEP and no false REJECT:
     - the reproducer: `min_effect = 0.4730308035801494`, 48 rounds all
       at `b = 1 + min_effect`;
     - all rounds at the bar and at one ulp either side of it, for the

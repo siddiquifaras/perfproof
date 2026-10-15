@@ -332,6 +332,21 @@ shows first.
 
 - Each cell (one noise scenario, one host mode, one true speedup) runs
   the complete procedure, looks and budget included, `R = 4000` times.
+- **The controlled rates are unconditional.** A cell's false-KEEP rate
+  is its number of KEEPs divided by all `R` runs, INCONCLUSIVEs
+  included, and the same for false REJECT. That is the probability the
+  argument under "Stopping" bounds, and the only one the acceptance
+  rule checks. The error rate among runs that reached a verdict,
+  KEEPs divided by KEEPs plus REJECTs, is not bounded by that argument;
+  it is reported per cell as a diagnostic, never used to pass a cell.
+- Any stopping rule added later, such as stopping early with
+  INCONCLUSIVE, is calibrated as part of the procedure it changes. An
+  early stop that only replaces "continue" at a scheduled look, with
+  the looks and their confidence unchanged, cannot raise the
+  unconditional rates, because every KEEP or REJECT it gives is one
+  the original procedure gives on the same measurements. It can lower
+  the share of runs that reach a verdict and change the conditional
+  rate, so calibration measures both rather than assuming either.
 - A cell passes only if the one-sided 95% Clopper-Pearson upper bound
   on its observed rate is at most the limit. An observed 2.4% fails;
   the evidence has to show the rate is below the limit, not near it.
