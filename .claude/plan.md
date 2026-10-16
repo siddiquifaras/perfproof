@@ -321,7 +321,7 @@ by `stats-auditor` before its PR opens.
     derivation, and the before and after counts.
   - Effort: high
 
-- [ ] **T1.2 Bootstrap ratio of medians**
+- [x] **T1.2 Bootstrap ratio of medians**
   - Owns: `src/perfproof/stats/bootstrap.py`,
     `tests/stats/test_bootstrap.py`
   - Needs: none
@@ -510,6 +510,14 @@ by `stats-auditor` before its PR opens.
     budgets at heavy tails: T1.4's audit found 59% of replications at
     the heavy-tail corner contain a run over 100 times the typical
     time, so accumulate time in log space (`np.logaddexp.accumulate`).
+  - From the T1.2 final audit (probes in `scratch/audit-pr10d-probes/`):
+    BCa stays as a free comparison only; it was weaker than the
+    percentile interval in nearly every cell measured, and both break
+    under AR(1) 0.5 (375-614 false KEEPs per 4000 at one look). Add the
+    auditor's constructed tests (`test_constructed.py`) for the three
+    margins no suite test reaches, and fix the peak going over
+    `max_bytes` at the smallest accepted budget, as a small follow-up
+    to `bootstrap.py`.
   - Decision for Faras, not taken: under the acceptance rule as
     written, an exact procedure on the bar (one-sided error 1.61% at
     six looks) passes each S = 1.03 cell with probability 0.990 and

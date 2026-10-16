@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `c3fcdcf` | T1.2 bootstrap merged (PR #10), squash, at `4ac774b`; reviewer PASS and stats-auditor PASS on that commit (0 violations in ~160k exact-arithmetic rows; BCa kept as a free comparison only, weaker than percentile everywhere measured). The head didn't contain T2.12, so 30 bootstrap tests failed on main until the next commit fixed the `calibrated` argument; merge rule now requires the head to contain main |
 | `ba00c0a` | T1.1 interval procedures merged (PR #11), squash, at `2ab900a`; reviewer PASS and stats-auditor PASS on that commit (bit-identical to the audited numerics on macOS and Linux, 0 false KEEP/REJECT in the exact-arithmetic sweeps, chunking mutants red, memory within bound on 78 shapes), Linux check exit 0; stats tests on merged main 1507 passed |
 | `d4dcc9c` | T2.3 runner merged (PR #4), squash, at `a5a60c1` after six review rounds (failed executions as samples, duplicate keys, SIGCHLD fallback, harness faults blamed on an arm, missing program/cwd, exec errno split); reviewer PASS on that commit, Linux Docker check exit 0 |
 | `ee2a149` | T2.12 safety schema merged (PR #9), squash, at `2a33595`; reviewer PASS and stats-auditor PASS on that commit (gate sweep 5.6M decisions, 7.7M permutations, defaults sweep 40,320 records, 123/123 mutants red), Linux Docker check exit 0. Example specs bumped to schema 2 right after (examples suite 43 passed) |
@@ -110,7 +111,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor verdict pending (also whether BCa stays) |
 | #13 | spec | Fourth stats audit running at `c355293` |
 | #14 | T4.1 | Round 3 fixes at `eb54fd1` (376 candidates); NEXT: reviewer confirming the round-3 fixes and the 10 new tasks, then merge |
 | #15 | T2.6 | Reviewer running at `5b68263` |
