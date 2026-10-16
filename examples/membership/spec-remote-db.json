@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "name": "held-orders",
+  "command": ["python", "bench.py", "--output", "output/held.txt"],
+  "cwd": ".",
+  "env": {"DATABASE_URL": "postgresql://db.example.com:5432/orders"},
+  "metric": {"kind": "reported", "direction": "lower_is_better", "unit": "s"},
+  "correctness": {
+    "command": ["python", "-m", "pytest", "-q"],
+    "cwd": ".",
+    "timeout_seconds": 120,
+    "outputs": [{"path": "output/held.txt", "compare": "text"}]
+  },
+  "warmup": 1,
+  "budget": {"max_rounds": 200, "max_seconds": 900},
+  "looks": {"n0": 20, "k": 20, "max_looks": 10},
+  "min_effect": 0.03,
+  "alpha": 0.05,
+  "timeout_seconds": 60,
+  "harness": ["bench.py"],
+  "oracle": ["tests/test_orders.py"],
+  "inputs": [],
+  "config": ["pytest.ini"],
+  "allow_runtime_change": false,
+  "allow_cross_host": false
+}

@@ -67,7 +67,7 @@ convention = "numpy"
 max-doc-length = 72
 
 [tool.pyright]
-include = ["src", "tests", ".claude/hooks"]
+include = ["src", "tests", ".claude/hooks", "examples"]
 exclude = ["reference", "**/__pycache__", ".venv"]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
