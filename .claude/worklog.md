@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `ee2a149` | T2.12 safety schema merged (PR #9), squash, at `2a33595`; reviewer PASS and stats-auditor PASS on that commit (gate sweep 5.6M decisions, 7.7M permutations, defaults sweep 40,320 records, 123/123 mutants red), Linux Docker check exit 0. Example specs bumped to schema 2 right after (examples suite 43 passed) |
 | `fa8bc71` | T2.7 examples and decoys merged (PR #12), squash, at `9402fff`; reviewer PASS on that commit (decoys re-probed at 150 rounds: rolling slight 1.0078 (1.0016-1.0140), membership 1.0140 (1.0098-1.0181); group-kill timeout proven by mutation), CI 4/4 on that head |
 | `bfc5f2c` | T2.2 spec, lock, procedure and snapshot merged (PR #5), squash, at `27e6811` after six review rounds on the runtime gate; reviewer PASS on that commit, CI 4/4 on that head. Stated limits: interpreters started by an identified program (including `python -m runpy tox`), dlopen, renamed launchers, untracked in-tree native builds, host-arch slice only |
 | `876cf40` | CI made manual-only: Actions minutes nearly spent. Merge gate is now `/verify` plus a Linux x86_64 Docker run on the exact head (`b5a4530`); CI runs once before release |
@@ -107,7 +108,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #9 | T2.12 | F3 fixed at `57f7b0e`; reviewer and stats-auditor running on it; merge if both PASS |
 | #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
 | #11 | T1.1 | HL normal-branch memory fix sent to worker (crit per chunk); stats-auditor running at `8ba7af9`. Next: reviewer + auditor on the new head. Whichever of #9/#11 merges second reworks `record()` in test_intervals.py |
 | #13 | spec | Method changes from the T1.1 audit; stats-auditor running |

@@ -754,7 +754,7 @@ Mac and on Linux CI, with decoys that must be refused.
     calibrated or the gap is written up as a task.
   - Effort: high
 
-- [ ] **T2.12 Schema for the safety checks**
+- [x] **T2.12 Schema for the safety checks**
   - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
     `tests/test_schema.py`, the gate list and precedence in
     `src/perfproof/stats/decision.py` and its tests, `pyproject.toml`
