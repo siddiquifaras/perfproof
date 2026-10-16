@@ -820,6 +820,19 @@ Mac and on Linux CI, with decoys that must be refused.
     `src/perfproof/stats/decision.py`, guardrail cells in
     `tests/calibration/`
   - Needs: T2.12, T1.6
+  - Input from T2.3 (unresolved; decide here and write it into
+    `docs/method.md`): the spec defines peak memory as the max RSS of
+    the whole process tree, but the runner's `max_rss_bytes` comes from
+    `wait4` and is the peak of the largest single process in the tree.
+    On Linux it is also `None` when the benchmark's peak is below
+    perfproof's own RSS, because a child's high-water mark starts from
+    the parent's address space at fork. With perfproof's NumPy-sized
+    process that makes the default guardrail `unmeasurable` for many
+    small benchmarks. Options: define the metric as the largest single
+    process and spawn through a tiny helper so the child's mark starts
+    small; or use cgroup v2 `memory.peak` on Linux for a true tree peak
+    where a cgroup can be created, with the single-process figure on
+    macOS. Whichever is chosen, the record names which one it is.
   - Do: per "Guardrails" in `docs/method.md`: a paired interval on each
     guardrail's worsening ratio and, for absolute limits, on the
     candidate's own metric, at confidence `1 - alpha / (2 K G)`; the five
