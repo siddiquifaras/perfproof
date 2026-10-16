@@ -19,7 +19,7 @@ from perfproof.machine import machine_warnings
 from perfproof.schema import BenchmarkSpec, MachineFingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILT = ("bench", "doctor")
+BUILT = ("bench", "doctor", "profile")
 NOT_BUILT = tuple(c for c in COMMANDS if c not in BUILT)
 
 type Run = Callable[..., tuple[int, str, str]]
@@ -151,7 +151,9 @@ def test_unbuilt_command_fails_and_says_so(cli: Run, command: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "argv", [("doctor",), ("bench", "list", "tile")], ids=BUILT[::-1]
+    "argv",
+    [("doctor",), ("bench", "list", "tile"), ("profile", "tile")],
+    ids=("doctor", "bench", "profile"),
 )
 def test_unknown_command_option(cli: Run, argv: tuple[str, ...]) -> None:
     status, out, err = cli(*argv, "--bogus")

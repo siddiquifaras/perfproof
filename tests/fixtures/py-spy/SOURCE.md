@@ -140,3 +140,50 @@ SHA-256 of the files as written by py-spy:
 4baef3ecd0ef55d3c67b872563f98c5dd5c87e585b0a0482b2f5a7b7080ad5be  workload-native.txt
 02d73f84747db21627e3f2d682d7c6630df202e05a58a38bf4330831d415e9d9  workload-native-long.txt
 ```
+
+## The examples, through `perfproof profile`
+
+`rolling.txt` and `membership.txt` are the `py-spy.txt` files that
+`perfproof profile --profiler py-spy` wrote for `examples/rolling` and
+`examples/membership`, untouched. Each example was copied without its
+`candidates/` into its own git repository at `/srv/rolling` and
+`/srv/membership` (the project roots for these files), its
+`spec.json` defined with `perfproof bench define`, and then profiled
+with `perfproof profile rolling-sum --profiler py-spy --repo
+/srv/rolling --top 5 --json` (and `held-orders`, `/srv/membership`).
+perfproof launched py-spy as:
+
+```
+/usr/local/bin/py-spy record --format raw --rate 100 --full-filenames \
+    --subprocesses -o <run directory>/py-spy.txt -- \
+    /w/.venv/bin/python bench.py --output output/sums.npy
+```
+
+(`output/held.txt` for `membership`), in the example's directory.
+
+- Date: 2026-10-16, finished 13:04:29 UTC.
+- Tool: py-spy 0.4.2 (`pip install py-spy==0.4.2`); perfproof at the
+  T2.10 branch's working tree, run with uv 0.12.20.
+- Python 3.12.15 (perfproof's `uv sync --frozen` virtualenv at
+  `/w/.venv`), numpy 2.5.4.
+- OS: Linux 6.12.54-linuxkit x86_64, the `linux/amd64` variant of
+  `python:3.12-bookworm` (index digest
+  `sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b`),
+  emulated by Docker Desktop 29.1.3 on an M4 MacBook Pro, run with
+  `docker run --rm -i --platform linux/amd64 --cap-add SYS_PTRACE`.
+  The script is `scratch/pyspy_capture.sh` on the T2.10 branch's
+  machine, not committed.
+- The counts sum to 88 (`rolling.txt`) and 117 (`membership.txt`)
+  samples. py-spy printed nothing to stderr when it was not a
+  terminal.
+- With `--subprocesses`, py-spy puts a frame
+  `process <pid>:"<command line>"` at the root of every stack; a
+  sample in which it read no Python frame is a stack of that frame
+  alone.
+
+SHA-256 of the files as written by py-spy:
+
+```
+1e5505fc81432621d8e61f4d535c79e3cd386b47fc87530235d96737e576bf80  rolling.txt
+770ed512d729f83effa94f45fe6913fbc6268ecd2d188ed197926093d048722b  membership.txt
+```
