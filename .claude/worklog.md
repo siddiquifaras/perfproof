@@ -108,11 +108,12 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
-| #11 | T1.1 | HL normal-branch memory fix sent to worker (crit per chunk); stats-auditor running at `8ba7af9`. Next: reviewer + auditor on the new head. Whichever of #9/#11 merges second reworks `record()` in test_intervals.py |
-| #13 | spec | Method changes from the T1.1 audit; stats-auditor running |
-| #4 | T2.3 | Waits for #5; then rebase on `command_hash`, add `procedure_gate` test, balanced pairs and resolution once #13 merges |
-| — | T4.1 | Worker still building the evaluation task set |
+| #4 | T2.3 | Launch-failure fixes at `5c51f88`; worker merging main (schema 2); then reviewer |
+| #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor finishing (also judging whether BCa is worth keeping) |
+| #11 | T1.1 | Reviewer PASS at `0678568`; stats-auditor running; worker reworking `test_intervals.py` for schema 2 (second to merge after #9); then a delta review |
+| #13 | spec | Third stats audit at `a2c43f7` |
+| #14 | T4.1 | Reviewer BLOCK at `77130ae` (llm.c rename task, truncated files, broken multi-line workloads, README); worker fixing |
+| new | T2.4, T2.6, T2.16 | Workers started after T2.12 merged |
 
 Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
 
