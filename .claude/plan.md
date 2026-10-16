@@ -638,7 +638,8 @@ Mac and on Linux CI, with decoys that must be refused.
   - Done when: tests cover equal, unequal, within-tolerance, NaN
     handling, a missing output file, a flaky test quarantined rather
     than blamed on the candidate, and a test that fails on all three
-    baseline runs (the baseline itself is broken: the run stops).
+    baseline runs is a known failure, listed and not judged (per
+    "Pre-existing failures" in `docs/method.md`).
   - Effort: medium
 
 - [ ] **T2.5 Compare**

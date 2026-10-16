@@ -112,10 +112,10 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 | #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor verdict pending (also whether BCa stays) |
 | #11 | T1.1 | Fixes at `2ab900a`; final reviewer and stats-auditor running on it |
 | #13 | spec | Fourth stats audit running at `c355293` |
-| #14 | T4.1 | Worker fixing round 3 (llm.c case labels, source-file rule, evidence regex, vllm 48223); merge once the reviewer confirms those fixes |
-| #15 | T2.6 | All four review findings fixed at `5b68263`; NEXT: launch reviewer on it |
+| #14 | T4.1 | Round 3 fixes at `eb54fd1` (376 candidates); NEXT: reviewer confirming the round-3 fixes and the 10 new tasks, then merge |
+| #15 | T2.6 | Reviewer running at `5b68263` |
 | #16 | T2.16 | Reviewer running at `c004683` |
-| #17 | T2.4 | Worker changing pre-existing baseline failures to known failures; then reviewer |
+| #17 | T2.4 | Reviewer running at `2293224` |
 | new | T2.17, T2.13 | Workers started after T2.3 merged |
 
 Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
