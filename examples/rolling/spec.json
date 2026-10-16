@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "rolling-sum",
   "command": ["python", "bench.py", "--output", "output/sums.npy"],
   "cwd": ".",

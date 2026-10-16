@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "name": "held-orders",
   "command": ["python", "bench.py", "--output", "output/held.txt"],
   "cwd": ".",
