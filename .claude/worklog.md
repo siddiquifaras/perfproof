@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `6e101a3` | T2.4 correctness gate merged (PR #17), squash, after four review rounds (known baseline failures, inf/NaN/huge-number comparisons, NUL bytes, shared rerun budget, bounded memory); reviewer PASS on code at `200d4b7`, lead merged main (`595b3e7`) and ran /verify (2791 passed) and the Linux check (2791 passed) on that head |
 | `7701084` | T2.6 report merged (PR #15), squash, after four review rounds (headline overclaims, rounding, atomic and resumable `write`, two-writer race); reviewer PASS at `4f3cb71`, lead merged main (docs-only delta) and ran the Linux check on the merge (2698 passed) |
 | `e0c70cd` | Method spec changes merged (PR #13), squash, at `8f4077b` after six stats audits: balanced order pairs, per-value resolution widening and the resolution stop, per-look confidence `1 - alpha/(2K)` (and `1 - alpha/(2KG)` for guardrails), float64 ratios as the observations, one-version skew stated as an uncalibrated limit, a table of measured power costs; final audit PASS on that commit |
 | `f1b99d3` | T4.1 evaluation task pool and miner merged (PR #14), squash, after four review rounds; reviewer PASS at `5d7c54a`, lead merged main into the branch (`e83e81b`, eval-only diff) and ran the Linux check on the merge (2632 passed). T4.1 stays open: building the selected tasks runs with T4.2 |
@@ -115,7 +116,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 | PR | Task | State |
 |---|---|---|
 | #16 | T2.16 | Round 4 fixes in progress (backslash bypass, bare `url` key false refusals, Django ALLOWED_HOSTS, nested-bracket timing); last parsing round, then a review scoped to realistic accidental forms |
-| #17 | T2.4 | Reviewer PASS on code at `200d4b7`; head lacks current main. NEXT: lead merges main into the branch, runs /verify + linux.sh on the merge, merges |
 | #18 | T2.17 | Code fixed; worker merging main and fixing closed-stderr and stderr-BrokenPipe; then a short review |
 | #19 | T2.13 | Round 3 fixes in progress (pre-import benchmark modules outside the guard, compare in both processes, os._exit replay, ctypes wording) |
 | #20 | T1.5 | Reviewer and stats-auditor running at `5ade9e4` |

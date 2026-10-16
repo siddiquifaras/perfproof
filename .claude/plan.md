@@ -645,7 +645,7 @@ Mac and on Linux CI, with decoys that must be refused.
     and its tests pass unchanged in behaviour.
   - Effort: medium
 
-- [ ] **T2.4 Correctness gate**
+- [x] **T2.4 Correctness gate**
   - Owns: `src/perfproof/bench/correctness.py`,
     `tests/bench/test_correctness.py`
   - Needs: T0.3
