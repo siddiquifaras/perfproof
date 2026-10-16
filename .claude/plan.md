@@ -475,6 +475,13 @@ by `stats-auditor` before its PR opens.
       chosen is written into `docs/method.md` before T1.7.
     - Hodges-Lehmann passed every order-effect cell the t primary
       failed.
+    - One-version skew (2x slow runs in 5% of one version's
+      executions, or 1.3x in 10%) beats the t primary at every length
+      the PR #13 audit tried (probes in `scratch/audit-pr13b-probes/`).
+      It is a stated, uncalibrated limit in `docs/method.md` for now.
+      Investigate a remedy (a skew-corrected interval, a skewness check
+      that forces more rounds, or a robust estimand); if one passes,
+      add the skew scenarios to the development set before T1.7.
     tests, including a budget that runs out between looks; a test feeds
     a clearly faster candidate whose interval still straddles the bar at
     the budget and gets INCONCLUSIVE, never KEEP; the per-target
@@ -815,7 +822,7 @@ Mac and on Linux CI, with decoys that must be refused.
   - Needs: T2.12, T1.6
   - Do: per "Guardrails" in `docs/method.md`: a paired interval on each
     guardrail's worsening ratio and, for absolute limits, on the
-    candidate's own metric, at confidence `1 - alpha / (K G)`; the five
+    candidate's own metric, at confidence `1 - alpha / (2 K G)`; the five
     statuses; the decision step (KEEP only when every guardrail is
     `passed` or `not_applicable`, REJECT on a breach, otherwise continue
     then INCONCLUSIVE naming the guardrail); the provisional defaults
