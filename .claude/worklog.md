@@ -90,11 +90,11 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #5 | T2.2 | Round 5 fixes pushed at `27e6811` (uv run python -m launcher, python -m uv, name normalization), CI 4/4. Next: bounded reviewer at `27e6811`; merge if PASS |
-| #9 | T2.12 | Reviewer PASS at `cf5bed7`; stats-auditor finishing `67c6f40` then `cf5bed7`; merge if PASS |
+| #5 | T2.2 | Bounded reviewer running at `27e6811`; merge if PASS |
+| #9 | T2.12 | Final audit at `cf5bed7` BLOCK on F3 (objective exemption by name; wall metric can name peak_memory as objective); sent to worker. F2 fixed in method.md `5070307`. Next: reviewer + stats-auditor on the new head |
 | #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
-| #11 | T1.1 | At `8ba7af9`: reviewer BLOCK, Hodges-Lehmann `_normal_signed_rank_critical` (`intervals.py:496`, `_tie_sums` `:789-800`) runs on all rows before the chunk loop, so (100000, 60) peaks 236 MiB against a documented 201 MiB. Next: send to T1.1 worker (compute `crit` per chunk; add (100000, 60) to the memory test). Stats-auditor running at `8ba7af9`. Merge-order: whichever of #9/#11 merges second reworks `tests/stats/test_intervals.py` `record()` (calibrated=True, seven gates, calibrated label with target class and diagnostics) |
-| #12 | T2.7 | Worker retuning rolling slight-speedup to ~1.5%, `peak_rss` timeout; then reviewer |
+| #11 | T1.1 | HL normal-branch memory fix sent to worker (crit per chunk); stats-auditor running at `8ba7af9`. Next: reviewer + auditor on the new head. Whichever of #9/#11 merges second reworks `record()` in test_intervals.py |
+| #12 | T2.7 | Fixes at `9402fff` (width 3000, rolling slight 1.0180 (1.0109-1.0252) at 150 rounds; median-of-3 RSS; timeout kills group), CI 4/4; reviewer running; merge if PASS |
 | #13 | spec | Method changes from the T1.1 audit; stats-auditor running |
 | #4 | T2.3 | Waits for #5; then rebase on `command_hash`, add `procedure_gate` test, balanced pairs and resolution once #13 merges |
 | — | T4.1 | Worker still building the evaluation task set |
