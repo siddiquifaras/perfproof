@@ -985,8 +985,62 @@ Mac and on Linux CI, with decoys that must be refused.
 
 ## M3 Agent workflow
 
-Starts after the M2 exit. Turns the proving core into the
+Starts after the M2 exit, except T3.10 and T3.11, which need only the
+current CLI and reading and run now. Turns the proving core into the
 `/perfproof` workflow in `docs/cli.md`.
+
+Users mostly type `/perfproof`, sometimes with a line of context
+(`/perfproof the CSV import is slow`). Two entry points are equally
+first-class: **find** a speedup for someone who doesn't know where to
+look ("make this faster", "why is this slow"), and **prove** a change
+someone or an agent already wrote ("is this faster, and did it break
+anything?"). Prove on an existing diff, branch or PR skips discovery
+entirely and is the fast path; find always ends in prove, so every
+claim is checked for speed, correctness and regressions elsewhere
+(guardrails), and perfproof's own time to a verdict is measured.
+
+- [ ] **T3.10 Hand-run study**
+  - Owns: `studies/hand-runs/`
+  - Needs: nothing beyond the current CLI
+  - Do: hand-run the whole `/perfproof` conversation, playing the skill
+    with the CLI as it exists, on frames2py, picolm and NetBox (Postgres
+    and Redis in local containers). Work in clones under `scratch/`,
+    never in Faras's own checkouts, and push nothing upstream. Each
+    entry point at least once per repo: bare `/perfproof`, free text, a
+    named file or function, and an existing diff or branch. Record each
+    transcript, every place the CLI was missing or wrong, every
+    decision the skill had to make, and the time each step took, with
+    the load average.
+  - Done when: a transcript per repo and entry point, and a findings
+    list where each item names the CLI command or skill decision it
+    affects.
+  - Effort: high
+
+- [ ] **T3.11 Perf PR and unaided-agent study**
+  - Owns: `studies/pr-study/`
+  - Needs: nothing
+  - Do: collect 10 real merged or rejected performance pull requests
+    from public repositories, a few agent-written, with their review
+    threads; for each, what was claimed, what was true, and what
+    evidence maintainers asked for. Then run fresh Claude Code
+    (`claude -p`) and Codex (`codex exec`, sparingly) sessions without
+    perfproof on "make X faster" in the T3.10 repos, and score what
+    they claimed against what a measurement shows.
+  - Done when: a table per PR and per session with claim, truth and
+    evidence asked, each row linked to its source.
+  - Effort: medium
+
+- [ ] **T3.12 Skill contract**
+  - Owns: `docs/skill.md`
+  - Needs: T3.10, T3.11
+  - Do: from that material, every input (none, free text, a file or
+    function, a diff, branch or PR) and every bad state (no tests, no
+    workload, dirty tree, too noisy, remote I/O, long run) gets one
+    defined behaviour, ending in a plain sentence and the next step.
+    Prove-a-change is a fast path with no discovery. Failure is fast
+    and explained.
+  - Done when: each row cites the transcript or PR that motivated it.
+  - Effort: medium
 
 - [ ] **T3.1 Schema for the project model and hypotheses**
   - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
@@ -1097,7 +1151,7 @@ Starts after the M2 exit. Turns the proving core into the
 - [ ] **T3.8 The /perfproof skill and session**
   - Owns: `skills/perfproof/`, `src/perfproof/session.py`,
     `tests/test_session.py`, the `install-skills` command
-  - Needs: T3.2, T3.3, T3.4, T3.5, T3.6
+  - Needs: T3.2, T3.3, T3.4, T3.5, T3.6, T3.12
   - Do: the skill that runs the session in `docs/cli.md`, and the
     session state behind it: its own branch, undo of only the files an
     attempt changed, dirty-tree refusal, resume. The skill's core holds
@@ -1105,6 +1159,8 @@ Starts after the M2 exit. Turns the proving core into the
     falsifiable predictions, cheap tests before code) and the angle
     checklist; class detail lives in the class playbooks. `install-skills`
     puts the skill and playbooks in place for Claude Code or Codex.
+  - Built to `docs/skill.md` (T3.12) on the CLI's `--json`, for Claude
+    Code and Codex, with snapshot tests of every message the user sees.
   - Done when: session tests cover undo, resume after a kill, every stop
     condition and a dirty tree; a fresh headless Claude Code session
     with only the CLI and skills runs `/perfproof` on every Python
@@ -1123,6 +1179,23 @@ Starts after the M2 exit. Turns the proving core into the
     client versions recorded, and the smoke test runs nightly in both
     clients.
   - Effort: medium
+
+- [ ] **T3.13 Agent eval harness**
+  - Owns: `eval/agents/`, `tests/eval/test_agents.py`
+  - Needs: T3.8, T4.2
+  - Do: a deterministic harness that runs `claude -p` and `codex exec`
+    with the skill on the examples, the decoys and the T4.1 tasks, and
+    scores each run by code on verdict, reason, branch state and time to
+    verdict.
+  - Done when: both agents reach the same correct verdict on tasks with
+    known answers, with no wrong KEEP; scores are reproducible from the
+    saved run records.
+  - Effort: high
+
+M3 is right when, beyond T3.13: three developers who haven't seen the
+docs each get an understood, correct result on their own repo without
+help (Faras recruits them); and, as the final bar, a perfproof report is
+accepted on a real upstream performance PR (Faras's call which PR).
 
 ## M4 Evaluation
 
