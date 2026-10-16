@@ -35,6 +35,20 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Per-look confidence `1 - alpha / (2K)` (PR #13 revision; for Faras
+  to confirm).** The PR #13 audit showed an exact interval split as
+  `alpha / K` sits at 2.0-2.5% false KEEP on the bar for K <= 3, which
+  the acceptance rule (CP upper bound <= 2.5% at R = 4000) passes only
+  4-70% of the time. Designing to half the promise (1.25%) gives a sound
+  procedure room to pass; the cost is more INCONCLUSIVEs. Same margin
+  for guardrails.
+- **Resolution: a derived widening, not a floor.** Each value's
+  resolution widens the interval by the mean per-round log-ratio error
+  bound; an undeclared `reported` metric that looks quantized ends
+  INCONCLUSIVE (`coarse_resolution`). Replaces the `min_effect / 10`
+  floor, which the audit showed both missed quantized false KEEPs and
+  depended on an unspecified aggregation.
+
 - **Method changes from the T1.1 audit (PR #13, awaiting stats-auditor):**
   balanced order in pairs of rounds; a resolution floor
   (`coarse_resolution`, from 4000/4000 false KEEPs on millisecond-printed
