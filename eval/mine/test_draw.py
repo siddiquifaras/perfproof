@@ -220,7 +220,10 @@ def test_salts_are_the_documented_ones() -> None:
     root = Path(draw.__file__).resolve().parents[2]
     spec = (root / "docs" / "evaluation.md").read_text()
     documented = re.findall(r"salt `([^`]+)`", " ".join(spec.split()))
-    assert documented == [sel.salts["held-out"]]
+    assert documented == [
+        sel.salts["held-out"],
+        sel.salts["development"],
+    ]
     readme = (root / "eval" / "README.md").read_text()
     assert f"`{sel.salts['development']}`" in readme
 
