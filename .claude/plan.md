@@ -518,6 +518,17 @@ by `stats-auditor` before its PR opens.
     margins no suite test reaches, and fix the peak going over
     `max_bytes` at the smallest accepted budget, as a small follow-up
     to `bootstrap.py`.
+  - From T1.5 (PR #20; R = 4000, seed 20261016, one host, balanced
+    order, cv 0.05; counts per 4000, limit 83; to be re-measured by the
+    auditor): under AR(1) 0.5 at looks 10..60 the t primary gave 471
+    false KEEPs and Hodges-Lehmann 424, while batch means gave 58 (82 at
+    looks 20..120, one count from failing). A candidate 2x slow in 5% of
+    runs beat all three (t 650, batch means 326, Hodges-Lehmann 1613);
+    1.3x in 10% passed with batch means only. So the prespecified
+    batch-means fallback looks like the answer for autocorrelation and
+    nothing yet answers one-version skew. Calibrate with
+    `simulate(..., order="balanced")`; the simulator still defaults to
+    `"coin"`.
   - Decision for Faras, not taken: under the acceptance rule as
     written, an exact procedure on the bar (one-sided error 1.61% at
     six looks) passes each S = 1.03 cell with probability 0.990 and
@@ -661,7 +672,10 @@ Mac and on Linux CI, with decoys that must be refused.
     os.environ)` (the base allowlist plus the spec's `env`, per "Side
     effects" in `docs/method.md`), passed as the runner's `base_env`
     and to the side-effect gate, and the reset runs before every
-    execution. A harness `RunnerError` stops the comparison with no
+    execution. Decide each look through `stats.sequential` (resolution
+    stop, widening, then T1.3's rules), never by calling
+    `decision.decide` directly, so the resolution stop isn't skipped.
+    A harness `RunnerError` stops the comparison with no
     verdict; an `ExecutionError` follows "Failed executions". When the
     candidate fails, run the baseline once more on the same round
     before blaming it: if the baseline fails too, the failure is shared
