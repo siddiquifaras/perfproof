@@ -121,10 +121,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 |---|---|---|
 | #21 | T2.18 | Draft; #19, #23 and #24 are merged, so it resumes now; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
 | #22 | T4.2 | Review BLOCK at `2cf238e`: reference-only oracle failure treated as unbuildable (biases against breaking changes; changed one development pick), README misstates plan; worker fixing plus salts test, Docker bounds, no held-out effect sizes, home path, tzdata |
+| new | T1.6 | Calibration worker started on main `4c7561b` (R = 4000, balanced order, per-target schedules; N1 block size to decide) |
+| new | T2.14 | Coverage gate worker started on main `4c7561b`; wiring into compare is a T2.5 follow-up |
 | T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
 | T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
 
-Next: T1.6 calibration, T2.14 coverage gate, T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
+Next: T2.19 after #21 merges (both touch compare.py) (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
 
 ### Known gaps
 
