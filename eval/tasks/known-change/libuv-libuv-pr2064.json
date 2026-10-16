@@ -31,14 +31,14 @@
   "change_kind": "reverted-breaking",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "build/uv_run_tests_a process_title_threadsafe",
+    "source": "libuv's own process_title_threadsafe test, which the description of https://github.com/libuv/libuv/pull/2064 says the change speeds up about 10x",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "build/uv_run_tests_a process_title",
+    "source": "libuv's process_title test for uv_set_process_title(), the function https://github.com/libuv/libuv/pull/2064 changes; targeted tests only. The revert (#2405) reports a break in Node.js's process.title that libuv's own tests may not catch",
+    "verified": true
   },
   "evidence": [
     {
@@ -51,10 +51,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with CMake from PyPI (uv); CMAKE_POLICY_VERSION_MINIMUM=3.5 because CMake 4 refuses this tree's cmake_minimum_required(3.0)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+      "exit_code": 0,
+      "duration_s": 0.63,
+      "date": "2026-10-16T08:43:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.5s)\n-- Generating done (0.1s)\n-- Build files have been written to: eval/mine/work/libuv-libuv-pr2064/task/build\nCMake Warning (deprecated) at CMakeLists.txt:2 (cmake_minimum_required):\n  Compatibility with CMake < 3.10 will be removed from a future version of\n  CMake.\n\n  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax\n  to tell CMake that the project requires at least <min> but has been updated\n  to work with policies introduced by <max> or earlier.\nThis warning is for project developers.  Use -Wno-author or -Wno-deprecated\nto suppress it."
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cmake --build build -j 8",
+      "exit_code": 0,
+      "duration_s": 4.74,
+      "date": "2026-10-16T08:43:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 warning generated.\neval/mine/work/libuv-libuv-pr2064/task/test/runner.c:79:7: warning: variable 'passed' set but not used [-Wunused-but-set-variable]\n   79 |   int passed;\n      |       ^\neval/mine/work/libuv-libuv-pr2064/task/test/runner.c:81:7: warning: variable 'skipped' set but not used [-Wunused-but-set-variable]\n   81 |   int skipped;\n      |       ^\n2 warnings generated.\neval/mine/work/libuv-libuv-pr2064/task/test/runner.c:79:7: warning: variable 'passed' set but not used [-Wunused-but-set-variable]\n   79 |   int passed;\n      |       ^\neval/mine/work/libuv-libuv-pr2064/task/test/runner.c:81:7: warning: variable 'skipped' set but not used [-Wunused-but-set-variable]\n   81 |   int skipped;\n      |       ^\n2 warnings generated."
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "build/uv_run_tests_a process_title",
+      "exit_code": 0,
+      "duration_s": 0.3,
+      "date": "2026-10-16T08:43:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok 1 - process_title"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "build/uv_run_tests_a process_title_threadsafe",
+      "exit_code": 0,
+      "duration_s": 0.25,
+      "date": "2026-10-16T08:43:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok 1 - process_title_threadsafe"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+      "exit_code": 0,
+      "duration_s": 0.59,
+      "date": "2026-10-16T08:43:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.5s)\n-- Generating done (0.1s)\n-- Build files have been written to: eval/mine/work/libuv-libuv-pr2064/reference/build\nCMake Warning (deprecated) at CMakeLists.txt:2 (cmake_minimum_required):\n  Compatibility with CMake < 3.10 will be removed from a future version of\n  CMake.\n\n  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax\n  to tell CMake that the project requires at least <min> but has been updated\n  to work with policies introduced by <max> or earlier.\nThis warning is for project developers.  Use -Wno-author or -Wno-deprecated\nto suppress it."
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cmake --build build -j 8",
+      "exit_code": 0,
+      "duration_s": 4.83,
+      "date": "2026-10-16T08:43:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 warning generated.\neval/mine/work/libuv-libuv-pr2064/reference/test/runner.c:79:7: warning: variable 'passed' set but not used [-Wunused-but-set-variable]\n   79 |   int passed;\n      |       ^\neval/mine/work/libuv-libuv-pr2064/reference/test/runner.c:81:7: warning: variable 'skipped' set but not used [-Wunused-but-set-variable]\n   81 |   int skipped;\n      |       ^\n2 warnings generated.\neval/mine/work/libuv-libuv-pr2064/reference/test/runner.c:79:7: warning: variable 'passed' set but not used [-Wunused-but-set-variable]\n   79 |   int passed;\n      |       ^\neval/mine/work/libuv-libuv-pr2064/reference/test/runner.c:81:7: warning: variable 'skipped' set but not used [-Wunused-but-set-variable]\n   81 |   int skipped;\n      |       ^\n2 warnings generated."
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "build/uv_run_tests_a process_title",
+      "exit_code": 0,
+      "duration_s": 0.29,
+      "date": "2026-10-16T08:43:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok 1 - process_title"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "build/uv_run_tests_a process_title_threadsafe",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:43:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok 1 - process_title_threadsafe"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

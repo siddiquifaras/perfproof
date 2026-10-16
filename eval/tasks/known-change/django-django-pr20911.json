@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/django-django-pr20911/bench.py",
+    "source": "written here from the description of https://github.com/django/django/pull/20911 (100,000 timestamptz values loaded through Django with psycopg-binary): a raw query through Django's PostgreSQL backend, eval/tasks/workloads/django-django-pr20911/bench.py, against PostgreSQL 16 in a local container",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python tests/runtests.py --settings test_postgres --parallel 1 backends.postgresql db_functions.datetime",
+    "source": "Django's PostgreSQL backend tests and its datetime function tests, run by its own runner against the local PostgreSQL (settings in eval/tasks/workloads/django-django-pr20911/test_postgres.py); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,171 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. PostgreSQL 16 runs in a local Docker container with trust authentication on 127.0.0.1:54329. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker rm -f perfproof-pg-django",
+      "exit_code": 0,
+      "duration_s": 0.29,
+      "date": "2026-10-16T08:45:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "perfproof-pg-django"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run -d --name perfproof-pg-django -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:54329:5432 postgres:16",
+      "exit_code": 0,
+      "duration_s": 0.26,
+      "date": "2026-10-16T08:45:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "e47aa88c7dfd196437dada6606af01ee5427d11c640daaa7430c5d01567be2ec"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker exec perfproof-pg-django sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "exit_code": 0,
+      "duration_s": 1.12,
+      "date": "2026-10-16T08:45:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T08:45:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-03-21 -e . psycopg[binary,pool]",
+      "exit_code": 0,
+      "duration_s": 3.29,
+      "date": "2026-10-16T08:45:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 2.06s\n   Building django @ file://eval/mine/work/django-django-pr20911/task\n      Built django @ file://eval/mine/work/django-django-pr20911/task\nPrepared 3 packages in 1.13s\nInstalled 7 packages in 3ms\n + asgiref==3.11.1\n + django==6.1.dev20261016075306 (from file://eval/mine/work/django-django-pr20911/task)\n + psycopg==3.3.3\n + psycopg-binary==3.3.3\n + psycopg-pool==3.3.0\n + sqlparse==0.5.5\n + typing-extensions==4.15.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/django-django-pr20911/test_postgres.py tests/",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:45:30+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python tests/runtests.py --settings test_postgres --parallel 1 backends.postgresql db_functions.datetime",
+      "exit_code": 0,
+      "duration_s": 9.55,
+      "date": "2026-10-16T08:45:30+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Testing against Django installed in 'eval/mine/work/django-django-pr20911/task/django'\nFound 166 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n................................s....s..................s.............................................s...............................................................\n----------------------------------------------------------------------\nRan 166 tests in 5.695s\n\nOK (skipped=4)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'..."
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python ../../../../tasks/workloads/django-django-pr20911/bench.py",
+      "exit_code": 0,
+      "duration_s": 0.3,
+      "date": "2026-10-16T08:45:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "100000 2026-01-02T03:46:40+00:00"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker rm -f perfproof-pg-django",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T08:45:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "perfproof-pg-django"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run -d --name perfproof-pg-django -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:54329:5432 postgres:16",
+      "exit_code": 0,
+      "duration_s": 0.21,
+      "date": "2026-10-16T08:45:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "890f05caa36e5e8d2d4a504561d6cd16bf4b6718a188316fd6eeb1abb4b92d57"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker exec perfproof-pg-django sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "exit_code": 0,
+      "duration_s": 1.13,
+      "date": "2026-10-16T08:45:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T08:45:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-03-21 -e . psycopg[binary,pool]",
+      "exit_code": 0,
+      "duration_s": 2.45,
+      "date": "2026-10-16T08:45:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 1.03s\n   Building django @ file://eval/mine/work/django-django-pr20911/reference\n      Built django @ file://eval/mine/work/django-django-pr20911/reference\nPrepared 1 package in 1.33s\nInstalled 7 packages in 6ms\n + asgiref==3.11.1\n + django==6.1.dev20261016075306 (from file://eval/mine/work/django-django-pr20911/reference)\n + psycopg==3.3.3\n + psycopg-binary==3.3.3\n + psycopg-pool==3.3.0\n + sqlparse==0.5.5\n + typing-extensions==4.15.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/django-django-pr20911/test_postgres.py tests/",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:45:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python tests/runtests.py --settings test_postgres --parallel 1 backends.postgresql db_functions.datetime",
+      "exit_code": 0,
+      "duration_s": 9.18,
+      "date": "2026-10-16T08:45:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Testing against Django installed in 'eval/mine/work/django-django-pr20911/reference/django'\nFound 166 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'other'...\n................................s....s..................s.............................................s...............................................................\n----------------------------------------------------------------------\nRan 166 tests in 5.829s\n\nOK (skipped=4)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'other'..."
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python ../../../../tasks/workloads/django-django-pr20911/bench.py",
+      "exit_code": 0,
+      "duration_s": 0.21,
+      "date": "2026-10-16T08:45:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "100000 2026-01-02T03:46:40+00:00"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

@@ -21,14 +21,14 @@
   "change_kind": "after-landed",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "node eval_bench.mjs",
+    "source": "written here from the description of https://github.com/honojs/hono/pull/5118 (its query GET /id/1?name=bun and body POST /json cases): 50,000 of each served in process by app.request, with header records passed to c.text and c.json, eval/tasks/workloads/honojs-hono-pr5118-landed/bench.ts bundled with esbuild",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs",
+    "source": "hono's own src/context.test.ts and src/hono.test.ts under vitest, with a minimal config (eval/tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,131 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The repository builds with bun, which is not installed here; only esbuild and vitest are installed (npm --before the change's date) and the source is bundled directly. Node is v24 from nvm",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund esbuild vitest",
+      "exit_code": 0,
+      "duration_s": 15.82,
+      "date": "2026-10-16T08:38:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 46 packages in 16s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "ln -s .eval-tools/node_modules node_modules",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:38:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/honojs-hono-pr5118-landed/bench.ts eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:38:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "node_modules/.bin/esbuild eval_bench.ts --bundle --platform=node --format=esm --outfile=eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:38:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "eval_bench.mjs  60.3kb\n\n⚡ Done in 6ms"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs",
+      "exit_code": 0,
+      "duration_s": 0.79,
+      "date": "2026-10-16T08:38:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    at Hono.fetch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:484:17\u001b[90m)\u001b[39m\n    at Hono.request \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:509:17\u001b[90m)\u001b[39m\n\n\u001b[90mstderr\u001b[2m | src/hono.test.ts\u001b[2m > \u001b[22m\u001b[2mError handling in middleware\u001b[2m > \u001b[22m\u001b[2mShould handle the error in middleware - async\n\u001b[22m\u001b[39mError: Error message\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono.test.ts:1585:11\n    at dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/compose.ts:51:23\u001b[90m)\u001b[39m\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/compose.ts:51:46\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono.test.ts:1570:11\n    at dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/compose.ts:51:23\u001b[90m)\u001b[39m\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/compose.ts:23:12\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:454:31\n    at Hono.#dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:465:6\u001b[90m)\u001b[39m\n    at Hono.fetch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:484:17\u001b[90m)\u001b[39m\n    at Hono.request \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/task/\u001b[39msrc/hono-base.ts:509:17\u001b[90m)\u001b[39m"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "node eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.56,
+      "date": "2026-10-16T08:38:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1100000"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund esbuild vitest",
+      "exit_code": 0,
+      "duration_s": 1.36,
+      "date": "2026-10-16T08:38:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 46 packages in 1s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "ln -s .eval-tools/node_modules node_modules",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:38:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/honojs-hono-pr5118-landed/bench.ts eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T08:38:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "node_modules/.bin/esbuild eval_bench.ts --bundle --platform=node --format=esm --outfile=eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:38:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "eval_bench.mjs  60.3kb\n\n⚡ Done in 6ms"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs",
+      "exit_code": 0,
+      "duration_s": 0.82,
+      "date": "2026-10-16T08:38:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    at Hono.fetch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:484:17\u001b[90m)\u001b[39m\n    at Hono.request \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:509:17\u001b[90m)\u001b[39m\n\n\u001b[90mstderr\u001b[2m | src/hono.test.ts\u001b[2m > \u001b[22m\u001b[2mError handling in middleware\u001b[2m > \u001b[22m\u001b[2mShould handle the error in middleware - async\n\u001b[22m\u001b[39mError: Error message\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono.test.ts:1585:11\n    at dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/compose.ts:51:23\u001b[90m)\u001b[39m\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/compose.ts:51:46\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono.test.ts:1570:11\n    at dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/compose.ts:51:23\u001b[90m)\u001b[39m\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/compose.ts:23:12\n    at \u001b[90meval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:454:31\n    at Hono.#dispatch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:465:6\u001b[90m)\u001b[39m\n    at Hono.fetch \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:484:17\u001b[90m)\u001b[39m\n    at Hono.request \u001b[90m(eval/mine/work/honojs-hono-pr5118-landed/reference/\u001b[39msrc/hono-base.ts:509:17\u001b[90m)\u001b[39m"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "node eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.56,
+      "date": "2026-10-16T08:38:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1100000"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

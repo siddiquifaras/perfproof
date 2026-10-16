@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "python",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m mypy --no-incremental --python-version 3.12 -c \"import asyncio, json, email, http.client, logging, argparse\"",
+    "source": "written here from the description of https://github.com/python/mypy/pull/20802 (path operations per module in build and errors): a no-cache run over a program whose imports pull in many typeshed modules; interpreted mypy, not mypyc-compiled",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -n 0 mypy/test/testgraph.py mypy/test/testmodulefinder.py mypy/test/testerrorstream.py",
+    "source": "mypy's tests for the build graph, module finder and error stream, the areas https://github.com/python/mypy/pull/20802 changes (build.py, errors.py, semanal_main.py); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T08:09:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -e . pytest pytest-xdist",
+      "exit_code": 0,
+      "duration_s": 21.52,
+      "date": "2026-10-16T08:09:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "      Built mypy @ file://eval/mine/work/python-mypy-pr20802/task\nPrepared 3 packages in 3.54s\nInstalled 12 packages in 18ms\n + execnet==2.1.2\n + iniconfig==2.3.1\n + librt==0.16.0\n + mypy==1.20.0+dev (from file://eval/mine/work/python-mypy-pr20802/task)\n + mypy-extensions==1.1.0\n + packaging==26.3\n + pathspec==1.1.1\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-xdist==3.8.0\n + typing-extensions==4.16.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q -n 0 mypy/test/testgraph.py mypy/test/testmodulefinder.py mypy/test/testerrorstream.py",
+      "exit_code": 0,
+      "duration_s": 5.76,
+      "date": "2026-10-16T08:09:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..............................                                           [100%]\n30 passed in 4.67s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -m mypy --no-incremental --python-version 3.12 -c \"import asyncio, json, email, http.client, logging, argparse\"",
+      "exit_code": 0,
+      "duration_s": 2.08,
+      "date": "2026-10-16T08:09:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Success: no issues found in 1 source file"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T08:10:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -e . pytest pytest-xdist",
+      "exit_code": 0,
+      "duration_s": 0.91,
+      "date": "2026-10-16T08:10:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "      Built mypy @ file://eval/mine/work/python-mypy-pr20802/reference\nPrepared 1 package in 283ms\nInstalled 12 packages in 10ms\n + execnet==2.1.2\n + iniconfig==2.3.1\n + librt==0.16.0\n + mypy==1.20.0+dev (from file://eval/mine/work/python-mypy-pr20802/reference)\n + mypy-extensions==1.1.0\n + packaging==26.3\n + pathspec==1.1.1\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-xdist==3.8.0\n + typing-extensions==4.16.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q -n 0 mypy/test/testgraph.py mypy/test/testmodulefinder.py mypy/test/testerrorstream.py",
+      "exit_code": 0,
+      "duration_s": 6.28,
+      "date": "2026-10-16T08:10:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..............................                                           [100%]\n30 passed in 5.19s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -m mypy --no-incremental --python-version 3.12 -c \"import asyncio, json, email, http.client, logging, argparse\"",
+      "exit_code": 0,
+      "duration_s": 2.3,
+      "date": "2026-10-16T08:10:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Success: no issues found in 1 source file"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

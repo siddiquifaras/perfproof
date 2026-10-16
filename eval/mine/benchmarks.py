@@ -111,6 +111,53 @@ BENCHMARKS = (
 )
 
 
+# GSO's prob_script only defines setup, experiment and run_test; GSO's
+# harness calls run_test after replacing timeit's template so that
+# timeit returns (elapsed, last return value), which run_test unpacks.
+# This footer does the same, so `python workload.py` runs the workload.
+GSO_FOOTER = '''
+
+# Appended by eval/mine/benchmarks.py: the call GSO's harness makes.
+timeit.template = """
+def inner(_it, _timer{init}):
+    {setup}
+    _t0 = _timer()
+    for _i in _it:
+        retval = {stmt}
+    _t1 = _timer()
+    return _t1 - _t0, retval
+"""
+
+if __name__ == "__main__":
+    run_test()
+'''
+
+
+def workload_script(bench: str, row: dict[str, Any]) -> str | None:
+    """Return the script a benchmark task runs as ``workload.py``.
+
+    Parameters
+    ----------
+    bench : str
+        The benchmark's short name, ``gso``, ``swe-perf`` or
+        ``swe-fficiency``.
+    row : dict
+        The dataset row.
+
+    Returns
+    -------
+    str or None
+        GSO's ``prob_script`` with `GSO_FOOTER` appended,
+        SWE-fficiency's ``workload`` as it is, or None for a row with
+        neither (SWE-Perf runs pytest ids instead).
+    """
+    if bench == "gso" and row.get("prob_script"):
+        return str(row["prob_script"]).rstrip("\n") + "\n" + GSO_FOOTER
+    if row.get("workload"):
+        return str(row["workload"])
+    return None
+
+
 def _get(url: str) -> bytes:
     error = ""
     for _ in range(MAX_ATTEMPTS):
@@ -270,7 +317,11 @@ def _commands(
     if bench.name == "gso":
         workload = Command(
             command="python workload.py",
-            source=f"the prob_script field of {source}, saved as workload.py",
+            source=(
+                f"the prob_script field of {source}, saved as workload.py "
+                "with the run_test call GSO's harness makes appended "
+                "(benchmarks.GSO_FOOTER)"
+            ),
             verified=False,
         )
         oracle = Command(

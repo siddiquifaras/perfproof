@@ -5,12 +5,14 @@ GitHub reads are stubbed. The strings below are written to exercise
 each rule, not captured GitHub output: the rules take plain text.
 """
 
+import timeit
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import benchmarks
 import classify
 import mine
 from mine import GH_PR, benchmark_pr
@@ -417,7 +419,6 @@ def test_committed_manifests_are_consistent() -> None:
     ids = Counter(t.id for t in tasks)
     assert [i for i, n in ids.items() if n > 1] == []
     for task in tasks:
-        assert task.split == "development-candidate"
         if task.status == "candidate":
             assert not task.runs, task.id
         else:
@@ -427,3 +428,45 @@ def test_committed_manifests_are_consistent() -> None:
             assert task.oracle.verified, task.id
         if task.family == "published-benchmark":
             assert task.audit is not None, task.id
+
+
+# The shape every GSO prob_script has: setup, experiment, and a run_test
+# that unpacks timeit's return into (elapsed, result).
+GSO_SCRIPT = """
+import timeit
+CALLS = []
+
+def setup():
+    return 3
+
+def experiment():
+    CALLS.append(1)
+    return 42
+
+def run_test(eqcheck=False, reference=False, prefix=""):
+    setup()
+    execution_time, result = timeit.timeit(lambda: experiment(), number=1)
+    assert result == 42
+    return execution_time
+"""
+
+
+def test_gso_workload_script_runs_run_test() -> None:
+    script = benchmarks.workload_script("gso", {"prob_script": GSO_SCRIPT})
+    assert script is not None
+    namespace: dict[str, Any] = {"__name__": "__main__"}
+    # timeit.template is real but missing from the type stubs.
+    template: str = getattr(timeit, "template")  # noqa: B009
+    try:
+        exec(script, namespace)  # noqa: S102
+    finally:
+        # The footer sets timeit's template for the whole process.
+        setattr(timeit, "template", template)  # noqa: B010
+    assert namespace["CALLS"] == [1]
+
+
+def test_gso_manifests_run_through_the_footer() -> None:
+    for task in load_tasks():
+        if task.id.startswith("gso-"):
+            assert task.workload.command == "python workload.py", task.id
+            assert "GSO_FOOTER" in task.workload.source, task.id

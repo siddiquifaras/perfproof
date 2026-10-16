@@ -22,14 +22,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_count_set_bits",
+    "source": "written here from the description of https://github.com/apache/arrow/pull/48898 (its CountSetBits benchmark at 16, 1024 and 131072 bytes, which the task tree does not have): a program calling arrow::internal::CountSetBits at those sizes, eval/tasks/workloads/apache-arrow-pr48898/count_set_bits.cc, linked against the tree's libarrow",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "build/release/arrow-bit-utility-test",
+    "source": "Arrow's bit utility tests (bit_util_test.cc, bitmap_test.cc and others), for cpp/src/arrow/util/bitmap_ops.cc, the file https://github.com/apache/arrow/pull/48898 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,10 +38,111 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Arrow C++ built with CMake and Ninja from PyPI (uv) and Apple clang, bundled dependencies, optional components off",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cmake -S cpp -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DARROW_BUILD_TESTS=ON -DARROW_DEPENDENCY_SOURCE=BUNDLED -DARROW_JEMALLOC=OFF -DARROW_MIMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_CSV=OFF -DARROW_JSON=OFF -DARROW_FILESYSTEM=OFF -DARROW_IPC=OFF -DARROW_WITH_UTF8PROC=OFF -DARROW_WITH_RE2=OFF",
+      "exit_code": 0,
+      "duration_s": 30.92,
+      "date": "2026-10-16T13:04:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "--   ARROW_GDB_INSTALL_DIR=\"\" [default=\"\"]\n--       Use a custom install directory for GDB plugin.\n--       In general, you don't need to specify this because the default\n--       (CMAKE_INSTALL_FULL_BINDIR on Windows, CMAKE_INSTALL_FULL_LIBDIR otherwise)\n--       is reasonable.\n--   Outputting build configuration summary to eval/mine/work/apache-arrow-pr48898/task/build/cmake_summary.json\n-- Configuring done (30.5s)\n-- Generating done (0.1s)\n-- Build files have been written to: eval/mine/work/apache-arrow-pr48898/task/build\nCMake Warning (policy) at src/arrow/CMakeLists.txt:1169 (install):\n  Policy CMP0177 is not set: install() DESTINATION paths are normalized.  Run\n  \"cmake --help-policy CMP0177\" for policy details.  Use the cmake_policy\n  command to set the policy and suppress this warning.\nThis warning is for project developers.  Use -Wno-author or -Wno-policy to\nsuppress it."
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "ninja -C build arrow_shared arrow-bit-utility-test",
+      "exit_code": 0,
+      "duration_s": 40.74,
+      "date": "2026-10-16T13:05:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[270/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/testing/gtest_util.cc.o\n[271/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/ipc/test_common.cc.o\n[272/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bpacking_test.cc.o\n[273/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bit_util_test.cc.o\n[274/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/testing/random.cc.o\n[275/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bitmap_test.cc.o\n[276/284] Building CXX object src/arrow/CMakeFiles/arrow_objlib.dir/builder.cc.o\n[277/284] Building CXX object src/arrow/CMakeFiles/arrow_compute_core.dir/compute/kernels/vector_swizzle.cc.o\n[278/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/rle_encoding_test.cc.o\n[279/284] Building CXX object src/arrow/CMakeFiles/arrow_objlib.dir/scalar.cc.o\n[280/284] Linking CXX shared library release/libarrow.2400.0.0.dylib\n[281/284] Creating library symlink release/libarrow.2400.dylib release/libarrow.dylib\n[282/284] Linking CXX shared library release/libarrow_testing.2400.0.0.dylib\n[283/284] Creating library symlink release/libarrow_testing.2400.dylib release/libarrow_testing.dylib\n[284/284] Linking CXX executable release/arrow-bit-utility-test"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "clang++ -O2 -std=c++20 -I cpp/src -I build/src -o eval_count_set_bits ../../../../tasks/workloads/apache-arrow-pr48898/count_set_bits.cc -L build/release -larrow -Wl,-rpath,build/release",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T13:05:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "build/release/arrow-bit-utility-test",
+      "exit_code": 0,
+      "duration_s": 5.38,
+      "date": "2026-10-16T13:05:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length128\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length128 (2 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length2048\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length2048 (19 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length64\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length64 (9 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length128\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length128 (12 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length2048\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length2048 (95 ms)\n[----------] 45 tests from UnpackMultiplesOf64Values/TestUnpack (450 ms total)\n\n[----------] Global test environment tear-down\n[==========] 202 tests from 32 test suites ran. (525 ms total)\n[  PASSED  ] 202 tests."
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "./eval_count_set_bits",
+      "exit_code": 0,
+      "duration_s": 0.91,
+      "date": "2026-10-16T13:05:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "3391143355"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cmake -S cpp -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DARROW_BUILD_TESTS=ON -DARROW_DEPENDENCY_SOURCE=BUNDLED -DARROW_JEMALLOC=OFF -DARROW_MIMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_CSV=OFF -DARROW_JSON=OFF -DARROW_FILESYSTEM=OFF -DARROW_IPC=OFF -DARROW_WITH_UTF8PROC=OFF -DARROW_WITH_RE2=OFF",
+      "exit_code": 0,
+      "duration_s": 188.12,
+      "date": "2026-10-16T13:05:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "--   ARROW_GDB_INSTALL_DIR=\"\" [default=\"\"]\n--       Use a custom install directory for GDB plugin.\n--       In general, you don't need to specify this because the default\n--       (CMAKE_INSTALL_FULL_BINDIR on Windows, CMAKE_INSTALL_FULL_LIBDIR otherwise)\n--       is reasonable.\n--   Outputting build configuration summary to eval/mine/work/apache-arrow-pr48898/reference/build/cmake_summary.json\n-- Configuring done (187.9s)\n-- Generating done (0.1s)\n-- Build files have been written to: eval/mine/work/apache-arrow-pr48898/reference/build\nCMake Warning (policy) at src/arrow/CMakeLists.txt:1169 (install):\n  Policy CMP0177 is not set: install() DESTINATION paths are normalized.  Run\n  \"cmake --help-policy CMP0177\" for policy details.  Use the cmake_policy\n  command to set the policy and suppress this warning.\nThis warning is for project developers.  Use -Wno-author or -Wno-policy to\nsuppress it."
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "ninja -C build arrow_shared arrow-bit-utility-test",
+      "exit_code": 0,
+      "duration_s": 48.37,
+      "date": "2026-10-16T13:09:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[270/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/testing/gtest_util.cc.o\n[271/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bpacking_test.cc.o\n[272/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/ipc/test_common.cc.o\n[273/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bit_util_test.cc.o\n[274/284] Building CXX object src/arrow/CMakeFiles/arrow_testing_objlib.dir/testing/random.cc.o\n[275/284] Building CXX object src/arrow/CMakeFiles/arrow_objlib.dir/builder.cc.o\n[276/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/bitmap_test.cc.o\n[277/284] Building CXX object src/arrow/CMakeFiles/arrow_compute_core.dir/compute/kernels/vector_swizzle.cc.o\n[278/284] Building CXX object src/arrow/util/CMakeFiles/arrow-bit-utility-test.dir/rle_encoding_test.cc.o\n[279/284] Building CXX object src/arrow/CMakeFiles/arrow_objlib.dir/scalar.cc.o\n[280/284] Linking CXX shared library release/libarrow.2400.0.0.dylib\n[281/284] Creating library symlink release/libarrow.2400.dylib release/libarrow.dylib\n[282/284] Linking CXX shared library release/libarrow_testing.2400.0.0.dylib\n[283/284] Creating library symlink release/libarrow_testing.2400.dylib release/libarrow_testing.dylib\n[284/284] Linking CXX executable release/arrow-bit-utility-test"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "clang++ -O2 -std=c++20 -I cpp/src -I build/src -o eval_count_set_bits ../../../../tasks/workloads/apache-arrow-pr48898/count_set_bits.cc -L build/release -larrow -Wl,-rpath,build/release",
+      "exit_code": 0,
+      "duration_s": 0.4,
+      "date": "2026-10-16T13:09:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "build/release/arrow-bit-utility-test",
+      "exit_code": 0,
+      "duration_s": 5.96,
+      "date": "2026-10-16T13:09:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length128\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length128 (2 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length2048\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack32/Length2048 (20 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length64\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length64 (10 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length128\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length128 (12 ms)\n[ RUN      ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length2048\n[       OK ] UnpackMultiplesOf64Values/TestUnpack.Unpack64/Length2048 (97 ms)\n[----------] 45 tests from UnpackMultiplesOf64Values/TestUnpack (467 ms total)\n\n[----------] Global test environment tear-down\n[==========] 202 tests from 32 test suites ran. (527 ms total)\n[  PASSED  ] 202 tests."
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "./eval_count_set_bits",
+      "exit_code": 0,
+      "duration_s": 0.9,
+      "date": "2026-10-16T13:09:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "3391143355"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

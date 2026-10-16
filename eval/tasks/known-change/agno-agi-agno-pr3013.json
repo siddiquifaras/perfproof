@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"from bs4 import BeautifulSoup; from agno.document.reader.website_reader import WebsiteReader; html = '<html><body>' + ''.join(f'<div class=x{i}><p>paragraph {i}</p><span>s</span></div>' for i in range(3000)) + '<div class=content><p>main</p></div></body></html>'; soup = BeautifulSoup(html, 'html.parser'); r = WebsiteReader(); [r._extract_main_content(soup) for _ in range(30)]\"",
+    "source": "written here from the description of https://github.com/agno-agi/agno/pull/3013 (a codeflash timing of WebsiteReader._extract_main_content): the method on a parsed page of 3,000 blocks whose main content sits at the end",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q libs/agno/tests/unit/reader/test_website_reader.py",
+    "source": "agno's WebsiteReader unit tests, for libs/agno/agno/document/reader/website_reader.py, the file https://github.com/agno-agi/agno/pull/3013 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies from the tree's pinned libs/agno/requirements.txt, the rest limited to releases before the change's date (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:22:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2025-05-21 -r libs/agno/requirements.txt -e libs/agno beautifulsoup4 pytest pytest-asyncio",
+      "exit_code": 0,
+      "duration_s": 3.07,
+      "date": "2026-10-16T12:22:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pydantic-settings==2.7.1\n + pygments==2.18.0\n + pytest==8.3.5\n + pytest-asyncio==0.26.0\n + python-dotenv==1.0.1\n + python-multipart==0.0.20\n + pyyaml==6.0.2\n + rich==13.9.4\n + shellingham==1.5.4\n + smmap==5.0.1\n + sniffio==1.3.1\n + soupsieve==2.7\n + tomli==2.2.1\n + typer==0.15.1\n + typing-extensions==4.12.2"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q libs/agno/tests/unit/reader/test_website_reader.py",
+      "exit_code": 0,
+      "duration_s": 0.64,
+      "date": "2026-10-16T12:22:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "libs/agno/tests/unit/reader/test_website_reader.py::test_crawl_basic PASSED [ 14%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_basic PASSED [ 21%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_with_chunking PASSED [ 28%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_error_handling PASSED [ 35%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_extract_main_content PASSED [ 42%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_get_primary_domain PASSED [ 50%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_crawl_max_depth PASSED [ 57%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_delay PASSED [ 64%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_crawl_basic PASSED [ 71%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_basic PASSED [ 78%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_with_chunking PASSED [ 85%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_error_handling PASSED [ 92%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_crawl_max_depth PASSED [100%]\n\n============================== 14 passed in 0.30s =============================="
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"from bs4 import BeautifulSoup; from agno.document.reader.website_reader import WebsiteReader; html = '<html><body>' + ''.join(f'<div class=x{i}><p>paragraph {i}</p><span>s</span></div>' for i in range(3000)) + '<div class=content><p>main</p></div></body></html>'; soup = BeautifulSoup(html, 'html.parser'); r = WebsiteReader(); [r._extract_main_content(soup) for _ in range(30)]\"",
+      "exit_code": 0,
+      "duration_s": 0.54,
+      "date": "2026-10-16T12:22:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:22:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2025-05-21 -r libs/agno/requirements.txt -e libs/agno beautifulsoup4 pytest pytest-asyncio",
+      "exit_code": 0,
+      "duration_s": 0.82,
+      "date": "2026-10-16T12:22:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pydantic-settings==2.7.1\n + pygments==2.18.0\n + pytest==8.3.5\n + pytest-asyncio==0.26.0\n + python-dotenv==1.0.1\n + python-multipart==0.0.20\n + pyyaml==6.0.2\n + rich==13.9.4\n + shellingham==1.5.4\n + smmap==5.0.1\n + sniffio==1.3.1\n + soupsieve==2.7\n + tomli==2.2.1\n + typer==0.15.1\n + typing-extensions==4.12.2"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q libs/agno/tests/unit/reader/test_website_reader.py",
+      "exit_code": 0,
+      "duration_s": 0.68,
+      "date": "2026-10-16T12:22:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "libs/agno/tests/unit/reader/test_website_reader.py::test_crawl_basic PASSED [ 14%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_basic PASSED [ 21%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_with_chunking PASSED [ 28%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_read_error_handling PASSED [ 35%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_extract_main_content PASSED [ 42%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_get_primary_domain PASSED [ 50%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_crawl_max_depth PASSED [ 57%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_delay PASSED [ 64%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_crawl_basic PASSED [ 71%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_basic PASSED [ 78%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_with_chunking PASSED [ 85%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_read_error_handling PASSED [ 92%]\nlibs/agno/tests/unit/reader/test_website_reader.py::test_async_crawl_max_depth PASSED [100%]\n\n============================== 14 passed in 0.33s =============================="
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"from bs4 import BeautifulSoup; from agno.document.reader.website_reader import WebsiteReader; html = '<html><body>' + ''.join(f'<div class=x{i}><p>paragraph {i}</p><span>s</span></div>' for i in range(3000)) + '<div class=content><p>main</p></div></body></html>'; soup = BeautifulSoup(html, 'html.parser'); r = WebsiteReader(); [r._extract_main_content(soup) for _ in range(30)]\"",
+      "exit_code": 0,
+      "duration_s": 0.35,
+      "date": "2026-10-16T12:22:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

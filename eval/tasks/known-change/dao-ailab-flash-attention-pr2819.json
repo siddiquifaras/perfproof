@@ -40,7 +40,7 @@
   "status": "candidate",
   "status_reason": "not built or run here",
   "runs": [],
-  "split": "development-candidate",
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

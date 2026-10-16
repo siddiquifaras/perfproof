@@ -5,9 +5,13 @@ The task set for the external evaluation in
 miner that finds candidates (`mine/`) and one manifest per task
 (`tasks/<family>/<id>.json`).
 
-Every task here is a **development candidate**. Nothing is in the
-held-out split yet: that needs the lead's review of these candidates,
-and a task used for development never moves to the held-out set.
+The held-out and development splits are drawn by the selection rule in
+docs/evaluation.md: the inputs are in `tasks/selection.json`, the
+draw, with every candidate it looked at, in
+[tasks/SPLITS.md](tasks/SPLITS.md), and each picked task's manifest
+says `held-out` or `development` in `split` (see "Splits" below).
+Every other task is a `development-candidate`. A task used for
+development never moves to the held-out set.
 
 Nothing in a manifest is a performance label. Labels come from the
 independent procedure in T4.2. The miner's classifications (family,
@@ -51,9 +55,10 @@ recorded.
 
 | Status | Tasks |
 |---|---:|
-| runs | 5 |
-| builds | 1 |
-| candidate | 370 |
+| runs | 45 |
+| reference-fails | 1 |
+| builds | 2 |
+| candidate | 328 |
 
 Read these counts with these caveats:
 
@@ -232,6 +237,142 @@ training", in `studio/backend/core/training/`), which fills the freed
 after-landed slot. The family and class counts are unchanged: each
 removal was replaced in the same cell.
 
+## Splits
+
+The held-out list is committed here, with the pool, before any label,
+perfproof run or agent run touches a held-out task. It lives in
+`tasks/` rather than `eval/label/` because the split is a property of
+the task set: T4.1 owns splitting the pool, each manifest carries its
+`split`, and T4.2's labelling has to start from a list that is already
+fixed.
+
+```bash
+uv run python eval/mine/draw.py          # print the draw
+uv run python eval/mine/draw.py --write  # set manifests' split, rewrite tasks/SPLITS.md
+```
+
+`mine/draw.py` applies the rule in docs/evaluation.md to the manifests
+and to `tasks/selection.json`, which holds:
+
+- **Salts.** Held-out `perfproof-heldout-2026-10-16`, from
+  docs/evaluation.md. Development `perfproof-development-2026-10-16`,
+  chosen here and written into `selection.json` before the
+  development order was first computed.
+- **Step-1 reviews.** One entry per candidate the draw reached: keep
+  or remove, what the reading found, and what was read.
+- **Classes not buildable here.** Serving and GPU: "needs a GPU host".
+  Paid GPU runs wait for approval.
+
+`mine/test_draw.py` checks each step of the rule on synthetic pools,
+and that the committed manifests and `tasks/SPLITS.md` are what the
+rule gives for the committed reviews and statuses.
+[tasks/SPLITS.md](tasks/SPLITS.md) lists every candidate each draw
+looked at, in order, with what it did and why.
+
+### The held-out set
+
+Slot order is the rule's: two known-change, then hidden-fix,
+nothing-to-keep and published-benchmark; "(KC)" marks a slot a
+known-change task took because the class had no candidate of that
+family left. CPU tasks reached `runs` here; serving and GPU tasks are
+drawn but unbuilt.
+
+| Class | Known-change | Known-change | Hidden-fix | Nothing-to-keep | Published-benchmark |
+|---|---|---|---|---|---|
+| python | `psf-black-pr3467` | `python-mypy-pr20802` | `networkx-networkx-pr7810` | `pydata-xarray-pr10921-landed` | `swe-perf-sympy-sympy-26546` |
+| native | `libuv-libuv-pr2064` | `astral-sh-uv-pr20879` | `tokio-rs-tokio-pr5829` | `scipy-scipy-pr24913-landed` | (KC) `nlohmann-json-pr5836` |
+| web | `gin-gonic-gin-pr4466` | `django-django-pr20911` | `gin-gonic-gin-pr2365` | `honojs-hono-pr5118-landed` | (KC) `nestjs-nest-pr18136` |
+| agentic | `crewaiinc-crewai-pr5584` | `crewaiinc-crewai-pr5187` | (KC) `agno-agi-agno-pr3013` | `crewaiinc-crewai-pr2382-landed` | (KC) `run-llama-llama-index-pr21755` |
+| serving (unbuilt) | `vllm-project-vllm-pr58634` | `mlc-ai-mlc-llm-pr1033` | `sgl-project-sglang-pr41223` | `internlm-lmdeploy-pr4830-landed` | (KC) `huggingface-text-embeddings-inference-pr35` |
+| gpu (unbuilt) | `flashinfer-ai-flashinfer-pr3761` | `triton-lang-triton-pr11565` | `karpathy-llm-c-matmul-backward-bias-55fbd7e6ad` | `triton-lang-triton-pr11138-landed` | (KC) `dao-ailab-flash-attention-pr2819` |
+
+Passed over on the way, for not reaching `runs` here:
+`sanic-org-sanic-pr412` (its tests hang until the 30-minute timeout
+under the oldest Python and current dependencies) in web. The
+held-out section of `tasks/SPLITS.md` differs from the list as first
+committed (f595745) in one line only: the wording of sanic#412's pass-over
+reason, rewritten when the status rule was corrected. The picks are
+identical. Step 1 read 111 candidates and removed 25 (reasons in
+`tasks/selection.json`; those a draw reached are also listed in
+`tasks/SPLITS.md`).
+
+### The development set
+
+Drawn the same way with salt `perfproof-development-2026-10-16`, from
+the candidates the held-out draw did not take. All 20 CPU tasks build
+and run here; serving and GPU are not drawn yet (see "How the rule
+was applied", point 6). One is `reference-fails`:
+`gso-huggingface-transformers-d51b589`, whose reference commit fails
+two of the tree's XLNet tests (`test_attention_outputs`,
+`test_headmasking`) under current torch while the task tree passes
+them. Whether that is the change or the newer torch is for labelling
+to settle. It took the published-benchmark slot that
+`swe-fficiency-pydata-xarray-7382` held while reference-tree failures
+were wrongly passed over.
+
+| Class | Known-change | Known-change | Hidden-fix | Nothing-to-keep | Published-benchmark |
+|---|---|---|---|---|---|
+| python | `scikit-learn-scikit-learn-pr19328` | `astropy-astropy-pr18455` | `pydata-xarray-pr6107` | `textualize-rich-pr2217-landed` | `gso-huggingface-transformers-d51b589` |
+| native | `duckdb-duckdb-pr25547` | `apache-arrow-pr48898` | `sharkdp-fd-pr853` | `pola-rs-polars-pr29813-landed` | (KC) `tokio-rs-tokio-pr5513` |
+| web | `saleor-saleor-pr15725` | `labstack-echo-pr3023` | `django-django-pr21460` | `rails-rails-pr58751-landed` | (KC) `rails-rails-pr58964` |
+| agentic | `openhands-openhands-pr12105` | `deepset-ai-haystack-pr12997` | (KC) `langchain-ai-langchain-pr38073` | (KC) `run-llama-llama-index-pr18289` | (KC) `mem0ai-mem0-pr1260` |
+
+### How the rule was applied
+
+The rule leaves some choices open. These were made before the draws
+and apply to every class:
+
+1. **Step 1 is read in hash order, as far as the draw reaches.** The
+   rule removes misclassified candidates first, then orders the rest.
+   Reading each candidate when the draw reaches it, and none past
+   the last one a draw needs, gives the same result, because a
+   removal depends only on the change. What was read: the pull
+   request's or commit's description and file list, the revert's
+   description where there is one, and for llm.c the kernel file's
+   header at the commit. Nothing was run for step 1.
+2. **"Class wrong" means outside the class as docs/targets.md defines
+   it.** Agentic: Python apps calling model and tool APIs, so Rust TUI
+   and TypeScript frontend or extension changes in agentic
+   repositories were removed. Serving: LLM inference servers, AMD GPUs
+   outside. GPU: NVIDIA, AMD and Apple GPUs outside.
+3. **A published-benchmark instance's family is right by
+   construction.** Its change is the dataset's reference; all reached
+   were kept, with what the patch does.
+4. **"No candidate of a family"** covers a family with no candidate
+   left that builds and runs, as well as an empty family. Either way
+   the next known-change task takes the slot.
+5. **"Builds and runs here" is `check.py` status `runs` or
+   `reference-fails`.** Buildability is judged on the task tree alone.
+   Only that passes a candidate over: `failed` (the task tree's setup
+   failed) or `builds` (the task tree's workload, or its oracle where
+   required, timed out, could not start or failed; a failure on both
+   trees, such as sanic#412's hang, is one of these). Anything that
+   happens only on the reference tree, whether a failed oracle or
+   workload, a hang, a missing entry point or a setup that doesn't
+   build, is `reference-fails`. Whether the change breaks behaviour or
+   its own build is an outcome for labelling, and docs/evaluation.md
+   step 4 lets only buildability decide, so the task is drawn. A clone or fetch that fails for the network is not
+   recorded, and the candidate is tried again. A failure caused by a
+   mistake in the spec written here (a wrong flag, a wrong output
+   path) was fixed and the task re-run; a failure of the tree or its
+   environment (tests that hang, dependencies that will not build)
+   stands.
+6. **Classes not buildable here are drawn unbuilt.** Their held-out
+   picks are provisional: a pick that later fails on the GPU host is
+   passed over and the next candidate is drawn. Their development draw
+   waits until then, since the held-out draw may still need
+   candidates further down the order.
+7. **What was seen.** Building prints and records each command's exit
+   code, wall time and output tail, including test output. These are
+   single runs, not measurements, and no decision used them. No label,
+   perfproof run or agent run of any held-out candidate exists. The 20
+   CPU held-out tasks were built before `check.py` stopped recording
+   it, so their reference workloads' wall times and output are in
+   their manifests. From now on a held-out task's reference workload
+   is recorded by exit status only (wall time `null`, output not
+   kept), so the serving and GPU held-out builds, still to come, show
+   no effect size while their workloads are being written.
+
 ## Manifest schema
 
 One JSON file per task, `tasks/<family>/<id>.json`. The schema is the
@@ -256,10 +397,10 @@ type-checks `eval/mine` in strict mode.
 | `oracle` | Same shape: the independent correctness check | Test files the change touched, a dataset field, or a command run here |
 | `evidence` | Links with notes, one per source used above | |
 | `audit` | For published-benchmark tasks: the 2026 cross-machine audit's per-task row | Audit data repository, pinned commit |
-| `status` | `candidate` (not built here), `builds`, `runs`, `failed` | `mine/check.py` |
+| `status` | `candidate` (not built here), `runs`, `reference-fails`, `builds`, `failed` | `mine/check.py` (see its docstring and `classify`) |
 | `status_reason` | What was and wasn't checked | |
 | `runs` | Every command run here: step, tree (`task` or `reference`), command, exit code, wall time, date, machine, output tail | `mine/check.py` |
-| `split` | Always `development-candidate` for now | |
+| `split` | `held-out` or `development` for a task `mine/draw.py` picked, else `development-candidate` | `mine/draw.py --write` |
 | `mined_at`, `miner` | When and by which command the manifest was written | |
 
 An unknown stays unknown: a workload or oracle the miner couldn't
@@ -518,9 +659,12 @@ Two things in the datasets look wrong and are not used: SWE-fficiency's
 two trees, the task commit and the reference change, it:
 
 1. extracts that commit with `git archive`, so no later history is
-   present;
-2. creates a uv virtualenv in it;
-3. runs the setup lines;
+   present, with its submodules at their pinned commits;
+2. for a SWE-Perf or SWE-fficiency task, applies the row's patch to
+   the reference tree, and for a GSO or SWE-fficiency task writes the
+   row's script as `workload.py`;
+3. runs the setup lines, which create the environment (a uv
+   virtualenv, a cargo build, a container);
 4. runs the oracle, then the workload.
 
 Commands run through `shlex.split`, never a shell. The results go
@@ -533,14 +677,122 @@ more-itertools tests.
 Machine: M4 MacBook Pro, `macOS-15.7.7-arm64-arm-64bit`, CPython
 3.12.12 from uv.
 
-| Task | Status | Workload | Oracle |
+### Build recipe
+
+Every task drawn for a split was built the same way, so the draw does
+not depend on how hard each one was pushed:
+
+- **Python.** The newest CPython minor released at least six months
+  before the reference change merged (3.8 is the oldest uv has for
+  macOS arm64), and dependencies limited to releases before the day
+  after the merge (`uv pip install --exclude-newer <date>`). A tree
+  with its own `uv.lock` uses it instead (`uv sync --frozen`); one
+  with a `poetry.lock` has it exported with poetry (`uvx --from
+  poetry`) and installed as pinned requirements.
+- **Fallback.** When no era build of a dependency exists for this
+  platform and Python (an old C extension that does not compile
+  against the oldest Python here), the dependencies are current
+  releases instead, and the manifest's `status_reason` says so.
+  Build tooling (setuptools and the like) is not held to the era where
+  the era's version cannot build the tree.
+- **Rust.** Current stable from rustup, the tree's `Cargo.lock` where
+  it has one.
+- **C and C++.** Apple clang; CMake and Ninja from PyPI through uv.
+- **Go.** The official `golang:1.25` image under Docker (no Go is
+  installed here), with `GOTOOLCHAIN=local` and a shared module cache
+  volume. It runs in Docker's linux/arm64 VM, not on macOS itself.
+- **Node.** Node 24 from nvm; `npm --before <date>`, or `npm ci`
+  from the tree's lockfile.
+- **Ruby.** The official `ruby:4.0` image plus Debian's
+  `tzdata-legacy` (`tasks/workloads/_images/ruby-4.0-tzdata-legacy/`,
+  built by the setup), gems from the tree's `Gemfile.lock`.
+- **Python in a container.** Where a Python project needs a system
+  library this Mac lacks (Saleor needs libmagic), the official
+  `python:<version>-bookworm` image under Docker, with the venv on
+  the tree.
+- **Docker runs are bounded.** Every foreground `docker run` has
+  `--rm --init --stop-timeout 10 --name perfproof-<task>-<step>`. When
+  `check.py` times a command out, it kills that container by name
+  with `docker kill`, not just the CLI. The Go and Django held-out
+  tasks were run before this, so their recorded commands lack these
+  flags; their specs have them.
+- **Services.** Databases in local Docker containers (PostgreSQL 16
+  for Django and Saleor), started by the task's setup and removed by
+  its `teardown` lines after every check.
+- **Workload files** written here (benchmarks, generators, settings)
+  are in `tasks/workloads/<task-id>/` and are copied into or run
+  against the tree by the setup lines; shared images are in
+  `tasks/workloads/_images/`.
+- **Captured output** has this checkout's work directory and the home
+  directory rewritten (`eval/mine/work`, `~`).
+
+`check.py` fetches each commit at depth 1 (the network here ran at
+about 20 to 30 KB/s during this work), extracts submodules at their
+pinned commits, applies a SWE-Perf or SWE-fficiency row's patch for
+the reference tree, and writes a GSO or SWE-fficiency workload script
+as `workload.py`. A GSO script only defines `setup`, `experiment`
+and `run_test`; GSO's harness calls `run_test` after changing
+`timeit`'s template, so `benchmarks.GSO_FOOTER` appends that call and
+`python workload.py` runs the workload for every GSO task. A clone or
+fetch that fails after three tries is a network failure: the manifest is left unchanged and the task stays a
+candidate, never `failed`.
+
+Every task built so far, with its split. Workload and oracle commands,
+where each came from, and the runs are in the manifest. The six built
+before the splits were drawn (networkx#7810, more-itertools#773 and
+#699, attrs#1463, jsonschema#1482, pygments#3187) keep their earlier
+runs and specs.
+
+| Task | Class | Split | Status |
 |---|---|---|---|
-| `hidden-fix/networkx-networkx-pr7810` | runs | `nx.square_clustering` on `complete_graph(100)`, from the PR's `%timeit` | `test_cluster.py` (both), 36 passed, 20 skipped (numpy not installed) |
-| `hidden-fix/more-itertools-more-itertools-pr773` | runs | `python -m timeit` of the PR's `%timeit` line | `tests/test_more.py`, 491 passed on both trees |
-| `known-change/more-itertools-more-itertools-pr699` | runs | `python -m timeit` of the PR's first `%timeit` line | `tests/test_more.py`, 466 passed on both trees |
-| `known-change/python-attrs-attrs-pr1463` | runs | `python -m timeit` of `attrs.asdict`, adapted from the PR's pyperf script | `tests/test_funcs.py`, 51 passed (task), 52 (reference) |
-| `known-change/python-jsonschema-jsonschema-pr1482` | runs | `uniqueItems` over 2000 objects, written here from the PR's description | `test_utils.py` and `test_validators.py`, 329 passed (task), 341 (reference) |
-| `known-change/pygments-pygments-pr3187` | builds | A long Rell comment, written here; single runs took 0.06 s (task) and 0.04 s (reference), so probably too light | Full suite: 1 failure on both trees (`tests/examplefiles/fstar/example.fst`) |
+| `known-change/agno-agi-agno-pr3013` | agentic | held-out | runs |
+| `nothing-to-keep/crewaiinc-crewai-pr2382-landed` | agentic | held-out | runs |
+| `known-change/crewaiinc-crewai-pr5187` | agentic | held-out | runs |
+| `known-change/crewaiinc-crewai-pr5584` | agentic | held-out | runs |
+| `known-change/run-llama-llama-index-pr21755` | agentic | held-out | runs |
+| `known-change/astral-sh-uv-pr20879` | native | held-out | runs |
+| `known-change/libuv-libuv-pr2064` | native | held-out | runs |
+| `known-change/nlohmann-json-pr5836` | native | held-out | runs |
+| `nothing-to-keep/scipy-scipy-pr24913-landed` | native | held-out | runs |
+| `hidden-fix/tokio-rs-tokio-pr5829` | native | held-out | runs |
+| `hidden-fix/networkx-networkx-pr7810` | python | held-out | runs |
+| `known-change/psf-black-pr3467` | python | held-out | runs |
+| `nothing-to-keep/pydata-xarray-pr10921-landed` | python | held-out | runs |
+| `known-change/python-mypy-pr20802` | python | held-out | runs |
+| `published-benchmark/swe-perf-sympy-sympy-26546` | python | held-out | runs |
+| `known-change/django-django-pr20911` | web | held-out | runs |
+| `hidden-fix/gin-gonic-gin-pr2365` | web | held-out | runs |
+| `known-change/gin-gonic-gin-pr4466` | web | held-out | runs |
+| `nothing-to-keep/honojs-hono-pr5118-landed` | web | held-out | runs |
+| `known-change/nestjs-nest-pr18136` | web | held-out | runs |
+| `known-change/deepset-ai-haystack-pr12997` | agentic | development | runs |
+| `known-change/langchain-ai-langchain-pr38073` | agentic | development | runs |
+| `known-change/mem0ai-mem0-pr1260` | agentic | development | runs |
+| `known-change/openhands-openhands-pr12105` | agentic | development | runs |
+| `known-change/run-llama-llama-index-pr18289` | agentic | development | runs |
+| `known-change/apache-arrow-pr48898` | native | development | runs |
+| `known-change/duckdb-duckdb-pr25547` | native | development | runs |
+| `nothing-to-keep/pola-rs-polars-pr29813-landed` | native | development | runs |
+| `hidden-fix/sharkdp-fd-pr853` | native | development | runs |
+| `known-change/tokio-rs-tokio-pr5513` | native | development | runs |
+| `known-change/astropy-astropy-pr18455` | python | development | runs |
+| `published-benchmark/gso-huggingface-transformers-d51b589` | python | development | reference-fails |
+| `hidden-fix/pydata-xarray-pr6107` | python | development | runs |
+| `known-change/scikit-learn-scikit-learn-pr19328` | python | development | runs |
+| `nothing-to-keep/textualize-rich-pr2217-landed` | python | development | runs |
+| `hidden-fix/django-django-pr21460` | web | development | runs |
+| `known-change/labstack-echo-pr3023` | web | development | runs |
+| `nothing-to-keep/rails-rails-pr58751-landed` | web | development | runs |
+| `known-change/rails-rails-pr58964` | web | development | runs |
+| `known-change/saleor-saleor-pr15725` | web | development | runs |
+| `known-change/more-itertools-more-itertools-pr699` | python | development-candidate | runs |
+| `hidden-fix/more-itertools-more-itertools-pr773` | python | development-candidate | runs |
+| `known-change/pygments-pygments-pr3187` | python | development-candidate | builds |
+| `known-change/python-attrs-attrs-pr1463` | python | development-candidate | runs |
+| `known-change/python-jsonschema-jsonschema-pr1482` | python | development-candidate | runs |
+| `published-benchmark/swe-fficiency-pydata-xarray-7382` | python | development-candidate | runs |
+| `known-change/sympy-sympy-pr30321` | python | development-candidate | runs |
+| `known-change/sanic-org-sanic-pr412` | web | development-candidate | builds |
 
 The exact commands, exit codes, wall times and output tails are in
 each manifest's `runs`. Those wall times come from one run each. They
@@ -551,16 +803,31 @@ faster. That is T4.2's job.
 
 - **Nothing has a label.** No performance or correctness label has
   been produced for any task.
-- **370 of 376 tasks are unbuilt.** That covers every native, web,
-  serving, GPU, agentic and published-benchmark task. Their workload
-  and oracle fields come from text and dataset fields, not from runs.
-  This includes all 12 llm.c tasks, which need an NVIDIA GPU, and all
-  34 benchmark instances.
-- **The 5 tasks that run were checked against targeted tests only.**
+- **328 of 376 tasks are unbuilt.** Their workload and oracle fields
+  come from text and dataset fields, not from runs. That includes
+  every serving and GPU task: the ten held-out picks in those classes
+  are drawn but unbuilt, and any that fails on the GPU host moves its
+  draw on.
+- **Serving and GPU have no development tasks yet.** Their draw waits
+  for the held-out picks to be built on a GPU host.
+- **Some workloads are much smaller than the change's own setting.**
+  Saleor's runs against `populatedb` sample data, not the million
+  categories its pull request measured; OpenHands's and the agentic
+  fakes stand in for remote services with a fixed latency. A label
+  may find no effect at this size.
+- **The 46 tasks that run were checked against targeted tests only.**
   These are tests the change touched, or the module's own test file,
   not the full test suite (the evaluation's oracle). Their workloads
   were adapted or written here, as each manifest's `workload.source`
-  says.
+  says. Whether a written workload exercises the change was judged by
+  reading the code it calls, not measured.
+- **One machine.** Every build ran on this Mac. Go tasks ran in
+  Docker's linux/arm64 VM. Nothing ran on Linux x86-64.
+- **Step-1 judgment calls.** Class boundaries were taken from
+  docs/targets.md (see "How the rule was applied"). That removed
+  Rust and TypeScript changes from agentic and an AMD, an Apple and
+  some non-serving changes from serving and GPU; a lead who reads the
+  classes by repository instead would restore them and redraw.
 - **Most of the miner's classifications have not been checked by
   hand.** Family, change kind and revert reason all come from keyword
   rules, and evidence detection is a regular expression. Two reviews
@@ -581,9 +848,10 @@ faster. That is T4.2's job.
   `Kludex/starlette`, `pallets/flask`, `expressjs/express`,
   `ijl/orjson`, `microsoft/mimalloc`.
 - **Known gaps in the tooling:**
-  - `mine/check.py` can't build SWE-Perf or SWE-fficiency tasks. Their
-    reference is a patch, and it has no step that applies one, so it
-    records them as `failed`.
+  - A failure inside the checkout step that is not a network failure
+    (a patch that does not apply, a gitlink with no `.gitmodules`
+    entry) still writes `failed` with no `runs`, which the manifest
+    consistency test rejects. None has happened yet.
   - The one-task-per-PR check finds a GSO instance's pull request only
     through a `(#N)` in its commit title. Two instances, transformers
     `d51b589` and tornado `ac13ee5`, have none. No mined task comes

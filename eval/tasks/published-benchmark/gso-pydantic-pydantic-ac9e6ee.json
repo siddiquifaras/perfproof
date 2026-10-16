@@ -32,7 +32,7 @@
   "target_class": "python",
   "workload": {
     "command": "python workload.py",
-    "source": "the prob_script field of gso-bench/gso row pydantic__pydantic-ac9e6ee, saved as workload.py",
+    "source": "the prob_script field of gso-bench/gso row pydantic__pydantic-ac9e6ee, saved as workload.py with the run_test call GSO's harness makes appended (benchmarks.GSO_FOOTER)",
     "verified": false
   },
   "oracle": {

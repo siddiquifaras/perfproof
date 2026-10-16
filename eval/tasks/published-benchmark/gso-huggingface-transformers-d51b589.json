@@ -22,13 +22,13 @@
   "target_class": "python",
   "workload": {
     "command": "python workload.py",
-    "source": "the prob_script field of gso-bench/gso row huggingface__transformers-d51b589, saved as workload.py",
-    "verified": false
+    "source": "the prob_script field of gso-bench/gso row huggingface__transformers-d51b589, saved as workload.py with the run_test call GSO's harness makes appended (benchmarks.GSO_FOOTER). It downloads xlnet-base-cased from the Hugging Face hub on first use",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown: GSO rows carry no test command; its 6 generated tests check results against a stored reference",
-    "verified": false
+    "command": "python -m pytest -q transformers/tests/modeling_xlnet_test.py",
+    "source": "the tree's own XLNet model tests (transformers/tests/modeling_xlnet_test.py), for transformers/modeling_xlnet.py, the file the reference commit changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -41,10 +41,111 @@
     }
   ],
   "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=1.6964290890390243, min_threshold_margin=0.0016350491835404046 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
-  "status": "candidate",
-  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "reference-fails",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. On the reference tree only: oracle exit 1. That is an outcome of the reference change, recorded for labelling, not a build failure. Python 3.9 and a current CPU torch, as GSO's own install commands use (no Python of the change's era, 2019, has a macOS arm64 build). The model download is network, not part of the tree",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv venv --python 3.9 --managed-python .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T14:30:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nwarning: The requested interpreter resolved to Python 3.9.25, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv pip install torch numpy<2 sentencepiece requests boto3 regex sacremoses tqdm pytest",
+      "exit_code": 0,
+      "duration_s": 0.93,
+      "date": "2026-10-16T14:30:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pygments==2.21.0\n + pytest==8.4.2\n + python-dateutil==2.9.0.post0\n + regex==2026.1.15\n + requests==2.32.5\n + s3transfer==0.16.1\n + sacremoses==0.2.0\n + sentencepiece==0.2.2\n + six==1.17.0\n + sympy==1.14.0\n + tomli==2.5.0\n + torch==2.8.0\n + tqdm==4.70.1\n + typing-extensions==4.16.0\n + urllib3==1.26.20"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv pip install --no-deps .",
+      "exit_code": 0,
+      "duration_s": 0.65,
+      "date": "2026-10-16T14:30:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 345ms\n   Building transformers @ file://eval/mine/work/gso-huggingface-transformers-d51b589/task\n      Built transformers @ file://eval/mine/work/gso-huggingface-transformers-d51b589/task\nPrepared 1 package in 162ms\nInstalled 1 package in 3ms\n + transformers==2.0.0 (from file://eval/mine/work/gso-huggingface-transformers-d51b589/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 python -m pytest -q transformers/tests/modeling_xlnet_test.py",
+      "exit_code": 0,
+      "duration_s": 16.59,
+      "date": "2026-10-16T14:30:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..........s.........                                                     [100%]\n=============================== warnings summary ===============================\ntransformers/tokenization_xlm.py:659\n  eval/mine/work/gso-huggingface-transformers-d51b589/task/transformers/tokenization_xlm.py:659: DeprecationWarning: invalid escape sequence \\*\n    \"\"\"\n\ntransformers/tests/modeling_xlnet_test.py:318\n  eval/mine/work/gso-huggingface-transformers-d51b589/task/transformers/tests/modeling_xlnet_test.py:318: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.slow\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n19 passed, 1 skipped, 2 warnings in 6.54s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 python workload.py",
+      "exit_code": 0,
+      "duration_s": 13.37,
+      "date": "2026-10-16T14:30:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "To use data.metrics please install scikit-learn. See https://scikit-learn.org/stable/index.html"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv venv --python 3.9 --managed-python .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T14:30:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nwarning: The requested interpreter resolved to Python 3.9.25, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv pip install torch numpy<2 sentencepiece requests boto3 regex sacremoses tqdm pytest",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T14:30:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pygments==2.21.0\n + pytest==8.4.2\n + python-dateutil==2.9.0.post0\n + regex==2026.1.15\n + requests==2.32.5\n + s3transfer==0.16.1\n + sacremoses==0.2.0\n + sentencepiece==0.2.2\n + six==1.17.0\n + sympy==1.14.0\n + tomli==2.5.0\n + torch==2.8.0\n + tqdm==4.70.1\n + typing-extensions==4.16.0\n + urllib3==1.26.20"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 uv pip install --no-deps .",
+      "exit_code": 0,
+      "duration_s": 0.66,
+      "date": "2026-10-16T14:30:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 347ms\n   Building transformers @ file://eval/mine/work/gso-huggingface-transformers-d51b589/reference\n      Built transformers @ file://eval/mine/work/gso-huggingface-transformers-d51b589/reference\nPrepared 1 package in 180ms\nInstalled 1 package in 2ms\n + transformers==2.0.0 (from file://eval/mine/work/gso-huggingface-transformers-d51b589/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 python -m pytest -q transformers/tests/modeling_xlnet_test.py",
+      "exit_code": 1,
+      "duration_s": 15.59,
+      "date": "2026-10-16T14:30:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "transformers/modeling_xlnet.py:287: RuntimeError\n=============================== warnings summary ===============================\ntransformers/tokenization_xlm.py:659\n  eval/mine/work/gso-huggingface-transformers-d51b589/reference/transformers/tokenization_xlm.py:659: DeprecationWarning: invalid escape sequence \\*\n    \"\"\"\n\ntransformers/tests/modeling_xlnet_test.py:318\n  eval/mine/work/gso-huggingface-transformers-d51b589/reference/transformers/tests/modeling_xlnet_test.py:318: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.slow\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED transformers/tests/modeling_xlnet_test.py::XLNetModelTest::test_attention_outputs\nFAILED transformers/tests/modeling_xlnet_test.py::XLNetModelTest::test_headmasking\n2 failed, 17 passed, 1 skipped, 2 warnings in 6.01s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "HF_HUB_DISABLE_TELEMETRY=1 python workload.py",
+      "exit_code": 0,
+      "duration_s": 11.58,
+      "date": "2026-10-16T14:30:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "To use data.metrics please install scikit-learn. See https://scikit-learn.org/stable/index.html"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:05:49+00:00",
   "miner": "uv run python eval/mine/mine.py benchmarks"
 }

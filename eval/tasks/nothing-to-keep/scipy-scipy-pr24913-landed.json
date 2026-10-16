@@ -25,14 +25,14 @@
   "change_kind": "after-landed",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"import numpy as np; from scipy.linalg import cholesky; a = np.random.default_rng(0).random((512, 512)); a = a @ a.T + 512 * np.eye(512); [cholesky(a, lower=False) for _ in range(300)]\"",
+    "source": "written here from the description of https://github.com/scipy/scipy/pull/24913 (real 512x512 matrices with lower=False, the case its regression hit hardest): repeated scipy.linalg.cholesky on a fixed positive-definite matrix",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest scipy/linalg/tests/test_decomp_cholesky.py",
-    "source": "test files changed by https://github.com/scipy/scipy/pull/24913 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q scipy/linalg/tests/test_decomp_cholesky.py",
+    "source": "scipy's Cholesky tests (scipy/linalg/tests/test_decomp_cholesky.py, which https://github.com/scipy/scipy/pull/24913 extends); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -41,10 +41,111 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built from source with meson-python against Apple Accelerate and without Fortran (no Fortran compiler here; scipy's _without-fortran option), git submodules fetched at their pinned commits. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-16T08:52:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-04-04 numpy meson-python meson ninja Cython pybind11 pythran pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 6.59,
+      "date": "2026-10-16T08:52:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + iniconfig==2.3.0\n + meson==1.10.2\n + meson-python==0.19.0\n + ninja==1.13.0\n + numpy==2.4.4\n + packaging==26.0\n + pluggy==1.6.0\n + ply==3.11\n + pybind11==3.0.3\n + pygments==2.20.0\n + pyproject-metadata==0.11.0\n + pytest==9.0.2\n + pythran==0.18.1\n + setuptools==82.0.1\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-04-04 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -Csetup-args=-D_without-fortran=true -e .",
+      "exit_code": 0,
+      "duration_s": 401.13,
+      "date": "2026-10-16T08:52:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 2 packages in 4ms\n   Building scipy @ file://eval/mine/work/scipy-scipy-pr24913-landed/task\n      Built scipy @ file://eval/mine/work/scipy-scipy-pr24913-landed/task\nPrepared 1 package in 6m 40s\nInstalled 1 package in 2ms\n + scipy==1.18.0.dev0 (from file://eval/mine/work/scipy-scipy-pr24913-landed/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q scipy/linalg/tests/test_decomp_cholesky.py",
+      "exit_code": 0,
+      "duration_s": 6.26,
+      "date": "2026-10-16T08:59:12+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...........................s............................................ [ 30%]\n........................................................................ [ 61%]\n........................................................................ [ 92%]\n.................                                                        [100%]\n232 passed, 1 skipped in 3.28s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"import numpy as np; from scipy.linalg import cholesky; a = np.random.default_rng(0).random((512, 512)); a = a @ a.T + 512 * np.eye(512); [cholesky(a, lower=False) for _ in range(300)]\"",
+      "exit_code": 0,
+      "duration_s": 1.21,
+      "date": "2026-10-16T08:59:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.1,
+      "date": "2026-10-16T08:59:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-04-04 numpy meson-python meson ninja Cython pybind11 pythran pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 1.04,
+      "date": "2026-10-16T08:59:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + iniconfig==2.3.0\n + meson==1.10.2\n + meson-python==0.19.0\n + ninja==1.13.0\n + numpy==2.4.4\n + packaging==26.0\n + pluggy==1.6.0\n + ply==3.11\n + pybind11==3.0.3\n + pygments==2.20.0\n + pyproject-metadata==0.11.0\n + pytest==9.0.2\n + pythran==0.18.1\n + setuptools==82.0.1\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-04-04 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -Csetup-args=-D_without-fortran=true -e .",
+      "exit_code": 0,
+      "duration_s": 371.49,
+      "date": "2026-10-16T08:59:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 2 packages in 4ms\n   Building scipy @ file://eval/mine/work/scipy-scipy-pr24913-landed/reference\n      Built scipy @ file://eval/mine/work/scipy-scipy-pr24913-landed/reference\nPrepared 1 package in 6m 11s\nInstalled 1 package in 1ms\n + scipy==1.18.0.dev0 (from file://eval/mine/work/scipy-scipy-pr24913-landed/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q scipy/linalg/tests/test_decomp_cholesky.py",
+      "exit_code": 0,
+      "duration_s": 7.61,
+      "date": "2026-10-16T09:05:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...........................s............................................ [ 30%]\n........................................................................ [ 61%]\n........................................................................ [ 92%]\n.................                                                        [100%]\n232 passed, 1 skipped in 3.97s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"import numpy as np; from scipy.linalg import cholesky; a = np.random.default_rng(0).random((512, 512)); a = a @ a.T + 512 * np.eye(512); [cholesky(a, lower=False) for _ in range(300)]\"",
+      "exit_code": 0,
+      "duration_s": 1.86,
+      "date": "2026-10-16T09:05:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

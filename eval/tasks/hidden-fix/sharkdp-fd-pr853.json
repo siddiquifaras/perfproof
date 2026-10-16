@@ -22,14 +22,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "hyperfine ./fd-{before,after}\" --color=always -HI -j1 --search-path=../../linux >/dev/null\"",
-    "source": "quoted in the description of https://github.com/sharkdp/fd/pull/853",
-    "verified": false
+    "command": "target/release/fd --color=always -HI -j1 . eval-tree",
+    "source": "adapted from the hyperfine command in the description of https://github.com/sharkdp/fd/pull/853 (--color=always -HI -j1), searching a fixed generated tree of 20,000 files (eval/tasks/workloads/sharkdp-fd-pr853/make_tree.py) instead of a Linux checkout",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "cargo test --release --locked",
+    "source": "fd's own test suite (unit and integration tests); the change is in src/output.rs",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,10 +38,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the current stable Rust from rustup and the tree's Cargo.lock",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 34.01,
+      "date": "2026-10-16T08:46:00+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<[u8]> {\n   |                              ^^^^^^     ^^^^^^^^^ the same lifetime is hidden here\n   |                              |\n   |                              the lifetime is elided here\n   |\n   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n   |                                             +++\n\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 33.97s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "python3 ../../../../tasks/workloads/sharkdp-fd-pr853/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 2.49,
+      "date": "2026-10-16T08:46:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 49.71,
+      "date": "2026-10-16T08:46:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   |\n   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n   |                                             +++\n\n   Compiling tempdir v0.3.7\n   Compiling quote v1.0.10\nwarning: `fd-find` (bin \"fd\" test) generated 1 warning (1 duplicate)\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 48.41s\n     Running unittests src/main.rs (target/release/deps/fd-cd3f5bdf8582b11d)\n     Running tests/tests.rs (target/release/deps/tests-9cd04324b43236a9)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "target/release/fd --color=always -HI -j1 . eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.16,
+      "date": "2026-10-16T08:47:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;185mfile234.md\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;48mfile232.rs\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;48mfile481.py\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;185mfile162.md\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;208mfile004.png\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;208mfile164.png\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[4;38;5;203mfile091.tar.gz\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;48mfile173.sh\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;185mfile270.txt\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;48mfile365.sh\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;208mfile372.png\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0mfile375\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;185mfile498.md\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;48mfile408.rs\u001b[0m\n\u001b[38;5;81meval-tree/\u001b[0m\u001b[38;5;81mdir22/\u001b[0m\u001b[38;5;81mnested1/\u001b[0m\u001b[38;5;208mfile428.png\u001b[0m"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 55.96,
+      "date": "2026-10-16T08:47:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<[u8]> {\n   |                              ^^^^^^     ^^^^^^^^^ the same lifetime is hidden here\n   |                              |\n   |                              the lifetime is elided here\n   |\n   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n   |                                             +++\n\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 55.90s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "python3 ../../../../tasks/workloads/sharkdp-fd-pr853/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 1.86,
+      "date": "2026-10-16T08:48:22+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 34.28,
+      "date": "2026-10-16T08:48:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   |\n   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n   |\n93 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n   |                                             +++\n\n   Compiling tempdir v0.3.7\n   Compiling quote v1.0.10\nwarning: `fd-find` (bin \"fd\" test) generated 1 warning (1 duplicate)\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 32.53s\n     Running unittests src/main.rs (target/release/deps/fd-cd3f5bdf8582b11d)\n     Running tests/tests.rs (target/release/deps/tests-9cd04324b43236a9)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "target/release/fd --color=always -HI -j1 . eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.17,
+      "date": "2026-10-16T08:48:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;185mfile234.md\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;48mfile232.rs\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;48mfile481.py\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;185mfile162.md\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;208mfile004.png\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;208mfile164.png\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[4;38;5;203mfile091.tar.gz\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;48mfile173.sh\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;185mfile270.txt\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;48mfile365.sh\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;208mfile372.png\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0mfile375\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;185mfile498.md\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;48mfile408.rs\u001b[0m\n\u001b[38;5;81meval-tree/dir22/nested1/\u001b[0m\u001b[38;5;208mfile428.png\u001b[0m"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

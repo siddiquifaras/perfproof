@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+    "source": "written here from the description of https://github.com/langchain-ai/langchain/pull/38073 (tool_call_schema rebuilt on every conversion; its benchmark file is not in the task tree): 2,000 convert_to_openai_tool calls over 20 tools, eval/tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest libs/core/tests/benchmarks/test_tool_schema_conversion.py libs/core/tests/unit_tests/test_tools.py",
-    "source": "test files changed by https://github.com/langchain-ai/langchain/pull/38073 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q -p no:randomly libs/core/tests/unit_tests/test_tools.py",
+    "source": "langchain-core's tool tests (changed by https://github.com/langchain-ai/langchain/pull/38073); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,71 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies from libs/core's own uv.lock (uv sync --frozen), into the tree's .venv",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv uv sync --frozen --python 3.14+gil --project libs/core --group test",
+      "exit_code": 0,
+      "duration_s": 2.41,
+      "date": "2026-10-16T12:55:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + tzdata==2025.2\n + uri-template==1.3.0\n + urllib3==2.7.0\n + uuid-utils==0.16.0\n + vcrpy==8.1.1\n + watchdog==6.0.0\n + wcwidth==0.2.14\n + webcolors==25.10.0\n + webencodings==0.5.1\n + websocket-client==1.9.0\n + widgetsnbextension==4.0.15\n + wrapt==2.0.1\n + xxhash==3.6.0\n + zstandard==0.25.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv python -m pytest -q -p no:randomly libs/core/tests/unit_tests/test_tools.py",
+      "exit_code": 0,
+      "duration_s": 8.28,
+      "date": "2026-10-16T12:55:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..................................sss..................s................ [ 80%]\n................s...................                                     [100%]\n=============================== warnings summary ===============================\nlibs/core/tests/unit_tests/test_tools.py:26\n  eval/mine/work/langchain-ai-langchain-pr38073/task/libs/core/tests/unit_tests/test_tools.py:26: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.\n    from pydantic.v1 import BaseModel as BaseModelV1\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 5 durations ==============================\n1.00s call     tests/unit_tests/test_tools.py::test_create_retriever_tool\n0.67s call     tests/unit_tests/test_tools.py::test_unnamed_decorator\n0.03s call     tests/unit_tests/test_tools.py::test_async_tool_pass_config[tool0]\n0.01s call     tests/unit_tests/test_tools.py::test_named_tool_decorator\n0.01s call     tests/unit_tests/test_tools.py::test_convert_from_runnable_other\n173 passed, 7 skipped, 1 warning in 2.33s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv python ../../../../tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+      "exit_code": 0,
+      "duration_s": 2.16,
+      "date": "2026-10-16T12:56:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2000\neval/mine/work/langchain-ai-langchain-pr38073/task/libs/core/langchain_core/utils/pydantic.py:41: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.\n  from pydantic.v1 import BaseModel as BaseModelV1"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv uv sync --frozen --python 3.14+gil --project libs/core --group test",
+      "exit_code": 0,
+      "duration_s": 0.6,
+      "date": "2026-10-16T12:56:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + tzdata==2025.2\n + uri-template==1.3.0\n + urllib3==2.7.0\n + uuid-utils==0.16.0\n + vcrpy==8.1.1\n + watchdog==6.0.0\n + wcwidth==0.2.14\n + webcolors==25.10.0\n + webencodings==0.5.1\n + websocket-client==1.9.0\n + widgetsnbextension==4.0.15\n + wrapt==2.0.1\n + xxhash==3.6.0\n + zstandard==0.25.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv python -m pytest -q -p no:randomly libs/core/tests/unit_tests/test_tools.py",
+      "exit_code": 0,
+      "duration_s": 12.93,
+      "date": "2026-10-16T12:56:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "................s.........................                               [100%]\n=============================== warnings summary ===============================\nlibs/core/tests/unit_tests/test_tools.py:27\n  eval/mine/work/langchain-ai-langchain-pr38073/reference/libs/core/tests/unit_tests/test_tools.py:27: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.\n    from pydantic.v1 import BaseModel as BaseModelV1\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 5 durations ==============================\n2.15s call     tests/unit_tests/test_tools.py::test_create_retriever_tool\n0.86s call     tests/unit_tests/test_tools.py::test_unnamed_decorator\n0.02s call     tests/unit_tests/test_tools.py::test_async_tool_pass_config[tool0]\n0.01s call     tests/unit_tests/test_tools.py::test_convert_from_runnable_other\n\n(1 durations < 0.005s hidden.  Use -vv to show these durations.)\n179 passed, 7 skipped, 1 warning in 3.59s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "UV_PROJECT_ENVIRONMENT=../../.venv python ../../../../tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T12:56:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2000\neval/mine/work/langchain-ai-langchain-pr38073/reference/libs/core/langchain_core/utils/pydantic.py:41: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.\n  from pydantic.v1 import BaseModel as BaseModelV1"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

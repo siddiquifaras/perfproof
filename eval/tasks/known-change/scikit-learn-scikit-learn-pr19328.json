@@ -22,14 +22,14 @@
   "change_kind": "improvement",
   "target_class": "python",
   "workload": {
-    "command": "%timeit min_pos(X)",
-    "source": "quoted in the description of https://github.com/scikit-learn/scikit-learn/pull/19328",
-    "verified": false
+    "command": "python -c \"import numpy as np; from sklearn.utils.arrayfuncs import min_pos; X = np.random.RandomState(0).randn(100); [min_pos(X) for _ in range(200000)]\"",
+    "source": "adapted from the %timeit min_pos(X) case on 100 elements in the description of https://github.com/scikit-learn/scikit-learn/pull/19328",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest sklearn/utils/tests/test_arrayfuncs.py",
-    "source": "test files changed by https://github.com/scikit-learn/scikit-learn/pull/19328 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q sklearn/utils/tests/test_arrayfuncs.py",
+    "source": "sklearn/utils/tests/test_arrayfuncs.py, which https://github.com/scikit-learn/scikit-learn/pull/19328 adds; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,10 +38,111 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs (oracle required on the reference tree only: it names tests the reference change adds). Built without OpenMP (SKLEARN_NO_OPENMP=1; Apple clang has none). Python 3.8 is the oldest uv build here. The era recipe (dependencies released before 2021-02-04) failed: no macOS arm64 wheels of NumPy or SciPy existed then and they do not build from source here, so dependencies are the newest releases that still carry numpy.distutils and Cython 0.29 (the fallback recipe in eval/README.md). Built in place with setup.py build_ext: setuptools<60 has no editable-install hook (PEP 660)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SKLEARN_NO_OPENMP=1 uv venv --python 3.8 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T12:51:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.8.20\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SKLEARN_NO_OPENMP=1 uv pip install numpy<1.25 scipy<1.11 cython<3 setuptools<60 wheel joblib threadpoolctl pytest",
+      "exit_code": 0,
+      "duration_s": 0.54,
+      "date": "2026-10-16T12:51:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Installed 14 packages in 37ms\n + cython==0.29.37\n + exceptiongroup==1.3.1\n + iniconfig==2.1.0\n + joblib==1.4.2\n + numpy==1.24.4\n + packaging==26.2\n + pluggy==1.5.0\n + pytest==8.3.5\n + scipy==1.10.1\n + setuptools==59.8.0\n + threadpoolctl==3.5.0\n + tomli==2.5.0\n + typing-extensions==4.13.2\n + wheel==0.45.1"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SKLEARN_NO_OPENMP=1 python setup.py build_ext -i -j 8",
+      "exit_code": 0,
+      "duration_s": 28.96,
+      "date": "2026-10-16T12:51:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "~/.local/share/uv/python/cpython-3.8-macos-aarch64-none/include/python3.8/cpython/object.h:260:5: note: 'tp_print' has been explicitly marked deprecated here\n  260 |     Py_DEPRECATED(3.8) int (*tp_print)(PyObject *, FILE *, int);\n      |     ^\n~/.local/share/uv/python/cpython-3.8-macos-aarch64-none/include/python3.8/pyport.h:515:54: note: expanded from macro 'Py_DEPRECATED'\n  515 | #define Py_DEPRECATED(VERSION_UNUSED) __attribute__((__deprecated__))\n      |                                                      ^\n5 warnings generated.\n1 warning generated.\n3 warnings generated.\n19 warnings generated.\n9 warnings generated.\n49 warnings generated.\n28 warnings generated.\neval/mine/work/scikit-learn-scikit-learn-pr19328/task/.venv/lib/python3.8/site-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.\n  warnings.warn("
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "SKLEARN_NO_OPENMP=1 python -m pytest -q sklearn/utils/tests/test_arrayfuncs.py",
+      "exit_code": 4,
+      "duration_s": 35.36,
+      "date": "2026-10-16T12:52:23+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "no tests ran in 0.00s\nERROR: file or directory not found: sklearn/utils/tests/test_arrayfuncs.py"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "SKLEARN_NO_OPENMP=1 python -c \"import numpy as np; from sklearn.utils.arrayfuncs import min_pos; X = np.random.RandomState(0).randn(100); [min_pos(X) for _ in range(200000)]\"",
+      "exit_code": 0,
+      "duration_s": 2.3,
+      "date": "2026-10-16T12:52:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SKLEARN_NO_OPENMP=1 uv venv --python 3.8 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:53:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.8.20\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SKLEARN_NO_OPENMP=1 uv pip install numpy<1.25 scipy<1.11 cython<3 setuptools<60 wheel joblib threadpoolctl pytest",
+      "exit_code": 0,
+      "duration_s": 0.14,
+      "date": "2026-10-16T12:53:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Installed 14 packages in 51ms\n + cython==0.29.37\n + exceptiongroup==1.3.1\n + iniconfig==2.1.0\n + joblib==1.4.2\n + numpy==1.24.4\n + packaging==26.2\n + pluggy==1.5.0\n + pytest==8.3.5\n + scipy==1.10.1\n + setuptools==59.8.0\n + threadpoolctl==3.5.0\n + tomli==2.5.0\n + typing-extensions==4.13.2\n + wheel==0.45.1"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SKLEARN_NO_OPENMP=1 python setup.py build_ext -i -j 8",
+      "exit_code": 0,
+      "duration_s": 31.25,
+      "date": "2026-10-16T12:53:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "~/.local/share/uv/python/cpython-3.8-macos-aarch64-none/include/python3.8/cpython/object.h:260:5: note: 'tp_print' has been explicitly marked deprecated here\n  260 |     Py_DEPRECATED(3.8) int (*tp_print)(PyObject *, FILE *, int);\n      |     ^\n~/.local/share/uv/python/cpython-3.8-macos-aarch64-none/include/python3.8/pyport.h:515:54: note: expanded from macro 'Py_DEPRECATED'\n  515 | #define Py_DEPRECATED(VERSION_UNUSED) __attribute__((__deprecated__))\n      |                                                      ^\n1 warning generated.\n5 warnings generated.\n3 warnings generated.\n19 warnings generated.\n9 warnings generated.\n49 warnings generated.\n28 warnings generated.\neval/mine/work/scikit-learn-scikit-learn-pr19328/reference/.venv/lib/python3.8/site-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.\n  warnings.warn("
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "SKLEARN_NO_OPENMP=1 python -m pytest -q sklearn/utils/tests/test_arrayfuncs.py",
+      "exit_code": 0,
+      "duration_s": 91.61,
+      "date": "2026-10-16T12:53:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...                                                                      [100%]\n3 passed, 1 warning in 1.66s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "SKLEARN_NO_OPENMP=1 python -c \"import numpy as np; from sklearn.utils.arrayfuncs import min_pos; X = np.random.RandomState(0).randn(100); [min_pos(X) for _ in range(200000)]\"",
+      "exit_code": 0,
+      "duration_s": 0.48,
+      "date": "2026-10-16T12:55:04+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

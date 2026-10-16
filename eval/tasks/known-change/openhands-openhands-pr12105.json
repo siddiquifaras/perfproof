@@ -24,14 +24,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+    "source": "written here from the description of https://github.com/OpenHands/OpenHands/pull/12105 (search_sandboxes making one runtime API call per sandbox): ten searches over 50 stored sandboxes against an in-process fake runtime API that answers one request at a time after 5 ms, with in-memory SQLite, eval/tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -p no:cacheprovider tests/unit/app_server/test_remote_sandbox_service.py",
+    "source": "OpenHands's RemoteSandboxService tests (changed by https://github.com/OpenHands/OpenHands/pull/12105); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -40,10 +40,151 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies are the tree's poetry.lock, exported with poetry 2.1.3 (main and test groups); aiosqlite, which the workload's in-memory database needs, is added at a release from before the change's date",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T13:33:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --with test --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 24.81,
+      "date": "2026-10-16T13:33:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Building zstandard==0.25.0\n      Built zstandard==0.25.0\nInstalled 44 packages in 42ms"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 21.53,
+      "date": "2026-10-16T13:33:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + websockets==15.0.1\n + werkzeug==3.1.1\n + whatthepatch==1.0.7\n + widgetsnbextension==4.0.14\n + wrapt==1.17.2\n + wsproto==1.2.0\n + xattr==1.1.4\n + xlrd==2.0.1\n + xlsxwriter==3.2.5\n + yarl==1.20.0\n + youtube-transcript-api==1.0.3\n + zipp==3.22.0\n + zope-event==5.0\n + zope-interface==7.2\n + zstandard==0.23.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2025-12-20 aiosqlite",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-16T13:33:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Checked 1 package in 5ms"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 111.02,
+      "date": "2026-10-16T13:33:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 1.21s\n   Building openhands-ai @ file://eval/mine/work/openhands-openhands-pr12105/task\n      Built openhands-ai @ file://eval/mine/work/openhands-openhands-pr12105/task\nPrepared 1 package in 1m 49s\nInstalled 1 package in 2ms\n + openhands-ai==1.0.0 (from file://eval/mine/work/openhands-openhands-pr12105/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q -p no:cacheprovider tests/unit/app_server/test_remote_sandbox_service.py",
+      "exit_code": 0,
+      "duration_s": 49.99,
+      "date": "2026-10-16T13:35:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "........................................                                 [100%]\n40 passed in 40.29s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python ../../../../tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+      "exit_code": 0,
+      "duration_s": 18.48,
+      "date": "2026-10-16T13:36:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "                             v1_remote_sandbox.created_at                       \n                             FROM v1_remote_sandbox ORDER BY                    \n                             v1_remote_sandbox.created_at DESC                  \n                              LIMIT ? OFFSET ?                                  \n[10/16/26 18:36:52] INFO     [cached since 3.738s ago] (51, 0)      base.py:1846\n[10/16/26 18:36:53] INFO     SELECT v1_remote_sandbox.id,           base.py:1846\n                             v1_remote_sandbox.created_by_user_id,              \n                             v1_remote_sandbox.sandbox_spec_id,                 \n                             v1_remote_sandbox.created_at                       \n                             FROM v1_remote_sandbox ORDER BY                    \n                             v1_remote_sandbox.created_at DESC                  \n                              LIMIT ? OFFSET ?                                  \n[10/16/26 18:36:53] INFO     [cached since 4.187s ago] (51, 0)      base.py:1846\n[10/16/26 18:36:53] INFO     ROLLBACK                               base.py:2705\n[10/16/26 18:36:53] INFO     Pool recreating                         impl.py:476"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T13:36:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --with test --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 1.53,
+      "date": "2026-10-16T13:36:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 1.47,
+      "date": "2026-10-16T13:36:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + websockets==15.0.1\n + werkzeug==3.1.1\n + whatthepatch==1.0.7\n + widgetsnbextension==4.0.14\n + wrapt==1.17.2\n + wsproto==1.2.0\n + xattr==1.1.4\n + xlrd==2.0.1\n + xlsxwriter==3.2.5\n + yarl==1.20.0\n + youtube-transcript-api==1.0.3\n + zipp==3.22.0\n + zope-event==5.0\n + zope-interface==7.2\n + zstandard==0.23.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2025-12-20 aiosqlite",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-16T13:36:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Checked 1 package in 13ms"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 16.44,
+      "date": "2026-10-16T13:36:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 651ms\n   Building openhands-ai @ file://eval/mine/work/openhands-openhands-pr12105/reference\n      Built openhands-ai @ file://eval/mine/work/openhands-openhands-pr12105/reference\nPrepared 1 package in 15.61s\nInstalled 1 package in 1ms\n + openhands-ai==1.0.0 (from file://eval/mine/work/openhands-openhands-pr12105/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q -p no:cacheprovider tests/unit/app_server/test_remote_sandbox_service.py",
+      "exit_code": 0,
+      "duration_s": 38.8,
+      "date": "2026-10-16T13:37:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..........................................                               [100%]\n42 passed in 30.17s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python ../../../../tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+      "exit_code": 0,
+      "duration_s": 11.02,
+      "date": "2026-10-16T13:37:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "                             v1_remote_sandbox.created_at                       \n                             FROM v1_remote_sandbox ORDER BY                    \n                             v1_remote_sandbox.created_at DESC                  \n                              LIMIT ? OFFSET ?                                  \n[10/16/26 18:38:02] INFO     [cached since 0.1167s ago] (51, 0)     base.py:1846\n[10/16/26 18:38:02] INFO     SELECT v1_remote_sandbox.id,           base.py:1846\n                             v1_remote_sandbox.created_by_user_id,              \n                             v1_remote_sandbox.sandbox_spec_id,                 \n                             v1_remote_sandbox.created_at                       \n                             FROM v1_remote_sandbox ORDER BY                    \n                             v1_remote_sandbox.created_at DESC                  \n                              LIMIT ? OFFSET ?                                  \n[10/16/26 18:38:02] INFO     [cached since 0.1283s ago] (51, 0)     base.py:1846\n[10/16/26 18:38:02] INFO     ROLLBACK                               base.py:2705\n[10/16/26 18:38:02] INFO     Pool recreating                         impl.py:476"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

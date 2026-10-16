@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": "%timeit foo(SimpleNamespace(user=None))",
-    "source": "quoted in the description of https://github.com/django/django/pull/21460",
-    "verified": false
+    "command": "python -c \"from django.conf import settings; settings.configure(); from types import SimpleNamespace; from django.contrib.auth.decorators import user_passes_test; f = user_passes_test(lambda u: True)(lambda request: None); r = SimpleNamespace(user=None); [f(r) for _ in range(300000)]\"",
+    "source": "adapted from the IPython benchmark in the description of https://github.com/django/django/pull/21460 (a user_passes_test-decorated sync view called with SimpleNamespace(user=None))",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python tests/runtests.py --parallel 1 auth_tests.test_decorators",
+    "source": "Django's tests for django/contrib/auth/decorators.py, the file https://github.com/django/django/pull/21460 changes, run by its own runner on SQLite; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:48:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-06-17 -e .",
+      "exit_code": 0,
+      "duration_s": 2.89,
+      "date": "2026-10-16T12:48:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 3 packages in 1.54s\n   Building django @ file://eval/mine/work/django-django-pr21460/task\n      Built django @ file://eval/mine/work/django-django-pr21460/task\nPrepared 1 package in 1.22s\nInstalled 3 packages in 2ms\n + asgiref==3.11.1\n + django==6.2.dev20261016075306 (from file://eval/mine/work/django-django-pr21460/task)\n + sqlparse==0.5.5"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python tests/runtests.py --parallel 1 auth_tests.test_decorators",
+      "exit_code": 0,
+      "duration_s": 0.75,
+      "date": "2026-10-16T12:48:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Testing against Django installed in 'eval/mine/work/django-django-pr21460/task/django'\nFound 29 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.............................\n----------------------------------------------------------------------\nRan 29 tests in 0.045s\n\nOK\nDestroying test database for alias 'default'..."
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"from django.conf import settings; settings.configure(); from types import SimpleNamespace; from django.contrib.auth.decorators import user_passes_test; f = user_passes_test(lambda u: True)(lambda request: None); r = SimpleNamespace(user=None); [f(r) for _ in range(300000)]\"",
+      "exit_code": 0,
+      "duration_s": 0.27,
+      "date": "2026-10-16T12:48:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T12:48:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-06-17 -e .",
+      "exit_code": 0,
+      "duration_s": 2.35,
+      "date": "2026-10-16T12:48:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 3 packages in 1.03s\n   Building django @ file://eval/mine/work/django-django-pr21460/reference\n      Built django @ file://eval/mine/work/django-django-pr21460/reference\nPrepared 1 package in 1.24s\nInstalled 3 packages in 2ms\n + asgiref==3.11.1\n + django==6.2.dev20261016075306 (from file://eval/mine/work/django-django-pr21460/reference)\n + sqlparse==0.5.5"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python tests/runtests.py --parallel 1 auth_tests.test_decorators",
+      "exit_code": 0,
+      "duration_s": 0.72,
+      "date": "2026-10-16T12:48:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Testing against Django installed in 'eval/mine/work/django-django-pr21460/reference/django'\nFound 29 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\n.............................\n----------------------------------------------------------------------\nRan 29 tests in 0.052s\n\nOK\nDestroying test database for alias 'default'..."
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"from django.conf import settings; settings.configure(); from types import SimpleNamespace; from django.contrib.auth.decorators import user_passes_test; f = user_passes_test(lambda u: True)(lambda request: None); r = SimpleNamespace(user=None); [f(r) for _ in range(300000)]\"",
+      "exit_code": 0,
+      "duration_s": 0.18,
+      "date": "2026-10-16T12:48:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

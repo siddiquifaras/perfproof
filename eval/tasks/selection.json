@@ -1,0 +1,797 @@
+{
+  "salts": {
+    "held-out": "perfproof-heldout-2026-10-16",
+    "development": "perfproof-development-2026-10-16"
+  },
+  "unbuilt_classes": {
+    "serving": "needs a GPU host",
+    "gpu": "needs a GPU host"
+  },
+  "review": {
+    "agno-agi-agno-pr3013": {
+      "keep": true,
+      "reason": "Runtime optimization: WebsiteReader._extract_main_content makes one soup.find with a match function instead of several (a codeflash change, 2.28 ms to 1.32 ms)",
+      "read": [
+        "https://github.com/agno-agi/agno/pull/3013"
+      ]
+    },
+    "apache-arrow-pr46886-landed": {
+      "keep": true,
+      "reason": "After-landed: Parquet FIXED_LEN_BYTE_ARRAY columns decode without an intermediate FLBA array. The task tree is the merge",
+      "read": [
+        "https://github.com/apache/arrow/pull/46886"
+      ]
+    },
+    "apache-arrow-pr48898": {
+      "keep": true,
+      "reason": "Runtime optimization: hand-unrolled inner loop in CountSetBits, with a new benchmark",
+      "read": [
+        "https://github.com/apache/arrow/pull/48898"
+      ]
+    },
+    "assafelovic-gpt-researcher-pr1641": {
+      "keep": true,
+      "reason": "Runtime optimization: context compression skips the embedding-based filter for documents under a size threshold (P99 30 s to 22 s per the description). It can change which context is kept, which the oracle has to catch",
+      "read": [
+        "https://github.com/assafelovic/gpt-researcher/pull/1641"
+      ]
+    },
+    "astral-sh-ruff-pr2768": {
+      "keep": false,
+      "reason": "A revert for a build failure: the revert (#2841) says the custom allocator caused wheel creation to fail on some build targets, so it says nothing about speed or behaviour",
+      "read": [
+        "https://github.com/astral-sh/ruff/pull/2768",
+        "https://github.com/astral-sh/ruff/pull/2841"
+      ]
+    },
+    "astral-sh-uv-pr18311-landed": {
+      "keep": true,
+      "reason": "After-landed: workspace discovery stops re-reading pyproject.toml files (1.81x on uv run python -V in airflow per the description). The task tree is the merge",
+      "read": [
+        "https://github.com/astral-sh/uv/pull/18311"
+      ]
+    },
+    "astral-sh-uv-pr20118": {
+      "keep": true,
+      "reason": "Runtime optimization: a fast path for five-byte x.y.z versions in uv-pep440 (1.95x on 1.2.3, small regressions on other shapes, per the description)",
+      "read": [
+        "https://github.com/astral-sh/uv/pull/20118"
+      ]
+    },
+    "astral-sh-uv-pr20879": {
+      "keep": true,
+      "reason": "Runtime optimization: fast path in UrlString::filename() for URLs without query, fragment or percent escapes; Criterion table shows 3 to 9% on lockfile parsing",
+      "read": [
+        "https://github.com/astral-sh/uv/pull/20879"
+      ]
+    },
+    "astropy-astropy-pr18455": {
+      "keep": true,
+      "reason": "Runtime optimization: votable bool/bitarray conversions use numpy calls instead of Python loops; %timeit in the description shows 2x to 200x",
+      "read": [
+        "https://github.com/astropy/astropy/pull/18455"
+      ]
+    },
+    "astropy-astropy-pr20107": {
+      "keep": true,
+      "reason": "Runtime optimization: caches unit converters in astropy.units.core (u.km.to(u.m) 1.24 µs to 760 ns)",
+      "read": [
+        "https://github.com/astropy/astropy/pull/20107"
+      ]
+    },
+    "bentoml-bentoml-pr1608": {
+      "keep": false,
+      "reason": "Class wrong: import-time of the bentoml package (third-party imports moved into functions), with no model served. The serving class is LLM inference servers measured by serving benchmarks (docs/targets.md)",
+      "read": [
+        "https://github.com/bentoml/BentoML/pull/1608"
+      ]
+    },
+    "berriai-litellm-pr39121": {
+      "keep": false,
+      "reason": "Class wrong: import-time memory and module count of the litellm SDK package, with no model served. The serving class is LLM inference servers (vLLM and SGLang on one NVIDIA GPU, docs/targets.md). The revert (#39969) does confirm it broke behaviour (circular imports, a broken Interactions API)",
+      "read": [
+        "https://github.com/BerriAI/litellm/pull/39121",
+        "https://github.com/BerriAI/litellm/pull/39969"
+      ]
+    },
+    "berriai-litellm-pr45228-landed": {
+      "keep": false,
+      "reason": "Class wrong: speeds up Lens, litellm's Rust trace store over ClickHouse (span batching, a list query). No model is served on this path, so it is not LLM serving",
+      "read": [
+        "https://github.com/BerriAI/litellm/pull/45228"
+      ]
+    },
+    "cline-cline-pr11731": {
+      "keep": false,
+      "reason": "Not a runtime optimization of the agent: splits the Cline Hub webview's Vite bundle to shrink its main chunk; every source file is browser frontend code",
+      "read": [
+        "https://github.com/cline/cline/pull/11731"
+      ]
+    },
+    "cline-cline-pr11967": {
+      "keep": false,
+      "reason": "Class wrong: a TypeScript VS Code extension-host fix (a listSessions hot loop re-reading session manifests); docs/targets.md defines the agentic class as Python apps calling model and tool APIs",
+      "read": [
+        "https://github.com/cline/cline/pull/11967"
+      ]
+    },
+    "crewaiinc-crewai-pr2382-landed": {
+      "keep": true,
+      "reason": "After-landed: _clean_action uses str.strip instead of re.sub (a codeflash change). The task tree is the merge",
+      "read": [
+        "https://github.com/crewAIInc/crewAI/pull/2382"
+      ]
+    },
+    "crewaiinc-crewai-pr3255": {
+      "keep": true,
+      "reason": "Runtime optimization: partition()[0] instead of split()[0] on agent-role and model-provider strings",
+      "read": [
+        "https://github.com/crewAIInc/crewAI/pull/3255"
+      ]
+    },
+    "crewaiinc-crewai-pr5187": {
+      "keep": true,
+      "reason": "Runtime optimization: lazy event bus and tracing skipped when disabled, to cut per-kickoff framework overhead",
+      "read": [
+        "https://github.com/crewAIInc/crewAI/pull/5187"
+      ]
+    },
+    "crewaiinc-crewai-pr5584": {
+      "keep": true,
+      "reason": "Runtime optimization: lazy-loads the MCP SDK and event modules; the description reports import crewai going from ~4.7 s to ~3.4 s",
+      "read": [
+        "https://github.com/crewAIInc/crewAI/pull/5584"
+      ]
+    },
+    "dao-ailab-flash-attention-pr2819": {
+      "keep": true,
+      "reason": "Compile-time optimization: a dynamic, fully unrolled CuTeDSL range for the scalar SM100 mask loop; cold first call 11.0 s to 7.6 s on B200, steady state unchanged. Its path runs only on SM100",
+      "read": [
+        "https://github.com/Dao-AILab/flash-attention/pull/2819"
+      ]
+    },
+    "dask-dask-pr11899": {
+      "keep": true,
+      "reason": "Runtime optimization: culling skips get_all_external_keys for new-style graphs and drops get_output_keys; benchmark in the description",
+      "read": [
+        "https://github.com/dask/dask/pull/11899"
+      ]
+    },
+    "dask-dask-pr11945": {
+      "keep": true,
+      "reason": "Runtime optimization: faster slicing graph generation (mostly by disabling automatic garbage collection during it, plus smaller fixes); profile_slicing timings in the description",
+      "read": [
+        "https://github.com/dask/dask/pull/11945"
+      ]
+    },
+    "deepseek-ai-deepgemm-pr68-landed": {
+      "keep": false,
+      "reason": "Not an optimization: fixes the benchmark utility's L2 flush, so measured performance goes down; the \"upcoming optimization\" in the title is a fork, not this change",
+      "read": [
+        "https://github.com/deepseek-ai/DeepGEMM/pull/68"
+      ]
+    },
+    "deepset-ai-haystack-pr12997": {
+      "keep": true,
+      "reason": "Runtime optimization: SentenceWindowRetriever sends one Document Store query instead of one per retrieved document",
+      "read": [
+        "https://github.com/deepset-ai/haystack/pull/12997"
+      ]
+    },
+    "django-django-pr20911": {
+      "keep": true,
+      "reason": "Runtime optimization: uses psycopg 3's C timestamptz loader; the description times 100,000 rows at 12.5 s before and 4.6 s after. Needs PostgreSQL and psycopg-binary",
+      "read": [
+        "https://github.com/django/django/pull/20911"
+      ]
+    },
+    "django-django-pr21460": {
+      "keep": true,
+      "reason": "Runtime optimization: user_passes_test does its async check at decoration time instead of per call; %timeit shows 749 ns to 262 ns",
+      "read": [
+        "https://github.com/django/django/pull/21460"
+      ]
+    },
+    "duckdb-duckdb-pr25547": {
+      "keep": true,
+      "reason": "Runtime optimization: Connection::BeginTransaction/Commit/Rollback skip parse, bind, plan and optimize; motivated by WAL replay of many small transactions",
+      "read": [
+        "https://github.com/duckdb/duckdb/pull/25547"
+      ]
+    },
+    "facebook-zstd-pr4276": {
+      "keep": true,
+      "reason": "Runtime optimization: --patch-from at high levels much faster (250 s to 80 s at level 18 on the description's tarballs)",
+      "read": [
+        "https://github.com/facebook/zstd/pull/4276"
+      ]
+    },
+    "fastapi-fastapi-pr2615": {
+      "keep": false,
+      "reason": "Not a code change: updates the custom-response docs and a docs_src example (docs/en/docs/advanced/custom-response.md, docs_src/custom_response/tutorial001b.py)",
+      "read": [
+        "https://github.com/fastapi/fastapi/pull/2615"
+      ]
+    },
+    "flashinfer-ai-flashinfer-pr3761": {
+      "keep": true,
+      "reason": "Runtime optimization: vectorized loads and stores and a work-sized block in CUTLASS fused-MoE expand and activation kernels",
+      "read": [
+        "https://github.com/flashinfer-ai/flashinfer/pull/3761"
+      ]
+    },
+    "gin-gonic-gin-pr2365": {
+      "keep": true,
+      "reason": "Runtime optimization: render/text.go writes the string without fmt when there are no format args; go test -bench before and after in the description",
+      "read": [
+        "https://github.com/gin-gonic/gin/pull/2365"
+      ]
+    },
+    "gin-gonic-gin-pr4246-landed": {
+      "keep": true,
+      "reason": "After-landed: countParams and countSections use strings.Count. The task tree is the merge",
+      "read": [
+        "https://github.com/gin-gonic/gin/pull/4246"
+      ]
+    },
+    "gin-gonic-gin-pr4466": {
+      "keep": true,
+      "reason": "Runtime optimization: recovery's stack() reads only the needed source line instead of whole files; the description's benchmark shows 116 µs to 78 µs per op",
+      "read": [
+        "https://github.com/gin-gonic/gin/pull/4466"
+      ]
+    },
+    "gso-huggingface-transformers-211f93a": {
+      "keep": true,
+      "reason": "Benchmark instance (family right by construction): faster Whisper tokenizer decoding with timestamps (transformers #26299); the audit marks it construction-valid",
+      "read": [
+        "https://github.com/huggingface/transformers/commit/211f93aab95d1c683494e61c3cf8ff10e1f5d6b7"
+      ]
+    },
+    "gso-huggingface-transformers-d51b589": {
+      "keep": true,
+      "reason": "Benchmark instance (family right by construction): re-orders XLNet attention head outputs (einsum layout) for speed; the commit message reports over 2x end-to-end on an fp16 fine-tuning task. The audit marks it construction-valid",
+      "read": [
+        "https://github.com/huggingface/transformers/commit/d51b589404accd5ee6b3e658785ea9e384b1ff40"
+      ]
+    },
+    "honojs-hono-pr5118-landed": {
+      "keep": true,
+      "reason": "After-landed: iterates the header record with for..in instead of Object.entries; 1.03 to 1.07x in the description. The task tree is the merge",
+      "read": [
+        "https://github.com/honojs/hono/pull/5118"
+      ]
+    },
+    "huggingface-text-embeddings-inference-pr35": {
+      "keep": true,
+      "reason": "Runtime optimization of TEI's CPU build: MKL linked dynamically in the candle backend and the CPU image, \"20% faster on my AMD box\". Mostly build configuration, with small source changes; it needs an x86 CPU",
+      "read": [
+        "https://github.com/huggingface/text-embeddings-inference/pull/35"
+      ]
+    },
+    "internlm-lmdeploy-pr4830-landed": {
+      "keep": true,
+      "reason": "After-landed: adds a Gluon blocked FP8 GEMM for Hopper to lmdeploy's PyTorch backend. The task tree is the merge. Its kernel targets Hopper, so the GPU host must have one",
+      "read": [
+        "https://github.com/InternLM/lmdeploy/pull/4830"
+      ]
+    },
+    "karpathy-llm-c-attention-forward-bb4f04bdf8": {
+      "keep": false,
+      "reason": "Not an optimization: the version this commit adds is a naive flash attention, and the file's own header at this commit says it \"seems about 3X slower than the naive version\"",
+      "read": [
+        "https://github.com/karpathy/llm.c/commit/bb4f04bdf8c5344473557d93c1e7db8a97da1119"
+      ]
+    },
+    "karpathy-llm-c-classifier-fused-dcff5613c6": {
+      "keep": true,
+      "reason": "Kernel version, as classified: kernel 3 is kernel 2 without float4 plus performance-motivated changes in its comments (a reverse loop for L2 hits, warp-shuffle reductions); the message makes no speed claim",
+      "read": [
+        "https://github.com/karpathy/llm.c/commit/dcff5613c6a2c6d164a15f4a53ba7a03a856e6ab"
+      ]
+    },
+    "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": {
+      "keep": true,
+      "reason": "Kernel version, as classified: \"a faster matmul backward bias kernel that uses coalesced reads and shared memory\" (commit message)",
+      "read": [
+        "https://github.com/karpathy/llm.c/commit/55fbd7e6adb78e3e2c46afe416852f8004e14881"
+      ]
+    },
+    "karpathy-llm-c-residual-forward-4ffcf5b90a": {
+      "keep": true,
+      "reason": "Kernel version, as classified: the header at this commit says version 2 \"packs input into 128 bit memory reads\"",
+      "read": [
+        "https://github.com/karpathy/llm.c/commit/4ffcf5b90adae5c2c056fd62effc1aba3c1c63ca"
+      ]
+    },
+    "labstack-echo-pr1689-landed": {
+      "keep": true,
+      "reason": "After-landed: the router keeps param and any children in dedicated fields; benchstat in the description. The task tree is the merge",
+      "read": [
+        "https://github.com/labstack/echo/pull/1689"
+      ]
+    },
+    "labstack-echo-pr1799": {
+      "keep": true,
+      "reason": "Runtime optimization: fixes a performance regression by not escaping the request path in ServeHTTP; benchstat shows -37 to -45% on the Echo benchmarks",
+      "read": [
+        "https://github.com/labstack/echo/pull/1799"
+      ]
+    },
+    "labstack-echo-pr3023": {
+      "keep": true,
+      "reason": "Runtime optimization: JSON Deserialize reads into a pooled buffer and calls json.Unmarshal; BenchmarkBind_JSON ~12% faster, 69% fewer bytes",
+      "read": [
+        "https://github.com/labstack/echo/pull/3023"
+      ]
+    },
+    "langchain-ai-langchain-pr38073": {
+      "keep": true,
+      "reason": "Runtime optimization: memoizes BaseTool.tool_call_schema's subset model and its JSON schema (~1.5 ms per tool per access before)",
+      "read": [
+        "https://github.com/langchain-ai/langchain/pull/38073"
+      ]
+    },
+    "libuv-libuv-pr2064": {
+      "keep": true,
+      "reason": "Reverted-breaking, as classified: loads Core Services once in uv_set_process_title() (about 10x faster per the description); the revert (#2405) says it breaks process.title in Node.js. darwin-only code, which this machine runs",
+      "read": [
+        "https://github.com/libuv/libuv/pull/2064",
+        "https://github.com/libuv/libuv/pull/2405"
+      ]
+    },
+    "libuv-libuv-pr4512": {
+      "keep": false,
+      "reason": "The revert (#4516) is for merging into the wrong branch (conflicts with #4514 on v1.x), not for speed or behaviour, so the pair says nothing about either. The change is also Windows-only (src/win/util.c)",
+      "read": [
+        "https://github.com/libuv/libuv/pull/4512",
+        "https://github.com/libuv/libuv/pull/4516"
+      ]
+    },
+    "linkedin-liger-kernel-pr1454-landed": {
+      "keep": true,
+      "reason": "After-landed: FLCE weight-gradient accumulation with addmm into the dtype-matched buffer instead of mm().float() plus add. The task tree is the merge",
+      "read": [
+        "https://github.com/linkedin/Liger-Kernel/pull/1454"
+      ]
+    },
+    "lz4-lz4-pr1040": {
+      "keep": true,
+      "reason": "Runtime optimization: enables lz4's fast decoding path on Apple/AArch64 in lib/lz4.c (2.53 to 3.2 GB/s on M1 Pro per the description)",
+      "read": [
+        "https://github.com/lz4/lz4/pull/1040"
+      ]
+    },
+    "matplotlib-matplotlib-pr32026-landed": {
+      "keep": true,
+      "reason": "After-landed: add_patch fast-paths straight-line paths instead of bezier checks on every segment (139 s to 50 ms on the description's script). The task tree is the merge",
+      "read": [
+        "https://github.com/matplotlib/matplotlib/pull/32026"
+      ]
+    },
+    "mem0ai-mem0-pr1260": {
+      "keep": true,
+      "reason": "Runtime optimization: read_env_file in embedchain/utils/cli.py compiles its regex once and strips each line once (a codeflash change, 842 µs to 698 µs)",
+      "read": [
+        "https://github.com/mem0ai/mem0/pull/1260"
+      ]
+    },
+    "mem0ai-mem0-pr6680": {
+      "keep": false,
+      "reason": "Not an optimization: raises the Zapier add_memory poll budget from 12 to 40 attempts so slow API calls stop timing out; \"latency\" in the title is the remote API's",
+      "read": [
+        "https://github.com/mem0ai/mem0/pull/6680"
+      ]
+    },
+    "mlc-ai-mlc-llm-pr1033": {
+      "keep": true,
+      "reason": "Known-change revert, family right: applies the split_rotary fusion to prefill. The revert (#1058) points at a comment showing chat generation turned to garbage, so it is in effect a reverted-breaking change; the manifest's kind (reverted-unknown-reason) is the miner's and is left as it is",
+      "read": [
+        "https://github.com/mlc-ai/mlc-llm/pull/1033",
+        "https://github.com/mlc-ai/mlc-llm/pull/1058",
+        "https://github.com/mlc-ai/mlc-llm/pull/1033#issuecomment-1760386712"
+      ]
+    },
+    "mlc-ai-mlc-llm-pr1084": {
+      "keep": false,
+      "reason": "Not an optimization: adds a high-level generate() function and a latency benchmark script; \"latency\" names the new benchmark",
+      "read": [
+        "https://github.com/mlc-ai/mlc-llm/pull/1084"
+      ]
+    },
+    "nestjs-nest-pr18136": {
+      "keep": true,
+      "reason": "Runtime optimization: the interceptor chain binds async scope with a small helper instead of AsyncResource.bind() twice per request; wrk shows +21 to +38% req/s with one interceptor",
+      "read": [
+        "https://github.com/nestjs/nest/pull/18136"
+      ]
+    },
+    "networkx-networkx-pr7810": {
+      "keep": true,
+      "reason": "Runtime optimization: new square_clustering formulation; the description's %timeit shows 5.54 s to 60.6 ms on complete_graph(100)",
+      "read": [
+        "https://github.com/networkx/networkx/pull/7810"
+      ]
+    },
+    "networkx-networkx-pr8756-landed": {
+      "keep": true,
+      "reason": "After-landed: edmonds_karp resets residual flow through the internal adjacency dicts, and minimum_cut's partition is simplified. The task tree is the merge",
+      "read": [
+        "https://github.com/networkx/networkx/pull/8756"
+      ]
+    },
+    "nlohmann-json-pr5504-landed": {
+      "keep": false,
+      "reason": "Not an optimization: bounds the element count of UBJSON optimized-container arrays of valueless types, a fix for out-of-memory fuzzer reports; \"optimized\" names UBJSON's container format",
+      "read": [
+        "https://github.com/nlohmann/json/pull/5504"
+      ]
+    },
+    "nlohmann-json-pr5836": {
+      "keep": true,
+      "reason": "Runtime optimization: constant-factor speed-ups in json_pointer parsing, formatting and lookup; the description's table shows 1.4x to 5x per operation",
+      "read": [
+        "https://github.com/nlohmann/json/pull/5836"
+      ]
+    },
+    "numpy-numpy-pr30810": {
+      "keep": true,
+      "reason": "Runtime optimization: array_equal with equal_nan=True uses one vectorized predicate and reduction instead of masking; asv shows 2.2x to 4.5x",
+      "read": [
+        "https://github.com/numpy/numpy/pull/30810"
+      ]
+    },
+    "openai-codex-pr18370": {
+      "keep": false,
+      "reason": "Class wrong: a Rust TUI change (skills/list taken off the startup path in codex-rs/tui), with no model or tool call on its path. docs/targets.md defines the agentic class as Python apps calling model and tool APIs",
+      "read": [
+        "https://github.com/openai/codex/pull/18370"
+      ]
+    },
+    "openai-codex-pr23175": {
+      "keep": false,
+      "reason": "Class wrong: a Rust change to the TUI's terminal startup probes, with no model or tool call on its path. docs/targets.md defines the agentic class as Python apps calling model and tool APIs, so this is a native-terminal change in an agentic repository",
+      "read": [
+        "https://github.com/openai/codex/pull/23175"
+      ]
+    },
+    "openai-openai-agents-python-pr4258": {
+      "keep": false,
+      "reason": "About developer checks, not the library: Pyright threads, pytest-xdist worker caps and test waits (make typecheck and make tests timings); the title says \"accelerate developer checks\"",
+      "read": [
+        "https://github.com/openai/openai-agents-python/pull/4258"
+      ]
+    },
+    "openhands-openhands-pr12105": {
+      "keep": true,
+      "reason": "Runtime optimization: search_sandboxes fetches runtime data with one batch call instead of one call per sandbox (an N+1 fix)",
+      "read": [
+        "https://github.com/OpenHands/OpenHands/pull/12105"
+      ]
+    },
+    "openhands-openhands-pr16164": {
+      "keep": false,
+      "reason": "Class wrong: every source file is browser frontend TypeScript (a React event store and websocket context batching streamed deltas). Not a Python app calling model and tool APIs (the agentic class in docs/targets.md), and not an HTTP service either",
+      "read": [
+        "https://github.com/OpenHands/OpenHands/pull/16164"
+      ]
+    },
+    "openhands-openhands-pr9925": {
+      "keep": false,
+      "reason": "The speed-up comes from asking a remote model (Gemini 2.5 Pro) for a smaller thinking budget by default; no local workload exercises it, and it changes model behaviour rather than code speed",
+      "read": [
+        "https://github.com/OpenHands/OpenHands/pull/9925"
+      ]
+    },
+    "pandas-dev-pandas-pr70972": {
+      "keep": true,
+      "reason": "Runtime optimization: groupby.pct_change rewritten in two lines; %timeit 41.1 ms to 14.1 ms on a million rows",
+      "read": [
+        "https://github.com/pandas-dev/pandas/pull/70972"
+      ]
+    },
+    "pola-rs-polars-pr24980": {
+      "keep": true,
+      "reason": "Known-change revert, family right: multi-threads take{_slice,}_unchecked; the revert (#25664) says \"we need to look a bit better\" at chunking, a performance concern rather than a build failure",
+      "read": [
+        "https://github.com/pola-rs/polars/pull/24980",
+        "https://github.com/pola-rs/polars/pull/25664"
+      ]
+    },
+    "pola-rs-polars-pr29813-landed": {
+      "keep": true,
+      "reason": "After-landed: any_values_to_struct field matching from O(n^2) to O(n); 1.9x to 15x in the description's table. The task tree is the merge",
+      "read": [
+        "https://github.com/pola-rs/polars/pull/29813"
+      ]
+    },
+    "psf-black-pr3467": {
+      "keep": true,
+      "reason": "Runtime optimization: string merging and paren stripping in one pass instead of O(n^2) re-transforms; the description times the #3340 example at ~111 s before and ~3.7 s after",
+      "read": [
+        "https://github.com/psf/black/pull/3467"
+      ]
+    },
+    "pydata-xarray-pr10921-landed": {
+      "keep": true,
+      "reason": "After-landed: pads once instead of once per coarsened dimension; the description's asv table shows 0.71 to 0.85 time ratios. The task tree is the merge, so the optimization is already in",
+      "read": [
+        "https://github.com/pydata/xarray/pull/10921"
+      ]
+    },
+    "pydata-xarray-pr6107": {
+      "keep": true,
+      "reason": "Runtime optimization: is_dask_collection reuses a module-level DuckArrayModule instead of building one per call; %timeit shows 18.9 µs to 77 ns",
+      "read": [
+        "https://github.com/pydata/xarray/pull/6107"
+      ]
+    },
+    "pygments-pygments-pr1569-landed": {
+      "keep": true,
+      "reason": "After-landed: faster JSON lexing and lower HTML formatter memory, byte-identical output. The task tree is the merge",
+      "read": [
+        "https://github.com/pygments/pygments/pull/1569"
+      ]
+    },
+    "pygments-pygments-pr3187": {
+      "keep": true,
+      "reason": "Runtime optimization: multiline comment bodies matched with [\\s\\S]*? instead of (.|\\n)*? in the Rell and Cheetah lexers; ~4x on a long comment per the description",
+      "read": [
+        "https://github.com/pygments/pygments/pull/3187"
+      ]
+    },
+    "pylint-dev-pylint-pr10881": {
+      "keep": true,
+      "reason": "Runtime optimization: the duplicate-code checker gets a rolling hash, per-lineset hash caching and reuse of the parsed AST (quadratic to near-linear)",
+      "read": [
+        "https://github.com/pylint-dev/pylint/pull/10881"
+      ]
+    },
+    "python-jsonschema-jsonschema-pr896": {
+      "keep": true,
+      "reason": "Runtime optimization: caches subschema keyword lookups; the description counts 5x fewer search calls on the #893 example",
+      "read": [
+        "https://github.com/python-jsonschema/jsonschema/pull/896"
+      ]
+    },
+    "python-mypy-pr20802": {
+      "keep": true,
+      "reason": "Runtime optimization: avoids os.path.abspath (a getcwd syscall) in build, errors and semanal; the description cites profiles and microbenchmarks",
+      "read": [
+        "https://github.com/python/mypy/pull/20802"
+      ]
+    },
+    "pytorch-ao-pr4113-landed": {
+      "keep": false,
+      "reason": "Class wrong: a Triton kernel tuned and measured for AMD MI300X (\"for AMDGPU\"); docs/targets.md puts AMD GPUs outside the GPU class",
+      "read": [
+        "https://github.com/pytorch/ao/pull/4113"
+      ]
+    },
+    "pytorch-ao-pr464": {
+      "keep": false,
+      "reason": "Not an optimization: adds segment-anything evaluation and benchmark scripts; it was reverted a minute later by #465 with no reason given",
+      "read": [
+        "https://github.com/pytorch/ao/pull/464",
+        "https://github.com/pytorch/ao/pull/465"
+      ]
+    },
+    "rails-rails-pr58751-landed": {
+      "keep": true,
+      "reason": "After-landed: faster TimeWithZone#xmlschema, #to_s and TimeZone.seconds_to_utc_offset. The task tree is the merge",
+      "read": [
+        "https://github.com/rails/rails/pull/58751"
+      ]
+    },
+    "rails-rails-pr58964": {
+      "keep": true,
+      "reason": "Runtime optimization: trims EventReporter#notify and the log-level check on every structured event; perf stat instructions -2.6 to -3.4% per request",
+      "read": [
+        "https://github.com/rails/rails/pull/58964"
+      ]
+    },
+    "redis-redis-pr15352-landed": {
+      "keep": false,
+      "reason": "Not an optimization: adds a --latency-percentiles reporting option to redis-cli; \"latency\" names what it reports",
+      "read": [
+        "https://github.com/redis/redis/pull/15352"
+      ]
+    },
+    "run-llama-llama-index-pr18289": {
+      "keep": true,
+      "reason": "Runtime optimization: lazy NLTK imports and downloads; the description reports initial import going from 30 s to 8 s",
+      "read": [
+        "https://github.com/run-llama/llama_index/pull/18289"
+      ]
+    },
+    "run-llama-llama-index-pr21755": {
+      "keep": true,
+      "reason": "Runtime optimization: IngestionPipeline dedup tracks seen hashes in a set instead of a list (O(N^2) to O(N))",
+      "read": [
+        "https://github.com/run-llama/llama_index/pull/21755"
+      ]
+    },
+    "saleor-saleor-pr15725": {
+      "keep": true,
+      "reason": "Runtime optimization: category resolvers stop fetching all children, add an index, drop a distinct; 56 s to 6.8 s on the description's large dataset",
+      "read": [
+        "https://github.com/saleor/saleor/pull/15725"
+      ]
+    },
+    "sanic-org-sanic-pr412": {
+      "keep": true,
+      "reason": "Runtime optimization: cheaper header building in HTTPResponse.output after #378 slowed it; wrk numbers in the description",
+      "read": [
+        "https://github.com/sanic-org/sanic/pull/412"
+      ]
+    },
+    "scikit-learn-scikit-learn-pr19328": {
+      "keep": true,
+      "reason": "Bug fix plus speed-up: min_pos fused-typed and avoids X.dtype.name; the description's %timeit shows 5.9 µs to 297 ns on 100 elements",
+      "read": [
+        "https://github.com/scikit-learn/scikit-learn/pull/19328"
+      ]
+    },
+    "scipy-scipy-pr24913-landed": {
+      "keep": true,
+      "reason": "After-landed: cholesky calls potrf on the transposed C-contiguous copy, one triangular copy; the description reports 2 to 5x on real matrices. The task tree is the merge",
+      "read": [
+        "https://github.com/scipy/scipy/pull/24913"
+      ]
+    },
+    "scipy-scipy-pr26368": {
+      "keep": true,
+      "reason": "Runtime optimization: BSpline.design_matrix's bounds check uses np.min/np.max instead of builtin min/max",
+      "read": [
+        "https://github.com/scipy/scipy/pull/26368"
+      ]
+    },
+    "sgl-project-sglang-pr41223": {
+      "keep": true,
+      "reason": "Runtime optimization: one Triton launch config (BLOCK_SIZE_M=8, num_warps=1) for Mamba2 selective_state_update at dstate 128; 1.19x to 2.02x on B200, bitwise-identical outputs",
+      "read": [
+        "https://github.com/sgl-project/sglang/pull/41223"
+      ]
+    },
+    "sharkdp-fd-pr343": {
+      "keep": false,
+      "reason": "Changes only Cargo.toml (an LTO release profile), no source file, so it fails the pool's own source-file rule; a code change by an agent can't be compared with a compiler setting",
+      "read": [
+        "https://github.com/sharkdp/fd/pull/343"
+      ]
+    },
+    "sharkdp-fd-pr853": {
+      "keep": true,
+      "reason": "Runtime optimization: cheaper path colouring in output.rs; hyperfine shows 802 ms to 263 ms with --color=always",
+      "read": [
+        "https://github.com/sharkdp/fd/pull/853"
+      ]
+    },
+    "simdjson-simdjson-pr2805": {
+      "keep": true,
+      "reason": "Runtime optimization: constant-size copies in to_chars so memcpy/memset/memmove inline; perf profiles in the description",
+      "read": [
+        "https://github.com/simdjson/simdjson/pull/2805"
+      ]
+    },
+    "swe-fficiency-pydata-xarray-5661": {
+      "keep": true,
+      "reason": "Benchmark instance (family right by construction); the audit marks it construction-valid",
+      "read": [
+        "https://datasets-server.huggingface.co/rows?dataset=swefficiency/swefficiency&config=default&split=test&offset=370&length=10"
+      ]
+    },
+    "swe-fficiency-pydata-xarray-7382": {
+      "keep": true,
+      "reason": "Benchmark instance (family right by construction); the audit marks it construction-valid",
+      "read": [
+        "https://datasets-server.huggingface.co/rows?dataset=swefficiency/swefficiency&config=default&split=test&offset=370&length=10"
+      ]
+    },
+    "swe-perf-sympy-sympy-26546": {
+      "keep": true,
+      "reason": "Benchmark instance (family right by construction): the patch is an assumptions fix in Pow._eval_is_extended_real that SWE-Perf times through test_issue_14454; the audit marks it construction-valid",
+      "read": [
+        "https://github.com/sympy/sympy/pull/26546"
+      ]
+    },
+    "sympy-sympy-pr29112-landed": {
+      "keep": true,
+      "reason": "After-landed: faster FreeGroupElement.__pow__ and a new prod method (4.7x to 19.7x on the description's words). The task tree is the merge",
+      "read": [
+        "https://github.com/sympy/sympy/pull/29112"
+      ]
+    },
+    "sympy-sympy-pr30321": {
+      "keep": true,
+      "reason": "Runtime optimization: drops an obsolete composite=False in ratint_logpart, so an integral that used to hang finishes in ~5.5 s per the description",
+      "read": [
+        "https://github.com/sympy/sympy/pull/30321"
+      ]
+    },
+    "textualize-rich-pr2217-landed": {
+      "keep": true,
+      "reason": "After-landed: micro-optimization of Segment.divide, ~20% on the profile script it adds. The task tree is the merge",
+      "read": [
+        "https://github.com/Textualize/rich/pull/2217"
+      ]
+    },
+    "tile-ai-tilelang-pr2809": {
+      "keep": true,
+      "reason": "Compile-time optimization: kernel-cache saves outside the global lock and more parallel compile workers; 126 cold kernels 50.3 s to 16.2 s on H20",
+      "read": [
+        "https://github.com/tile-ai/tilelang/pull/2809"
+      ]
+    },
+    "tokio-rs-axum-pr1123": {
+      "keep": true,
+      "reason": "Runtime optimization: Router's node behind an Arc so the per-request clone is cheap (177 µs to 93 µs for 1000 routes)",
+      "read": [
+        "https://github.com/tokio-rs/axum/pull/1123"
+      ]
+    },
+    "tokio-rs-tokio-pr5513": {
+      "keep": true,
+      "reason": "Runtime optimization: Instant::now() with the test-util feature checks an atomic before the thread-local and mutex; ~175 ns to ~145 ns per the description",
+      "read": [
+        "https://github.com/tokio-rs/tokio/pull/5513"
+      ]
+    },
+    "tokio-rs-tokio-pr5829": {
+      "keep": true,
+      "reason": "Runtime optimization: CachePadded fields in the mpsc channel to avoid false sharing; the description's cargo bench shows contended cases faster and create_* slower",
+      "read": [
+        "https://github.com/tokio-rs/tokio/pull/5829"
+      ]
+    },
+    "triton-lang-triton-pr11138-landed": {
+      "keep": true,
+      "reason": "After-landed: fuses ConSan's instrumentation helper functions, cutting cold compile and runtime of instrumented kernels. The task tree is the merge",
+      "read": [
+        "https://github.com/triton-lang/triton/pull/11138"
+      ]
+    },
+    "triton-lang-triton-pr11565": {
+      "keep": true,
+      "reason": "Runtime optimization: converts tensor layouts directly into the destination with Triton kernels; GB300 and H100 tables in the description, up to 10.8x",
+      "read": [
+        "https://github.com/triton-lang/triton/pull/11565"
+      ]
+    },
+    "unslothai-unsloth-pr13404": {
+      "keep": false,
+      "reason": "Class wrong: wires MLX fusion scopes on Apple Silicon (Metal kernels for M5 GPUs) into Unsloth Studio; docs/targets.md puts Apple GPUs outside the GPU class",
+      "read": [
+        "https://github.com/unslothai/unsloth/pull/13404"
+      ]
+    },
+    "vllm-project-vllm-pr58194-landed": {
+      "keep": true,
+      "reason": "After-landed: vectorized flat abs-max for dynamic per-tensor FP8 quantization, bit-identical output. The task tree is the merge",
+      "read": [
+        "https://github.com/vllm-project/vllm/pull/58194"
+      ]
+    },
+    "vllm-project-vllm-pr58584": {
+      "keep": false,
+      "reason": "Class wrong: a ROCm (AMD MI350) sparse MLA decode kernel. docs/targets.md puts AMD GPUs outside the serving class",
+      "read": [
+        "https://github.com/vllm-project/vllm/pull/58584"
+      ]
+    },
+    "vllm-project-vllm-pr58634": {
+      "keep": true,
+      "reason": "Runtime optimization: fuses DSv4.1's small-batch WO-A with inverse RoPE and MXFP8 quant into one CuTe-DSL kernel. Its fused path runs only on SM100/SM103 (Blackwell), so the GPU host must have one",
+      "read": [
+        "https://github.com/vllm-project/vllm/pull/58634"
+      ]
+    },
+    "vllm-project-vllm-pr60753": {
+      "keep": false,
+      "reason": "Class wrong: switches GLM-5.3-Flash's prefill indexer top-k to an AITER kernel that \"only runs on gfx950\" (AMD). docs/targets.md puts AMD GPUs outside the serving class",
+      "read": [
+        "https://github.com/vllm-project/vllm/pull/60753"
+      ]
+    }
+  }
+}

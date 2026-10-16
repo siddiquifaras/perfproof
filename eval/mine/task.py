@@ -27,8 +27,8 @@ ChangeKind = Literal[
     "kernel-version",
     "benchmark-instance",
 ]
-Status = Literal["candidate", "builds", "runs", "failed"]
-Split = Literal["development-candidate"]
+Status = Literal["candidate", "builds", "runs", "reference-fails", "failed"]
+Split = Literal["development-candidate", "held-out", "development"]
 
 
 class _Model(BaseModel):
@@ -114,8 +114,9 @@ class Run(_Model):
         The command as run.
     exit_code : int
         Its exit status.
-    duration_s : float
-        Wall time in seconds.
+    duration_s : float or None
+        Wall time in seconds, or None where it is not recorded (the
+        reference tree's workload of a held-out task).
     date : str
         ISO 8601 UTC time the run started.
     machine : str
@@ -128,7 +129,7 @@ class Run(_Model):
     tree: Literal["task", "reference"]
     command: str
     exit_code: int
-    duration_s: float
+    duration_s: float | None
     date: str
     machine: str
     output_tail: str
@@ -171,13 +172,17 @@ class Task(_Model):
         Cross-machine audit result for published-benchmark tasks, or
         why none is recorded.
     status : Status
-        ``candidate`` until it builds and runs here.
+        ``candidate`` until it is checked here; then ``runs``,
+        ``reference-fails`` (runs, but the reference tree's oracle or
+        workload fails: a result for labelling), ``builds`` or
+        ``failed`` (see `check`).
     status_reason : str
         What was or wasn't checked.
     runs : list of Run
         Commands run here to check the task.
     split : Split
-        Always ``development-candidate`` until the lead's review.
+        ``held-out`` or ``development`` when `draw` picked the task,
+        else ``development-candidate``.
     mined_at : str
         When the miner produced the manifest.
     miner : str

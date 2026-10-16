@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+    "source": "written here from the description of https://github.com/mem0ai/mem0/pull/1260 (a codeflash timing of read_env_file): 2,000 parses of a fixed 300-line .env file, eval/tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py",
+    "source": "written here, since the tree has no test for embedchain/utils/cli.py: read_env_file on a fixed file with comments, blank lines, padding and '=' in values, checked against the task tree's behaviour (eval/tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py)",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,131 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The repository was embedchain at this commit. Dependencies are its poetry.lock, exported with poetry 2.1.3 (main group). CPython 3.12.3, the last 3.12 release before the change: from 3.12.4 on, the locked pydantic.v1 (via langsmith) fails on ForwardRef._evaluate",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12.3 .venv",
+      "exit_code": 0,
+      "duration_s": 3.77,
+      "date": "2026-10-16T14:02:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Downloading cpython-3.12.3-macos-aarch64-none (download) (16.0MiB)\n Downloaded cpython-3.12.3-macos-aarch64-none (download)\nUsing CPython 3.12.3\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 7.39,
+      "date": "2026-10-16T14:02:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Installed 44 packages in 45ms"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 1.28,
+      "date": "2026-10-16T14:03:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + tqdm==4.66.4\n + typer==0.9.4\n + types-requests==2.31.0.6\n + types-urllib3==1.26.25.14\n + typing-extensions==4.12.1\n + typing-inspect==0.9.0\n + urllib3==1.26.18\n + uvicorn==0.30.1\n + uvloop==0.19.0\n + watchfiles==0.22.0\n + websocket-client==1.8.0\n + websockets==12.0\n + wrapt==1.16.0\n + yarl==1.9.4\n + zipp==3.19.2"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 0.53,
+      "date": "2026-10-16T14:03:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 364ms\n   Building embedchain @ file://eval/mine/work/mem0ai-mem0-pr1260/task\n      Built embedchain @ file://eval/mine/work/mem0ai-mem0-pr1260/task\nPrepared 1 package in 81ms\nInstalled 1 package in 1ms\n + embedchain==0.1.108 (from file://eval/mine/work/mem0ai-mem0-pr1260/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py",
+      "exit_code": 0,
+      "duration_s": 15.89,
+      "date": "2026-10-16T14:03:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok\neval/mine/work/mem0ai-mem0-pr1260/task/.venv/lib/python3.12/site-packages/pysbd/segmenter.py:66: SyntaxWarning: invalid escape sequence '\\s'\n  for match in re.finditer('{0}\\s*'.format(re.escape(sent)), self.original_text):\neval/mine/work/mem0ai-mem0-pr1260/task/.venv/lib/python3.12/site-packages/pysbd/lang/arabic.py:29: SyntaxWarning: invalid escape sequence '\\.'\n  txt = re.sub('(?<={0})\\.'.format(am), '∯', txt)\neval/mine/work/mem0ai-mem0-pr1260/task/.venv/lib/python3.12/site-packages/pysbd/lang/persian.py:29: SyntaxWarning: invalid escape sequence '\\.'\n  txt = re.sub('(?<={0})\\.'.format(am), '∯', txt)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+      "exit_code": 0,
+      "duration_s": 1.1,
+      "date": "2026-10-16T14:03:18+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "232"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12.3 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T14:03:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.3\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 0.57,
+      "date": "2026-10-16T14:03:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T14:03:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + tqdm==4.66.4\n + typer==0.9.4\n + types-requests==2.31.0.6\n + types-urllib3==1.26.25.14\n + typing-extensions==4.12.1\n + typing-inspect==0.9.0\n + urllib3==1.26.18\n + uvicorn==0.30.1\n + uvloop==0.19.0\n + watchfiles==0.22.0\n + websocket-client==1.8.0\n + websockets==12.0\n + wrapt==1.16.0\n + yarl==1.9.4\n + zipp==3.19.2"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 0.33,
+      "date": "2026-10-16T14:03:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 185ms\n   Building embedchain @ file://eval/mine/work/mem0ai-mem0-pr1260/reference\n      Built embedchain @ file://eval/mine/work/mem0ai-mem0-pr1260/reference\nPrepared 1 package in 83ms\nInstalled 1 package in 1ms\n + embedchain==0.1.108 (from file://eval/mine/work/mem0ai-mem0-pr1260/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py",
+      "exit_code": 0,
+      "duration_s": 11.93,
+      "date": "2026-10-16T14:03:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok\neval/mine/work/mem0ai-mem0-pr1260/reference/.venv/lib/python3.12/site-packages/pysbd/segmenter.py:66: SyntaxWarning: invalid escape sequence '\\s'\n  for match in re.finditer('{0}\\s*'.format(re.escape(sent)), self.original_text):\neval/mine/work/mem0ai-mem0-pr1260/reference/.venv/lib/python3.12/site-packages/pysbd/lang/arabic.py:29: SyntaxWarning: invalid escape sequence '\\.'\n  txt = re.sub('(?<={0})\\.'.format(am), '∯', txt)\neval/mine/work/mem0ai-mem0-pr1260/reference/.venv/lib/python3.12/site-packages/pysbd/lang/persian.py:29: SyntaxWarning: invalid escape sequence '\\.'\n  txt = re.sub('(?<={0})\\.'.format(am), '∯', txt)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+      "exit_code": 0,
+      "duration_s": 1.13,
+      "date": "2026-10-16T14:03:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "232"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

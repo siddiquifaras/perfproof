@@ -23,14 +23,14 @@
   "change_kind": "after-landed",
   "target_class": "python",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"import numpy as np, xarray as xr; da = xr.DataArray(np.random.default_rng(0).random((2000, 2000)), dims=('x', 'y')); da.coarsen(x=7, y=7, boundary='pad').mean().values\"",
+    "source": "adapted from the coarsen benchmark the description of https://github.com/pydata/xarray/pull/10921 adds (asv_bench/benchmarks/coarsen.py, with padding)",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -o addopts= xarray/tests/test_coarsen.py",
+    "source": "xarray's coarsen tests, for the padding path https://github.com/pydata/xarray/pull/10921 changes in xarray/core/variable.py; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:40:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 uv pip install --exclude-newer 2025-11-15 -e . pytest",
+      "exit_code": 0,
+      "duration_s": 1.05,
+      "date": "2026-10-16T08:40:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "      Built xarray @ file://eval/mine/work/pydata-xarray-pr10921-landed/task\nPrepared 1 package in 283ms\nInstalled 12 packages in 50ms\n + iniconfig==2.3.0\n + numpy==2.3.4\n + packaging==25.0\n + pandas==2.3.3\n + pluggy==1.6.0\n + pygments==2.19.2\n + pytest==9.0.1\n + python-dateutil==2.9.0.post0\n + pytz==2025.2\n + six==1.17.0\n + tzdata==2025.2\n + xarray==2025.11.0 (from file://eval/mine/work/pydata-xarray-pr10921-landed/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 python -m pytest -q -o addopts= xarray/tests/test_coarsen.py",
+      "exit_code": 0,
+      "duration_s": 11.65,
+      "date": "2026-10-16T08:40:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".s....ssss..sss......................................................... [ 36%]\n.ssssssssssssssssssssssssssssssssssssssssssssssssssssssss...s.......s... [ 72%]\n....s.......s......ssssssssssssssssssssssssssssssss...                   [100%]\n98 passed, 100 skipped in 0.21s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 python -c \"import numpy as np, xarray as xr; da = xr.DataArray(np.random.default_rng(0).random((2000, 2000)), dims=('x', 'y')); da.coarsen(x=7, y=7, boundary='pad').mean().values\"",
+      "exit_code": 0,
+      "duration_s": 0.29,
+      "date": "2026-10-16T08:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 uv venv --python 3.13 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.13.11\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 uv pip install --exclude-newer 2025-11-15 -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.92,
+      "date": "2026-10-16T08:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "      Built xarray @ file://eval/mine/work/pydata-xarray-pr10921-landed/reference\nPrepared 1 package in 255ms\nInstalled 12 packages in 77ms\n + iniconfig==2.3.0\n + numpy==2.3.4\n + packaging==25.0\n + pandas==2.3.3\n + pluggy==1.6.0\n + pygments==2.19.2\n + pytest==9.0.1\n + python-dateutil==2.9.0.post0\n + pytz==2025.2\n + six==1.17.0\n + tzdata==2025.2\n + xarray==2025.11.0 (from file://eval/mine/work/pydata-xarray-pr10921-landed/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 python -m pytest -q -o addopts= xarray/tests/test_coarsen.py",
+      "exit_code": 0,
+      "duration_s": 11.51,
+      "date": "2026-10-16T08:41:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".s....ssss..sss......................................................... [ 36%]\n.ssssssssssssssssssssssssssssssssssssssssssssssssssssssss...s.......s... [ 72%]\n....s.......s......ssssssssssssssssssssssssssssssss...                   [100%]\n98 passed, 100 skipped in 0.23s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=2025.11.0 python -c \"import numpy as np, xarray as xr; da = xr.DataArray(np.random.default_rng(0).random((2000, 2000)), dims=('x', 'y')); da.coarsen(x=7, y=7, boundary='pad').mean().values\"",
+      "exit_code": 0,
+      "duration_s": 0.35,
+      "date": "2026-10-16T08:41:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "cargo bench --bench sync_mpsc",
-    "source": "quoted in the description of https://github.com/tokio-rs/tokio/pull/5829",
-    "verified": false
+    "command": "cargo bench -p benches --bench sync_mpsc -- contention",
+    "source": "the contention cases of tokio's own sync_mpsc bench, the command in the description of https://github.com/tokio-rs/tokio/pull/5829 narrowed to the contended cases false sharing affects",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "cargo test --manifest-path tokio/Cargo.toml --features full --test sync_mpsc",
+    "source": "tokio's sync_mpsc integration tests, for the channel https://github.com/tokio-rs/tokio/pull/5829 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release -p benches --bench sync_mpsc",
+      "exit_code": 0,
+      "duration_s": 18.23,
+      "date": "2026-10-16T09:39:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "260 | #[cfg(all(test, not(loom)))]\n    |                     ^^^^\n    |\n    = help: consider using a Cargo feature instead\n    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n             [lints.rust]\n             unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n    = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio-stream` (lib) generated 2 warnings\nwarning: `tokio` (lib) generated 517 warnings (run `cargo fix --lib -p tokio` to apply 1 suggestion)\nwarning: `tokio-util` (lib) generated 5 warnings\n   Compiling benches v0.0.0 (eval/mine/work/tokio-rs-tokio-pr5829/task/benches)\n    Finished `release` profile [optimized] target(s) in 18.16s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --manifest-path tokio/Cargo.toml --features full --tests",
+      "exit_code": 0,
+      "duration_s": 19.76,
+      "date": "2026-10-16T09:40:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "97 | |     }\n   | |_____- in this macro invocation\n   |\n   = help: consider using a Cargo feature instead\n   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n            [lints.rust]\n            unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(tokio_unstable)'] }\n   = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(tokio_unstable)\");` to the top of the `build.rs`\n   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n   = note: this warning originates in the macro `cfg_metrics` (in Nightly builds, run with -Z macro-backtrace for more info)\n\nwarning: `tokio` (lib test) generated 549 warnings (518 duplicates)\nwarning: `tokio` (test \"rt_threaded\") generated 3 warnings\nwarning: `tokio` (test \"rt_common\") generated 3 warnings\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.67s"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --manifest-path tokio/Cargo.toml --features full --test sync_mpsc",
+      "exit_code": 0,
+      "duration_s": 0.47,
+      "date": "2026-10-16T09:40:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio-test` (lib) generated 1 warning\nwarning: trait `AssertSend` is never used\n  --> tokio/tests/sync_mpsc.rs:24:7\n   |\n24 | trait AssertSend: Send {}\n   |       ^^^^^^^^^^\n   |\n   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `tokio` (test \"sync_mpsc\") generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s\n     Running tests/sync_mpsc.rs (target/debug/deps/sync_mpsc-f9f5d2e4682f1017)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo bench -p benches --bench sync_mpsc -- contention",
+      "exit_code": 0,
+      "duration_s": 13.08,
+      "date": "2026-10-16T09:40:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |\n653 |         #[cfg(loom)]\n    |               ^^^^\n    |\n    = help: consider using a Cargo feature instead\n    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n             [lints.rust]\n             unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n    = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio-util` (lib) generated 5 warnings\nwarning: `tokio-stream` (lib) generated 2 warnings\n    Finished `bench` profile [optimized] target(s) in 0.05s\n     Running sync_mpsc.rs (target/release/deps/sync_mpsc-c55295695f29fb54)"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release -p benches --bench sync_mpsc",
+      "exit_code": 0,
+      "duration_s": 12.59,
+      "date": "2026-10-16T09:40:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "260 | #[cfg(all(test, not(loom)))]\n    |                     ^^^^\n    |\n    = help: consider using a Cargo feature instead\n    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n             [lints.rust]\n             unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n    = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio-stream` (lib) generated 2 warnings\nwarning: `tokio` (lib) generated 517 warnings (run `cargo fix --lib -p tokio` to apply 1 suggestion)\nwarning: `tokio-util` (lib) generated 5 warnings\n   Compiling benches v0.0.0 (eval/mine/work/tokio-rs-tokio-pr5829/reference/benches)\n    Finished `release` profile [optimized] target(s) in 12.56s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --manifest-path tokio/Cargo.toml --features full --tests",
+      "exit_code": 0,
+      "duration_s": 19.16,
+      "date": "2026-10-16T09:40:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  |\n  = help: expected names are: `docsrs`, `feature`, and `test` and 31 more\n  = help: consider using a Cargo feature instead\n  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n           [lints.rust]\n           unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(tokio_no_parking_lot)'] }\n  = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(tokio_no_parking_lot)\");` to the top of the `build.rs`\n  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio` (test \"task_local_set\") generated 1 warning\nwarning: `tokio` (test \"_require_full\") generated 1 warning\nwarning: `tokio` (lib test) generated 549 warnings (518 duplicates)\nwarning: `tokio` (test \"rt_common\") generated 3 warnings\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.09s"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --manifest-path tokio/Cargo.toml --features full --test sync_mpsc",
+      "exit_code": 0,
+      "duration_s": 0.43,
+      "date": "2026-10-16T09:41:11+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio-test` (lib) generated 1 warning\nwarning: trait `AssertSend` is never used\n  --> tokio/tests/sync_mpsc.rs:24:7\n   |\n24 | trait AssertSend: Send {}\n   |       ^^^^^^^^^^\n   |\n   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default\n\nwarning: `tokio` (test \"sync_mpsc\") generated 1 warning\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s\n     Running tests/sync_mpsc.rs (target/debug/deps/sync_mpsc-f9f5d2e4682f1017)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo bench -p benches --bench sync_mpsc -- contention",
+      "exit_code": 0,
+      "duration_s": 13.07,
+      "date": "2026-10-16T09:41:12+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |\n653 |         #[cfg(loom)]\n    |               ^^^^\n    |\n    = help: consider using a Cargo feature instead\n    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n             [lints.rust]\n             unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n    = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio-util` (lib) generated 5 warnings\nwarning: `tokio-stream` (lib) generated 2 warnings\n    Finished `bench` profile [optimized] target(s) in 0.04s\n     Running sync_mpsc.rs (target/release/deps/sync_mpsc-c55295695f29fb54)"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

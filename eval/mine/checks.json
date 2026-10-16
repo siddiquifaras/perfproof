@@ -67,5 +67,536 @@
     "oracle": "python -m pytest -q tests",
     "oracle_source": "pygments' full test suite under tests/, with the test dependencies from its tox.ini at the reference commit (pytest-cov and pytest-randomly left out)",
     "notes": "On the first check here the suite had one failure on both trees (tests/examplefiles/fstar/example.fst golden output), and each workload run took under 0.1 s of wall time per tree (single runs; exact times in runs), so it probably does not exercise the change enough; needs a better workload and a look at the fstar failure"
+  },
+  "psf-black-pr3467": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "22.12.0"
+    },
+    "setup": [
+      "uv venv --python 3.10 .venv",
+      "uv pip install --exclude-newer 2022-12-24 -e . pytest"
+    ],
+    "workload": "python -c \"import black; src = 'x = {\\n' + ''.join(f'    \\'k{i}\\': f(help_text=(\\'lorem ipsum dolor sit amet consectetur adipiscing \\' \\'elit sed do eiusmod tempor incididunt ut labore {i}\\'), n={i}),\\n' for i in range(150)) + '}\\n'; black.format_str(src, mode=black.Mode(preview=True))\"",
+    "workload_source": "written here from the description of https://github.com/psf/black/pull/3467 and its issue #3340 (one statement holding many implicitly concatenated string groups, formatted in preview mode, which turns on the string processing the change rewrites); the issue's gist was not used",
+    "oracle": "python -m pytest -q tests/test_format.py",
+    "oracle_source": "black's formatting tests, which include the preview long_strings cases https://github.com/psf/black/pull/3467 extends; targeted tests only, not the full suite",
+    "notes": "The checkout is a git archive with no .git, so hatch-vcs gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "python-mypy-pr20802": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest pytest-xdist"
+    ],
+    "workload": "python -m mypy --no-incremental --python-version 3.12 -c \"import asyncio, json, email, http.client, logging, argparse\"",
+    "workload_source": "written here from the description of https://github.com/python/mypy/pull/20802 (path operations per module in build and errors): a no-cache run over a program whose imports pull in many typeshed modules; interpreted mypy, not mypyc-compiled",
+    "oracle": "python -m pytest -q -n 0 mypy/test/testgraph.py mypy/test/testmodulefinder.py mypy/test/testerrorstream.py",
+    "oracle_source": "mypy's tests for the build graph, module finder and error stream, the areas https://github.com/python/mypy/pull/20802 changes (build.py, errors.py, semanal_main.py); targeted tests only"
+  },
+  "pydata-xarray-pr10921-landed": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "2025.11.0"
+    },
+    "setup": [
+      "uv venv --python 3.13 .venv",
+      "uv pip install --exclude-newer 2025-11-15 -e . pytest"
+    ],
+    "workload": "python -c \"import numpy as np, xarray as xr; da = xr.DataArray(np.random.default_rng(0).random((2000, 2000)), dims=('x', 'y')); da.coarsen(x=7, y=7, boundary='pad').mean().values\"",
+    "workload_source": "adapted from the coarsen benchmark the description of https://github.com/pydata/xarray/pull/10921 adds (asv_bench/benchmarks/coarsen.py, with padding)",
+    "oracle": "python -m pytest -q -o addopts= xarray/tests/test_coarsen.py",
+    "oracle_source": "xarray's coarsen tests, for the padding path https://github.com/pydata/xarray/pull/10921 changes in xarray/core/variable.py; targeted tests only",
+    "notes": "The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "swe-perf-sympy-sympy-26546": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2024-04-27 -e . pytest hypothesis"
+    ],
+    "workload": "python -m pytest -q sympy/solvers/tests/test_solveset.py::test_issue_14454",
+    "workload_source": "the efficiency_test field of SWE-Perf/SWE-Perf row sympy__sympy-26546",
+    "oracle": "python -m pytest -q sympy/core/tests/test_power.py",
+    "oracle_source": "sympy's tests for sympy/core/power.py, the file the row's patch changes; targeted tests only. The reference tree is the base commit plus the row's patch",
+    "notes": "The row's patch is applied to the base commit for the reference tree. Python and dependencies are pinned to the date the upstream pull request (sympy#26546) merged (see eval/README.md, Built and run here)"
+  },
+  "gin-gonic-gin-pr4466": {
+    "setup": [
+      "cp ../../../../tasks/workloads/gin-gonic-gin-pr4466/eval_recovery_bench_test.go .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr4466-setup1 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ."
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr4466-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalPanicRecovery$ -benchtime 5000x .",
+    "workload_source": "written here from the description of https://github.com/gin-gonic/gin/pull/4466 (its hey run serves panicking requests through Recovery): a Go benchmark, eval/tasks/workloads/gin-gonic-gin-pr4466/eval_recovery_bench_test.go, copied into the tree; it runs in the official golang:1.25 image",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr4466-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Panic|Recovery .",
+    "oracle_source": "gin's recovery tests (recovery_test.go is changed by https://github.com/gin-gonic/gin/pull/4466); targeted tests only",
+    "notes": "Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume"
+  },
+  "gin-gonic-gin-pr2365": {
+    "setup": [
+      "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr2365-setup0 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ./..."
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr2365-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkOneRouteString$ -benchtime 2000000x .",
+    "workload_source": "gin's own BenchmarkOneRouteString in benchmarks_test.go, which serves c.String with no format arguments, the path https://github.com/gin-gonic/gin/pull/2365 changes in render/text.go; the description's benchmarks are from a separate repository; it runs in the official golang:1.25 image",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-gin-gonic-gin-pr2365-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 ./render/ .",
+    "oracle_source": "the tests of the render package (the file https://github.com/gin-gonic/gin/pull/2365 changes) and the root package's context tests; targeted tests only",
+    "notes": "Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume"
+  },
+  "libuv-libuv-pr2064": {
+    "setup": [
+      "cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+      "cmake --build build -j 8"
+    ],
+    "workload": "build/uv_run_tests_a process_title_threadsafe",
+    "workload_source": "libuv's own process_title_threadsafe test, which the description of https://github.com/libuv/libuv/pull/2064 says the change speeds up about 10x",
+    "oracle": "build/uv_run_tests_a process_title",
+    "oracle_source": "libuv's process_title test for uv_set_process_title(), the function https://github.com/libuv/libuv/pull/2064 changes; targeted tests only. The revert (#2405) reports a break in Node.js's process.title that libuv's own tests may not catch",
+    "notes": "Built with CMake from PyPI (uv); CMAKE_POLICY_VERSION_MINIMUM=3.5 because CMake 4 refuses this tree's cmake_minimum_required(3.0)"
+  },
+  "astral-sh-uv-pr20879": {
+    "setup": [
+      "cargo build --release --bin uv",
+      "python3 ../../../../tasks/workloads/astral-sh-uv-pr20879/make_project.py"
+    ],
+    "workload": "target/release/uv export --frozen --offline --no-hashes --project eval-project -q -o eval-export.txt",
+    "workload_source": "written here from the description of https://github.com/astral-sh/uv/pull/20879, whose benchmark parses ecosystem lockfiles: uv export --frozen over the transformers lockfile from uv's own ecosystem test snapshot (eval/tasks/workloads/astral-sh-uv-pr20879/make_project.py)",
+    "oracle": "cargo test --release -p uv-distribution-types",
+    "oracle_source": "the unit tests of uv-distribution-types, the crate https://github.com/astral-sh/uv/pull/20879 changes and whose filename tests it extends; targeted tests only"
+  },
+  "nlohmann-json-pr5836": {
+    "setup": [
+      "clang++ -O2 -std=c++17 -I include -o eval_bench ../../../../tasks/workloads/nlohmann-json-pr5836/json_pointer_bench.cpp",
+      "clang++ -O1 -std=c++17 -I include -I tests/thirdparty/doctest -o eval_unit_json_pointer tests/src/unit.cpp tests/src/unit-json_pointer.cpp"
+    ],
+    "workload": "./eval_bench",
+    "workload_source": "written here from the measurements table in the description of https://github.com/nlohmann/json/pull/5836: a program, eval/tasks/workloads/nlohmann-json-pr5836/json_pointer_bench.cpp, that parses, formats, compares and looks up pointers and runs unflatten and patch, built with Apple clang -O2 against include/",
+    "oracle": "./eval_unit_json_pointer",
+    "oracle_source": "the doctest unit tests in tests/src/unit-json_pointer.cpp (changed by https://github.com/nlohmann/json/pull/5836), built directly with Apple clang; targeted tests only"
+  },
+  "tokio-rs-tokio-pr5829": {
+    "setup": [
+      "cargo build --release -p benches --bench sync_mpsc",
+      "cargo build --manifest-path tokio/Cargo.toml --features full --tests"
+    ],
+    "workload": "cargo bench -p benches --bench sync_mpsc -- contention",
+    "workload_source": "the contention cases of tokio's own sync_mpsc bench, the command in the description of https://github.com/tokio-rs/tokio/pull/5829 narrowed to the contended cases false sharing affects",
+    "oracle": "cargo test --manifest-path tokio/Cargo.toml --features full --test sync_mpsc",
+    "oracle_source": "tokio's sync_mpsc integration tests, for the channel https://github.com/tokio-rs/tokio/pull/5829 changes; targeted tests only"
+  },
+  "crewaiinc-crewai-pr2382-landed": {
+    "env": {
+      "CREWAI_DISABLE_TELEMETRY": "true",
+      "OTEL_SDK_DISABLED": "true"
+    },
+    "setup": [
+      "uv sync --frozen --python 3.12"
+    ],
+    "workload": "python -c \"from crewai.agents.parser import CrewAgentParser; p = CrewAgentParser(agent=None); [p._clean_action('  **Search the internet**  ') for _ in range(200000)]\"",
+    "workload_source": "written here from the description of https://github.com/crewAIInc/crewAI/pull/2382 (its codeflash timing of CrewAgentParser._clean_action): the method called on a padded, starred action name",
+    "oracle": "python -m pytest -q -p no:randomly tests/agents/test_crew_agent_parser.py",
+    "oracle_source": "crewAI's tests for crewai/agents/parser.py, the file https://github.com/crewAIInc/crewAI/pull/2382 changes; targeted tests only",
+    "notes": "Dependencies from the tree's own uv.lock (uv sync --frozen); telemetry off"
+  },
+  "crewaiinc-crewai-pr5584": {
+    "env": {
+      "CREWAI_DISABLE_TELEMETRY": "true",
+      "OTEL_SDK_DISABLED": "true"
+    },
+    "setup": [
+      "uv sync --frozen --package crewai --group dev"
+    ],
+    "workload": "python -c \"import crewai\"",
+    "workload_source": "the import the description of https://github.com/crewAIInc/crewAI/pull/5584 times (import crewai cold start)",
+    "oracle": "python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+    "oracle_source": "crewAI's import tests and event tests, for the lazy loading https://github.com/crewAIInc/crewAI/pull/5584 adds to crewai.events and crewai.mcp; targeted tests only",
+    "notes": "Dependencies from the tree's own uv.lock (uv sync --frozen, crewai and the workspace's dev group); telemetry off"
+  },
+  "crewaiinc-crewai-pr5187": {
+    "env": {
+      "CREWAI_DISABLE_TELEMETRY": "true",
+      "OTEL_SDK_DISABLED": "true",
+      "CREWAI_TRACING_ENABLED": "false"
+    },
+    "setup": [
+      "uv sync --frozen --package crewai --group dev"
+    ],
+    "workload": "python ../../../../tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+    "workload_source": "written here from the description of https://github.com/crewAIInc/crewAI/pull/5187 (per-kickoff framework overhead): 50 kickoffs of a one-agent crew against a local fake model that answers at once, eval/tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+    "oracle": "python -m pytest -q -p no:randomly lib/crewai/tests/tracing/test_tracing.py lib/crewai/tests/test_custom_llm.py",
+    "oracle_source": "crewAI's tracing tests (changed by https://github.com/crewAIInc/crewAI/pull/5187) and its custom-LLM tests; targeted tests only",
+    "notes": "Dependencies from the tree's own uv.lock (uv sync --frozen, crewai and the workspace's dev group); telemetry and tracing off"
+  },
+  "django-django-pr20911": {
+    "setup": [
+      "docker rm -f perfproof-pg-django",
+      "docker run -d --name perfproof-pg-django -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:54329:5432 postgres:16",
+      "docker exec perfproof-pg-django sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "uv venv --python 3.13 .venv",
+      "uv pip install --exclude-newer 2026-03-21 -e . psycopg[binary,pool]",
+      "cp ../../../../tasks/workloads/django-django-pr20911/test_postgres.py tests/"
+    ],
+    "workload": "python ../../../../tasks/workloads/django-django-pr20911/bench.py",
+    "workload_source": "written here from the description of https://github.com/django/django/pull/20911 (100,000 timestamptz values loaded through Django with psycopg-binary): a raw query through Django's PostgreSQL backend, eval/tasks/workloads/django-django-pr20911/bench.py, against PostgreSQL 16 in a local container",
+    "oracle": "python tests/runtests.py --settings test_postgres --parallel 1 backends.postgresql db_functions.datetime",
+    "oracle_source": "Django's PostgreSQL backend tests and its datetime function tests, run by its own runner against the local PostgreSQL (settings in eval/tasks/workloads/django-django-pr20911/test_postgres.py); targeted tests only",
+    "notes": "PostgreSQL 16 runs in a local Docker container with trust authentication on 127.0.0.1:54329. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+    "teardown": [
+      "docker rm -f perfproof-pg-django"
+    ]
+  },
+  "sanic-org-sanic-pr412": {
+    "setup": [
+      "uv venv --python 3.8 .venv",
+      "uv pip install -e . pytest aiohttp"
+    ],
+    "workload": "python -c \"from sanic.response import HTTPResponse; r = HTTPResponse('hello', headers={'X-A': '1', 'X-B': '2', 'Set-Cookie': 'a=b'}); [r.output('1.1', True, 60) for _ in range(200000)]\"",
+    "workload_source": "written here from the description of https://github.com/sanic-org/sanic/pull/412 (header building in HTTPResponse.output, measured there with wrk): output() called on a response with three headers",
+    "oracle": "python -m pytest -q tests/test_response.py tests/test_requests.py",
+    "oracle_source": "sanic's response and request tests, for sanic/response.py, the file https://github.com/sanic-org/sanic/pull/412 changes; targeted tests only",
+    "notes": "Python 3.6, the era Python, has no uv build for macOS arm64; 3.8 is the oldest here. The era recipe (dependencies released before 2017-02-13) failed: httptools 0.0.9 does not compile against CPython 3.8, so dependencies are current releases (the fallback recipe in eval/README.md)"
+  },
+  "honojs-hono-pr5118-landed": {
+    "setup": [
+      "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund esbuild vitest",
+      "ln -s .eval-tools/node_modules node_modules",
+      "cp ../../../../tasks/workloads/honojs-hono-pr5118-landed/bench.ts eval_bench.ts",
+      "node_modules/.bin/esbuild eval_bench.ts --bundle --platform=node --format=esm --outfile=eval_bench.mjs"
+    ],
+    "workload": "node eval_bench.mjs",
+    "workload_source": "written here from the description of https://github.com/honojs/hono/pull/5118 (its query GET /id/1?name=bun and body POST /json cases): 50,000 of each served in process by app.request, with header records passed to c.text and c.json, eval/tasks/workloads/honojs-hono-pr5118-landed/bench.ts bundled with esbuild",
+    "oracle": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs",
+    "oracle_source": "hono's own src/context.test.ts and src/hono.test.ts under vitest, with a minimal config (eval/tasks/workloads/honojs-hono-pr5118-landed/vitest.config.mjs); targeted tests only",
+    "notes": "The repository builds with bun, which is not installed here; only esbuild and vitest are installed (npm --before the change's date) and the source is bundled directly. Node is v24 from nvm"
+  },
+  "scipy-scipy-pr24913-landed": {
+    "setup": [
+      "uv venv --python 3.13 .venv",
+      "uv pip install --exclude-newer 2026-04-04 numpy meson-python meson ninja Cython pybind11 pythran pytest hypothesis",
+      "uv pip install --exclude-newer 2026-04-04 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -Csetup-args=-D_without-fortran=true -e ."
+    ],
+    "workload": "python -c \"import numpy as np; from scipy.linalg import cholesky; a = np.random.default_rng(0).random((512, 512)); a = a @ a.T + 512 * np.eye(512); [cholesky(a, lower=False) for _ in range(300)]\"",
+    "workload_source": "written here from the description of https://github.com/scipy/scipy/pull/24913 (real 512x512 matrices with lower=False, the case its regression hit hardest): repeated scipy.linalg.cholesky on a fixed positive-definite matrix",
+    "oracle": "python -m pytest -q scipy/linalg/tests/test_decomp_cholesky.py",
+    "oracle_source": "scipy's Cholesky tests (scipy/linalg/tests/test_decomp_cholesky.py, which https://github.com/scipy/scipy/pull/24913 extends); targeted tests only",
+    "notes": "Built from source with meson-python against Apple Accelerate and without Fortran (no Fortran compiler here; scipy's _without-fortran option), git submodules fetched at their pinned commits. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "textualize-rich-pr2217-landed": {
+    "setup": [
+      "uv venv --python 3.10 .venv",
+      "uv pip install --exclude-newer 2022-04-26 -e . pytest"
+    ],
+    "workload": "python tools/profile_divide.py",
+    "workload_source": "tools/profile_divide.py, the profile script https://github.com/Textualize/rich/pull/2217 adds (10,000 Segment.divide calls)",
+    "oracle": "python -m pytest -q tests/test_segment.py",
+    "oracle_source": "rich's tests for rich/segment.py, the file https://github.com/Textualize/rich/pull/2217 changes; targeted tests only",
+    "notes": "Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "astropy-astropy-pr18455": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "7.3.0"
+    },
+    "setup": [
+      "uv venv --python 3.13 .venv",
+      "uv pip install --exclude-newer 2025-12-25 -e .[test]"
+    ],
+    "workload": "python -c \"import numpy as np; from astropy.io.votable.converters import bitarray_to_bool, bool_to_bitarray; a = np.random.default_rng(486).random(5000) > 0; [bitarray_to_bool(bool_to_bitarray(a), length=5000) for _ in range(2000)]\"",
+    "workload_source": "adapted from the timing setup in the description of https://github.com/astropy/astropy/pull/18455 (bool_to_bitarray and bitarray_to_bool on 5000 booleans)",
+    "oracle": "python -m pytest -q -o addopts= astropy/io/votable/tests/test_converter.py",
+    "oracle_source": "astropy's votable converter tests, for astropy/io/votable/converters.py, the file https://github.com/astropy/astropy/pull/18455 changes; targeted tests only",
+    "notes": "The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "pydata-xarray-pr6107": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "0.20.2"
+    },
+    "setup": [
+      "uv venv --managed-python --python 3.9 .venv",
+      "uv pip install --exclude-newer 2021-12-30 . pytest"
+    ],
+    "workload": "python -c \"import numpy as np; from xarray.core.pycompat import is_duck_dask_array; a = np.zeros(3); [is_duck_dask_array(a) for _ in range(100000)]\"",
+    "workload_source": "written here from the description of https://github.com/pydata/xarray/pull/6107 (is_dask_collection building a DuckArrayModule on every call): is_duck_dask_array on a NumPy array, which reaches is_dask_collection; dask not installed",
+    "oracle": "python -m pytest -q -o addopts= xarray/tests/test_duck_array_ops.py",
+    "oracle_source": "xarray's duck-array tests, which use is_duck_dask_array from xarray/core/pycompat.py, the file https://github.com/pydata/xarray/pull/6107 changes; targeted tests only",
+    "notes": "The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here). Installed non-editable: setuptools from before the change's date has no editable-install hook (PEP 660)"
+  },
+  "scikit-learn-scikit-learn-pr19328": {
+    "env": {
+      "SKLEARN_NO_OPENMP": "1"
+    },
+    "setup": [
+      "uv venv --python 3.8 .venv",
+      "uv pip install numpy<1.25 scipy<1.11 cython<3 setuptools<60 wheel joblib threadpoolctl pytest",
+      "python setup.py build_ext -i -j 8"
+    ],
+    "workload": "python -c \"import numpy as np; from sklearn.utils.arrayfuncs import min_pos; X = np.random.RandomState(0).randn(100); [min_pos(X) for _ in range(200000)]\"",
+    "workload_source": "adapted from the %timeit min_pos(X) case on 100 elements in the description of https://github.com/scikit-learn/scikit-learn/pull/19328",
+    "oracle": "python -m pytest -q sklearn/utils/tests/test_arrayfuncs.py",
+    "oracle_source": "sklearn/utils/tests/test_arrayfuncs.py, which https://github.com/scikit-learn/scikit-learn/pull/19328 adds; targeted tests only",
+    "oracle_task_tree": false,
+    "notes": "Built without OpenMP (SKLEARN_NO_OPENMP=1; Apple clang has none). Python 3.8 is the oldest uv build here. The era recipe (dependencies released before 2021-02-04) failed: no macOS arm64 wheels of NumPy or SciPy existed then and they do not build from source here, so dependencies are the newest releases that still carry numpy.distutils and Cython 0.29 (the fallback recipe in eval/README.md). Built in place with setup.py build_ext: setuptools<60 has no editable-install hook (PEP 660)"
+  },
+  "django-django-pr21460": {
+    "setup": [
+      "uv venv --python 3.14+gil .venv",
+      "uv pip install --exclude-newer 2026-06-17 -e ."
+    ],
+    "workload": "python -c \"from django.conf import settings; settings.configure(); from types import SimpleNamespace; from django.contrib.auth.decorators import user_passes_test; f = user_passes_test(lambda u: True)(lambda request: None); r = SimpleNamespace(user=None); [f(r) for _ in range(300000)]\"",
+    "workload_source": "adapted from the IPython benchmark in the description of https://github.com/django/django/pull/21460 (a user_passes_test-decorated sync view called with SimpleNamespace(user=None))",
+    "oracle": "python tests/runtests.py --parallel 1 auth_tests.test_decorators",
+    "oracle_source": "Django's tests for django/contrib/auth/decorators.py, the file https://github.com/django/django/pull/21460 changes, run by its own runner on SQLite; targeted tests only",
+    "notes": "Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "labstack-echo-pr3023": {
+    "setup": [
+      "cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-setup1 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ."
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
+    "workload_source": "written here from the description of https://github.com/labstack/echo/pull/3023 (BenchmarkBind_JSON): a Go benchmark that binds a JSON body through ServeHTTP, eval/tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go, copied into the tree; it runs in the official golang:1.25 image",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Bind|JSON .",
+    "oracle_source": "echo's bind and JSON tests (bind_test.go and json_test.go are changed by https://github.com/labstack/echo/pull/3023); targeted tests only",
+    "notes": "Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume"
+  },
+  "sharkdp-fd-pr853": {
+    "setup": [
+      "cargo build --release --locked",
+      "python3 ../../../../tasks/workloads/sharkdp-fd-pr853/make_tree.py"
+    ],
+    "workload": "target/release/fd --color=always -HI -j1 . eval-tree",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/sharkdp/fd/pull/853 (--color=always -HI -j1), searching a fixed generated tree of 20,000 files (eval/tasks/workloads/sharkdp-fd-pr853/make_tree.py) instead of a Linux checkout",
+    "oracle": "cargo test --release --locked",
+    "oracle_source": "fd's own test suite (unit and integration tests); the change is in src/output.rs",
+    "notes": "Built with the current stable Rust from rustup and the tree's Cargo.lock"
+  },
+  "tokio-rs-tokio-pr5513": {
+    "setup": [
+      "cp ../../../../tasks/workloads/tokio-rs-tokio-pr5513/eval_instant_now.rs tokio/tests/",
+      "cargo build --release --manifest-path tokio/Cargo.toml --features full,test-util --tests"
+    ],
+    "workload": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test eval_instant_now",
+    "workload_source": "written here from the description of https://github.com/tokio-rs/tokio/pull/5513 (Instant::now() with test-util enabled and the clock not paused; its benches/time_now.rs is not in the task tree): ten million calls in an integration test, eval/tasks/workloads/tokio-rs-tokio-pr5513/eval_instant_now.rs",
+    "oracle": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test rt_time_start_paused --test time_pause",
+    "oracle_source": "tokio's paused-clock tests (tokio/tests/rt_time_start_paused.rs is changed by https://github.com/tokio-rs/tokio/pull/5513) and its time_pause tests; targeted tests only",
+    "notes": "Built with the current stable Rust from rustup; tokio has no Cargo.lock, so dependencies resolve to current compatible releases",
+    "oracle_task_tree": false
+  },
+  "langchain-ai-langchain-pr38073": {
+    "env": {
+      "UV_PROJECT_ENVIRONMENT": "../../.venv"
+    },
+    "setup": [
+      "uv sync --frozen --python 3.14+gil --project libs/core --group test"
+    ],
+    "workload": "python ../../../../tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+    "workload_source": "written here from the description of https://github.com/langchain-ai/langchain/pull/38073 (tool_call_schema rebuilt on every conversion; its benchmark file is not in the task tree): 2,000 convert_to_openai_tool calls over 20 tools, eval/tasks/workloads/langchain-ai-langchain-pr38073/convert_tools.py",
+    "oracle": "python -m pytest -q -p no:randomly libs/core/tests/unit_tests/test_tools.py",
+    "oracle_source": "langchain-core's tool tests (changed by https://github.com/langchain-ai/langchain/pull/38073); targeted tests only",
+    "notes": "Dependencies from libs/core's own uv.lock (uv sync --frozen), into the tree's .venv"
+  },
+  "deepset-ai-haystack-pr12997": {
+    "env": {
+      "HAYSTACK_TELEMETRY_ENABLED": "False"
+    },
+    "setup": [
+      "uv venv --python 3.14+gil .venv",
+      "uv pip install --exclude-newer 2026-09-29 -e . pytest pytest-asyncio"
+    ],
+    "workload": "python ../../../../tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+    "workload_source": "written here from the description of https://github.com/deepset-ai/haystack/pull/12997 (one Document Store query per retrieved document, measured there with top_k 10 and window_size 3 on OpenSearch): the same over InMemoryDocumentStore, eval/tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+    "oracle": "python -m pytest -q test/components/retrievers/test_sentence_window_retriever.py",
+    "oracle_source": "haystack's SentenceWindowRetriever tests (changed by https://github.com/deepset-ai/haystack/pull/12997); targeted tests only",
+    "notes": "Telemetry off. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "duckdb-duckdb-pr25547": {
+    "setup": [
+      "cmake -S . -B build/release -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_UNITTESTS=ON",
+      "ninja -C build/release duckdb unittest",
+      "python3 ../../../../tasks/workloads/duckdb-duckdb-pr25547/make_wal.py",
+      "build/release/duckdb eval.db -f eval_wal.sql"
+    ],
+    "workload": "build/release/duckdb -readonly eval.db -c \"SELECT count(*) FROM t\"",
+    "workload_source": "written here from the benchmark in the description of https://github.com/duckdb/duckdb/pull/25547 (WAL replay of many BEGIN; INSERT; COMMIT transactions with checkpoints off): opening a database whose WAL holds 20,000 one-row transactions, built by eval/tasks/workloads/duckdb-duckdb-pr25547/make_wal.py; read-only, so the WAL is replayed on every open and never checkpointed away",
+    "oracle": "build/release/test/unittest test/api/test_api.cpp",
+    "oracle_source": "DuckDB's C++ API tests (test/api/test_api.cpp, which https://github.com/duckdb/duckdb/pull/25547 extends) under its own unittest runner; targeted tests only",
+    "notes": "Built with CMake and Ninja from PyPI (uv) and Apple clang, without extensions"
+  },
+  "nestjs-nest-pr18136": {
+    "setup": [
+      "npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund",
+      "cp ../../../../tasks/workloads/nestjs-nest-pr18136/eval-interceptors-workload.spec.ts packages/core/test/"
+    ],
+    "workload": "node_modules/.bin/vitest run packages/core/test/eval-interceptors-workload.spec.ts",
+    "workload_source": "written here from the description of https://github.com/nestjs/nest/pull/18136 (one no-op global interceptor per request, measured there with wrk): InterceptorsConsumer.intercept called 100,000 times with that interceptor, eval/tasks/workloads/nestjs-nest-pr18136/eval-interceptors-workload.spec.ts, under the repository's own vitest config",
+    "oracle": "node_modules/.bin/vitest run packages/core/test/interceptors/interceptors-consumer.spec.ts",
+    "oracle_source": "nest's InterceptorsConsumer tests (changed by https://github.com/nestjs/nest/pull/18136); targeted tests only",
+    "notes": "Dependencies from the tree's package-lock.json (npm ci --legacy-peer-deps, install scripts off; plain npm ci stops on a peer conflict in the lockfile's @apollo/server); vitest runs the TypeScript sources directly. Node is v24 from nvm"
+  },
+  "agno-agi-agno-pr3013": {
+    "setup": [
+      "uv venv --python 3.13 .venv",
+      "uv pip install --exclude-newer 2025-05-21 -r libs/agno/requirements.txt -e libs/agno beautifulsoup4 pytest pytest-asyncio"
+    ],
+    "workload": "python -c \"from bs4 import BeautifulSoup; from agno.document.reader.website_reader import WebsiteReader; html = '<html><body>' + ''.join(f'<div class=x{i}><p>paragraph {i}</p><span>s</span></div>' for i in range(3000)) + '<div class=content><p>main</p></div></body></html>'; soup = BeautifulSoup(html, 'html.parser'); r = WebsiteReader(); [r._extract_main_content(soup) for _ in range(30)]\"",
+    "workload_source": "written here from the description of https://github.com/agno-agi/agno/pull/3013 (a codeflash timing of WebsiteReader._extract_main_content): the method on a parsed page of 3,000 blocks whose main content sits at the end",
+    "oracle": "python -m pytest -q libs/agno/tests/unit/reader/test_website_reader.py",
+    "oracle_source": "agno's WebsiteReader unit tests, for libs/agno/agno/document/reader/website_reader.py, the file https://github.com/agno-agi/agno/pull/3013 changes; targeted tests only",
+    "notes": "Dependencies from the tree's pinned libs/agno/requirements.txt, the rest limited to releases before the change's date (see eval/README.md, Built and run here)"
+  },
+  "run-llama-llama-index-pr21755": {
+    "env": {
+      "UV_PROJECT_ENVIRONMENT": "../.venv"
+    },
+    "setup": [
+      "uv sync --frozen --python 3.14+gil --project llama-index-core"
+    ],
+    "workload": "python ../../../../tasks/workloads/run-llama-llama-index-pr21755/dedup_ingest.py",
+    "workload_source": "written here from the description of https://github.com/run-llama/llama_index/pull/21755 (within-batch dedup in IngestionPipeline, worst case with no duplicates): 10,000 distinct documents through a pipeline with a docstore and a pass-through transformation, eval/tasks/workloads/run-llama-llama-index-pr21755/dedup_ingest.py",
+    "oracle": "python -m pytest -q llama-index-core/tests/ingestion/test_pipeline.py",
+    "oracle_source": "llama-index-core's ingestion pipeline tests (changed by https://github.com/run-llama/llama_index/pull/21755); targeted tests only",
+    "notes": "Dependencies from llama-index-core's own uv.lock (uv sync --frozen), into the tree's .venv"
+  },
+  "sympy-sympy-pr30321": {
+    "setup": [
+      "uv venv --python 3.14+gil .venv",
+      "uv pip install --exclude-newer 2026-08-25 -e . pytest hypothesis"
+    ],
+    "workload": "python -c \"from sympy import symbols; from sympy.integrals.rationaltools import ratint; x, z = symbols('x z'); [ratint(1/(x**2 + z*x + 1), x) for _ in range(5)]\"",
+    "workload_source": "written here from the description of https://github.com/sympy/sympy/pull/30321 (ratint over a rational function whose coefficients hold another symbol, where composite=False forced a slower domain); a small instance, since the description's own example does not finish on the task tree",
+    "oracle": "python -m pytest -q sympy/integrals/tests/test_rationaltools.py",
+    "oracle_source": "sympy's tests for sympy/integrals/rationaltools.py, the file https://github.com/sympy/sympy/pull/30321 changes; targeted tests only",
+    "notes": "Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "gso-huggingface-transformers-d51b589": {
+    "env": {
+      "HF_HUB_DISABLE_TELEMETRY": "1"
+    },
+    "setup": [
+      "uv venv --python 3.9 --managed-python .venv",
+      "uv pip install torch numpy<2 sentencepiece requests boto3 regex sacremoses tqdm pytest",
+      "uv pip install --no-deps ."
+    ],
+    "workload": "python workload.py",
+    "workload_source": "the prob_script field of gso-bench/gso row huggingface__transformers-d51b589, saved as workload.py with the run_test call GSO's harness makes appended (benchmarks.GSO_FOOTER). It downloads xlnet-base-cased from the Hugging Face hub on first use",
+    "oracle": "python -m pytest -q transformers/tests/modeling_xlnet_test.py",
+    "oracle_source": "the tree's own XLNet model tests (transformers/tests/modeling_xlnet_test.py), for transformers/modeling_xlnet.py, the file the reference commit changes; targeted tests only",
+    "notes": "Python 3.9 and a current CPU torch, as GSO's own install commands use (no Python of the change's era, 2019, has a macOS arm64 build). The model download is network, not part of the tree"
+  },
+  "swe-fficiency-pydata-xarray-7382": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "2022.12.0"
+    },
+    "setup": [
+      "uv venv --python 3.10 .venv",
+      "uv pip install --exclude-newer 2022-12-16 . pytest"
+    ],
+    "workload": "python workload.py",
+    "workload_source": "the workload field of swefficiency/swefficiency row pydata__xarray-7382, saved as workload.py (it times itself and prints a mean, which nothing here reads)",
+    "oracle": "python -m pytest -q -o addopts= xarray/tests/test_indexes.py xarray/tests/test_dataset.py -k 'assign or index'",
+    "oracle_source": "xarray's index tests and the assign and index cases of its Dataset tests, for xarray/core/indexes.py and alignment.py, the files the row's patch changes; targeted tests only, not the row's PASS_TO_PASS list",
+    "notes": "The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION; installed non-editable, since setuptools from before the date has no editable-install hook. The row's patch is applied to the base commit for the reference tree. Python and dependencies are pinned to the row's created_at date (see eval/README.md, Built and run here)"
+  },
+  "apache-arrow-pr48898": {
+    "setup": [
+      "cmake -S cpp -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DARROW_BUILD_TESTS=ON -DARROW_DEPENDENCY_SOURCE=BUNDLED -DARROW_JEMALLOC=OFF -DARROW_MIMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_CSV=OFF -DARROW_JSON=OFF -DARROW_FILESYSTEM=OFF -DARROW_IPC=OFF -DARROW_WITH_UTF8PROC=OFF -DARROW_WITH_RE2=OFF",
+      "ninja -C build arrow_shared arrow-bit-utility-test",
+      "clang++ -O2 -std=c++20 -I cpp/src -I build/src -o eval_count_set_bits ../../../../tasks/workloads/apache-arrow-pr48898/count_set_bits.cc -L build/release -larrow -Wl,-rpath,build/release"
+    ],
+    "workload": "./eval_count_set_bits",
+    "workload_source": "written here from the description of https://github.com/apache/arrow/pull/48898 (its CountSetBits benchmark at 16, 1024 and 131072 bytes, which the task tree does not have): a program calling arrow::internal::CountSetBits at those sizes, eval/tasks/workloads/apache-arrow-pr48898/count_set_bits.cc, linked against the tree's libarrow",
+    "oracle": "build/release/arrow-bit-utility-test",
+    "oracle_source": "Arrow's bit utility tests (bit_util_test.cc, bitmap_test.cc and others), for cpp/src/arrow/util/bitmap_ops.cc, the file https://github.com/apache/arrow/pull/48898 changes; targeted tests only",
+    "notes": "Arrow C++ built with CMake and Ninja from PyPI (uv) and Apple clang, bundled dependencies, optional components off"
+  },
+  "pola-rs-polars-pr29813-landed": {
+    "setup": [
+      "uv venv --python 3.14+gil .venv",
+      "uv pip install --exclude-newer 2026-10-15 maturin pytest pytest-xdist hypothesis numpy pandas pyarrow",
+      "maturin develop -m py-polars/runtime/polars-runtime-32/Cargo.toml --features backtrace_filter --profile fast-release --uv",
+      "uv pip install --no-deps -e py-polars"
+    ],
+    "workload": "python -c \"import polars as pl; records = [{'s': {f'f{j}': i * 128 + j for j in range(128)}} for i in range(10000)]; pl.DataFrame(records, infer_schema_length=100)\"",
+    "workload_source": "adapted from the timing table in the description of https://github.com/pola-rs/polars/pull/29813 (pl.DataFrame(records, infer_schema_length=100) on records holding a 128-field struct, 10,000 rows)",
+    "oracle": "python -m pytest -q -p no:randomly py-polars/tests/unit/datatypes/test_struct.py",
+    "oracle_source": "py-polars's struct tests (py-polars/tests/unit/datatypes/test_struct.py, which https://github.com/pola-rs/polars/pull/29813 extends); targeted tests only",
+    "notes": "The Python package is built from source with maturin, as the repository's Makefile does, but with its fast-release profile (release without LTO) to keep the build time down; the Rust toolchain is the tree's pinned nightly-2026-09-01 through rustup. Python and Python dependencies are pinned to the change's era (see eval/README.md, Built and run here)"
+  },
+  "saleor-saleor-pr15725": {
+    "env": {},
+    "setup": [
+      "docker rm -f perfproof-pg-saleor",
+      "docker run -d --name perfproof-pg-saleor -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=saleor -p 127.0.0.1:54330:5432 postgres:16",
+      "docker exec perfproof-pg-saleor sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "uvx --from poetry==1.8.3 poetry export -f requirements.txt --with dev --without-hashes -o eval-requirements.txt",
+      "cp ../../../../tasks/workloads/saleor-saleor-pr15725/category_query.py eval_category_query.py",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup5 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm python -m venv .eval-venv",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup6 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q -r eval-requirements.txt",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup7 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q --no-deps -e .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup8 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py migrate --no-input",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup9 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py populatedb"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-workload -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python eval_category_query.py",
+    "workload_source": "written here from the description of https://github.com/saleor/saleor/pull/15725 (category resolvers: children, parent and products): 20 in-process POSTs of one category query to /graphql/ against the populatedb sample data, eval/tasks/workloads/saleor-saleor-pr15725/category_query.py, copied into the tree. The description's 56 s request ran on a million categories; this dataset is far smaller",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-oracle -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pytest -q -n 0 saleor/graphql/product/tests/benchmark/test_category.py",
+    "oracle_source": "saleor's category benchmark tests (changed by https://github.com/saleor/saleor/pull/15725), which also count queries; targeted tests only",
+    "notes": "Python runs in the official python:3.9-bookworm image under Docker (a linux/arm64 VM on this Mac): saleor's plugins need libmagic, which is not installed on this Mac. PostgreSQL 16 runs in a second local container with trust authentication, reached at host.docker.internal:54330. Dependencies are the tree's poetry.lock, exported with poetry 1.8.3 (main and dev groups), into a venv on the tree; Python 3.9, the version the tree's pyproject requires",
+    "teardown": [
+      "docker rm -f perfproof-pg-saleor"
+    ]
+  },
+  "openhands-openhands-pr12105": {
+    "setup": [
+      "uv venv --python 3.13 .venv",
+      "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --with test --without-hashes -o eval-requirements.txt",
+      "uv pip install -r eval-requirements.txt",
+      "uv pip install --exclude-newer 2025-12-20 aiosqlite",
+      "uv pip install --no-deps -e ."
+    ],
+    "workload": "python ../../../../tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+    "workload_source": "written here from the description of https://github.com/OpenHands/OpenHands/pull/12105 (search_sandboxes making one runtime API call per sandbox): ten searches over 50 stored sandboxes against an in-process fake runtime API that answers one request at a time after 5 ms, with in-memory SQLite, eval/tasks/workloads/openhands-openhands-pr12105/search_sandboxes.py",
+    "oracle": "python -m pytest -q -p no:cacheprovider tests/unit/app_server/test_remote_sandbox_service.py",
+    "oracle_source": "OpenHands's RemoteSandboxService tests (changed by https://github.com/OpenHands/OpenHands/pull/12105); targeted tests only",
+    "notes": "Dependencies are the tree's poetry.lock, exported with poetry 2.1.3 (main and test groups); aiosqlite, which the workload's in-memory database needs, is added at a release from before the change's date"
+  },
+  "rails-rails-pr58751-landed": {
+    "setup": [
+      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/time'; t = Time.utc(2026, 1, 1).in_time_zone('Eastern Time (US & Canada)'); 300_000.times { t.xmlschema; t.to_s; ActiveSupport::TimeZone.seconds_to_utc_offset(-18000) }\"",
+    "workload_source": "adapted from the benchmark-ips script in the description of https://github.com/rails/rails/pull/58751 (TimeWithZone#xmlschema and #to_s on a non-UTC zone, and TimeZone.seconds_to_utc_offset, under YJIT)",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/time_with_zone_test'; require './test/time_zone_test'\"",
+    "oracle_source": "Active Support's TimeWithZone and TimeZone tests (both changed by https://github.com/rails/rails/pull/58751); targeted tests only",
+    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+  },
+  "rails-rails-pr58964": {
+    "setup": [
+      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
+    "workload_source": "written here from the description of https://github.com/rails/rails/pull/58964 (EventReporter#notify on every structured event, measured there under YJIT): 300,000 notify calls with a four-key payload to one subscriber",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
+    "oracle_source": "Active Support's EventReporter and its LogSubscriber tests (the latter changed by https://github.com/rails/rails/pull/58964); targeted tests only",
+    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+  },
+  "run-llama-llama-index-pr18289": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2025-03-29 -e llama-index-core pytest pytest-asyncio openai platformdirs"
+    ],
+    "workload": "python -c \"import llama_index.core\"",
+    "workload_source": "the import the description of https://github.com/run-llama/llama_index/pull/18289 times (initial import of llama-index-core, delayed by eager NLTK imports and downloads)",
+    "oracle": "python -m pytest -q llama-index-core/tests/test_utils.py",
+    "oracle_source": "llama-index-core's tests for llama_index/core/utils.py, one of the files https://github.com/run-llama/llama_index/pull/18289 changes; targeted tests only",
+    "notes": "poetry export of llama-index-core's poetry.lock fails (it cannot reconcile urllib3 in the lock), so dependencies are resolved by uv from the package metadata, limited to releases before the change's date. On first use NLTK may download its data to the package cache, which is network, not part of the tree"
+  },
+  "mem0ai-mem0-pr1260": {
+    "setup": [
+      "uv venv --python 3.12.3 .venv",
+      "uvx --from poetry==2.1.3 --with poetry-plugin-export poetry export -f requirements.txt --without-hashes -o eval-requirements.txt",
+      "uv pip install -r eval-requirements.txt",
+      "uv pip install --no-deps -e ."
+    ],
+    "workload": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+    "workload_source": "written here from the description of https://github.com/mem0ai/mem0/pull/1260 (a codeflash timing of read_env_file): 2,000 parses of a fixed 300-line .env file, eval/tasks/workloads/mem0ai-mem0-pr1260/read_env.py",
+    "oracle": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py",
+    "oracle_source": "written here, since the tree has no test for embedchain/utils/cli.py: read_env_file on a fixed file with comments, blank lines, padding and '=' in values, checked against the task tree's behaviour (eval/tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py)",
+    "notes": "The repository was embedchain at this commit. Dependencies are its poetry.lock, exported with poetry 2.1.3 (main group). CPython 3.12.3, the last 3.12 release before the change: from 3.12.4 on, the locked pydantic.v1 (via langsmith) fails on ForwardRef._evaluate"
   }
 }

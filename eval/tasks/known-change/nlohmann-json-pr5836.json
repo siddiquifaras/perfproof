@@ -26,14 +26,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_bench",
+    "source": "written here from the measurements table in the description of https://github.com/nlohmann/json/pull/5836: a program, eval/tasks/workloads/nlohmann-json-pr5836/json_pointer_bench.cpp, that parses, formats, compares and looks up pointers and runs unflatten and patch, built with Apple clang -O2 against include/",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_unit_json_pointer",
+    "source": "the doctest unit tests in tests/src/unit-json_pointer.cpp (changed by https://github.com/nlohmann/json/pull/5836), built directly with Apple clang; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -42,10 +42,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "clang++ -O2 -std=c++17 -I include -o eval_bench ../../../../tasks/workloads/nlohmann-json-pr5836/json_pointer_bench.cpp",
+      "exit_code": 0,
+      "duration_s": 4.03,
+      "date": "2026-10-16T08:59:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "clang++ -O1 -std=c++17 -I include -I tests/thirdparty/doctest -o eval_unit_json_pointer tests/src/unit.cpp tests/src/unit-json_pointer.cpp",
+      "exit_code": 0,
+      "duration_s": 13.14,
+      "date": "2026-10-16T08:59:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  890 |         CHECK(j.value(ptr, \"x\") == j.value(ptr_oj, \"x\"));\n      |                                      ^\ninclude/nlohmann/json.hpp:3796:16: note: 'value' has been explicitly marked deprecated here\n 3796 |     ReturnType value(const ::nlohmann::json_pointer<BasicJsonType>& ptr, ValueType && default_value) const\n      |                ^\ntests/src/unit-json_pointer.cpp:890:38: warning: 'value<const char (&)[2], nlohmann::basic_json<nlohmann::ordered_map>, std::string, 0>' is deprecated: Since 3.11.0; use basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t> [-Wdeprecated-declarations]\n  890 |         CHECK(j.value(ptr, \"x\") == j.value(ptr_oj, \"x\"));\n      |                                      ^\ninclude/nlohmann/json.hpp:3795:5: note: 'value<const char (&)[2], nlohmann::basic_json<nlohmann::ordered_map>, std::string, 0>' has been explicitly marked deprecated here\n 3795 |     JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)\n      |     ^\ninclude/nlohmann/thirdparty/hedley/hedley.hpp:1045:75: note: expanded from macro 'JSON_HEDLEY_DEPRECATED_FOR'\n 1045 |     #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __attribute__((__deprecated__(\"Since \" #since \"; use \" #replacement)))\n      |                                                                           ^\n25 warnings generated."
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "./eval_unit_json_pointer",
+      "exit_code": 0,
+      "duration_s": 0.5,
+      "date": "2026-10-16T08:59:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[doctest] doctest version is \"2.4.12\"\n[doctest] run with \"--help\" for options\n===============================================================================\n[doctest] test cases:      4 |      4 passed | 0 failed | 0 skipped\n[doctest] assertions: 200354 | 200354 passed | 0 failed |\n[doctest] Status: SUCCESS!"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "./eval_bench",
+      "exit_code": 0,
+      "duration_s": 0.84,
+      "date": "2026-10-16T08:59:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "32040250"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "clang++ -O2 -std=c++17 -I include -o eval_bench ../../../../tasks/workloads/nlohmann-json-pr5836/json_pointer_bench.cpp",
+      "exit_code": 0,
+      "duration_s": 4.01,
+      "date": "2026-10-16T08:59:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "clang++ -O1 -std=c++17 -I include -I tests/thirdparty/doctest -o eval_unit_json_pointer tests/src/unit.cpp tests/src/unit-json_pointer.cpp",
+      "exit_code": 0,
+      "duration_s": 30.69,
+      "date": "2026-10-16T08:59:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " 1273 |         CHECK_THROWS_AS(ptr == \"/b/~2\", json::parse_error&);\n      |                             ^\ninclude/nlohmann/detail/json_pointer.hpp:1497:13: note: 'operator==' has been explicitly marked deprecated here\n 1497 | inline bool operator==(const json_pointer<RefStringTypeLhs>& lhs,\n      |             ^\ntests/src/unit-json_pointer.cpp:1273:29: warning: 'operator==<std::string, char[6]>' is deprecated: Since 3.11.2; use operator==(json_pointer, json_pointer) [-Wdeprecated-declarations]\n 1273 |         CHECK_THROWS_AS(ptr == \"/b/~2\", json::parse_error&);\n      |                             ^\ninclude/nlohmann/detail/json_pointer.hpp:1496:1: note: 'operator==<std::string, char[6]>' has been explicitly marked deprecated here\n 1496 | JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator==(json_pointer, json_pointer))\n      | ^\ninclude/nlohmann/thirdparty/hedley/hedley.hpp:1045:75: note: expanded from macro 'JSON_HEDLEY_DEPRECATED_FOR'\n 1045 |     #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __attribute__((__deprecated__(\"Since \" #since \"; use \" #replacement)))\n      |                                                                           ^\n37 warnings generated."
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "./eval_unit_json_pointer",
+      "exit_code": 0,
+      "duration_s": 1.05,
+      "date": "2026-10-16T09:00:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[doctest] doctest version is \"2.4.12\"\n[doctest] run with \"--help\" for options\n===============================================================================\n[doctest] test cases:      8 |      8 passed | 0 failed | 0 skipped\n[doctest] assertions: 211102 | 211102 passed | 0 failed |\n[doctest] Status: SUCCESS!"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "./eval_bench",
+      "exit_code": 0,
+      "duration_s": 1.15,
+      "date": "2026-10-16T09:00:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "32040250"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

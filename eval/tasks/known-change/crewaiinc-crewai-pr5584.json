@@ -28,14 +28,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"import crewai\"",
+    "source": "the import the description of https://github.com/crewAIInc/crewAI/pull/5584 times (import crewai cold start)",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+    "source": "crewAI's import tests and event tests, for the lazy loading https://github.com/crewAIInc/crewAI/pull/5584 adds to crewai.events and crewai.mcp; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -44,10 +44,71 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies from the tree's own uv.lock (uv sync --frozen, crewai and the workspace's dev group); telemetry off",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+      "exit_code": 0,
+      "duration_s": 8.01,
+      "date": "2026-10-16T09:06:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + uc-micro-py==2.0.0\n + urllib3==2.6.3\n + uv==0.11.7\n + uvicorn==0.44.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==21.2.4\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==2.1.2\n + yarl==1.23.0\n + zipp==3.23.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+      "exit_code": 0,
+      "duration_s": 28.24,
+      "date": "2026-10-16T09:07:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\nlib/crewai/tests/events/test_event_ordering.py: 24 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1545: DeprecationWarning: deprecated\n    if hasattr(agent, \"allow_code_execution\") and getattr(\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1552: DeprecationWarning: deprecated\n    and hasattr(agent, \"multimodal\")\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1553: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n110 passed, 76 warnings in 22.74s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -c \"import crewai\"",
+      "exit_code": 0,
+      "duration_s": 1.54,
+      "date": "2026-10-16T09:07:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+      "exit_code": 0,
+      "duration_s": 0.82,
+      "date": "2026-10-16T09:07:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + uc-micro-py==2.0.0\n + urllib3==2.6.3\n + uv==0.11.7\n + uvicorn==0.44.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==21.2.4\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==2.1.2\n + yarl==1.23.0\n + zipp==3.23.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+      "exit_code": 0,
+      "duration_s": 20.12,
+      "date": "2026-10-16T09:07:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\nlib/crewai/tests/events/test_event_ordering.py: 24 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1545: DeprecationWarning: deprecated\n    if hasattr(agent, \"allow_code_execution\") and getattr(\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1552: DeprecationWarning: deprecated\n    and hasattr(agent, \"multimodal\")\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/mine/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1553: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n110 passed, 76 warnings in 16.10s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -c \"import crewai\"",
+      "exit_code": 0,
+      "duration_s": 1.21,
+      "date": "2026-10-16T09:07:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

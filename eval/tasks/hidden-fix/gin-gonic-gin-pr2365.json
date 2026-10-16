@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": "go test -bench=. -benchtime=10s",
-    "source": "quoted in the description of https://github.com/gin-gonic/gin/pull/2365",
-    "verified": false
+    "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkOneRouteString$ -benchtime 2000000x .",
+    "source": "gin's own BenchmarkOneRouteString in benchmarks_test.go, which serves c.String with no format arguments, the path https://github.com/gin-gonic/gin/pull/2365 changes in render/text.go; the description's benchmarks are from a separate repository; it runs in the official golang:1.25 image",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 ./render/ .",
+    "source": "the tests of the render package (the file https://github.com/gin-gonic/gin/pull/2365 changes) and the root package's context tests; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,71 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ./...",
+      "exit_code": 0,
+      "duration_s": 61.46,
+      "date": "2026-10-16T08:35:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin/internal/bytesconv\t0.001s [no tests to run]\n?   \tgithub.com/gin-gonic/gin/internal/json\t[no test files]\nok  \tgithub.com/gin-gonic/gin/render\t0.002s [no tests to run]\ngo: downloading github.com/ugorji/go/codec v1.1.7\ngo: downloading gopkg.in/yaml.v2 v2.2.8\ngo: downloading github.com/golang/protobuf v1.3.3\ngo: downloading github.com/stretchr/testify v1.4.0\ngo: downloading github.com/go-playground/validator/v10 v10.2.0\ngo: downloading github.com/gin-contrib/sse v0.1.0\ngo: downloading github.com/mattn/go-isatty v0.0.12\ngo: downloading golang.org/x/sys v0.0.0-20200116001909-b77594299b42\ngo: downloading github.com/ugorji/go v1.1.7\ngo: downloading github.com/leodido/go-urn v1.2.0\ngo: downloading github.com/go-playground/universal-translator v0.17.0\ngo: downloading github.com/go-playground/locales v0.13.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 ./render/ .",
+      "exit_code": 0,
+      "duration_s": 6.09,
+      "date": "2026-10-16T08:36:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin/render\t0.003s\nok  \tgithub.com/gin-gonic/gin\t0.185s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkOneRouteString$ -benchtime 2000000x .",
+      "exit_code": 0,
+      "duration_s": 5.79,
+      "date": "2026-10-16T08:36:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: linux\ngoarch: arm64\npkg: github.com/gin-gonic/gin\nBenchmarkOneRouteString-10    \t 2000000\t        57.30 ns/op\t      48 B/op\t       1 allocs/op\nPASS\nok  \tgithub.com/gin-gonic/gin\t0.119s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ./...",
+      "exit_code": 0,
+      "duration_s": 6.11,
+      "date": "2026-10-16T08:37:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin\t0.003s [no tests to run]\nok  \tgithub.com/gin-gonic/gin/binding\t0.002s [no tests to run]\n?   \tgithub.com/gin-gonic/gin/ginS\t[no test files]\nok  \tgithub.com/gin-gonic/gin/internal/bytesconv\t0.001s [no tests to run]\n?   \tgithub.com/gin-gonic/gin/internal/json\t[no test files]\nok  \tgithub.com/gin-gonic/gin/render\t0.002s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 ./render/ .",
+      "exit_code": 0,
+      "duration_s": 6.09,
+      "date": "2026-10-16T08:37:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin/render\t0.004s\nok  \tgithub.com/gin-gonic/gin\t0.176s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkOneRouteString$ -benchtime 2000000x .",
+      "exit_code": 0,
+      "duration_s": 5.82,
+      "date": "2026-10-16T08:37:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: linux\ngoarch: arm64\npkg: github.com/gin-gonic/gin\nBenchmarkOneRouteString-10    \t 2000000\t        63.66 ns/op\t      72 B/op\t       2 allocs/op\nPASS\nok  \tgithub.com/gin-gonic/gin\t0.132s"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

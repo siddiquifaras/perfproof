@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "python",
   "workload": {
-    "command": "%timeit xr.core.pycompat.DuckArrayModule(\"dask\").available",
-    "source": "quoted in the description of https://github.com/pydata/xarray/pull/6107",
-    "verified": false
+    "command": "python -c \"import numpy as np; from xarray.core.pycompat import is_duck_dask_array; a = np.zeros(3); [is_duck_dask_array(a) for _ in range(100000)]\"",
+    "source": "written here from the description of https://github.com/pydata/xarray/pull/6107 (is_dask_collection building a DuckArrayModule on every call): is_duck_dask_array on a NumPy array, which reaches is_dask_collection; dask not installed",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -o addopts= xarray/tests/test_duck_array_ops.py",
+    "source": "xarray's duck-array tests, which use is_duck_dask_array from xarray/core/pycompat.py, the file https://github.com/pydata/xarray/pull/6107 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The checkout is a git archive with no .git, so setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here). Installed non-editable: setuptools from before the change's date has no editable-install hook (PEP 660)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 uv venv --managed-python --python 3.9 .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T12:49:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 uv pip install --exclude-newer 2021-12-30 . pytest",
+      "exit_code": 0,
+      "duration_s": 1.68,
+      "date": "2026-10-16T12:49:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Installed 14 packages in 60ms\n + attrs==21.4.0\n + iniconfig==1.1.1\n + numpy==1.21.5\n + packaging==21.3\n + pandas==1.3.5\n + pluggy==1.0.0\n + py==1.11.0\n + pyparsing==3.0.6\n + pytest==6.2.5\n + python-dateutil==2.8.2\n + pytz==2021.3\n + six==1.16.0\n + toml==0.10.2\n + xarray==0.20.2 (from file://eval/mine/work/pydata-xarray-pr6107/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 python -m pytest -q -o addopts= xarray/tests/test_duck_array_ops.py",
+      "exit_code": 0,
+      "duration_s": 53.22,
+      "date": "2026-10-16T12:49:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ssssssss......ssssssssss........ssssssss........ssssssss........ssssssss [ 18%]\n........ssssssss......ssssssssss........ssssssss........ssssssss........ [ 25%]\nssssssss........ssssssss......ssssssssss........ssssssssssssssssss...... [ 31%]\n....ssssssssssssssssssssssssssssss..........ssssssssssssssssssssssssss.. [ 37%]\n............ssssssssssssssssssssssssss..............ssssssssssssssssssss [ 44%]\nsssssssssss.s.s.s.s.sssssssssssssssssssssssssssssss.s.s.s.s.ssssssssssss [ 50%]\nsssssssssssssss.s.s.s.s.s.s.sssssssssssssssssssssssssss.s.s.s.s.s.s.ssss [ 56%]\nssssssssssssssss......sssssss........ssssssss........ssssssss........sss [ 63%]\nsssss........ssssssss........ssssssss........ssssssss........ssssssss... [ 69%]\n.....ssssssss........ssssssss........ssssssss........ssssssss........sss [ 75%]\nsssss........ssssssss........ssssssss........ssssssss........ssssssss... [ 82%]\n.....ssssssss........ssssssss........ssssssss........ssssssss........sss [ 88%]\nsssss........ssssssss........ssssssss........ssssssss....ssss....ssss.s. [ 94%]\ns.s.s.s.s......ssss....ssss....ssss....ssss..ss.........s.s.s            [100%]\n487 passed, 653 skipped, 1 xpassed in 1.78s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 python -c \"import numpy as np; from xarray.core.pycompat import is_duck_dask_array; a = np.zeros(3); [is_duck_dask_array(a) for _ in range(100000)]\"",
+      "exit_code": 0,
+      "duration_s": 3.57,
+      "date": "2026-10-16T12:50:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 uv venv --managed-python --python 3.9 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:50:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 uv pip install --exclude-newer 2021-12-30 . pytest",
+      "exit_code": 0,
+      "duration_s": 1.31,
+      "date": "2026-10-16T12:50:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Installed 14 packages in 105ms\n + attrs==21.4.0\n + iniconfig==1.1.1\n + numpy==1.21.5\n + packaging==21.3\n + pandas==1.3.5\n + pluggy==1.0.0\n + py==1.11.0\n + pyparsing==3.0.6\n + pytest==6.2.5\n + python-dateutil==2.8.2\n + pytz==2021.3\n + six==1.16.0\n + toml==0.10.2\n + xarray==0.20.2 (from file://eval/mine/work/pydata-xarray-pr6107/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 python -m pytest -q -o addopts= xarray/tests/test_duck_array_ops.py",
+      "exit_code": 0,
+      "duration_s": 56.02,
+      "date": "2026-10-16T12:50:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ssssssss......ssssssssss........ssssssss........ssssssss........ssssssss [ 18%]\n........ssssssss......ssssssssss........ssssssss........ssssssss........ [ 25%]\nssssssss........ssssssss......ssssssssss........ssssssssssssssssss...... [ 31%]\n....ssssssssssssssssssssssssssssss..........ssssssssssssssssssssssssss.. [ 37%]\n............ssssssssssssssssssssssssss..............ssssssssssssssssssss [ 44%]\nsssssssssss.s.s.s.s.sssssssssssssssssssssssssssssss.s.s.s.s.ssssssssssss [ 50%]\nsssssssssssssss.s.s.s.s.s.s.sssssssssssssssssssssssssss.s.s.s.s.s.s.ssss [ 56%]\nssssssssssssssss......sssssss........ssssssss........ssssssss........sss [ 63%]\nsssss........ssssssss........ssssssss........ssssssss........ssssssss... [ 69%]\n.....ssssssss........ssssssss........ssssssss........ssssssss........sss [ 75%]\nsssss........ssssssss........ssssssss........ssssssss........ssssssss... [ 82%]\n.....ssssssss........ssssssss........ssssssss........ssssssss........sss [ 88%]\nsssss........ssssssss........ssssssss........ssssssss....ssss....ssss.s. [ 94%]\ns.s.s.s.s......ssss....ssss....ssss....ssss..ss.........s.s.s            [100%]\n487 passed, 653 skipped, 1 xpassed in 1.57s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.20.2 python -c \"import numpy as np; from xarray.core.pycompat import is_duck_dask_array; a = np.zeros(3); [is_duck_dask_array(a) for _ in range(100000)]\"",
+      "exit_code": 0,
+      "duration_s": 0.33,
+      "date": "2026-10-16T12:51:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

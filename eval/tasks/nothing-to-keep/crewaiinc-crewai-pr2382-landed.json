@@ -21,14 +21,14 @@
   "change_kind": "after-landed",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"from crewai.agents.parser import CrewAgentParser; p = CrewAgentParser(agent=None); [p._clean_action('  **Search the internet**  ') for _ in range(200000)]\"",
+    "source": "written here from the description of https://github.com/crewAIInc/crewAI/pull/2382 (its codeflash timing of CrewAgentParser._clean_action): the method called on a padded, starred action name",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -p no:randomly tests/agents/test_crew_agent_parser.py",
+    "source": "crewAI's tests for crewai/agents/parser.py, the file https://github.com/crewAIInc/crewAI/pull/2382 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,71 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies from the tree's own uv.lock (uv sync --frozen); telemetry off",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --python 3.12",
+      "exit_code": 0,
+      "duration_s": 550.32,
+      "date": "2026-10-16T08:44:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + urllib3==2.2.3\n + uv==0.4.26\n + uvicorn==0.32.0\n + uvloop==0.21.0\n + vcrpy==5.1.0\n + virtualenv==20.27.0\n + watchdog==5.0.3\n + watchfiles==0.24.0\n + wcwidth==0.2.13\n + webencodings==0.5.1\n + websocket-client==1.8.0\n + websockets==13.1\n + wrapt==1.16.0\n + yarl==1.18.3\n + zipp==3.20.2"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly tests/agents/test_crew_agent_parser.py",
+      "exit_code": 0,
+      "duration_s": 58.41,
+      "date": "2026-10-16T08:53:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".............................................                            [100%]\n=============================== warnings summary ===============================\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.MessageMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.ScalarMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n45 passed, 2 warnings in 41.38s\neval/mine/work/crewaiinc-crewai-pr2382-landed/task/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -c \"from crewai.agents.parser import CrewAgentParser; p = CrewAgentParser(agent=None); [p._clean_action('  **Search the internet**  ') for _ in range(200000)]\"",
+      "exit_code": 0,
+      "duration_s": 15.27,
+      "date": "2026-10-16T08:54:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --python 3.12",
+      "exit_code": 0,
+      "duration_s": 2.35,
+      "date": "2026-10-16T08:54:30+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + urllib3==2.2.3\n + uv==0.4.26\n + uvicorn==0.32.0\n + uvloop==0.21.0\n + vcrpy==5.1.0\n + virtualenv==20.27.0\n + watchdog==5.0.3\n + watchfiles==0.24.0\n + wcwidth==0.2.13\n + webencodings==0.5.1\n + websocket-client==1.8.0\n + websockets==13.1\n + wrapt==1.16.0\n + yarl==1.18.3\n + zipp==3.20.2"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly tests/agents/test_crew_agent_parser.py",
+      "exit_code": 0,
+      "duration_s": 29.43,
+      "date": "2026-10-16T08:54:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".............................................                            [100%]\n=============================== warnings summary ===============================\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.MessageMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.ScalarMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n45 passed, 2 warnings in 20.34s\neval/mine/work/crewaiinc-crewai-pr2382-landed/reference/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -c \"from crewai.agents.parser import CrewAgentParser; p = CrewAgentParser(agent=None); [p._clean_action('  **Search the internet**  ') for _ in range(200000)]\"",
+      "exit_code": 0,
+      "duration_s": 7.82,
+      "date": "2026-10-16T08:55:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

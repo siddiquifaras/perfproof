@@ -30,14 +30,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-workload -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python eval_category_query.py",
+    "source": "written here from the description of https://github.com/saleor/saleor/pull/15725 (category resolvers: children, parent and products): 20 in-process POSTs of one category query to /graphql/ against the populatedb sample data, eval/tasks/workloads/saleor-saleor-pr15725/category_query.py, copied into the tree. The description's 56 s request ran on a million categories; this dataset is far smaller",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest saleor/graphql/product/tests/benchmark/test_category.py",
-    "source": "test files changed by https://github.com/saleor/saleor/pull/15725 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-oracle -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pytest -q -n 0 saleor/graphql/product/tests/benchmark/test_category.py",
+    "source": "saleor's category benchmark tests (changed by https://github.com/saleor/saleor/pull/15725), which also count queries; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -46,10 +46,251 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python runs in the official python:3.9-bookworm image under Docker (a linux/arm64 VM on this Mac): saleor's plugins need libmagic, which is not installed on this Mac. PostgreSQL 16 runs in a second local container with trust authentication, reached at host.docker.internal:54330. Dependencies are the tree's poetry.lock, exported with poetry 1.8.3 (main and dev groups), into a venv on the tree; Python 3.9, the version the tree's pyproject requires",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker rm -f perfproof-pg-saleor",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T17:56:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Error response from daemon: No such container: perfproof-pg-saleor"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run -d --name perfproof-pg-saleor -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=saleor -p 127.0.0.1:54330:5432 postgres:16",
+      "exit_code": 0,
+      "duration_s": 0.24,
+      "date": "2026-10-16T17:56:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2a1c3d2ae1af22776590cff8a9fd9490ba7918195bcf592a62afea0a6d3e8b53"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker exec perfproof-pg-saleor sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "exit_code": 0,
+      "duration_s": 1.22,
+      "date": "2026-10-16T17:56:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uvx --from poetry==1.8.3 poetry export -f requirements.txt --with dev --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 2.06,
+      "date": "2026-10-16T17:56:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Warning: poetry-plugin-export will not be installed by default in a future version of Poetry.\nIn order to avoid a breaking change and make your automation forward-compatible, please install poetry-plugin-export explicitly. See https://python-poetry.org/docs/plugins/#using-plugins for details on how to install a plugin.\nTo disable this warning run 'poetry config warnings.export false'."
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/saleor-saleor-pr15725/category_query.py eval_category_query.py",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T17:57:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup5 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm python -m venv .eval-venv",
+      "exit_code": 0,
+      "duration_s": 4.61,
+      "date": "2026-10-16T17:57:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup6 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 132.32,
+      "date": "2026-10-16T17:57:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  DEPRECATION: cron-descriptor is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: adyen is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: pybars3 is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: psycopg2 is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: before-after is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: thrift is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: threadloop is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: promise is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: draftjs-sanitizer is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: jaeger-client is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: html-to-draftjs is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: authorizenet is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n\n[notice] A new release of pip is available: 23.0.1 -> 26.0.1\n[notice] To update, run: python -m pip install --upgrade pip"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup7 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 5.14,
+      "date": "2026-10-16T17:59:18+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[notice] A new release of pip is available: 23.0.1 -> 26.0.1\n[notice] To update, run: python -m pip install --upgrade pip"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup8 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py migrate --no-input",
+      "exit_code": 0,
+      "duration_s": 88.95,
+      "date": "2026-10-16T17:59:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2026-10-16 18:00:51,497 INFO celery.app.trace Task saleor.discount.migrations.tasks.saleor3_17.update_discounted_prices_task[1316836b-8c38-4a28-a00d-828c500bacd4] succeeded in 0.004122250000364147s: None [PID:7:MainThread]\n2026-10-16 18:00:51,515 INFO celery.app.trace Task saleor.discount.migrations.tasks.saleor3_17.set_promotion_rule_variants[5f6164a3-4944-454d-83ac-56339a85f2db] succeeded in 0.017965833001653664s: None [PID:7:MainThread]\n2026-10-16 18:00:51,616 INFO celery.app.trace Task saleor.attribute.migrations.tasks.saleor3_14.setup_max_sort_order[8e1a144c-fc69-479d-b865-501fe7fc38f9] succeeded in 0.0021405830048024654s: None [PID:7:MainThread]\n2026-10-16 18:00:51,691 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_transaction_modified_at_in_checkouts[67c73d30-7d2f-4e58-9b14-7883a83f0cac] succeeded in 0.0036153330001980066s: None [PID:7:MainThread]\n2026-10-16 18:00:51,693 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_checkout_refundable[7472198a-3be6-45c4-8a94-428ca7433246] succeeded in 0.0022338750059134327s: None [PID:7:MainThread]\n2026-10-16 18:00:51,697 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_checkout_addresses_task[56935e7e-5346-4495-b279-1ec51a79cd43] succeeded in 0.0029980830004205927s: None [PID:7:MainThread]\n2026-10-16 18:00:51,805 INFO saleor.core.search_tasks No orders to update. [PID:7:MainThread]\n2026-10-16 18:00:51,805 INFO celery.app.trace Task saleor.core.search_tasks.set_order_search_document_values[66460540-a73a-43b9-81ee-10679bb22917] succeeded in 0.0030538749997504056s: None [PID:7:MainThread]\n2026-10-16 18:00:51,808 INFO saleor.core.search_tasks No orders to update. [PID:7:MainThread]\n2026-10-16 18:00:51,809 INFO celery.app.trace Task saleor.core.search_tasks.set_order_search_document_values[9c6d9e9f-162a-4ec6-ae88-33ebeba25dd2] succeeded in 0.0023249169971677475s: None [PID:7:MainThread]\n2026-10-16 18:00:51,817 INFO celery.app.trace Task saleor.order.migrations.tasks.saleor3_18.update_order_subtotals[199eea2c-fe8f-4373-a91d-92b529a2a1bf] succeeded in 0.0020507919980445877s: None [PID:7:MainThread]\n2026-10-16 18:00:51,819 INFO celery.app.trace Task saleor.order.migrations.tasks.saleor3_18.update_order_addresses_task[e30cb33e-ac3b-4396-a0e1-16d84961cd5e] succeeded in 0.0018757500001811422s: None [PID:7:MainThread]\n2026-10-16 18:00:52,006 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task[7ceb8a35-a442-4e1f-a1e6-7d51d3f368a4] succeeded in 0.0020944999996572733s: None [PID:7:MainThread]\n2026-10-16 18:00:52,008 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task[1c0f05cb-ff1c-4841-97f5-d72129c98e41] succeeded in 0.0018500409933039919s: None [PID:7:MainThread]\n2026-10-16 18:00:52,011 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task_with_none_global_id[64f58425-8058-409a-b127-784ce0bbdfd6] succeeded in 0.0019794999971054494s: None [PID:7:MainThread]"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup9 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py populatedb",
+      "exit_code": 0,
+      "duration_s": 29.02,
+      "date": "2026-10-16T18:00:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Group: Staff management\nUser: 99898468-9ac3-4c2b-a2a9-aec2fd95ea81\nGroup: Taxes management\nUser: 8ac64045-511d-4d8a-97d1-16053e8a6954\nGroup: Translations management\nUser: 380ef65b-d8ef-46d9-877e-27753554f6d4\nGroup: Users management\nUser: de28abd8-6043-4d3d-89c4-04927b6b5b3e\n/src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n  warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n2026-10-16 18:01:03,120 WARNING saleor.core.jwt_manager RSA_PRIVATE_KEY is missing. Using temporary key for local development with DEBUG mode. [PID:7:MainThread]\n2026-10-16 18:01:13,610 WARNING kombu.connection No hostname was supplied. Reverting to default 'localhost' [PID:7:MainThread]\n2026-10-16 18:01:13,692 INFO celery.app.trace Task saleor.product.tasks.update_variant_relations_for_active_promotion_rules_task[6d87a26f-8cff-49a0-9c5a-a1abadc3895d] succeeded in 0.08091754199995194s: None [PID:7:MainThread]\n2026-10-16 18:01:13,844 INFO celery.app.trace Task saleor.product.tasks.recalculate_discounted_price_for_products_task[538c1822-e3eb-45c8-a989-f6c887ab2037] succeeded in 0.0011661250027827919s: None [PID:7:MainThread]\nNo sequences found."
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-oracle -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pytest -q -n 0 saleor/graphql/product/tests/benchmark/test_category.py",
+      "exit_code": 0,
+      "duration_s": 76.28,
+      "date": "2026-10-16T18:01:22+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "....                                                                     [100%]\n=============================== warnings summary ===============================\nsaleor/settings.py:219\n  /src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n    warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n4 passed, 1 warning in 65.99s (0:01:05)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-workload -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python eval_category_query.py",
+      "exit_code": 0,
+      "duration_s": 7.65,
+      "date": "2026-10-16T18:02:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "17\n/src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n  warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n2026-10-16 18:02:43,264 WARNING saleor.core.jwt_manager RSA_PRIVATE_KEY is missing. Using temporary key for local development with DEBUG mode. [PID:7:MainThread]"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker rm -f perfproof-pg-saleor",
+      "exit_code": 0,
+      "duration_s": 0.22,
+      "date": "2026-10-16T18:02:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "perfproof-pg-saleor"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run -d --name perfproof-pg-saleor -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=saleor -p 127.0.0.1:54330:5432 postgres:16",
+      "exit_code": 0,
+      "duration_s": 0.18,
+      "date": "2026-10-16T18:02:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "944cb0503b14ab68697f0a4ea95c9d63eccb908ae81c07fab828ee80cc0dde76"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker exec perfproof-pg-saleor sh -c \"until pg_isready -h 127.0.0.1 -q; do sleep 0.5; done\"",
+      "exit_code": 0,
+      "duration_s": 1.11,
+      "date": "2026-10-16T18:02:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uvx --from poetry==1.8.3 poetry export -f requirements.txt --with dev --without-hashes -o eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 0.64,
+      "date": "2026-10-16T18:02:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Warning: poetry-plugin-export will not be installed by default in a future version of Poetry.\nIn order to avoid a breaking change and make your automation forward-compatible, please install poetry-plugin-export explicitly. See https://python-poetry.org/docs/plugins/#using-plugins for details on how to install a plugin.\nTo disable this warning run 'poetry config warnings.export false'."
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/saleor-saleor-pr15725/category_query.py eval_category_query.py",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-16T18:02:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup5 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm python -m venv .eval-venv",
+      "exit_code": 0,
+      "duration_s": 4.34,
+      "date": "2026-10-16T18:02:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup6 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q -r eval-requirements.txt",
+      "exit_code": 0,
+      "duration_s": 126.01,
+      "date": "2026-10-16T18:02:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  DEPRECATION: cron-descriptor is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: adyen is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: pybars3 is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: psycopg2 is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: before-after is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: thrift is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: threadloop is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: promise is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: draftjs-sanitizer is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: jaeger-client is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: html-to-draftjs is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n  DEPRECATION: authorizenet is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559\n\n[notice] A new release of pip is available: 23.0.1 -> 26.0.1\n[notice] To update, run: python -m pip install --upgrade pip"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup7 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pip install -q --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 4.57,
+      "date": "2026-10-16T18:04:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[notice] A new release of pip is available: 23.0.1 -> 26.0.1\n[notice] To update, run: python -m pip install --upgrade pip"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup8 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py migrate --no-input",
+      "exit_code": 0,
+      "duration_s": 74.26,
+      "date": "2026-10-16T18:05:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2026-10-16 18:06:16,261 INFO celery.app.trace Task saleor.discount.migrations.tasks.saleor3_17.update_discounted_prices_task[3cc3c734-b85d-4a99-bc7b-ebbc1639898d] succeeded in 0.0025898330059135333s: None [PID:6:MainThread]\n2026-10-16 18:06:16,273 INFO celery.app.trace Task saleor.discount.migrations.tasks.saleor3_17.set_promotion_rule_variants[b6ee2fc1-6c15-4254-acca-31d3b9d5c18c] succeeded in 0.01115712499449728s: None [PID:6:MainThread]\n2026-10-16 18:06:16,315 INFO celery.app.trace Task saleor.attribute.migrations.tasks.saleor3_14.setup_max_sort_order[9a932b44-3d3c-4dcd-b871-f8cd9ba8dfb1] succeeded in 0.001473750002332963s: None [PID:6:MainThread]\n2026-10-16 18:06:16,347 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_transaction_modified_at_in_checkouts[8045e26b-5586-4881-8c30-3230d60f5bbd] succeeded in 0.0016558749994146638s: None [PID:6:MainThread]\n2026-10-16 18:06:16,348 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_checkout_refundable[1f3e3350-963a-45a0-a225-04feba8220b0] succeeded in 0.001145082998846192s: None [PID:6:MainThread]\n2026-10-16 18:06:16,349 INFO celery.app.trace Task saleor.checkout.migrations.tasks.saleor3_14.update_checkout_addresses_task[6ad22963-bc97-4a6f-898f-e083f6c504fb] succeeded in 0.0009441670044907369s: None [PID:6:MainThread]\n2026-10-16 18:06:16,384 INFO saleor.core.search_tasks No orders to update. [PID:6:MainThread]\n2026-10-16 18:06:16,384 INFO celery.app.trace Task saleor.core.search_tasks.set_order_search_document_values[17a5dac4-a0d7-4425-99fa-9abeef63b5e4] succeeded in 0.0014321660055429675s: None [PID:6:MainThread]\n2026-10-16 18:06:16,386 INFO saleor.core.search_tasks No orders to update. [PID:6:MainThread]\n2026-10-16 18:06:16,386 INFO celery.app.trace Task saleor.core.search_tasks.set_order_search_document_values[1c29f69f-7a62-4e51-a957-b56cb4677091] succeeded in 0.0013824589987052605s: None [PID:6:MainThread]\n2026-10-16 18:06:16,392 INFO celery.app.trace Task saleor.order.migrations.tasks.saleor3_18.update_order_subtotals[64e26c33-c27f-473d-8ea4-b92e53cff690] succeeded in 0.0009690829974715598s: None [PID:6:MainThread]\n2026-10-16 18:06:16,394 INFO celery.app.trace Task saleor.order.migrations.tasks.saleor3_18.update_order_addresses_task[f839c163-68aa-4f7a-b53f-a4251faedd3f] succeeded in 0.0021356670040404424s: None [PID:6:MainThread]\n2026-10-16 18:06:16,472 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task[b8344109-459f-43e7-b1dc-e30df4d3e4bb] succeeded in 0.0008245419958257116s: None [PID:6:MainThread]\n2026-10-16 18:06:16,473 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task[e2608157-04a3-498b-9a01-0599412e5220] succeeded in 0.0006667500056209974s: None [PID:6:MainThread]\n2026-10-16 18:06:16,474 INFO celery.app.trace Task saleor.app.migrations.tasks.saleor3_14.set_identifier_for_local_apps_task_with_none_global_id[d523b854-f26b-4f35-9579-7f1aaf637150] succeeded in 0.0006837920009274967s: None [PID:6:MainThread]"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-setup9 -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python manage.py populatedb",
+      "exit_code": 0,
+      "duration_s": 17.85,
+      "date": "2026-10-16T18:06:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Group: Staff management\nUser: ce198d86-1819-4339-9524-69e9598e659e\nGroup: Taxes management\nUser: 77aaf23c-f5bc-4c83-8386-06071d943854\nGroup: Translations management\nUser: d907493d-4941-4fe6-a167-bfce2cbcba0b\nGroup: Users management\nUser: 8fa2adfa-087d-4141-b5a4-5b2cfd606c75\n/src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n  warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n2026-10-16 18:06:22,583 WARNING saleor.core.jwt_manager RSA_PRIVATE_KEY is missing. Using temporary key for local development with DEBUG mode. [PID:7:MainThread]\n2026-10-16 18:06:27,138 WARNING kombu.connection No hostname was supplied. Reverting to default 'localhost' [PID:7:MainThread]\n2026-10-16 18:06:27,221 INFO celery.app.trace Task saleor.product.tasks.update_variant_relations_for_active_promotion_rules_task[65e1fb90-e806-45d0-86db-bdd78d7041c3] succeeded in 0.08163295900158118s: None [PID:7:MainThread]\n2026-10-16 18:06:27,455 INFO celery.app.trace Task saleor.product.tasks.recalculate_discounted_price_for_products_task[b4b04f76-35f5-472a-8612-8b8ab5846429] succeeded in 0.0013784159964416176s: None [PID:7:MainThread]\nNo sequences found."
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-oracle -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python -m pytest -q -n 0 saleor/graphql/product/tests/benchmark/test_category.py",
+      "exit_code": 0,
+      "duration_s": 86.79,
+      "date": "2026-10-16T18:06:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "....                                                                     [100%]\n=============================== warnings summary ===============================\nsaleor/settings.py:219\n  /src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n    warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n4 passed, 1 warning in 77.43s (0:01:17)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-saleor-saleor-pr15725-workload -e DATABASE_URL=postgres://postgres@host.docker.internal:54330/saleor -e ALLOWED_HOSTS=testserver,localhost,127.0.0.1 -e PYTHONDONTWRITEBYTECODE=1 -v .:/src -v perfproof-pip:/root/.cache/pip -w /src python:3.9-bookworm .eval-venv/bin/python eval_category_query.py",
+      "exit_code": 0,
+      "duration_s": 15.82,
+      "date": "2026-10-16T18:08:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "17\n/src/saleor/settings.py:219: UserWarning: SECRET_KEY not configured, using a random temporary key.\n  warnings.warn(\"SECRET_KEY not configured, using a random temporary key.\")\n2026-10-16 18:08:12,782 WARNING saleor.core.jwt_manager RSA_PRIVATE_KEY is missing. Using temporary key for local development with DEBUG mode. [PID:7:MainThread]"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

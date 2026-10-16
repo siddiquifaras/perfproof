@@ -24,14 +24,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+    "source": "written here from the description of https://github.com/crewAIInc/crewAI/pull/5187 (per-kickoff framework overhead): 50 kickoffs of a one-agent crew against a local fake model that answers at once, eval/tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest lib/crewai/tests/tracing/test_tracing.py",
-    "source": "test files changed by https://github.com/crewAIInc/crewAI/pull/5187 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q -p no:randomly lib/crewai/tests/tracing/test_tracing.py lib/crewai/tests/test_custom_llm.py",
+    "source": "crewAI's tracing tests (changed by https://github.com/crewAIInc/crewAI/pull/5187) and its custom-LLM tests; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -40,10 +40,71 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies from the tree's own uv.lock (uv sync --frozen, crewai and the workspace's dev group); telemetry and tracing off",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+      "exit_code": 0,
+      "duration_s": 1.91,
+      "date": "2026-10-16T09:08:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + uc-micro-py==1.0.3\n + urllib3==2.6.3\n + uv==0.9.30\n + uvicorn==0.40.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==20.36.1\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==1.17.3\n + yarl==1.22.0\n + zipp==3.23.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/tracing/test_tracing.py lib/crewai/tests/test_custom_llm.py",
+      "exit_code": 0,
+      "duration_s": 27.72,
+      "date": "2026-10-16T09:08:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\nlib/crewai/tests/test_custom_llm.py::test_custom_llm_within_crew\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_collects_crew_events\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_events_collection_batch_manager\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_disabled_when_env_false\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_ephemeral_batch\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_with_authenticated_user\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_collection_with_timeout\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_collection_user_accepts\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_consolidation_logic\n  eval/mine/work/crewaiinc-crewai-pr5187/task/lib/crewai/src/crewai/crew.py:1312: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n41 passed, 1 skipped, 29 warnings in 23.98s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true python ../../../../tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+      "exit_code": 0,
+      "duration_s": 1.65,
+      "date": "2026-10-16T09:08:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "42"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+      "exit_code": 0,
+      "duration_s": 0.56,
+      "date": "2026-10-16T09:08:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + typing-inspection==0.4.2\n + uc-micro-py==1.0.3\n + urllib3==2.6.3\n + uv==0.9.30\n + uvicorn==0.40.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==20.36.1\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==1.17.3\n + yarl==1.22.0\n + zipp==3.23.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/tracing/test_tracing.py lib/crewai/tests/test_custom_llm.py",
+      "exit_code": 0,
+      "duration_s": 25.16,
+      "date": "2026-10-16T09:08:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\nlib/crewai/tests/test_custom_llm.py::test_custom_llm_within_crew\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_collects_crew_events\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_events_collection_batch_manager\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_disabled_when_env_false\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_ephemeral_batch\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_trace_listener_with_authenticated_user\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_collection_with_timeout\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_collection_user_accepts\nlib/crewai/tests/tracing/test_tracing.py::TestTraceListenerSetup::test_first_time_user_trace_consolidation_logic\n  eval/mine/work/crewaiinc-crewai-pr5187/reference/lib/crewai/src/crewai/crew.py:1312: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n41 passed, 1 skipped, 29 warnings in 20.80s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "CREWAI_DISABLE_TELEMETRY=true CREWAI_TRACING_ENABLED=false OTEL_SDK_DISABLED=true python ../../../../tasks/workloads/crewaiinc-crewai-pr5187/kickoff.py",
+      "exit_code": 0,
+      "duration_s": 1.59,
+      "date": "2026-10-16T09:09:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "42"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

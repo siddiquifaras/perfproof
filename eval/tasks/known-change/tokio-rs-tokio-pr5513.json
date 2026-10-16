@@ -24,14 +24,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test eval_instant_now",
+    "source": "written here from the description of https://github.com/tokio-rs/tokio/pull/5513 (Instant::now() with test-util enabled and the clock not paused; its benches/time_now.rs is not in the task tree): ten million calls in an integration test, eval/tasks/workloads/tokio-rs-tokio-pr5513/eval_instant_now.rs",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test rt_time_start_paused --test time_pause",
+    "source": "tokio's paused-clock tests (tokio/tests/rt_time_start_paused.rs is changed by https://github.com/tokio-rs/tokio/pull/5513) and its time_pause tests; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -40,10 +40,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs (oracle required on the reference tree only: it names tests the reference change adds). Built with the current stable Rust from rustup; tokio has no Cargo.lock, so dependencies resolve to current compatible releases",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/tokio-rs-tokio-pr5513/eval_instant_now.rs tokio/tests/",
+      "exit_code": 0,
+      "duration_s": 0.16,
+      "date": "2026-10-16T09:02:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --manifest-path tokio/Cargo.toml --features full,test-util --tests",
+      "exit_code": 0,
+      "duration_s": 166.79,
+      "date": "2026-10-16T09:02:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "            [lints.rust]\n            unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(tokio_wasi)'] }\n   = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(tokio_wasi)\");` to the top of the `build.rs`\n   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio` (test \"io_fill_buf\") generated 1 warning\nwarning: `tokio` (test \"tcp_shutdown\") generated 1 warning\nwarning: `tokio` (test \"sync_mpsc_weak\") generated 1 warning\nwarning: `tokio` (test \"time_panic\") generated 1 warning\nwarning: `tokio` (test \"sync_rwlock\") generated 4 warnings\nwarning: `tokio` (test \"time_pause\") generated 3 warnings\nwarning: `tokio` (test \"task_local_set\") generated 18 warnings\nwarning: `tokio` (lib test) generated 552 warnings (512 duplicates)\nwarning: `tokio` (test \"rt_common\") generated 9 warnings\n    Finished `release` profile [optimized] target(s) in 2m 46s"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test rt_time_start_paused --test time_pause",
+      "exit_code": 101,
+      "duration_s": 0.58,
+      "date": "2026-10-16T09:05:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    tcp_split\n    tcp_stream\n    test_clock\n    time_interval\n    time_panic\n    time_pause\n    time_rt\n    time_sleep\n    time_timeout\n    udp\n    uds_cred\n    uds_datagram\n    uds_split\n    uds_stream\n    unwindsafe"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test eval_instant_now",
+      "exit_code": 0,
+      "duration_s": 1.46,
+      "date": "2026-10-16T09:05:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 | #![cfg(not(loom))]\n  |            ^^^^\n  |\n  = help: expected names are: `docsrs`, `feature`, and `test` and 31 more\n  = help: consider using a Cargo feature instead\n  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n           [lints.rust]\n           unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n  = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio-test` (lib) generated 1 warning\n    Finished `release` profile [optimized] target(s) in 0.13s\n     Running tests/eval_instant_now.rs (target/release/deps/eval_instant_now-35bad96d4dcd705c)"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/tokio-rs-tokio-pr5513/eval_instant_now.rs tokio/tests/",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T09:05:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --manifest-path tokio/Cargo.toml --features full,test-util --tests",
+      "exit_code": 0,
+      "duration_s": 78.18,
+      "date": "2026-10-16T09:05:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "           unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(tokio_wasi)'] }\n  = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(tokio_wasi)\");` to the top of the `build.rs`\n  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio` (test \"fs_symlink_file_windows\") generated 1 warning\nwarning: `tokio` (test \"sync_mpsc_weak\") generated 1 warning\nwarning: `tokio` (test \"sync_broadcast\") generated 7 warnings (run `cargo fix --test \"sync_broadcast\" -p tokio` to apply 1 suggestion)\nwarning: `tokio` (test \"task_abort\") generated 1 warning\nwarning: `tokio` (test \"rt_threaded\") generated 3 warnings\nwarning: `tokio` (test \"udp\") generated 1 warning\nwarning: `tokio` (test \"task_local_set\") generated 18 warnings\nwarning: `tokio` (lib test) generated 552 warnings (512 duplicates)\nwarning: `tokio` (test \"rt_common\") generated 9 warnings\n    Finished `release` profile [optimized] target(s) in 1m 17s"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test rt_time_start_paused --test time_pause",
+      "exit_code": 0,
+      "duration_s": 2.01,
+      "date": "2026-10-16T09:06:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   |\n39 | #[cfg(all(feature = \"full\", not(tokio_wasi)))] // Wasi doesn't support threads\n   |                                 ^^^^^^^^^^\n   |\n   = help: consider using a Cargo feature instead\n   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n            [lints.rust]\n            unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(tokio_wasi)'] }\n   = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(tokio_wasi)\");` to the top of the `build.rs`\n   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n\nwarning: `tokio` (test \"time_pause\") generated 3 warnings\n    Finished `release` profile [optimized] target(s) in 0.17s\n     Running tests/rt_time_start_paused.rs (target/release/deps/rt_time_start_paused-10f5ae10e3f92a9c)\n     Running tests/time_pause.rs (target/release/deps/time_pause-c1b21d3d3fc023a0)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo test --release --manifest-path tokio/Cargo.toml --features full,test-util --test eval_instant_now",
+      "exit_code": 0,
+      "duration_s": 0.6,
+      "date": "2026-10-16T09:06:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 | #![cfg(not(loom))]\n  |            ^^^^\n  |\n  = help: expected names are: `docsrs`, `feature`, and `test` and 31 more\n  = help: consider using a Cargo feature instead\n  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:\n           [lints.rust]\n           unexpected_cfgs = { level = \"warn\", check-cfg = ['cfg(loom)'] }\n  = help: or consider adding `println!(\"cargo::rustc-check-cfg=cfg(loom)\");` to the top of the `build.rs`\n  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration\n  = note: `#[warn(unexpected_cfgs)]` on by default\n\nwarning: `tokio-test` (lib) generated 1 warning\n    Finished `release` profile [optimized] target(s) in 0.08s\n     Running tests/eval_instant_now.rs (target/release/deps/eval_instant_now-35bad96d4dcd705c)"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

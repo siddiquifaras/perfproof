@@ -23,14 +23,14 @@
   "change_kind": "after-landed",
   "target_class": "python",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python tools/profile_divide.py",
+    "source": "tools/profile_divide.py, the profile script https://github.com/Textualize/rich/pull/2217 adds (10,000 Segment.divide calls)",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q tests/test_segment.py",
+    "source": "rich's tests for rich/segment.py, the file https://github.com/Textualize/rich/pull/2217 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.10 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:45:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.10.21\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2022-04-26 -e . pytest",
+      "exit_code": 0,
+      "duration_s": 5.75,
+      "date": "2026-10-16T08:45:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Downloading pygments (1.0MiB)\n Downloaded pygments\nPrepared 8 packages in 2.78s\nInstalled 11 packages in 8ms\n + attrs==21.4.0\n + commonmark==0.9.1\n + iniconfig==1.1.1\n + packaging==21.3\n + pluggy==1.0.0\n + py==1.11.0\n + pygments==2.12.0\n + pyparsing==3.0.8\n + pytest==7.1.2\n + rich==12.2.0 (from file://eval/mine/work/textualize-rich-pr2217-landed/task)\n + tomli==2.0.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q tests/test_segment.py",
+      "exit_code": 0,
+      "duration_s": 0.31,
+      "date": "2026-10-16T08:45:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "................................................                         [100%]\n48 passed in 0.10s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python tools/profile_divide.py",
+      "exit_code": 0,
+      "duration_s": 0.13,
+      "date": "2026-10-16T08:45:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.09468529099831358"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.10 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:45:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.10.21\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2022-04-26 -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.55,
+      "date": "2026-10-16T08:45:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Building rich @ file://eval/mine/work/textualize-rich-pr2217-landed/reference\n      Built rich @ file://eval/mine/work/textualize-rich-pr2217-landed/reference\nPrepared 1 package in 117ms\nInstalled 11 packages in 7ms\n + attrs==21.4.0\n + commonmark==0.9.1\n + iniconfig==1.1.1\n + packaging==21.3\n + pluggy==1.0.0\n + py==1.11.0\n + pygments==2.12.0\n + pyparsing==3.0.8\n + pytest==7.1.2\n + rich==12.2.0 (from file://eval/mine/work/textualize-rich-pr2217-landed/reference)\n + tomli==2.0.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q tests/test_segment.py",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "date": "2026-10-16T08:45:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "................................................                         [100%]\n48 passed in 0.10s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python tools/profile_divide.py",
+      "exit_code": 0,
+      "duration_s": 0.13,
+      "date": "2026-10-16T08:45:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.09711308400437701"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

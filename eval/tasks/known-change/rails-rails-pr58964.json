@@ -26,14 +26,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
+    "source": "written here from the description of https://github.com/rails/rails/pull/58964 (EventReporter#notify on every structured event, measured there under YJIT): 300,000 notify calls with a four-key payload to one subscriber",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
+    "source": "Active Support's EventReporter and its LogSubscriber tests (the latter changed by https://github.com/rails/rails/pull/58964); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -42,10 +42,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "exit_code": 0,
+      "duration_s": 0.67,
+      "date": "2026-10-16T17:56:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "sha256:37b68df7f03d0843f3e99962033467653e2e10f8a04300de40b8250fa191267d"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install",
+      "exit_code": 0,
+      "duration_s": 1.19,
+      "date": "2026-10-16T17:56:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Bundle complete! 82 Gemfile dependencies, 149 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable' and 'storage' were not installed.\nUse `bundle info [gemname]` to see where a bundled gem is installed.\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
+      "exit_code": 0,
+      "duration_s": 1.63,
+      "date": "2026-10-16T17:56:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Running 64 tests in parallel using 10 processes\nRun options: --seed 6333\n\n# Running:\n\n................................................................\n\nFinished in 0.204321s, 313.2325 runs/s, 567.7339 assertions/s.\n\n64 runs, 116 assertions, 0 failures, 0 errors, 0 skips"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
+      "exit_code": 0,
+      "duration_s": 1.34,
+      "date": "2026-10-16T17:56:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "exit_code": 0,
+      "duration_s": 0.5,
+      "date": "2026-10-16T17:56:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "sha256:215ba4d2ccfb952d895e6a3cb88f780d1e122cc4d161107990339081b6718f4e"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install",
+      "exit_code": 0,
+      "duration_s": 1.02,
+      "date": "2026-10-16T17:56:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Bundle complete! 82 Gemfile dependencies, 149 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable' and 'storage' were not installed.\nUse `bundle info [gemname]` to see where a bundled gem is installed.\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
+      "exit_code": 0,
+      "duration_s": 1.72,
+      "date": "2026-10-16T17:56:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Running 67 tests in parallel using 10 processes\nRun options: --seed 3033\n\n# Running:\n\n...................................................................\n\nFinished in 0.203008s, 330.0368 runs/s, 591.1107 assertions/s.\n\n67 runs, 120 assertions, 0 failures, 0 errors, 0 skips"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
+      "exit_code": 0,
+      "duration_s": 1.34,
+      "date": "2026-10-16T17:56:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

@@ -71,7 +71,7 @@
   ],
   "audit": null,
   "status": "builds",
-  "status_reason": "built here, but a workload or oracle run failed. On the first check here the suite had one failure on both trees (tests/examplefiles/fstar/example.fst golden output), and each workload run took under 0.1 s of wall time per tree (single runs; exact times in runs), so it probably does not exercise the change enough; needs a better workload and a look at the fstar failure",
+  "status_reason": "built here, but the task tree's workload or oracle failed. On the first check here the suite had one failure on both trees (tests/examplefiles/fstar/example.fst golden output), and each workload run took under 0.1 s of wall time per tree (single runs; exact times in runs), so it probably does not exercise the change enough; needs a better workload and a look at the fstar failure",
   "runs": [
     {
       "step": "setup",

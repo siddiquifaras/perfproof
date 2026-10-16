@@ -24,14 +24,14 @@
   "change_kind": "improvement",
   "target_class": "agentic",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python ../../../../tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+    "source": "written here from the description of https://github.com/deepset-ai/haystack/pull/12997 (one Document Store query per retrieved document, measured there with top_k 10 and window_size 3 on OpenSearch): the same over InMemoryDocumentStore, eval/tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest test/components/retrievers/test_sentence_window_retriever.py test/components/retrievers/test_sentence_window_retriever_async.py",
-    "source": "test files changed by https://github.com/deepset-ai/haystack/pull/12997 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q test/components/retrievers/test_sentence_window_retriever.py",
+    "source": "haystack's SentenceWindowRetriever tests (changed by https://github.com/deepset-ai/haystack/pull/12997); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -40,10 +40,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Telemetry off. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:48:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False uv pip install --exclude-newer 2026-09-29 -e . pytest pytest-asyncio",
+      "exit_code": 0,
+      "duration_s": 6.96,
+      "date": "2026-10-16T12:48:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pytest==9.1.1\n + pytest-asyncio==1.4.0\n + python-dateutil==2.9.0.post0\n + pyyaml==6.0.3\n + referencing==0.37.0\n + requests==2.34.2\n + rpds-py==2026.6.3\n + six==1.17.0\n + sniffio==1.3.1\n + tenacity==9.1.4\n + tqdm==4.70.1\n + truststore==0.10.4\n + typing-extensions==4.16.0\n + typing-inspection==0.4.4\n + urllib3==2.8.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False python -m pytest -q test/components/retrievers/test_sentence_window_retriever.py",
+      "exit_code": 0,
+      "duration_s": 5.61,
+      "date": "2026-10-16T12:49:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_document_without_split_id PASSED [ 45%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_document_without_source_id PASSED [ 50%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_document_without_all_source_ids PASSED [ 54%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_init_rejects_zero_window_size PASSED [ 59%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_rejects_invalid_runtime_window_size PASSED [ 63%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_without_runtime_window_size_uses_constructor_value PASSED [ 68%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_constructor_parameter_does_not_change PASSED [ 72%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_context_documents_returned_are_ordered_by_split_idx_start PASSED [ 77%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_custom_fields PASSED [ 81%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_with_multiple_source_ids PASSED [ 86%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_with_pipeline PASSED [ 90%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_serialization_deserialization_in_pipeline PASSED [ 95%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_close PASSED [100%]\n\n============================== 22 passed in 0.87s =============================="
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False python ../../../../tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+      "exit_code": 0,
+      "duration_s": 2.53,
+      "date": "2026-10-16T12:49:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1520"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T12:49:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False uv pip install --exclude-newer 2026-09-29 -e . pytest pytest-asyncio",
+      "exit_code": 0,
+      "duration_s": 0.65,
+      "date": "2026-10-16T12:49:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + pytest==9.1.1\n + pytest-asyncio==1.4.0\n + python-dateutil==2.9.0.post0\n + pyyaml==6.0.3\n + referencing==0.37.0\n + requests==2.34.2\n + rpds-py==2026.6.3\n + six==1.17.0\n + sniffio==1.3.1\n + tenacity==9.1.4\n + tqdm==4.70.1\n + truststore==0.10.4\n + typing-extensions==4.16.0\n + typing-inspection==0.4.4\n + urllib3==2.8.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False python -m pytest -q test/components/retrievers/test_sentence_window_retriever.py",
+      "exit_code": 0,
+      "duration_s": 5.03,
+      "date": "2026-10-16T12:49:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_with_multiple_source_ids PASSED [ 76%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_queries_document_store_once_for_all_retrieved_documents PASSED [ 80%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_with_documents_missing_metadata_queries_document_store_once \n-------------------------------- live log call ---------------------------------\nWARNING  haystack.components.retrievers.sentence_window_retriever:sentence_window_retriever.py:273 Document 12eca25336f6945fd8ec53ada7b36c63851d4b5656e6d3c2842a95f2e89559ec is missing required metadata fields to be used with SentenceWindowRetriever: ['source_id'] or split_id. Skipping context retrieval for this document.\nPASSED                                                                   [ 84%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_does_not_query_document_store_without_documents_to_expand \n-------------------------------- live log call ---------------------------------\nWARNING  haystack.components.retrievers.sentence_window_retriever:sentence_window_retriever.py:273 Document 12eca25336f6945fd8ec53ada7b36c63851d4b5656e6d3c2842a95f2e89559ec is missing required metadata fields to be used with SentenceWindowRetriever: ['source_id'] or split_id. Skipping context retrieval for this document.\nPASSED                                                                   [ 88%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_run_with_pipeline PASSED [ 92%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_serialization_deserialization_in_pipeline PASSED [ 96%]\ntest/components/retrievers/test_sentence_window_retriever.py::TestSentenceWindowRetriever::test_close PASSED [100%]\n\n============================== 25 passed in 1.44s =============================="
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "HAYSTACK_TELEMETRY_ENABLED=False python ../../../../tasks/workloads/deepset-ai-haystack-pr12997/window_retrieval.py",
+      "exit_code": 0,
+      "duration_s": 2.02,
+      "date": "2026-10-16T12:49:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1520"
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

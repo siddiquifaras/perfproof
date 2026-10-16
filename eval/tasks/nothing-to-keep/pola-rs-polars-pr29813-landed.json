@@ -23,14 +23,14 @@
   "change_kind": "after-landed",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"import polars as pl; records = [{'s': {f'f{j}': i * 128 + j for j in range(128)}} for i in range(10000)]; pl.DataFrame(records, infer_schema_length=100)\"",
+    "source": "adapted from the timing table in the description of https://github.com/pola-rs/polars/pull/29813 (pl.DataFrame(records, infer_schema_length=100) on records holding a 128-field struct, 10,000 rows)",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -p no:randomly py-polars/tests/unit/datatypes/test_struct.py",
+    "source": "py-polars's struct tests (py-polars/tests/unit/datatypes/test_struct.py, which https://github.com/pola-rs/polars/pull/29813 extends); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,131 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The Python package is built from source with maturin, as the repository's Makefile does, but with its fast-release profile (release without LTO) to keep the build time down; the Rust toolchain is the tree's pinned nightly-2026-09-01 through rustup. Python and Python dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T14:31:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-10-15 maturin pytest pytest-xdist hypothesis numpy pandas pyarrow",
+      "exit_code": 0,
+      "duration_s": 4.17,
+      "date": "2026-10-16T14:31:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + execnet==2.1.2\n + hypothesis==6.169.4\n + iniconfig==2.3.1\n + maturin==1.15.0\n + numpy==2.5.4\n + packaging==26.3\n + pandas==3.0.6\n + pluggy==1.7.0\n + pyarrow==26.0.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-xdist==3.8.0\n + python-dateutil==2.9.0.post0\n + six==1.17.0\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "maturin develop -m py-polars/runtime/polars-runtime-32/Cargo.toml --features backtrace_filter --profile fast-release --uv",
+      "exit_code": 0,
+      "duration_s": 969.41,
+      "date": "2026-10-16T14:31:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling polars-io v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-io)\n   Compiling polars-ffi v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-ffi)\n   Compiling polars-ooc v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-ooc)\n   Compiling polars-time v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-time)\n   Compiling polars-testing v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-testing)\n   Compiling polars-mem-engine v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-mem-engine)\n   Compiling polars-sql v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/task/crates/polars-sql)\nwarning: linker stderr: ld: __eh_frame section too large (max 16MB) to encode dwarf unwind offsets in compact unwind table, performance of exception handling might be affected\n  |\n  = note: `#[warn(linker_messages)]` on by default\n\nwarning: `polars-runtime-32` (lib) generated 1 warning\n    Finished `fast-release` profile [optimized + debuginfo] target(s) in 16m 06s\n📦 Built wheel for abi3 Python ≥ 3.11 to /var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/.tmpFkQvld/polars_runtime_32-2.0.0-cp311-abi3-macosx_11_0_arm64.whl\n🛠 Installed polars-runtime-32-2.0.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --no-deps -e py-polars",
+      "exit_code": 0,
+      "duration_s": 1.39,
+      "date": "2026-10-16T15:01:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 4ms\n   Building polars @ file://eval/mine/work/pola-rs-polars-pr29813-landed/task/py-polars\n      Built polars @ file://eval/mine/work/pola-rs-polars-pr29813-landed/task/py-polars\nPrepared 1 package in 1.31s\nInstalled 1 package in 1ms\n + polars==2.0.0 (from file://eval/mine/work/pola-rs-polars-pr29813-landed/task/py-polars)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q -p no:randomly py-polars/tests/unit/datatypes/test_struct.py",
+      "exit_code": 0,
+      "duration_s": 16.53,
+      "date": "2026-10-16T15:01:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "........................................................................ [ 16%]\n........................................................................ [ 33%]\n........................................................................ [ 50%]\n........................................................................ [ 66%]\n........................................................................ [ 83%]\n........................................................................ [100%]\n432 passed in 12.65s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"import polars as pl; records = [{'s': {f'f{j}': i * 128 + j for j in range(128)}} for i in range(10000)]; pl.DataFrame(records, infer_schema_length=100)\"",
+      "exit_code": 0,
+      "duration_s": 0.39,
+      "date": "2026-10-16T15:01:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T15:01:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-10-15 maturin pytest pytest-xdist hypothesis numpy pandas pyarrow",
+      "exit_code": 0,
+      "duration_s": 0.92,
+      "date": "2026-10-16T15:01:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + execnet==2.1.2\n + hypothesis==6.169.4\n + iniconfig==2.3.1\n + maturin==1.15.0\n + numpy==2.5.4\n + packaging==26.3\n + pandas==3.0.6\n + pluggy==1.7.0\n + pyarrow==26.0.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-xdist==3.8.0\n + python-dateutil==2.9.0.post0\n + six==1.17.0\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "maturin develop -m py-polars/runtime/polars-runtime-32/Cargo.toml --features backtrace_filter --profile fast-release --uv",
+      "exit_code": 0,
+      "duration_s": 553.16,
+      "date": "2026-10-16T15:01:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling polars-io v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-io)\n   Compiling polars-ffi v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-ffi)\n   Compiling polars-ooc v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-ooc)\n   Compiling polars-time v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-time)\n   Compiling polars-testing v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-testing)\n   Compiling polars-mem-engine v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-mem-engine)\n   Compiling polars-sql v0.55.1 (eval/mine/work/pola-rs-polars-pr29813-landed/reference/crates/polars-sql)\nwarning: linker stderr: ld: __eh_frame section too large (max 16MB) to encode dwarf unwind offsets in compact unwind table, performance of exception handling might be affected\n  |\n  = note: `#[warn(linker_messages)]` on by default\n\nwarning: `polars-runtime-32` (lib) generated 1 warning\n    Finished `fast-release` profile [optimized + debuginfo] target(s) in 9m 10s\n📦 Built wheel for abi3 Python ≥ 3.11 to /var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/.tmp0sZbDp/polars_runtime_32-2.0.0-cp311-abi3-macosx_11_0_arm64.whl\n🛠 Installed polars-runtime-32-2.0.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --no-deps -e py-polars",
+      "exit_code": 0,
+      "duration_s": 0.53,
+      "date": "2026-10-16T15:10:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 3ms\n   Building polars @ file://eval/mine/work/pola-rs-polars-pr29813-landed/reference/py-polars\n      Built polars @ file://eval/mine/work/pola-rs-polars-pr29813-landed/reference/py-polars\nPrepared 1 package in 447ms\nInstalled 1 package in 0.87ms\n + polars==2.0.0 (from file://eval/mine/work/pola-rs-polars-pr29813-landed/reference/py-polars)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q -p no:randomly py-polars/tests/unit/datatypes/test_struct.py",
+      "exit_code": 0,
+      "duration_s": 17.13,
+      "date": "2026-10-16T15:10:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "........................................................................ [ 16%]\n........................................................................ [ 33%]\n........................................................................ [ 50%]\n........................................................................ [ 66%]\n........................................................................ [ 83%]\n........................................................................ [100%]\n432 passed in 13.46s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"import polars as pl; records = [{'s': {f'f{j}': i * 128 + j for j in range(128)}} for i in range(10000)]; pl.DataFrame(records, infer_schema_length=100)\"",
+      "exit_code": 0,
+      "duration_s": 0.28,
+      "date": "2026-10-16T15:10:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

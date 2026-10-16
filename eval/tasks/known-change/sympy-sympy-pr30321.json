@@ -22,14 +22,14 @@
   "change_kind": "improvement",
   "target_class": "python",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -c \"from sympy import symbols; from sympy.integrals.rationaltools import ratint; x, z = symbols('x z'); [ratint(1/(x**2 + z*x + 1), x) for _ in range(5)]\"",
+    "source": "written here from the description of https://github.com/sympy/sympy/pull/30321 (ratint over a rational function whose coefficients hold another symbol, where composite=False forced a slower domain); a small instance, since the description's own example does not finish on the task tree",
+    "verified": true
   },
   "oracle": {
-    "command": "python -m pytest sympy/integrals/tests/test_integrals.py",
-    "source": "test files changed by https://github.com/sympy/sympy/pull/30321 (gh pr view files); targeted tests only, not the full suite",
-    "verified": false
+    "command": "python -m pytest -q sympy/integrals/tests/test_rationaltools.py",
+    "source": "sympy's tests for sympy/integrals/rationaltools.py, the file https://github.com/sympy/sympy/pull/30321 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,9 +38,90 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python and dependencies are pinned to the change's era (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:26:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-08-25 -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 2.96,
+      "date": "2026-10-16T12:26:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 9 packages in 2.06s\n   Building sympy @ file://eval/mine/work/sympy-sympy-pr30321/task\n      Built sympy @ file://eval/mine/work/sympy-sympy-pr30321/task\nPrepared 2 packages in 733ms\nInstalled 9 packages in 20ms\n + hypothesis==6.165.10\n + iniconfig==2.3.0\n + mpmath==1.4.1\n + packaging==26.3\n + pluggy==1.6.0\n + pygments==2.21.0\n + pytest==9.1.1\n + sortedcontainers==2.4.0\n + sympy==1.15.0.dev0 (from file://eval/mine/work/sympy-sympy-pr30321/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q sympy/integrals/tests/test_rationaltools.py",
+      "exit_code": 0,
+      "duration_s": 5.14,
+      "date": "2026-10-16T12:26:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".............                                                            [100%]\n13 passed in 2.11s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"from sympy import symbols; from sympy.integrals.rationaltools import ratint; x, z = symbols('x z'); [ratint(1/(x**2 + z*x + 1), x) for _ in range(5)]\"",
+      "exit_code": 0,
+      "duration_s": 0.33,
+      "date": "2026-10-16T12:26:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.14+gil .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T12:26:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.14.2\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-08-25 -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 0.78,
+      "date": "2026-10-16T12:26:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 9 packages in 437ms\n   Building sympy @ file://eval/mine/work/sympy-sympy-pr30321/reference\n      Built sympy @ file://eval/mine/work/sympy-sympy-pr30321/reference\nPrepared 1 package in 265ms\nInstalled 9 packages in 8ms\n + hypothesis==6.165.10\n + iniconfig==2.3.0\n + mpmath==1.4.1\n + packaging==26.3\n + pluggy==1.6.0\n + pygments==2.21.0\n + pytest==9.1.1\n + sortedcontainers==2.4.0\n + sympy==1.15.0.dev0 (from file://eval/mine/work/sympy-sympy-pr30321/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q sympy/integrals/tests/test_rationaltools.py",
+      "exit_code": 0,
+      "duration_s": 4.26,
+      "date": "2026-10-16T12:26:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".............                                                            [100%]\n13 passed in 1.59s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"from sympy import symbols; from sympy.integrals.rationaltools import ratint; x, z = symbols('x z'); [ratint(1/(x**2 + z*x + 1), x) for _ in range(5)]\"",
+      "exit_code": 0,
+      "duration_s": 0.26,
+      "date": "2026-10-16T12:26:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

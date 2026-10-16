@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "target/release/uv export --frozen --offline --no-hashes --project eval-project -q -o eval-export.txt",
+    "source": "written here from the description of https://github.com/astral-sh/uv/pull/20879, whose benchmark parses ecosystem lockfiles: uv export --frozen over the transformers lockfile from uv's own ecosystem test snapshot (eval/tasks/workloads/astral-sh-uv-pr20879/make_project.py)",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "cargo test --release -p uv-distribution-types",
+    "source": "the unit tests of uv-distribution-types, the crate https://github.com/astral-sh/uv/pull/20879 changes and whose filename tests it extends; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --bin uv",
+      "exit_code": 0,
+      "duration_s": 480.2,
+      "date": "2026-10-16T12:20:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling uv-publish v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-publish)\n   Compiling uv-types v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-types)\n   Compiling uv-virtualenv v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-virtualenv)\n   Compiling uv-distribution v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-distribution)\n   Compiling tikv-jemallocator v0.6.1\n   Compiling uv-performance-memory-allocator v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-performance-memory-allocator)\n   Compiling uv-resolver v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-resolver)\n   Compiling uv-installer v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-installer)\n   Compiling uv-build-frontend v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-build-frontend)\n   Compiling uv-settings v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-settings)\n   Compiling uv-scripts v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-scripts)\n   Compiling uv-tool v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-tool)\n   Compiling uv-requirements v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-requirements)\n   Compiling uv-dispatch v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-dispatch)\n    Finished `release` profile [optimized] target(s) in 8m 00s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "python3 ../../../../tasks/workloads/astral-sh-uv-pr20879/make_project.py",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T12:28:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release -p uv-distribution-types",
+      "exit_code": 0,
+      "duration_s": 45.05,
+      "date": "2026-10-16T12:28:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling uv-once-map v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-once-map)\n   Compiling uv-pypi-types v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-pypi-types)\n   Compiling uv-netrc v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-netrc)\n   Compiling uv-state v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-state)\n   Compiling astral-reqwest-middleware v0.5.1\n   Compiling uv-keyring v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-keyring)\n   Compiling uv-flags v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-flags)\n   Compiling pathdiff v0.2.3\n   Compiling configparser v3.2.0\n   Compiling uv-cache-info v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-cache-info)\n   Compiling uv-auth v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-auth)\n   Compiling uv-install-wheel v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-install-wheel)\n   Compiling uv-distribution-types v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/task/crates/uv-distribution-types)\n    Finished `release` profile [optimized] target(s) in 43.49s\n     Running unittests src/lib.rs (target/release/deps/uv_distribution_types-07d84cc5dd59f546)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "target/release/uv export --frozen --offline --no-hashes --project eval-project -q -o eval-export.txt",
+      "exit_code": 0,
+      "duration_s": 0.87,
+      "date": "2026-10-16T12:29:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --bin uv",
+      "exit_code": 0,
+      "duration_s": 1061.16,
+      "date": "2026-10-16T12:29:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling uv-publish v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-publish)\n   Compiling uv-types v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-types)\n   Compiling uv-virtualenv v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-virtualenv)\n   Compiling uv-distribution v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-distribution)\n   Compiling uv-resolver v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-resolver)\n   Compiling uv-installer v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-installer)\n   Compiling uv-build-frontend v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-build-frontend)\n   Compiling tikv-jemallocator v0.6.1\n   Compiling uv-performance-memory-allocator v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-performance-memory-allocator)\n   Compiling uv-settings v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-settings)\n   Compiling uv-scripts v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-scripts)\n   Compiling uv-requirements v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-requirements)\n   Compiling uv-tool v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-tool)\n   Compiling uv-dispatch v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-dispatch)\n    Finished `release` profile [optimized] target(s) in 17m 41s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "python3 ../../../../tasks/workloads/astral-sh-uv-pr20879/make_project.py",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T12:47:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release -p uv-distribution-types",
+      "exit_code": 0,
+      "duration_s": 52.38,
+      "date": "2026-10-16T12:47:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling globwalk v0.9.1\n   Compiling uv-once-map v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-once-map)\n   Compiling astral-reqwest-middleware v0.5.1\n   Compiling uv-netrc v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-netrc)\n   Compiling uv-state v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-state)\n   Compiling uv-keyring v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-keyring)\n   Compiling uv-flags v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-flags)\n   Compiling configparser v3.2.0\n   Compiling pathdiff v0.2.3\n   Compiling uv-cache-info v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-cache-info)\n   Compiling uv-auth v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-auth)\n   Compiling uv-install-wheel v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-install-wheel)\n   Compiling uv-distribution-types v0.0.68 (eval/mine/work/astral-sh-uv-pr20879/reference/crates/uv-distribution-types)\n    Finished `release` profile [optimized] target(s) in 51.59s\n     Running unittests src/lib.rs (target/release/deps/uv_distribution_types-b4ad725161dd50cc)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "target/release/uv export --frozen --offline --no-hashes --project eval-project -q -o eval-export.txt",
+      "exit_code": 0,
+      "duration_s": 0.67,
+      "date": "2026-10-16T12:48:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

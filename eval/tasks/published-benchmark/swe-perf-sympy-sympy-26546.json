@@ -22,14 +22,14 @@
   "change_kind": "benchmark-instance",
   "target_class": "python",
   "workload": {
-    "command": "python -m pytest sympy/solvers/tests/test_solveset.py::test_issue_14454",
+    "command": "python -m pytest -q sympy/solvers/tests/test_solveset.py::test_issue_14454",
     "source": "the efficiency_test field of SWE-Perf/SWE-Perf row sympy__sympy-26546",
-    "verified": false
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown: SWE-Perf rows carry no test command",
-    "verified": false
+    "command": "python -m pytest -q sympy/core/tests/test_power.py",
+    "source": "sympy's tests for sympy/core/power.py, the file the row's patch changes; targeted tests only. The reference tree is the base commit plus the row's patch",
+    "verified": true
   },
   "evidence": [
     {
@@ -42,10 +42,91 @@
     }
   ],
   "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=0.732, min_threshold_margin=0.63 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
-  "status": "candidate",
-  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The row's patch is applied to the base commit for the reference tree. Python and dependencies are pinned to the date the upstream pull request (sympy#26546) merged (see eval/README.md, Built and run here)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T08:44:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2024-04-27 -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 101.17,
+      "date": "2026-10-16T08:44:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 9 packages in 5.52s\n   Building sympy @ file://eval/mine/work/swe-perf-sympy-sympy-26546/task\n      Built sympy @ file://eval/mine/work/swe-perf-sympy-sympy-26546/task\nPrepared 6 packages in 1m 35s\nInstalled 9 packages in 11ms\n + attrs==23.2.0\n + hypothesis==6.100.1\n + iniconfig==2.0.0\n + mpmath==1.3.0\n + packaging==24.0\n + pluggy==1.5.0\n + pytest==8.1.2\n + sortedcontainers==2.4.0\n + sympy==1.13.dev0 (from file://eval/mine/work/swe-perf-sympy-sympy-26546/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q sympy/core/tests/test_power.py",
+      "exit_code": 0,
+      "duration_s": 6.04,
+      "date": "2026-10-16T08:46:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".........................................                                [100%]\n41 passed in 2.83s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -m pytest -q sympy/solvers/tests/test_solveset.py::test_issue_14454",
+      "exit_code": 0,
+      "duration_s": 4.06,
+      "date": "2026-10-16T08:46:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".                                                                        [100%]\n1 passed in 3.19s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-16T08:46:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2024-04-27 -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 1.66,
+      "date": "2026-10-16T08:46:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 9 packages in 844ms\n   Building sympy @ file://eval/mine/work/swe-perf-sympy-sympy-26546/reference\n      Built sympy @ file://eval/mine/work/swe-perf-sympy-sympy-26546/reference\nPrepared 1 package in 667ms\nInstalled 9 packages in 7ms\n + attrs==23.2.0\n + hypothesis==6.100.1\n + iniconfig==2.0.0\n + mpmath==1.3.0\n + packaging==24.0\n + pluggy==1.5.0\n + pytest==8.1.2\n + sortedcontainers==2.4.0\n + sympy==1.13.dev0 (from file://eval/mine/work/swe-perf-sympy-sympy-26546/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q sympy/core/tests/test_power.py",
+      "exit_code": 0,
+      "duration_s": 9.82,
+      "date": "2026-10-16T08:46:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".........................................                                [100%]\n41 passed in 4.68s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -m pytest -q sympy/solvers/tests/test_solveset.py::test_issue_14454",
+      "exit_code": 0,
+      "duration_s": 7.23,
+      "date": "2026-10-16T08:46:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".                                                                        [100%]\n1 passed in 5.93s"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:05:49+00:00",
   "miner": "uv run python eval/mine/mine.py benchmarks"
 }
