@@ -117,14 +117,29 @@ KEEP needs the spec's explicit opt-in, and the verdict is labelled
 ## Side effects
 
 A benchmark that writes to a real database or calls a paid API is not
-safe to run blindly. Before anything executes, perfproof checks the
-spec's environment and the process environment for service addresses,
-such as `DATABASE_URL`, `REDIS_URL`, and variables ending in `_HOST` or
-`_URL`. If any points at a host that isn't local (`localhost`,
-`127.0.0.1`, `::1`, a Unix socket, or a container started for the run),
-the run is refused with gate `side_effects`, unless the spec opts in.
+safe to run blindly.
+
+**The benchmark's environment.** Every command perfproof runs for a
+comparison (benchmark, correctness check, reset) gets a small base
+environment, not perfproof's own: `PATH`, `HOME`, `USER`, `LOGNAME`,
+`SHELL`, `TMPDIR`, `TERM`, `TZ`, `LANG` and the `LC_*` variables, plus
+the spec's own `env`. Anything else the benchmark needs, such as
+`CUDA_VISIBLE_DEVICES` or a database URL, is declared in the spec. So
+the agent's own credentials and service addresses (an API base URL, a
+cloud token) never reach the benchmark, and both versions run with
+exactly the declared environment.
+
+**The check.** Before anything executes, perfproof checks that
+environment, the commands' arguments and the declared config files for
+service addresses, such as `DATABASE_URL`, `REDIS_URL`, and variables
+ending in `_HOST` or `_URL`. If any points at a host that isn't local
+(`localhost`, `127.0.0.1` and the rest of `127/8`, `::1`, `0.0.0.0` and
+`::`, a Unix socket, or a container started for the run), the run is
+refused with gate `side_effects`, unless the spec opts in. Nothing is
+resolved through DNS, and anything that can't be parsed is refused.
 A spec can declare a reset command that perfproof runs before every
-execution, so a database starts each round in the same state.
+execution, so a database starts each round in the same state. A reset
+that fails fails the `side_effects` gate, with its output recorded.
 
 ## Integrity
 
@@ -141,7 +156,7 @@ classes.
 | `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
 
-**Recorded, not gated:** the full environment variable list (names, and
+**Recorded, not gated:** the environment each command ran with (names, and
 values for variables known to affect performance such as
 `OMP_NUM_THREADS` and `PYTHONHASHSEED`), each tree's dependency
 lockfile hashes, OS and kernel, CPU frequency policy, power and thermal
