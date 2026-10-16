@@ -109,11 +109,14 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor finishing (also judging whether BCa is worth keeping) |
-| #11 | T1.1 | Reviewer PASS at `0678568`; stats-auditor running; worker reworking `test_intervals.py` for schema 2 (second to merge after #9); then a delta review |
-| #13 | spec | Third stats audit at `a2c43f7` |
-| #14 | T4.1 | Reviewer BLOCK at `77130ae` (llm.c rename task, truncated files, broken multi-line workloads, README); worker fixing |
-| new | T2.4, T2.6, T2.16 | Workers started after T2.12 merged |
+| #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor verdict pending (also whether BCa stays) |
+| #11 | T1.1 | Fixes at `2ab900a`; final reviewer and stats-auditor running on it |
+| #13 | spec | Fourth stats audit running at `c355293` |
+| #14 | T4.1 | Worker fixing round 3 (llm.c case labels, source-file rule, evidence regex, vllm 48223); merge once the reviewer confirms those fixes |
+| #15 | T2.6 | All four review findings fixed at `5b68263`; NEXT: launch reviewer on it |
+| #16 | T2.16 | Reviewer running at `c004683` |
+| #17 | T2.4 | Worker changing pre-existing baseline failures to known failures; then reviewer |
+| new | T2.17, T2.13 | Workers started after T2.3 merged |
 
 Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
 
