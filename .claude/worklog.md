@@ -119,14 +119,27 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-| PR | Task | State |
-|---|---|---|
-| new | T1.6 | Calibration worker started on main `4c7561b` (R = 4000, balanced order, per-target schedules; N1 block size to decide) |
-| new | T2.14 | Coverage gate worker started on main `4c7561b`; wiring into compare is a T2.5 follow-up |
-| T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
-| T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
+**PAUSED 2026-10-17 03:45 PKT on Faras's instruction.** Both weekly limits
+(all models, Fable) are spent; they reset 2026-10-22 13:00 PKT. Nothing
+is running: no agents, no checks, load 1.8. The PR study's two local
+containers (`prstudy-pg`, `prstudy-redis`) are stopped, not removed.
+Resume by sending each stopped agent a message, or starting a fresh
+agent in the same worktree.
 
-Next: T2.19 runner (started after #21) (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
+| Piece | Branch / worktree | Where it stopped | Next |
+|---|---|---|---|
+| PR #26 T2.14 coverage gate | `task/t2.14-coverage-gate`, `.claude/worktrees/agent-a519b3f94416597c1` (head 822793d, main 27b65e2 merged) | Snapshot untracked files before any run, so the gate's own leftovers (`__pycache__`) never count; its test; final checks | Narrow re-review of the untracked rule, then merge |
+| T2.19 runner follow-ups | `task/t2.19-runner`, `.claude/worktrees/agent-a0a873c1036fbd37a` (85d2733, committed, not pushed, no PR) | Mutation checks of the new tests, overhead re-measure, checks, push, PR | Review, merge |
+| T4.2 labeller | `task/t4.2-labeller`, `.claude/worktrees/agent-ae559ea2ecf238552` (a0d94a1; main merged uncommitted?) | README total-hours estimate for the CCX13, Linux check, push, PR | Review; then tell Faras to create the Hetzner CCX13 (approved, $5 cap) |
+| T1.6 calibration | `task/t1.6-calibration`, `.claude/worktrees/agent-ad272fa48b82d2ed9` (staged, uncommitted: montecarlo.py, run_calibration.py, two result CSVs, bootstrap.py) | The CI-subset test file; N1 decision; results table in method.md; merge main (schema 3) | reviewer + stats-auditor, merge |
+| T3.11 PR study | session local_4c51bae0 (`t3.11-pr-study` worktree; 63ef61b, 3c505fc local, not pushed) | findings.md, summary table in agents.md, push, PR | Review, merge |
+| PR #25 T3.10 NetBox hand-runs | head 7ef0b00 | Lead review was running (fabrication, overclaiming, secrets, scope); not finished | Rerun review, merge |
+| PR #27 T3.10 frames2py/picolm | head 70e8259 | Lead review was running; had confirmed 17 run dirs | Rerun review, merge |
+| T1.3 session | local_b4ab9cc0 (PR #3 merged 2026-10-15) | Waiting on a prompt only Faras can answer; its work is merged | Faras answers or archives it |
+
+Main is `27b65e2`. Merged this stretch: #23 profile, #19 differential, #24 compare, #22 eval tasks, #21 schema 3.
+
+Next after the above: T2.20 examples (needs schema 3, done), compare wiring (differential, coverage, declared resolution), T3.12 skill contract from the three studies.
 
 ### Known gaps
 
