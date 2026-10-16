@@ -146,7 +146,7 @@ angles to try, and in what order, is the playbook's checklist:
 | Angle | What it finds | Evidence |
 |---|---|---|
 | CPU hotspots | Functions that dominate CPU time | `perfproof profile` on folded stacks |
-| Waiting, not computing | Time lost to I/O, locks, the GIL or network calls | Gap between wall time and CPU time; off-CPU profiles |
+| Waiting, not computing | Time lost to I/O, locks, the GIL or network calls | Gap between wall time and CPU time; off-CPU profiles. CPU time is summed over every thread, so an idle thread pool that spins (OpenBLAS under NumPy on Linux) can push it above wall time and hide the gap; check the off-CPU profile when CPU exceeds wall |
 | Repeated identical work | The same call with the same arguments, again and again | Calls captured by the differential checks |
 | Growth with input size | Code that gets worse than linear as inputs grow | `perfproof measure --sizes` |
 | Startup and imports | Slow starts and cold paths | `python -X importtime`, startup timing |
