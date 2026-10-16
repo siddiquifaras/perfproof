@@ -900,7 +900,7 @@ Mac and on Linux CI, with decoys that must be refused.
     pass the acceptance rule, reported per cell.
   - Effort: high
 
-- [ ] **T2.16 Side-effect guard**
+- [x] **T2.16 Side-effect guard**
   - Owns: `src/perfproof/bench/side_effects.py`,
     `tests/bench/test_side_effects.py`
   - Needs: T2.12

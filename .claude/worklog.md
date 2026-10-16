@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `6e225cd` | T2.16 side-effect guard merged (PR #16), squash, after six review rounds (libpq/WHATWG URL parsing, service files, inline config keys, argv NAME=value, http(s), linear scans, everyday-file false refusals, multi-line lists); reviewer PASS at `fe188b9`, lead merged main and ran /verify (3161 passed) and the Linux check (3158 passed) on the merge. Benchmarks now get a base environment plus the spec's env (`benchmark_environment`), not wired into the runner yet (T2.5) |
 | `b86989e` | T2.17 CLI skeleton merged (PR #18), squash, at `af0f454` after four review rounds (internal_error contract, --json help, OSError mapping, non-UTF-8 paths, closed stdout/stderr); reviewer PASS on that commit, head contains main, worker's /verify (2890 passed) and Linux check (2887 passed) on it |
 | `6e101a3` | T2.4 correctness gate merged (PR #17), squash, after four review rounds (known baseline failures, inf/NaN/huge-number comparisons, NUL bytes, shared rerun budget, bounded memory); reviewer PASS on code at `200d4b7`, lead merged main (`595b3e7`) and ran /verify (2791 passed) and the Linux check (2791 passed) on that head |
 | `7701084` | T2.6 report merged (PR #15), squash, after four review rounds (headline overclaims, rounding, atomic and resumable `write`, two-writer race); reviewer PASS at `4f3cb71`, lead merged main (docs-only delta) and ran the Linux check on the merge (2698 passed) |
@@ -116,7 +117,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #16 | T2.16 | Round 4 fixes in progress (backslash bypass, bare `url` key false refusals, Django ALLOWED_HOSTS, nested-bracket timing); last parsing round, then a review scoped to realistic accidental forms |
 | #19 | T2.13 | Round 3 fixes in progress (pre-import benchmark modules outside the guard, compare in both processes, os._exit replay, ctypes wording) |
 | #20 | T1.5 | Reviewer and stats-auditor running at `5ade9e4` |
 | #21 | T2.18 | Draft at `f3bd1c2`, suite green on macOS; merges LAST after #16-#20; then worker merges main, runs checks, un-drafts; then review |
