@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `6c5e4aa` | T2.18 schema 3 merged (PR #21), squash, after three review rounds (resolution stop carries no estimate or interval; a capped differential count labelled a bound; repository URLs refuse any user part on web schemes, plain login names only for ssh and scp); reviewer PASS at `b4f9cfc` (rounds 2-3 narrow, Sonnet), worker /verify (3669 passed) and Linux check (3666 passed) on that head, which contains main `d115c42`. Done-when: 22 refusals and fields each caught by a test (mutation probe), schema.json regenerated, the runtime gate reads `runtime_kind` |
 | `e8c91e2` | T4.2 phase 1 (T4.1 build and run) merged (PR #22), squash, after three review rounds (buildability judged on the task tree alone: a reference-only failure, hang, launch failure or broken build is `reference-fails` and drawn; README plan counts; salts pinned; Docker runs bounded and torn down; held-out reference workload times no longer recorded; home path scrubbed; Rails tzdata image); reviewer PASS at `8534ed8` (narrow, Sonnet), worker /verify (3530 passed, eval/mine 101) and Linux check (3527 passed) on that head, which contains main `cb975d1`. Done-when (T4.1 part): 30 held-out committed in f595745 before any held-out run, 20 CPU held-out and 20 development at `runs`; serving and GPU held-out unbuilt pending a GPU host |
 | `7bb5731` | T2.5 compare, thin path, merged (PR #24), squash, after three review rounds (K>1 look wiring and one confidence source, broken_baseline for an unstartable baseline or a missing interpreter, env-leak test, internal_fault instead of tracebacks); reviewer PASS at `09cfb5a` (round 3 narrow, Sonnet); head `5374ea0` is that commit plus main `e01e6b1` with the PR files unchanged; worker /verify 3503 passed, lead Linux check 3500 passed on `5374ea0`. Done-when (before M1 exit): rolling fix INCONCLUSIVE `procedure_uncalibrated`, wrong-output REJECT correctness, bench-edit REJECT lock, remote-db spec REJECT side_effects; never KEEP or a performance REJECT. T2.5 stays open for real verdicts, differential and coverage wiring, reset (T2.19), detach |
 | `76d2f3c` | T2.13 differential checks merged (PR #19), squash, after nine review rounds: guard on library and recorded-module first runs (LazyLoader, duplicate registration), per-thread suspension so overlapping imports cannot leave the guard off, atomic first-run claim; reviewer PASS at `962a302` (narrow B1 re-review on Sonnet), worker /verify (3462 passed) and Linux check (3459 passed) on that head, which contains main `381d3b0`. Done-when: a one-in-fifty bug caught by replayed real calls (100 captured, 100 replayed, 2 mismatches), an unpicklable argument skipped with its reason, no capture code in measured rounds (agent module absent in six runner executions) |
@@ -120,13 +121,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 | PR | Task | State |
 |---|---|---|
-| #21 | T2.18 | Draft; #19, #23 and #24 are merged, so it resumes now; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
 | new | T1.6 | Calibration worker started on main `4c7561b` (R = 4000, balanced order, per-target schedules; N1 block size to decide) |
 | new | T2.14 | Coverage gate worker started on main `4c7561b`; wiring into compare is a T2.5 follow-up |
 | T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
 | T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
 
-Next: T2.19 after #21 merges (both touch compare.py) (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
+Next: T2.19 runner (started after #21) (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
 
 ### Known gaps
 
@@ -145,6 +145,13 @@ Next: T2.19 after #21 merges (both touch compare.py) (runner: balanced order pai
 - `tests/bench/test_side_effects.py::test_minified_json_scales_linearly`
   failed once in /verify on PR #24 at load ~26 and passed alone: a
   timing-ratio test, load-sensitive like the two above.
+
+### Paid compute
+
+- 2026-10-17: Faras approved a Hetzner CCX13 (2 dedicated vCPU, about
+  $0.07/hour, billed hourly until deleted) as the second labelling
+  machine for T4.2, about 20 hours, capped at $5. Faras creates and
+  deletes it; not created yet (waits for the labeller). Spent so far: $0.
 
 ### Blockers
 

@@ -626,7 +626,7 @@ Mac and on Linux CI, with decoys that must be refused.
     `subprocess.run` of the same command and reported in the PR.
   - Effort: high
 
-- [ ] **T2.18 Schema follow-ups for the method changes**
+- [x] **T2.18 Schema follow-ups for the method changes** (siddiquifaras/perfproof#21, `6c5e4aa`)
   - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
     `tests/test_schema.py`
   - Needs: T2.12, PR #13 merged
@@ -739,7 +739,10 @@ Mac and on Linux CI, with decoys that must be refused.
     resolution stop recorded as rule 1 with `coarse_resolution` (schema
     3) instead of rule 5 plus a warning; guardrail widening in the
     record; the second fingerprint once the schema has a place for it;
-    reset and balanced order (T2.19); detach, status, cancel, resume.
+    reset and balanced order (T2.19); detach, status, cancel, resume;
+    the coverage gate needs the judged test ids, which
+    `SuiteComparison` (T2.4) carries only as a count; differential
+    replays under coverage.
   - Done when: before the M1 exit, `perfproof compare` runs end to end
     on an example and never returns KEEP or a performance REJECT; after
     it, an end-to-end test on a temporary repo with a sleep-based
