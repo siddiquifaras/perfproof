@@ -114,9 +114,15 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #16 | T2.16 | Reviewer running at `c004683` |
-| #17 | T2.4 | Reviewer running at `2293224` |
-| new | T2.17, T2.13 | Workers started after T2.3 merged |
+| #16 | T2.16 | Round 4 fixes in progress (backslash bypass, bare `url` key false refusals, Django ALLOWED_HOSTS, nested-bracket timing); last parsing round, then a review scoped to realistic accidental forms |
+| #17 | T2.4 | Reviewer running at `200d4b7` |
+| #18 | T2.17 | Code fixed; worker merging main and fixing closed-stderr and stderr-BrokenPipe; then a short review |
+| #19 | T2.13 | Round 3 fixes in progress (pre-import benchmark modules outside the guard, compare in both processes, os._exit replay, ctypes wording) |
+| #20 | T1.5 | Reviewer and stats-auditor running at `5ade9e4` |
+| #21 | T2.18 | Draft; authorised to fix fixtures outside its paths; merges LAST, after #16-#20, then merges main once more |
+| new | T4.2 | Phase 1 (select and build CPU tasks) in progress |
+
+Known issue: `tests/bench/test_runner.py::test_cpu_counts_busy_time_not_sleep` (`cpu < 0.2` for a `sleep(0.3)` child) failed once on the Linux check at load 40-50; passed alone. Load-sensitive margin; needs a follow-up in the runner tests.
 
 Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
 
