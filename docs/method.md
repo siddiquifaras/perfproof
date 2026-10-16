@@ -467,6 +467,24 @@ The look schedule is fixed before the first round:
 - The comparison stops at the first look where the resolution stop or
   rule 2 or 3 below fires.
 
+**Defaults per target class.** Provisional: chosen by reasoning about
+each class's round cost and noise, not measured or calibrated. T1.6
+calibrates the procedure under them, and a class's defaults change only
+with that evidence.
+
+| Target class | `n0` | `k` | `K` | `max_rounds` | `max_seconds` | Why |
+|---|---|---|---|---|---|---|
+| Python, CPU-bound | 10 | 10 | 6 | 60 | 1800 | Rounds are cheap; six looks let a clear win stop at 10 rounds |
+| Native | 10 | 10 | 6 | 60 | 1800 | As Python |
+| Web services | 10 | 10 | 3 | 30 | 3600 | A round is a load run of about a minute; fewer looks cost less confidence |
+| LLM serving | 10 | 6 | 3 | 22 | 3600 | Paid GPU minutes; cross host, the same numbers count session pairs |
+| GPU kernels | 20 | 20 | 6 | 120 | 1800 | Kernel timings are often bimodal, so a later first look |
+| Agentic apps | 10 | 10 | 3 | 30 | 3600 | Rounds are expensive and noisy |
+
+Everywhere `max_rounds = n0 + k (K - 1)`, so a round budget never cuts
+the last look short, and on one host `n0` and `k` are even. A spec may
+set its own schedule, and the record holds the schedule used.
+
 **Why this controls false KEEPs.** Suppose the true speedup is at or
 below the bar. A false KEEP needs some look's lower bound to exceed the
 bar, which means that look's interval missed `S` from above. Each look

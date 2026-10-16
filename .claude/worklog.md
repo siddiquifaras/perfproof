@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `7bb5731` | T2.5 compare, thin path, merged (PR #24), squash, after three review rounds (K>1 look wiring and one confidence source, broken_baseline for an unstartable baseline or a missing interpreter, env-leak test, internal_fault instead of tracebacks); reviewer PASS at `09cfb5a` (round 3 narrow, Sonnet); head `5374ea0` is that commit plus main `e01e6b1` with the PR files unchanged; worker /verify 3503 passed, lead Linux check 3500 passed on `5374ea0`. Done-when (before M1 exit): rolling fix INCONCLUSIVE `procedure_uncalibrated`, wrong-output REJECT correctness, bench-edit REJECT lock, remote-db spec REJECT side_effects; never KEEP or a performance REJECT. T2.5 stays open for real verdicts, differential and coverage wiring, reset (T2.19), detach |
 | `76d2f3c` | T2.13 differential checks merged (PR #19), squash, after nine review rounds: guard on library and recorded-module first runs (LazyLoader, duplicate registration), per-thread suspension so overlapping imports cannot leave the guard off, atomic first-run claim; reviewer PASS at `962a302` (narrow B1 re-review on Sonnet), worker /verify (3462 passed) and Linux check (3459 passed) on that head, which contains main `381d3b0`. Done-when: a one-in-fifty bug caught by replayed real calls (100 captured, 100 replayed, 2 mismatches), an unpicklable argument skipped with its reason, no capture code in measured rounds (agent module absent in six runner executions) |
 | `d8f36c8` | T2.10 `perfproof profile` merged (PR #23), squash, after two review rounds (`{output}` required so benchmark stdout is never read as a profile; CPU time read as summed over threads, BLAS spin); reviewer PASS at `055eca4`, lead merged main (plan/worklog-only delta) into `1b3e285` and ran /verify (3425 passed) and the Linux check (3422 passed) on it. Done-when: parser tests on captured py-spy and pyinstrument fixtures; py-spy and pyinstrument find the known bottleneck at rank 1 on rolling and membership (Linux Docker, emulated x86_64); parse time 5.0 ms and 0.48 MiB peak on the largest fixture, in the PR |
 | `6fe693c` | T1.5 sequential looks merged (PR #20), squash, after four review rounds and three stats audits; reviewer PASS and stats-auditor PASS at `67f6838`, lead merged main and ran /verify (3347 passed) and the Linux check (3344 passed) on the merge. T1.5 stays open in the plan until its per-target schedule defaults are written into docs/method.md |
@@ -118,13 +119,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 | PR | Task | State |
 |---|---|---|
-| #21 | T2.18 | Draft; #19 and #23 are merged; resumes after #24 merges (compare writes the schema); then the worker merges main, fixes tests under schema 3, un-drafts; then review |
-| #24 | T2.5 | Reviewer PASS at `09cfb5a` (round 3, narrow on Sonnet); worker /verify green; needs main `76d2f3c` merged and the checks rerun |
-| #22 | T4.2 | Phase 1 done at `2cf238e`: 30 held-out (20 CPU at runs), 20 development at runs; full review running |
+| #21 | T2.18 | Draft; #19, #23 and #24 are merged, so it resumes now; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
+| #22 | T4.2 | Review BLOCK at `2cf238e`: reference-only oracle failure treated as unbuildable (biases against breaking changes; changed one development pick), README misstates plan; worker fixing plus salts test, Docker bounds, no held-out effect sizes, home path, tzdata |
 | T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
 | T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
 
-Next after #24: T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
+Next: T1.6 calibration, T2.14 coverage gate, T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
 
 ### Known gaps
 

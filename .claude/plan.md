@@ -435,7 +435,7 @@ by `stats-auditor` before its PR opens.
     tolerance at large R.
   - Effort: medium
 
-- [ ] **T1.5 Sequential looks**
+- [x] **T1.5 Sequential looks** (siddiquifaras/perfproof#20, `6fe693c`; schedule defaults in `docs/method.md`)
   - Owns: `src/perfproof/stats/sequential.py`,
     `tests/stats/test_sequential.py`
   - Needs: T1.1, T1.3
