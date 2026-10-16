@@ -444,9 +444,11 @@ by `stats-auditor` before its PR opens.
     looks), the Bonferroni split, and a driver that takes the paired
     samples so far and returns the decision at each look. The driver
     decides only through T1.3's function, never a second copy of the
-    rule. Once PR #13 merges: looks on complete balanced pairs only
-    (even `n0` and `k`), per-look confidence `1 - alpha / max(K, 2)`,
-    and the `coarse_resolution` floor. Also add balanced order to
+    rule. Once PR #13 merges: looks on complete order pairs only
+    (even `n0` and `k` on one host), per-look confidence
+    `1 - alpha / (2K)`, the resolution widening of the interval and
+    the `coarse_resolution` check, and lag-1 after subtracting each
+    order's mean. Also add balanced order to
     T1.4's simulator (`simulate.py`, a small change this task may
     make): today it draws a fair coin per round. With it, three test
     gaps from the T1.4 final audit (probes in
@@ -459,6 +461,8 @@ by `stats-auditor` before its PR opens.
     (refuse it).
   - Inputs from the T1.1 audit (auditor's own simulator, probes in
     `scratch/audit-pr11-probes/`, to re-measure on T1.4's):
+    - The PR #13 audit found AR(1) failing at rho as low as 0.13 when
+      combined with other effects, not only at 0.5.
     - AR(1) 0.5 in `d` defeated both the t primary (651/4000 false
       KEEP at S = 1.03, six looks) and the batch-means fallback
       (113/4000; limit 83). Batch means at `n = 10` (two blocks, one
@@ -583,12 +587,31 @@ Mac and on Linux CI, with decoys that must be refused.
     Stdout and stderr go to files, not memory. Warmup, then rounds with
     in-round order drawn from a recorded seed; once PR #13 merges,
     rounds come in balanced pairs (one each order, which first drawn
-    from the seed). Record each `reported` value's resolution from the
-    digits printed, for the `coarse_resolution` floor.
+    from the seed). Record each value's resolution: the clock step
+    for `wall` and `cpu`, measured once per run; one count for
+    `counter`; for `reported`, the spec's declared resolution, else
+    the place of the last digit printed.
   - Done when: each metric is tested against a real child process;
     runner overhead per invocation is measured against a bare
     `subprocess.run` of the same command and reported in the PR.
   - Effort: high
+
+- [ ] **T2.18 Schema follow-ups for the method changes**
+  - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
+    `tests/test_schema.py`
+  - Needs: T2.12, PR #13 merged
+  - Do: bring the shared contract in line with `docs/method.md`:
+    `LookSchedule` refuses odd `n0` or `k` on one host and documents
+    `1 - alpha / (2K)`; a `resolution` field on `reported` metrics in
+    the spec, and a per-sample resolution; `coarse_resolution` and the
+    resolution widening in `Diagnostics`; a runtime kind field on
+    `TreeEnvironment` (interpreter, native build, unknown with a
+    reason) and the linked outside-tree libraries, replacing T2.2's
+    fixed marker text in `missing["runtime_version"]`.
+  - Done when: each refusal and field has a test that fails without
+    it; `schema.json` regenerated; T2.2's gate reads the new kind field
+    and its tests pass unchanged in behaviour.
+  - Effort: medium
 
 - [ ] **T2.4 Correctness gate**
   - Owns: `src/perfproof/bench/correctness.py`,
