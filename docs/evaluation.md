@@ -123,17 +123,22 @@ A task used for development never moves to the held-out set.
 candidate pool. The selection rule is fixed here before any task is
 built for it:
 
-1. Candidates are ordered by `sha256(salt + task id)`, with the salt
+1. Candidates whose family or class is wrong on reading their pull
+   request or commit (not an optimization, a revert for a build or CI
+   failure, a workload that doesn't exercise the change) are removed
+   first, each with its reason recorded. This reads only the change,
+   never a result.
+2. The rest are ordered by `sha256(salt + task id)`, with the salt
    `perfproof-heldout-2026-10-16`.
-2. Per target class, the held-out set takes, in that order, the first
+3. Per target class, the held-out set takes, in that order, the first
    candidates that build and run here (or on the class's GPU host): two
    known-change tasks, one hidden-fix task, one nothing-to-keep task and
    one published-benchmark task, five in all. Where a class has no
    candidate of a family, the next known-change task takes its place.
-3. Whether a candidate builds is the only thing looked at. No
-   perfproof run, agent run or label of a held-out candidate is seen
-   before the list is committed.
-4. Every candidate passed over is recorded with the reason it didn't
+4. Apart from step 1, whether a candidate builds is the only thing
+   looked at. No perfproof run, agent run or label of a held-out
+   candidate is seen before the list is committed.
+5. Every candidate passed over is recorded with the reason it didn't
    build, so the selection can be re-derived.
 
 The development set is drawn from the rest of the pool the same way,
