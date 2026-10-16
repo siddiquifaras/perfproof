@@ -16,11 +16,11 @@ because a later code mechanism catches the result.
 
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
-| 1 | Noise read as a speedup | Old and new run in turns, paired ratios, t interval, a minimum effect, three outcomes | Code | Monte Carlo calibration, held-out audit, A/A runs on real machines | Noise unlike anything in the scenarios or the recorded traces |
+| 1 | Noise read as a speedup | Old and new run in turns, paired ratios, t interval, a minimum effect, three outcomes | Code | Monte Carlo calibration, held-out audit, A/A runs on real machines | Noise unlike anything in the scenarios or the recorded traces; skew from occasional slow runs in one version, a stated limit not yet calibrated (the record reports skewness and warns); slow runs rarer than about one in `n` rounds |
 | 2 | Looking at the numbers until they look good | A look schedule fixed before the first round, error budget split across looks | Code | Calibration with looks on | Nothing within the schedule; costs more INCONCLUSIVEs |
 | 3 | Trying many candidates or settings and keeping the luckiest | The best is chosen, then confirmed by a fresh, independent comparison; only that is claimed | Code (`perfproof confirm`) | Simulation with many candidates and no real effect | Nothing, at the cost of one extra comparison |
 | 4 | Comparing runs from different machines | `same_host` gate; cross-machine only by opt-in, with the alternating fresh-host design and a label | Code | Gate tests; calibration of the session design | A host pool that hands one version systematically different machines |
-| 5 | Rounding at the bar turning "equal" into KEEP | Exact float64 decisions on recorded bounds; intervals widened only by a derived error bound | Code | Full-path regression test with the measured reproducer | Nothing known |
+| 5 | Rounding at the bar turning "equal" into KEEP | Exact float64 decisions on recorded bounds; intervals widened only by derived error bounds, including the measurement's resolution | Code | Full-path regression test with the measured reproducer; quantized-timer simulation | A `reported` metric whose real resolution is coarser than declared or printed, and that still looks continuous |
 | 6 | Measuring perfproof's own overhead | Nothing perfproof does runs between rounds; overhead per execution measured | Code | Runner overhead test | Overhead below the measurement floor |
 
 ## Cheating, intended or not
@@ -28,7 +28,7 @@ because a later code mechanism catches the result.
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
 | 7 | The candidate edits the benchmark, tests or inputs | `lock` gate: hashes of harness, oracle, inputs, configs | Code | Gate tests; the benchmark-edit decoy | A workload that was unrepresentative from the start (see 16) |
-| 8 | Old and new run differently (flags, env, command) | `procedure` gate: spec hash, perfproof version, the argv, env and cwd of every round | Code | Gate tests | Differences outside what perfproof launches |
+| 8 | Old and new run differently (flags, env, command, interpreter, linked libraries) | `procedure` gate: spec hash, perfproof version, the argv, env and cwd of every round; `runtime` gate: the outside-tree runtime each arm runs | Code | Gate tests | Differences outside what perfproof launches; an interpreter started by a program the runtime gate can't see into; libraries loaded with `dlopen` |
 | 9 | The candidate fakes the number it reports | A `reported` metric must come from locked code; wall time is measured alongside and disagreement is flagged | Code | Lock-gate tests; the metric-disagreement test in `compare` | A locked harness that was already wrong |
 
 ## Breaking the code
@@ -44,7 +44,7 @@ because a later code mechanism catches the result.
 
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
-| 14 | A benchmark touches a real database or paid API | `side_effects` preflight refuses non-local service addresses; a reset command between rounds | Code | Preflight tests; the remote-database fixture | Services configured only inside files the preflight doesn't read |
+| 14 | A benchmark touches a real database or paid API | `side_effects` preflight refuses non-local service addresses; a reset command between rounds | Code | Preflight tests; the remote-database fixture | Services configured only inside files the preflight doesn't read; proxies; a cloud SDK's default endpoint reached through a region variable and credentials under `HOME` |
 | 15 | The developer's own uncommitted work is lost | A session refuses a dirty tree unless told how to set it aside; kept changes go on perfproof's own branch; undo touches only files perfproof changed | Code | Session tests | Nothing within the repository |
 | 16 | A long run killed by a client timeout, then misread | `--detach`, `status`, `cancel`, `--resume` after re-checking gates and the machine; a partial run never yields a verdict | Code | `kill -9` and cancel tests | Nothing |
 

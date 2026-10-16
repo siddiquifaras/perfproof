@@ -37,6 +37,7 @@ the record, so a tool or an agent never has to parse prose to learn why.
 | The experiment itself is not valid (locked files, procedure, host) | REJECT | `integrity`, with the gate named |
 | The benchmark would reach a service that isn't local | Refused before anything runs | `integrity`, gate `side_effects` |
 | Interval still straddles the bar when the budget runs out | INCONCLUSIVE | `insufficient_evidence` |
+| A value no larger than its resolution, or an undeclared `reported` resolution that can't be trusted | INCONCLUSIVE | `insufficient_evidence`, diagnostic `coarse_resolution` |
 
 A correctness or integrity REJECT says nothing about speed. Gates run
 before any timing, so those verdicts carry no speedup estimate at all.
@@ -141,7 +142,8 @@ environment, not perfproof's own: `PATH`, `HOME`, `USER`, `LOGNAME`,
 the spec's own `env`. Anything else the benchmark needs, such as
 `CUDA_VISIBLE_DEVICES` or a database URL, is declared in the spec. So
 the agent's own credentials and service addresses (an API base URL, a
-cloud token) never reach the benchmark, and both versions run with
+cloud token) never reach the benchmark's environment, and both
+versions run with
 exactly the declared environment.
 
 **The check.** Before anything executes, perfproof checks that
@@ -162,6 +164,7 @@ can't parse cleanly. It is not a sandbox: a benchmark written to hide
 an address from it (an address built at run time, or spelled to fool a
 parser) is outside what it can promise, as is any attack on perfproof
 itself.
+
 A spec can declare a reset command that perfproof runs before every
 execution, so a database starts each round in the same state. A reset
 that fails fails the `side_effects` gate, with its output recorded.
@@ -178,7 +181,7 @@ classes.
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails, including tools known to start other interpreters (tox, nox, poetry and the like). Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
 
 **Recorded, not gated:** the environment each command ran with (names, and
@@ -216,9 +219,21 @@ Rules that follow:
 ## Observations
 
 **One round is one observation.** A round runs the baseline once and
-the candidate once, back to back, in an order drawn at random for that
-round. Its paired ratio is the observation, and `n` is the number of
-rounds.
+the candidate once, back to back. Its paired ratio is the observation,
+and `n` is the number of rounds.
+
+**Order is balanced.** On one host, rounds come in order pairs: one
+round of the pair runs the baseline first, the other runs the
+candidate first, and which of the two comes first is drawn at random.
+Every look uses complete order pairs only (see "Stopping"). A fair
+coin per round would leave the two orders unequal by chance, and with
+an order effect that imbalance shifts the mean: in an audit simulation
+with a 3% order effect, the t interval at `n = 10` missed from above at
+0.67% against a nominal 0.42%, and with balanced order it missed at
+0. With balanced order the effect cancels in every look, and the swing
+it adds to `d` widens the interval instead of moving it. The
+cross-machine design under "Comparisons across machines" has its own
+ordering.
 
 - Each execution produces one value. If the benchmark loops
   internally, the value is the single number it reports for that
@@ -238,10 +253,100 @@ rounds.
 - `counter`: hardware instruction or cycle counts from `perf stat`
   (Linux). Far less noisy than time, so small changes need fewer rounds.
 
+**Resolution.** A measurement is only known to within its
+resolution, and a coarse one reads a small change as no change or as a
+whole step. In an audit simulation of timings near 10 ms printed to
+the millisecond, a true speedup of 1.06% read as 10/9 in every round
+and gave 4000 false KEEPs in 4000 comparisons. Every value therefore
+carries a resolution `q`:
+
+- `wall` and `cpu`: the clock's step, measured once per run.
+- `counter`: one count.
+- `reported`: declared in the spec when the benchmark knows it (the
+  timer it reads, the unit it rounds or truncates to), and otherwise
+  the place of the last digit printed for that value (`9` has `q = 1`,
+  `9.40` has 0.01). A value printed with its trailing zeros dropped,
+  such as `1` for `1.000`, gets the coarser step: that costs power,
+  never correctness, and printing a fixed number of decimals avoids
+  it. Printed digits overstate the resolution when
+  arithmetic follows the rounding: a millisecond total divided by 3
+  prints as `9.666666666666666`. So a `reported` metric without a
+  declared resolution must also look continuous: if either arm has
+  fewer distinct values than half its rounds, the resolution can't be
+  trusted.
+
+A value is known only to within one step `q`: half a step when it was
+rounded, but a full step when it was truncated or is the difference of
+two readings of a stepped clock, and perfproof can't tell which. So
+each round's log ratio is known only to within
+`e_i = -log(1 - q_b / b_i) - log(1 - q_c / c_i)`, an exact bound since
+`|log(1 + x)| <= -log(1 - |x|)`. The mean log ratio is off by at most
+the mean of the `e_i`, so both bounds of every interval are widened
+outward by that mean, including the exact interval of identical ratios
+under "Numerics". The bound is exact when each value's `q` is at least
+its real step; a `reported` value whose real step is coarser than
+declared or printed, and that still looks continuous, is a stated
+limit (in audit simulations, about 130 false KEEPs in 4000 on the bar
+with a 5% shared factor and no other jitter). A run printed to the
+millisecond around 10 ms widens by about 20% and can't reach a verdict
+near a 3% bar. The widening, and the resolution stop below, cost
+power, never correctness. Worst cases measured in audit simulations at
+a true 4% speedup, as lost KEEP rate, with the noise per execution
+where each was worst:
+
+| What is measured or printed | Lost KEEP rate |
+|---|---|
+| 1 ms runs, nanosecond clock | about 1 point (1.6% noise) |
+| 2 ms of `wait4` CPU time, microsecond step | about 12 points (1.6% noise) |
+| 5 significant digits, trailing zeros kept (`%#.5g`) | about 2 points (1.7% noise) |
+| 4 significant digits, trailing zeros kept (`%#.4g`) | about 23 points (1.5% noise); at 0.1% noise the continuity check stops about 94% of comparisons |
+| 5 significant digits, trailing zeros dropped (`%.5g`) | about 9 points (1.5% noise); about 20 (0.1% noise), from comparisons stopped by a bare `1` |
+| 4 significant digits, trailing zeros dropped (`%.4g`) | about 70 points (1% noise); nearly all at 0.1% noise |
+
+Dropping trailing zeros costs more because a value printed as `1.1`
+or `1` gets a coarse step, and a value printed as a bare `1` (which is
+how `%g` and JavaScript's `JSON.stringify` print the value 1.0) ends
+the comparison
+with `coarse_resolution`. So a benchmark should print a fixed number
+of decimals, or declare its resolution.
+
+The widening is derived from the measurement, like the rounding bound
+under "Numerics", and the record keeps it. Guardrail intervals are widened the same way, and in the
+cross-machine design each session pair's observation is widened by
+the mean `e_i` of its rounds.
+
+**Resolution stop.** When a value is no larger than its own step, or a
+`reported` metric with no declared resolution fails the continuity
+check above, the comparison stops at that look with **INCONCLUSIVE**
+(`insufficient_evidence`) and the diagnostic `coarse_resolution`; the
+report asks for more digits or more work per execution. It is checked
+after rule 1 and before rules 2 and 3, at every look, in both host
+modes.
+
 ### Assumptions
 
 The procedure below assumes the log ratios `d_i = log(r_i)` of
 different rounds are independent draws from one distribution.
+
+**Skew in one version.** When one version is occasionally much
+slower, the log ratios are skewed, and the t interval under-covers
+on the skewed side, also at rates of slow runs well above one in `n`.
+In audit simulations with the geometric-mean speedup on the bar, 2x
+slow runs in 5% of the candidate's executions gave false KEEPs in more
+than half of comparisons at 10 rounds and 150 to 190 in 4000 at 200
+rounds; 1.3x slow runs in 10% of them gave about 115 in 4000 at 200
+rounds. Slow runs in the baseline give false REJECTs the same way,
+about 2400 in 4000 for 2x in 5% at 10 rounds, though that side passed
+from about 200 rounds on (and from 40 rounds for 1.3x in 10%). These
+are not calibration scenarios yet, because the t interval fails them
+at the lengths perfproof usually runs and no remedy has been measured:
+until one is, this is a stated limit of the procedure. The record
+reports the skewness of `d`, and the report warns when its magnitude
+exceeds 2. That warning can't help the shortest comparisons: at 10
+rounds every false verdict came from a comparison that never saw a
+slow run. Slow runs rarer than about one in `n` can't be seen at all
+by any procedure on `n` rounds; the record states how many rounds the
+verdict rests on.
 
 - **Within a round**, the two runs share conditions such as heat and
   background load. That dependence is wanted: it is what makes the
@@ -250,10 +355,12 @@ different rounds are independent draws from one distribution.
   background jobs persist across rounds, and noise can change level
   halfway through. Pairing does not fix this.
 - **Order inside a round** can matter, for example when the second run
-  inherits a warm cache. Random order turns that bias into noise.
+  inherits a warm cache. Balanced order (above) cancels that bias.
 
-Each of these violations is a calibration scenario. The record reports
-the lag-1 autocorrelation of `d` and warns when it is above 0.3. If the
+Each of the two violations above, and the order effect, is a calibration scenario. The record reports
+the lag-1 autocorrelation of `d`, computed after subtracting each
+order's mean (balanced order otherwise drives it negative), and warns
+when it is above 0.3. If the
 primary procedure fails the acceptance rule under the autocorrelated
 scenarios, the prespecified fallback is batch means: consecutive rounds
 are grouped in blocks of 5 and each block mean becomes one observation.
@@ -292,7 +399,7 @@ So in v1:
   | A gate failed | REJECT, naming the gate |
   | Fewer than `n0` pairs, and another pair can be collected | Continue |
   | Fewer than `n0` pairs, and no more can be collected | INCONCLUSIVE |
-  | `n0` pairs or more | Rules 2 to 5 of the decision rule |
+  | `n0` pairs or more | The resolution stop, then rules 2 to 5 of the decision rule |
 - **The design rests on an assumption perfproof can't check:** that the
   pool allocates hosts independently of which version runs. The verdict
   is labelled cross-host and states that assumption, the record keeps
@@ -334,23 +441,38 @@ The look schedule is fixed before the first round:
 - The first look comes after `n0` rounds, then one every `k` rounds,
   for at most `K` looks, and never past `max_rounds` or `max_seconds`.
   `n0` is at least 10: t intervals on fewer rounds are too fragile
-  under heavy tails.
+  under heavy tails. On one host `n0` and `k` are even, so every
+  scheduled look falls on complete order pairs.
 - If the budget runs out between looks, perfproof takes a final look at
-  the rounds it has. That look replaces the remaining scheduled looks,
-  so the total never exceeds `K`.
-- Each look computes a two-sided interval at confidence `1 - alpha / K`
-  with `alpha = 0.05` (a Bonferroni split).
-- The comparison stops at the first look where rule 2 or 3 below
-  fires.
+  the complete order pairs it has, dropping an unpaired last round.
+  That look replaces the remaining scheduled looks, so the total never
+  exceeds `K`. A budget that ends before `n0` rounds gives no look at
+  all, and the result is **INCONCLUSIVE** (`insufficient_evidence`).
+- Each look computes a two-sided interval at confidence
+  `1 - alpha / (2K)` with `alpha = 0.05`: a Bonferroni split over the
+  looks, designed to halve the error the promise allows. The margin is
+  deliberate. Calibration has to show each error rate is below 2.5%,
+  and a procedure designed to exactly 2.5% can't show that: in audit
+  simulations an exact interval split as `alpha / K` gave false-KEEP
+  rates on the bar of 2.5% at one look, 2.2 to 2.5% at two and 2.0 to
+  2.2% at three, which pass a calibration cell with probability 0.04
+  to 0.7. Split as `alpha / (2K)`, two looks gave 1.1 to 1.2%. The cost
+  is power: averaged over the audit's scenarios without
+  autocorrelation, the KEEP rate fell by 5 to 8 points at a true 5%
+  speedup and 3 to 5 points at 10%; single scenarios ranged from 0 to
+  63 points, the most in the least noisy one.
+- The comparison stops at the first look where the resolution stop or
+  rule 2 or 3 below fires.
 
 **Why this controls false KEEPs.** Suppose the true speedup is at or
 below the bar. A false KEEP needs some look's lower bound to exceed the
 bar, which means that look's interval missed `S` from above. Each look
-does that with probability at most `alpha / (2K)` if its interval is
+does that with probability at most `alpha / (4K)` if its interval is
 valid at its `n`. Over at most `K` looks the union bound gives a
-false-KEEP probability of at most `alpha / 2 = 2.5%`, however the looks
-depend on each other. The same argument bounds false REJECTs at 2.5%
-when the true speedup is above the bar.
+false-KEEP probability of at most `alpha / 4 = 1.25%`, however the
+looks depend on each other, which leaves the promised 2.5% with room
+for an interval that is only approximately valid. The same argument
+bounds false REJECTs when the true speedup is above the bar.
 
 That argument leans on one assumption: each look's interval is valid
 at its own `n`, including when `n` is set by a time budget. Calibration
@@ -361,7 +483,7 @@ tests it under the complete stopping procedure, not at fixed `n` alone.
 | Name | Default | Meaning |
 |---|---|---|
 | `min_effect` | `0.03` | Smallest speedup worth keeping |
-| `alpha` | `0.05` | Total error budget, split across looks |
+| `alpha` | `0.05` | Error the promise allows; each look is designed to `alpha / (2K)`, half of it in total |
 | `n0`, `k`, `K` | per target | Look schedule |
 | `max_rounds`, `max_seconds` | per target | Run budget |
 
@@ -374,6 +496,8 @@ The first rule that matches decides:
    correctness check run under a broken lock or procedure tests
    nothing, and coverage comes last because it asks whether passing
    checks reached the change.
+   Then, if the resolution stop under "Resolution" applies:
+   **INCONCLUSIVE** (`insufficient_evidence`, `coarse_resolution`).
 2. If `L > 1 + min_effect`, the guardrails decide, as set out under
    "Guardrails": **KEEP** (`performance`) when every guardrail passed or
    is not applicable, **REJECT** (`guardrail`) when any is breached, and
@@ -401,7 +525,7 @@ nothing.
 the end of its budget and ends **INCONCLUSIVE**
 (`insufficient_evidence`), with the diagnostic
 `procedure_uncalibrated` recorded. Rule 1 still gives REJECT when a
-gate fails. Every record states whether it was made by a calibrated
+gate fails, and the resolution stop still ends it early. Every record states whether it was made by a calibrated
 procedure, and that field has no default.
 
 With the default bar of +3%:
@@ -489,11 +613,12 @@ change at INCONCLUSIVE; the evidence planning report names it as the
 blocker.
 
 **Error control.** Let `G` count every allowance and limit checked. Each
-guardrail check at a look uses confidence `1 - alpha / (K G)`. By the
-union bound under "Stopping", the chance of a KEEP while some
-guardrail is truly beyond its allowance or limit is at most 2.5%, and
-the chance that a guardrail shows a breach when all are truly within
-is at most 2.5%. The primary interval and its false-KEEP bound are
+guardrail check at a look uses confidence `1 - alpha / (2 K G)`, with
+the same margin as the primary under "Stopping". By the union bound,
+the chance of a KEEP while some guardrail is truly beyond its
+allowance or limit is at most 1.25%, and the chance that a guardrail
+shows a breach when all are truly within is at most 1.25%; both are
+held to 2.5% in calibration. The primary interval and its false-KEEP bound are
 unchanged, because guardrails can only turn a KEEP into a REJECT or an
 INCONCLUSIVE. Calibration measures guardrail false passes and false
 breaches per cell under the acceptance rule.
@@ -517,13 +642,19 @@ error is handled in the interval, never in the decision.
   `L = U = bar + 1 ulp`, so a KEEP for a change that sits on the bar.
   The mirror case gives false REJECTs. Two measures fix this:
   - When every ratio is the same float, the interval is that ratio
-    exactly, with no arithmetic that can move it.
+    exactly, with no arithmetic that can move it; the resolution
+    widening under "Observations" then applies to it like any other
+    interval.
   - Otherwise, each bound is widened outward by an error bound derived
     from the operations that produced it. That is conservative
     interval construction, not rounding: the width comes from an
     analysis of the computation, never from observing which nudge
     makes the tests pass, and a fixed one-ulp step is not a derived
     bound.
+- **The observations** are the float64 measurements as recorded and
+  their float64 ratios. A ratio that rounds onto the bar is on the bar,
+  even when the exact quotient of the two measurements lies a fraction
+  of an ulp to one side.
 - **Rounding to a display precision** (1.0300000000000002 shown as
   1.03) happens only in the rendered report, never before a decision.
 
@@ -561,8 +692,8 @@ depends only on which side of the bar the true speedup `S` is on:
 | False KEEP | 0.95, 1.00, 1.03 | 2.5% |
 | False REJECT | 1.04, 1.05, 1.10, 1.20 | 2.5% |
 
-The argument under "Stopping" bounds both errors at 2.5% for every
-true speedup on its side of the bar. The cells nearest the bar, 1.03
+The argument under "Stopping" bounds both errors at 1.25% for every
+true speedup on its side of the bar, against the 2.5% limit here. The cells nearest the bar, 1.03
 for false KEEP and 1.04 for false REJECT, are where a broken procedure
 shows first.
 
@@ -590,8 +721,8 @@ shows first.
   (2.1%) fails, checked both as the beta quantile and from the
   definition `P(X <= k | p = 0.025) <= 0.05`. A procedure
   whose true rate is 1.5% passes a cell with probability 0.998; one at
-  2.0% passes with probability 0.66. The Bonferroni split should keep
-  true rates well under 2.5%, so a sound procedure has room to spare.
+  2.0% passes with probability 0.66. The split under "Stopping" is
+  designed to 1.25% so that a sound procedure has room to spare.
 - Every cell must pass. A failing cell can't be dropped, rerun at a
   larger `R`, or rerun at another seed. The fix is a change to the
   procedure, after which the whole calibration runs again at a new
@@ -689,8 +820,12 @@ observed rates, and their Clopper-Pearson bounds.
   interval, rounds, looks, and whether the comparison crossed hosts
 - Procedure, look schedule, and calibration status for the target class
 - Spec hash, perfproof version, and the command executed in each round
-- Noise of each version and of the paired ratio, and lag-1
-  autocorrelation of the ratio
+- Noise of each version and of the paired ratio; lag-1
+  autocorrelation of the log ratio after subtracting each order's
+  mean; skewness of the log ratio
+- Each value's resolution `q`, where it came from (clock, count,
+  declared or printed), and the widening it added; `coarse_resolution`
+  when it applied
 - Gates and their results, including recorded differences between arms
 - Machine fingerprint: CPU, cores, frequency policy, load, power source,
   thermal state, GPU, driver and clocks when present
