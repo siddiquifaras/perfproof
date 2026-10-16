@@ -149,6 +149,16 @@ ending in `_HOST` or `_URL`. If any points at a host that isn't local
 `::`, a Unix socket, or a container started for the run), the run is
 refused with gate `side_effects`, unless the spec opts in. Nothing is
 resolved through DNS, and anything that can't be parsed is refused.
+
+**What the guard is for.** It catches a benchmark that would reach a
+real service by mistake: a production database URL left in the
+environment, a config file pointing at a shared cache, a command that
+calls a paid API. It reads addresses the way the common clients read
+them (libpq, SQLAlchemy, the WHATWG URL rules), and refuses anything it
+can't parse cleanly. It is not a sandbox: a benchmark written to hide
+an address from it (an address built at run time, or spelled to fool a
+parser) is outside what it can promise, as is any attack on perfproof
+itself.
 A spec can declare a reset command that perfproof runs before every
 execution, so a database starts each round in the same state. A reset
 that fails fails the `side_effects` gate, with its output recorded.
