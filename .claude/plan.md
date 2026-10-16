@@ -1054,8 +1054,11 @@ Starts now, in parallel with M1 and M2. Implements
     `dev/cuda` kernels, which ship several versions of each kernel with
     a CPU reference check, supply GPU hidden-fix tasks.
   - Done when: the task counts per family and class are in
-    `eval/README.md`, each manifest builds and runs here, and the
-    held-out set is committed before any held-out run.
+    `eval/README.md`, the candidate pool and miner are merged, and the
+    selected development and held-out tasks (selection rule in
+    `docs/evaluation.md`) build and run here, with the held-out list
+    committed before any held-out run. Building the selected tasks
+    runs with T4.2; the pool alone doesn't close this task.
   - Effort: high
 
 - [ ] **T4.2 Independent ground truth**
