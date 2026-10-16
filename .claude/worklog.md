@@ -86,14 +86,14 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-As of 04:50 PKT. Resume point if the usage limit hits (reset 06:50).
+As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage limit hits (reset 06:50).
 
 | PR | Task | State |
 |---|---|---|
-| #5 | T2.2 | Worker fixing review round 4 (B1 slashless shebang, B2 macOS relative rpath cwd, B3 tox/nox launchers); then reviewer, bounded to the stated contract |
+| #5 | T2.2 | Round 5 fixes pushed at `27e6811` (uv run python -m launcher, python -m uv, name normalization), CI 4/4. Next: bounded reviewer at `27e6811`; merge if PASS |
 | #9 | T2.12 | Reviewer PASS at `cf5bed7`; stats-auditor finishing `67c6f40` then `cf5bed7`; merge if PASS |
 | #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
-| #11 | T1.1 | Stats-auditor PASS at `be1b21e`; worker adding HL memory, eps, layout tests on top of `eee6e74`; then final reviewer + stats-auditor |
+| #11 | T1.1 | At `8ba7af9`: reviewer BLOCK, Hodges-Lehmann `_normal_signed_rank_critical` (`intervals.py:496`, `_tie_sums` `:789-800`) runs on all rows before the chunk loop, so (100000, 60) peaks 236 MiB against a documented 201 MiB. Next: send to T1.1 worker (compute `crit` per chunk; add (100000, 60) to the memory test). Stats-auditor running at `8ba7af9`. Merge-order: whichever of #9/#11 merges second reworks `tests/stats/test_intervals.py` `record()` (calibrated=True, seven gates, calibrated label with target class and diagnostics) |
 | #12 | T2.7 | Worker retuning rolling slight-speedup to ~1.5%, `peak_rss` timeout; then reviewer |
 | #13 | spec | Method changes from the T1.1 audit; stats-auditor running |
 | #4 | T2.3 | Waits for #5; then rebase on `command_hash`, add `procedure_gate` test, balanced pairs and resolution once #13 merges |
