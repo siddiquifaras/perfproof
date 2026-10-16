@@ -114,17 +114,15 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage limit hits (reset 06:50).
-
 | PR | Task | State |
 |---|---|---|
-| #19 | T2.13 | Round 3 fixes in progress (pre-import benchmark modules outside the guard, compare in both processes, os._exit replay, ctypes wording) |
-| #21 | T2.18 | Draft at `f3bd1c2`, suite green on macOS; merges LAST after #16-#20; then worker merges main, runs checks, un-drafts; then review |
-| new | T4.2 | Phase 1 (select and build CPU tasks) in progress |
+| #19 | T2.13 | Round 7: guard suspended on the first execution of a recorded tree module, retry removed; then regression-only review |
+| #21 | T2.18 | Draft; merges last, after #19 and #23; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
+| #22 | T4.2 | Development draw (web 5, agentic 5, native +2) and the GSO workload fix in the miner |
+| #23 | T2.10 | Require `{output}` in custom profiler commands; CPU-over-wall label; merge main; then review |
+| #24 | T2.5 | Opened at `463161b` (contains main `92d7e25`); `/verify` and linux.sh green per the worker; reviewer running |
 
-Fixed in `eeeb13e`: `tests/bench/test_runner.py::test_cpu_counts_busy_time_not_sleep` (`cpu < 0.2` for a `sleep(0.3)` child) failed once on the Linux check at load 40-50; passed alone. Load-sensitive margin; needs a follow-up in the runner tests.
-
-Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
+Next after #24: T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
 
 ### Known gaps
 

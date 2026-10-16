@@ -649,6 +649,34 @@ Mac and on Linux CI, with decoys that must be refused.
     and its tests pass unchanged in behaviour.
   - Effort: medium
 
+- [ ] **T2.19 Runner follow-ups from compare**
+  - Owns: `src/perfproof/bench/runner.py`, `tests/bench/test_runner.py`,
+    and the matching refusals in `src/perfproof/bench/compare.py`
+  - Needs: T2.5 merged
+  - Do: rounds come in balanced order pairs per "Order is balanced" in
+    `docs/method.md` (one pair each way, which first drawn from the
+    recorded seed; a resumed run repeats the same pairs); a hook that
+    runs the spec's `reset` before every execution; a single-execution
+    call, so compare's baseline recheck runs the baseline once rather
+    than a two-slot warmup pair. Then drop compare's `unsupported_spec`
+    refusal for `reset` and its `order_not_balanced` warning.
+  - Done when: a test shows every look's rounds split evenly between
+    the two orders; a reset counter file shows one reset per
+    execution; the recheck runs exactly one baseline execution;
+    compare runs a spec with `reset` end to end.
+  - Effort: medium
+
+- [ ] **T2.20 Examples declare objective and guardrails**
+  - Owns: `examples/*/spec*.json`, `examples/*/test_*.py` where a
+    spec's contents are checked
+  - Needs: T2.18 (schema 3 for the specs), T2.5
+  - Do: give each shipped spec the objective and the guardrails its
+    target class requires, so `perfproof compare` runs them instead of
+    refusing with `undeclared_guardrails`.
+  - Done when: `perfproof compare` on each example's fix runs to a
+    verdict through the CLI.
+  - Effort: low
+
 - [x] **T2.4 Correctness gate**
   - Owns: `src/perfproof/bench/correctness.py`,
     `tests/bench/test_correctness.py`
@@ -930,7 +958,8 @@ Mac and on Linux CI, with decoys that must be refused.
 
 - [ ] **T2.8 Local loop end to end**
   - Owns: `tests/e2e/`, the A/A section of `docs/method.md`
-  - Needs: T2.5, T2.6, T2.10, T2.11, T2.13, T2.14, T2.15, T2.16
+  - Needs: T2.5, T2.6, T2.10, T2.11, T2.13, T2.14, T2.15, T2.16,
+    T2.19, T2.20
   - Do: for each Python example, through the CLI:
     define and lock the benchmark, snapshot the baseline, profile it,
     apply the fix, check correctness, compare, write the report. Then
