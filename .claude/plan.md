@@ -618,7 +618,9 @@ Mac and on Linux CI, with decoys that must be refused.
     repository and candidate commit on `RunRecord` (failure mode 20 wants
     claims to name the repository), the calibration conditions a verdict
     rests on, and fields for any capped value so the report can label it
-    a bound.
+    a bound. From T2.13: a declared numeric tolerance for differential
+    checks (today they compare exactly, so any reordered float
+    arithmetic mismatches).
   - Done when: each refusal and field has a test that fails without
     it; `schema.json` regenerated; T2.2's gate reads the new kind field
     and its tests pass unchanged in behaviour.
