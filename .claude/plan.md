@@ -907,7 +907,7 @@ Mac and on Linux CI, with decoys that must be refused.
     fails (the run stops, with its output in the record).
   - Effort: medium
 
-- [ ] **T2.17 CLI skeleton**
+- [x] **T2.17 CLI skeleton**
   - Owns: `src/perfproof/cli.py`, `src/perfproof/__main__.py`,
     `src/perfproof/commands/`, `tests/test_cli.py`, `pyproject.toml`
     (script entry)
