@@ -119,7 +119,7 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 | #19 | T2.13 | Round 7: guard suspended on the first execution of a recorded tree module, retry removed; then regression-only review |
 | #21 | T2.18 | Draft; merges last, after #19 and #23; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
 | #22 | T4.2 | Development draw (web 5, agentic 5, native +2) and the GSO workload fix in the miner |
-| #23 | T2.10 | Require `{output}` in custom profiler commands; CPU-over-wall label; merge main; then review |
+| #23 | T2.10 | Fixes at `055eca4` (main with T1.5 merged in); `/verify` green, linux.sh green on rerun; regression review running |
 | #24 | T2.5 | Opened at `463161b` (contains main `92d7e25`); `/verify` and linux.sh green per the worker; reviewer running |
 
 Next after #24: T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
@@ -131,6 +131,12 @@ Next after #24: T2.19 (runner: balanced order pairs, reset hook, single executio
   an explicit `exclude` (44 of the 45 tracked files are analysed; naming
   the file directly finds no source files). Ruff still lints it. Fix by
   moving the hook out of the dot directory or checking it separately.
+
+- `tests/bench/test_correctness.py::test_candidate_timeout_fails_the_gate`
+  failed once in linux.sh on PR #23's head `055eca4` at load ~16 (another
+  container running): the baseline's empty script overran its 0.5 s
+  timeout and raised `BaselineBrokenError`. Passed on a rerun alone.
+  Load-sensitive timeout margin in T2.4's tests; not yet fixed.
 
 ### Blockers
 
