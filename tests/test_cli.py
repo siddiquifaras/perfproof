@@ -19,7 +19,7 @@ from perfproof.machine import machine_warnings
 from perfproof.schema import BenchmarkSpec, MachineFingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILT = ("bench", "doctor", "profile")
+BUILT = ("bench", "compare", "doctor", "profile")
 NOT_BUILT = tuple(c for c in COMMANDS if c not in BUILT)
 
 type Run = Callable[..., tuple[int, str, str]]
@@ -152,8 +152,13 @@ def test_unbuilt_command_fails_and_says_so(cli: Run, command: str) -> None:
 
 @pytest.mark.parametrize(
     "argv",
-    [("doctor",), ("bench", "list", "tile"), ("profile", "tile")],
-    ids=("doctor", "bench", "profile"),
+    [
+        ("doctor",),
+        ("bench", "list", "tile"),
+        ("compare", "tile", "--candidate", "."),
+        ("profile", "tile"),
+    ],
+    ids=("doctor", "bench", "compare", "profile"),
 )
 def test_unknown_command_option(cli: Run, argv: tuple[str, ...]) -> None:
     status, out, err = cli(*argv, "--bogus")
@@ -509,10 +514,10 @@ def test_closed_stdout_exits_quietly(argv: list[str]) -> None:
 # A closed or broken stderr leaves the exit status to report the outcome
 
 STDERR_CASES = [
-    (["compare"], 1, b""),
+    (["confirm"], 1, b""),
     (["frobnicate"], 2, b""),
     (["bench", "list", "x", "--repo", "/nonexistent/perfproof"], 1, b""),
-    (["compare", "--json"], 1, b'"code": "not_built"'),
+    (["confirm", "--json"], 1, b'"code": "not_built"'),
 ]
 
 
@@ -559,7 +564,7 @@ def test_stderr_that_cannot_be_written(
         os.open(target, os.O_RDONLY), "w", encoding="utf-8"
     )
     monkeypatch.setattr(sys, "stderr", stderr)
-    status, out, _ = cli("compare")
+    status, out, _ = cli("confirm")
     assert (status, out) == (1, "")
     assert sys.stderr is None
     monkeypatch.setattr(sys, "stderr", stderr)
@@ -602,7 +607,7 @@ def test_entry_points(argv: list[str]) -> None:
 
 def test_entry_point_exit_status() -> None:
     done = subprocess.run(
-        [sys.executable, "-m", "perfproof", "compare", "--json"],
+        [sys.executable, "-m", "perfproof", "confirm", "--json"],
         capture_output=True,
         text=True,
         timeout=60,
