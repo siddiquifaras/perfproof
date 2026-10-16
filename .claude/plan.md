@@ -529,6 +529,10 @@ by `stats-auditor` before its PR opens.
     nothing yet answers one-version skew. Calibrate with
     `simulate(..., order="balanced")`; the simulator still defaults to
     `"coin"`.
+  - Open before batch means can become primary (T1.5 audit N1):
+    blocks of 5 rounds split order pairs, so a look at 16, 26, ... rounds
+    uses an odd count. Decide block size in whole order pairs (or drop to
+    complete blocks of pairs) and write it into `docs/method.md`.
   - Decision for Faras, not taken: under the acceptance rule as
     written, an exact procedure on the bar (one-sided error 1.61% at
     six looks) passes each S = 1.03 cell with probability 0.990 and
@@ -672,7 +676,9 @@ Mac and on Linux CI, with decoys that must be refused.
     os.environ)` (the base allowlist plus the spec's `env`, per "Side
     effects" in `docs/method.md`), passed as the runner's `base_env`
     and to the side-effect gate, and the reset runs before every
-    execution. Decide each look through `stats.sequential` (resolution
+    execution. Take the looks from `sequential.plan_looks` and each
+    look's confidence from `sequential.look_confidence`, then decide
+    each look with `sequential.decide_look` (resolution
     stop, widening, then T1.3's rules), never by calling
     `decision.decide` directly, so the resolution stop isn't skipped.
     A harness `RunnerError` stops the comparison with no
