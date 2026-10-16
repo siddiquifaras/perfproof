@@ -130,12 +130,15 @@ def test_cpu_counts_busy_time_not_sleep(
         assert sample.cpu_seconds >= 0.3
         assert sample.value == sample.cpu_seconds
         assert sample.cpu_seconds <= sample.wall_seconds + 0.05
-    idle = make_spec("import time; time.sleep(0.3)", kind="cpu")
+    # Interpreter start-up alone can take a few tenths of a CPU second
+    # on a loaded or emulated host, so sleep long enough that counting
+    # the sleep would be unmistakable.
+    idle = make_spec("import time; time.sleep(1.0)", kind="cpu")
     runner = Runner(idle, trees, tmp_path / "idle", order_seed=1)
     for sample in runner.run_round(0).samples:
         assert sample.cpu_seconds is not None
-        assert sample.cpu_seconds < 0.2
-        assert sample.wall_seconds >= 0.3
+        assert sample.cpu_seconds < 0.6
+        assert sample.wall_seconds >= 1.0
 
 
 def test_cpu_includes_reaped_grandchildren(
