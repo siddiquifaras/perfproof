@@ -130,7 +130,11 @@ def test_rounds_all_at_the_bar_give_the_bar_exactly(
         assert float(iv.lower) == bar
         assert float(iv.upper) == bar
         rules = interval_rules(
-            iv.lower, iv.upper, min_effect=min_effect, budget_remains=False
+            iv.lower,
+            iv.upper,
+            min_effect=min_effect,
+            budget_remains=False,
+            calibrated=True,
         )
         assert int(rules.rule) == 3
 
