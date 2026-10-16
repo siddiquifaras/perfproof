@@ -348,8 +348,9 @@ checked here, for example coverage for a language perfproof can't
 instrument. It blocks KEEP. When rule 2 matches with any gate
 `not_available`, the result is **INCONCLUSIVE**
 (`insufficient_evidence`) at that look, naming the gate, because more
-rounds can't make it available. Rules 1 and 3 still give REJECT,
-because a REJECT keeps nothing.
+rounds can't make it available. Rules 1 and 3 still give REJECT, and
+so does a guardrail breach under rule 2, because a REJECT keeps
+nothing.
 
 **Before calibration.** Until the procedure has passed calibration
 (see "Calibration"), rules 2 and 3 never match. A comparison runs to
