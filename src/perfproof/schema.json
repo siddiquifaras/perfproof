@@ -1,12 +1,36 @@
 {
   "$defs": {
+    "AbsoluteLimit": {
+      "additionalProperties": false,
+      "description": "A limit on a guardrail's own value in the candidate.\n\nFor a lower-is-better guardrail the limit is a ceiling, such as a\ncontainer memory limit or a latency SLO; for a higher-is-better one\nit is a floor. It is checked on the candidate's measurements, not\non a ratio.",
+      "properties": {
+        "value": {
+          "description": "The limit, in the guardrail's `GuardrailSpec.unit`.",
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "label": {
+          "description": "What the limit is, such as ``\"container memory limit\"``.",
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "title": "AbsoluteLimit",
+      "type": "object"
+    },
     "BenchmarkSpec": {
       "additionalProperties": false,
-      "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, or a supplied ``spec_hash`` does not\n    match the content.",
+      "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, a guardrail metric is declared twice\n    or is the primary objective, guardrails are declared without an\n    objective, the metric kind cannot measure the objective or its\n    direction is not the objective's, or a supplied ``spec_hash``\n    does not match the content.",
       "properties": {
         "schema_version": {
-          "const": 1,
-          "default": 1,
+          "const": 2,
+          "default": 2,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -134,6 +158,53 @@
           "title": "Allow Cross Host",
           "type": "boolean"
         },
+        "allow_remote_services": {
+          "default": false,
+          "description": "Opt-in: the benchmark may reach a service address whose host is\nnot local. Waives the `side_effects` gate and labels the verdict.",
+          "title": "Allow Remote Services",
+          "type": "boolean"
+        },
+        "allow_unchecked_coverage": {
+          "default": false,
+          "description": "Opt-in: for a target where perfproof cannot measure coverage, a\nKEEP without the `coverage` gate. Waives that gate and labels the\nverdict \"coverage not checked\".",
+          "title": "Allow Unchecked Coverage",
+          "type": "boolean"
+        },
+        "reset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResetSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command run before every execution, warmup included; ``None``\nwhen the benchmark needs no reset."
+        },
+        "objective": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the primary objective that ``metric`` measures, such as\n``wall_time``, ``p99_latency`` or ``throughput``, in the namespace\nof `GuardrailSpec.metric`. Required when ``guardrails`` is not\nempty, so that no metric is both the primary and a guardrail.\n\nThe metric's kind must be able to measure it, and its direction\nmust be the name's one correct direction, or naming it would exempt\na default guardrail that nothing checks, or reward the objective\ngetting worse:\n\n===================  ==================  ================\nobjective            metric kinds        direction\n===================  ==================  ================\n``wall_time``        wall, reported      lower_is_better\n``cpu_time``         cpu, reported       lower_is_better\n``peak_memory``      reported            lower_is_better\n``peak_gpu_memory``  reported            lower_is_better\n``p99_latency``      reported            lower_is_better\n``throughput``       reported            higher_is_better\nany other name       reported, counter   either\n===================  ==================  ================\n\nAny other name is a counter event or the project's own objective.\nSo a `wall` metric's objective is ``wall_time`` and a `cpu`\nmetric's is ``cpu_time``. The same directions bind\n`GuardrailSpec`.",
+          "title": "Objective"
+        },
+        "guardrails": {
+          "default": [],
+          "description": "Guardrails, each applied or marked not applicable, one per\nmetric. Their order is part of ``spec_hash``.",
+          "items": {
+            "$ref": "#/$defs/GuardrailSpec"
+          },
+          "title": "Guardrails",
+          "type": "array"
+        },
         "spec_hash": {
           "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order.",
           "readOnly": true,
@@ -178,6 +249,57 @@
         "max_seconds"
       ],
       "title": "Budget",
+      "type": "object"
+    },
+    "CommandOutput": {
+      "additionalProperties": false,
+      "description": "What a command that failed a gate printed, such as a reset.",
+      "properties": {
+        "command": {
+          "description": "The argv that ran.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "exit_code": {
+          "description": "Exit status; negative for termination by a signal.",
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "timed_out": {
+          "description": "Whether perfproof stopped it at its time limit.",
+          "title": "Timed Out",
+          "type": "boolean"
+        },
+        "stdout": {
+          "description": "Standard output, or its tail when ``truncated``.",
+          "title": "Stdout",
+          "type": "string"
+        },
+        "stderr": {
+          "description": "Standard error, or its tail when ``truncated``.",
+          "title": "Stderr",
+          "type": "string"
+        },
+        "truncated": {
+          "default": false,
+          "description": "Whether either stream was cut to its tail.",
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "command",
+        "exit_code",
+        "timed_out",
+        "stdout",
+        "stderr"
+      ],
+      "title": "CommandOutput",
       "type": "object"
     },
     "CorrectnessSpec": {
@@ -262,6 +384,11 @@
       "additionalProperties": false,
       "description": "Measurements that qualify a verdict without deciding it.\n\n``None`` means not computed.\n\nRaises\n------\npydantic.ValidationError\n    If ``metric_disagreement`` is set without ``wall_interval``.",
       "properties": {
+        "procedure_uncalibrated": {
+          "description": "Required, with no default, so no writer gets a calibrated\nverdict by leaving it out. Whether the interval procedure had not\nyet passed calibration\nwhen this verdict was given (the thin path before the M1 exit).\nSuch a verdict is INCONCLUSIVE whatever its interval, or a gate\nREJECT; never KEEP or a performance or guardrail REJECT.",
+          "title": "Procedure Uncalibrated",
+          "type": "boolean"
+        },
         "metric_disagreement": {
           "anyOf": [
             {
@@ -345,6 +472,9 @@
           "title": "Sd Log Ratio"
         }
       },
+      "required": [
+        "procedure_uncalibrated"
+      ],
       "title": "Diagnostics",
       "type": "object"
     },
@@ -391,35 +521,101 @@
       "title": "Difference",
       "type": "object"
     },
+    "DifferentialCheck": {
+      "additionalProperties": false,
+      "description": "Old and new versions of one changed function on the same inputs.\n\nReal calls are captured while the baseline benchmark runs and\nreplayed against the candidate in a separate process; generated\ninputs are run through both versions where type hints allow. Every\ncall that was seen but not replayed is accounted for in\n``skipped``.\n\nRaises\n------\npydantic.ValidationError\n    If the replay-stage skips do not account for exactly the\n    captured calls that were not replayed, a stage and reason\n    repeat, more calls mismatched than were run, or mismatches and\n    ``differences`` are not present together.",
+      "properties": {
+        "function": {
+          "description": "The changed function, as ``module:qualified.name``.",
+          "minLength": 1,
+          "title": "Function",
+          "type": "string"
+        },
+        "captured": {
+          "description": "Real calls captured during the baseline benchmark.",
+          "minimum": 0,
+          "title": "Captured",
+          "type": "integer"
+        },
+        "replayed": {
+          "description": "Captured calls replayed against the candidate.",
+          "minimum": 0,
+          "title": "Replayed",
+          "type": "integer"
+        },
+        "generated": {
+          "default": 0,
+          "description": "Generated inputs run through both versions.",
+          "minimum": 0,
+          "title": "Generated",
+          "type": "integer"
+        },
+        "skipped": {
+          "default": [],
+          "description": "Calls not captured, or captured but not replayed, by reason.",
+          "items": {
+            "$ref": "#/$defs/SkippedCalls"
+          },
+          "title": "Skipped",
+          "type": "array"
+        },
+        "mismatches": {
+          "description": "Replayed or generated calls whose results differed.",
+          "minimum": 0,
+          "title": "Mismatches",
+          "type": "integer"
+        },
+        "differences": {
+          "default": [],
+          "description": "The first differences, first ones first.",
+          "items": {
+            "$ref": "#/$defs/Difference"
+          },
+          "title": "Differences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "function",
+        "captured",
+        "replayed",
+        "mismatches"
+      ],
+      "title": "DifferentialCheck",
+      "type": "object"
+    },
     "GateResult": {
       "additionalProperties": false,
-      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a failed or waived gate has no ``detail``, or a gate other\n    than `runtime` or `same_host` is waived.",
+      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines, a differential mismatch or ``output`` come\n    with a gate that did not fail; or a test, function or path\n    repeats.",
       "properties": {
         "gate": {
-          "description": "`correctness`, or one of the integrity gates `lock`, `procedure`,\n`runtime` and `same_host`.",
+          "description": "`side_effects`, `lock`, `procedure`, `runtime` or `same_host`\n(integrity), or `correctness` or `coverage`.",
           "enum": [
-            "correctness",
+            "side_effects",
             "lock",
             "procedure",
             "runtime",
-            "same_host"
+            "same_host",
+            "correctness",
+            "coverage"
           ],
           "title": "Gate",
           "type": "string"
         },
         "status": {
-          "description": "`waived` only for `runtime` and `same_host` under the spec's\nopt-ins.",
+          "description": "`waived` only under the spec's opt-ins; `not_available` when the\ngate could not be checked in this run.",
           "enum": [
             "passed",
             "failed",
-            "waived"
+            "waived",
+            "not_available"
           ],
           "title": "Status",
           "type": "string"
         },
         "detail": {
           "default": "",
-          "description": "Why the gate failed or was waived.",
+          "description": "Why the gate failed, was waived, or is not available.",
           "title": "Detail",
           "type": "string"
         },
@@ -437,6 +633,45 @@
           "description": "Whether more differences existed than are listed.",
           "title": "Truncated",
           "type": "boolean"
+        },
+        "quarantined": {
+          "default": [],
+          "description": "`correctness` only: flaky tests left out of the judgement.",
+          "items": {
+            "$ref": "#/$defs/QuarantinedTest"
+          },
+          "title": "Quarantined",
+          "type": "array"
+        },
+        "differential": {
+          "default": [],
+          "description": "`correctness` only: differential checks, one per changed\nfunction.",
+          "items": {
+            "$ref": "#/$defs/DifferentialCheck"
+          },
+          "title": "Differential",
+          "type": "array"
+        },
+        "unverified": {
+          "default": [],
+          "description": "`coverage` only: changed lines no check ran, by file.",
+          "items": {
+            "$ref": "#/$defs/UnverifiedLines"
+          },
+          "title": "Unverified",
+          "type": "array"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CommandOutput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For a failed gate, the output of the command whose failure\nfailed it, such as a reset; ``None`` otherwise."
         }
       },
       "required": [
@@ -505,6 +740,167 @@
         "driver_version"
       ],
       "title": "GpuInfo",
+      "type": "object"
+    },
+    "GuardrailResult": {
+      "additionalProperties": false,
+      "description": "How one guardrail of the spec ended a comparison.\n\nThe status must agree with the intervals against the guardrail's\nallowance and limits; `RunRecord` checks that, since the spec holds\nthem. Here only what needs no spec is checked.\n\nRaises\n------\npydantic.ValidationError\n    If an `unmeasurable` or `not_applicable` guardrail has no reason\n    or carries a measurement, ``estimate`` and ``worsening`` are not\n    set together, or a `passed`, `breached` or `not_established`\n    guardrail has no interval. A guardrail with no interval at all\n    is `unmeasurable`, with its reason.",
+      "properties": {
+        "metric": {
+          "description": "`GuardrailSpec.metric` of the guardrail.",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Metric",
+          "type": "string"
+        },
+        "status": {
+          "description": "`passed`, `breached`, `not_established`, `unmeasurable` or\n`not_applicable`, as defined in ``docs/method.md``.",
+          "enum": [
+            "passed",
+            "breached",
+            "not_established",
+            "unmeasurable",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Point estimate of the worsening ratio; above 1 means the\ncandidate is worse. Reported for every measured guardrail, so a\nregression within its allowance is visible.",
+          "title": "Estimate"
+        },
+        "worsening": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Interval on the worsening ratio, at confidence\n``1 - alpha / (K G)``; checked against ``1 + allowance``."
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Interval on the candidate's own value, in the guardrail's unit,\nat the same confidence; checked against the absolute limits."
+        },
+        "reason": {
+          "default": "",
+          "description": "Why the guardrail is `unmeasurable` or `not_applicable`;\nrequired for those two.",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "status"
+      ],
+      "title": "GuardrailResult",
+      "type": "object"
+    },
+    "GuardrailSpec": {
+      "additionalProperties": false,
+      "description": "One metric that must not get worse while the primary improves.\n\nFixed with the spec, before any round, so an allowance can never be\nchosen after seeing the data. An applicable guardrail checks a\nrelative allowance, absolute limits, or both; one marked not\napplicable checks nothing and says why.\n\nRaises\n------\npydantic.ValidationError\n    If a guardrail marked not applicable has no reason or has an\n    allowance or limits, an applicable one has neither,\n    ``allowance`` and ``allowance_source`` are not set together, or\n    a known metric name has the wrong direction (see\n    `BenchmarkSpec.objective`).",
+      "properties": {
+        "metric": {
+          "description": "Name of the guarded metric, such as ``peak_memory`` (max RSS of\nthe whole process tree), ``peak_gpu_memory`` or ``p99_latency``.\nShares a namespace with `BenchmarkSpec.objective`.",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Metric",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Whether smaller or larger values are better; the worsening ratio\nis oriented so that above 1 means the candidate is worse.",
+          "enum": [
+            "lower_is_better",
+            "higher_is_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "unit": {
+          "description": "Unit of the guarded metric's values and of its limits.",
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "applicable": {
+          "default": true,
+          "description": "Whether the guardrail applies to this workload.",
+          "title": "Applicable",
+          "type": "boolean"
+        },
+        "reason": {
+          "default": "",
+          "description": "Why the guardrail is not applicable, or why the project applied\nor overrode it; required when not applicable.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "allowance": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest relative worsening refused only beyond it, as a fraction\n(``0.10`` is 10%): a refusal threshold, not a budget to spend. The\nguardrail's bar is ``1 + allowance``. ``None`` when only absolute\nlimits are checked.",
+          "title": "Allowance"
+        },
+        "allowance_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "target_class",
+                "project"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where ``allowance`` came from: the provisional default, the\ntarget class, or the project.",
+          "title": "Allowance Source"
+        },
+        "limits": {
+          "default": [],
+          "description": "Absolute limits on the candidate's own value.",
+          "items": {
+            "$ref": "#/$defs/AbsoluteLimit"
+          },
+          "title": "Limits",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric",
+        "direction",
+        "unit"
+      ],
+      "title": "GuardrailSpec",
       "type": "object"
     },
     "Hotspot": {
@@ -594,10 +990,10 @@
     },
     "Interval": {
       "additionalProperties": false,
-      "description": "Two-sided confidence interval for a speedup, on the ratio scale.\n\nRaises\n------\npydantic.ValidationError\n    If ``lower > upper``.",
+      "description": "Two-sided confidence interval with positive bounds.\n\nOn the ratio scale for a speedup (above 1 means faster) and for a\nguardrail's worsening ratio (above 1 means worse); in the\nguardrail's unit for a candidate's own value.\n\nRaises\n------\npydantic.ValidationError\n    If ``lower > upper``.",
       "properties": {
         "lower": {
-          "description": "Lower bound ``L``; above 1 means faster.",
+          "description": "Lower bound ``L``.",
           "exclusiveMinimum": 0,
           "title": "Lower",
           "type": "number"
@@ -629,8 +1025,8 @@
       "description": "Hashes of every locked file of one spec, sorted by path.\n\nRaises\n------\npydantic.ValidationError\n    If a path appears twice.",
       "properties": {
         "schema_version": {
-          "const": 1,
-          "default": 1,
+          "const": 2,
+          "default": 2,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -1102,13 +1498,75 @@
       "title": "OutputCheck",
       "type": "object"
     },
+    "QuarantinedTest": {
+      "additionalProperties": false,
+      "description": "A test whose result changed across the baseline runs.\n\nIt is flaky, so it is not used to judge the candidate. Lines only\nquarantined tests ran still count as unverified.\n\nRaises\n------\npydantic.ValidationError\n    If every baseline run gave the same result, which is not flaky.",
+      "properties": {
+        "test_id": {
+          "description": "The test's identifier as the test runner names it, such as a\npytest node id.",
+          "minLength": 1,
+          "title": "Test Id",
+          "type": "string"
+        },
+        "baseline_results": {
+          "description": "The test's result in each baseline run, in run order, such as\n``passed`` or ``failed``.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Baseline Results",
+          "type": "array"
+        }
+      },
+      "required": [
+        "test_id",
+        "baseline_results"
+      ],
+      "title": "QuarantinedTest",
+      "type": "object"
+    },
+    "ResetSpec": {
+      "additionalProperties": false,
+      "description": "A command run before every execution to restore external state.\n\nUsed so a database, for example, starts each round in the same\nstate. A reset that fails stops the run.",
+      "properties": {
+        "command": {
+          "description": "Reset command as an argv list, launched without a shell. Exit\nstatus 0 succeeds.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "cwd": {
+          "default": ".",
+          "description": "Working directory of ``command``, relative to the tree.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "Time limit for one reset, in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "command",
+        "timeout_seconds"
+      ],
+      "title": "ResetSpec",
+      "type": "object"
+    },
     "RunRecord": {
       "additionalProperties": false,
-      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate present and passed or waived), a gate\n    is listed twice, a waiver or cross-host verdict lacks the spec's\n    opt-in, the environments miss a version, repeat a version and\n    session, or name a session with no machine, rounds ran without a\n    samples path, rounds or looks\n    exceed the spec's budget, the interval contradicts the verdict\n    against the bar ``1 + min_effect``, a cross-host verdict claims\n    more session pairs than ``machines`` holds sessions for, or has\n    fewer than ``n0`` pairs and is not INCONCLUSIVE or a gate\n    REJECT, a ``wall_interval`` appears\n    for a\n    metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``.",
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is not\n    INCONCLUSIVE or a gate REJECT, a ``wall_interval`` appears for\n    a metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``. Also if the guardrail results do not match the\n    spec's guardrails one to one (none for a gate verdict), the\n    spec of any other verdict omits a default guardrail of\n    ``docs/method.md`` (peak memory, and the target class's own)\n    that is not the objective, a status disagrees with its\n    intervals, allowance and limits, a\n    KEEP has a gate `not_available` or a guardrail other than\n    `passed` or `not_applicable`, a guardrail REJECT has no\n    `breached` guardrail, or a rule 2 INCONCLUSIVE has a breach or\n    nothing that blocked the KEEP.",
       "properties": {
         "schema_version": {
-          "const": 1,
-          "default": 1,
+          "const": 2,
+          "default": 2,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -1158,11 +1616,20 @@
           "description": "The verdict."
         },
         "gates": {
-          "description": "Gate results, including recorded differences between arms. A\ngate verdict may list only the gates that ran; any other verdict\nlists all five.",
+          "description": "Gate results, including recorded differences between arms. A\ngate verdict may list only the gates that ran; any other verdict\nlists all seven.",
           "items": {
             "$ref": "#/$defs/GateResult"
           },
           "title": "Gates",
+          "type": "array"
+        },
+        "guardrails": {
+          "default": [],
+          "description": "One result per guardrail of the spec, for any verdict but a gate\nREJECT, which carries none.",
+          "items": {
+            "$ref": "#/$defs/GuardrailResult"
+          },
+          "title": "Guardrails",
           "type": "array"
         },
         "machines": {
@@ -1352,6 +1819,40 @@
       "title": "Sample",
       "type": "object"
     },
+    "SkippedCalls": {
+      "additionalProperties": false,
+      "description": "Calls to one function a differential check could not use.",
+      "properties": {
+        "stage": {
+          "description": "``capture``: a call whose arguments or result could not be\ncaptured faithfully (open files, sockets, live objects).\n``replay``: a captured call that could not be replayed.",
+          "enum": [
+            "capture",
+            "replay"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why, such as ``\"argument 0 is an open file\"``.",
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "count": {
+          "description": "How many calls were skipped for this reason.",
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stage",
+        "reason",
+        "count"
+      ],
+      "title": "SkippedCalls",
+      "type": "object"
+    },
     "TreeEnvironment": {
       "additionalProperties": false,
       "description": "What one version's tree ran with, recorded for the reader.\n\nNothing here is a gate by itself. The `runtime` gate compares\n``runtime_executable`` and ``runtime_version`` between the arms\nunless the spec allows runtime changes, and the `procedure` gate\ncovers only the spec's declared environment. Every other difference\nbetween the arms is recorded and reported as a warning.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field has no reason in ``missing`` or ``missing``\n    names a field that has a value; if ``env_values`` names a\n    variable not in ``env_names``; or if a name or lockfile path\n    repeats.",
@@ -1460,9 +1961,36 @@
       "title": "TreeEnvironment",
       "type": "object"
     },
+    "UnverifiedLines": {
+      "additionalProperties": false,
+      "description": "Changed executable lines of one file that no check ran.\n\nRaises\n------\npydantic.ValidationError\n    If a line repeats.",
+      "properties": {
+        "path": {
+          "description": "Source file, relative to the candidate tree.",
+          "title": "Path",
+          "type": "string"
+        },
+        "lines": {
+          "description": "1-based line numbers in the candidate, sorted.",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Lines",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "lines"
+      ],
+      "title": "UnverifiedLines",
+      "type": "object"
+    },
     "Verdict": {
       "additionalProperties": false,
-      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a\n    performance verdict lacks its estimate or interval, an interval\n    comes without a look on at least 2 rounds, or a calibrated\n    verdict names no target class.",
+      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag. Rule 2 (the\ninterval clears the bar) gives KEEP, a guardrail REJECT, which\nkeeps its estimate and interval to show what the speed cost, or\nINCONCLUSIVE when compliance couldn't be established.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a rule\n    2 or 3 verdict lacks its estimate or interval, an interval\n    comes without a look on at least 2 rounds, a calibrated verdict\n    names no target class, or a verdict under an uncalibrated\n    procedure is anything but a gate REJECT or a rule 5\n    INCONCLUSIVE.",
       "properties": {
         "outcome": {
           "description": "KEEP, REJECT or INCONCLUSIVE.",
@@ -1475,11 +2003,12 @@
           "type": "string"
         },
         "reason": {
-          "description": "Why: `performance`, `correctness`, `integrity` or\n`insufficient_evidence`.",
+          "description": "Why: `performance`, `correctness`, `integrity`, `guardrail` or\n`insufficient_evidence`.",
           "enum": [
             "performance",
             "correctness",
             "integrity",
+            "guardrail",
             "insufficient_evidence"
           ],
           "title": "Reason",
@@ -1500,11 +2029,13 @@
           "anyOf": [
             {
               "enum": [
-                "correctness",
+                "side_effects",
                 "lock",
                 "procedure",
                 "runtime",
-                "same_host"
+                "same_host",
+                "correctness",
+                "coverage"
               ],
               "type": "string"
             },
@@ -1597,8 +2128,10 @@
               "enum": [
                 "python_cpu",
                 "native",
+                "web_service",
+                "llm_serving",
                 "gpu_kernel",
-                "llm_serving"
+                "agentic"
               ],
               "type": "string"
             },
@@ -1607,7 +2140,7 @@
             }
           ],
           "default": null,
-          "description": "Target class judged under; ``None`` when unknown.",
+          "description": "Target class judged under; ``None`` when unknown, in which case\nevery default guardrail of `DEFAULT_GUARDRAILS` must be declared.",
           "title": "Target Class"
         },
         "calibration": {
@@ -1621,7 +2154,7 @@
         },
         "diagnostics": {
           "$ref": "#/$defs/Diagnostics",
-          "description": "Diagnostics such as ``metric_disagreement``."
+          "description": "Diagnostics such as ``procedure_uncalibrated``; required, since\nit holds whether the procedure was calibrated."
         }
       },
       "required": [
@@ -1631,11 +2164,12 @@
         "rounds",
         "looks",
         "procedure",
-        "calibration"
+        "calibration",
+        "diagnostics"
       ],
       "title": "Verdict",
       "type": "object"
     }
   },
-  "title": "perfproof schema version 1"
+  "title": "perfproof schema version 2"
 }

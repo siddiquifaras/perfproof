@@ -18,8 +18,10 @@ from perfproof.schema import (
     BenchmarkSpec,
     Budget,
     CorrectnessSpec,
+    Diagnostics,
     GateName,
     GateResult,
+    GuardrailResult,
     Interval,
     LookSchedule,
     MachineFingerprint,
@@ -45,7 +47,32 @@ EVERY_GATE: tuple[GateName, ...] = (
     "procedure",
     "runtime",
     "same_host",
+    "side_effects",
+    "coverage",
 )
+CORRECTNESS_GATES = frozenset({"correctness", "coverage"})
+# The decision tests exercise gates and the bar, not guardrails, so the
+# one default guardrail is declared not applicable, with a reason.
+NA_REASON = "not measured in the decision tests"
+MEMORY_NOT_APPLICABLE: dict[str, Any] = {
+    "metric": "peak_memory",
+    "direction": "lower_is_better",
+    "unit": "bytes",
+    "applicable": False,
+    "reason": NA_REASON,
+}
+OPT_INS = {
+    "side_effects": "allow_remote_services",
+    "runtime": "allow_runtime_change",
+    "same_host": "allow_cross_host",
+    "coverage": "allow_unchecked_coverage",
+}
+
+
+def reason_of(gate: GateName) -> str:
+    return "correctness" if gate in CORRECTNESS_GATES else "integrity"
+
+
 UNPROBED = "not probed in this test"
 
 
@@ -71,19 +98,29 @@ def environment(version: Arm) -> TreeEnvironment:
     return TreeEnvironment(version=version, missing=unprobed(TreeEnvironment))
 
 
-def spec(min_effect: float = 0.03, *, cross: bool = False) -> BenchmarkSpec:
-    return BenchmarkSpec(
-        name="bench",
-        command=("python", "bench.py"),
-        metric=MetricSpec(kind="wall", direction="lower_is_better", unit="s"),
-        correctness=CorrectnessSpec(command=("pytest",), timeout_seconds=60.0),
-        warmup=0,
-        budget=Budget(max_rounds=1000, max_seconds=600.0),
-        looks=LookSchedule(n0=N0, k=10, max_looks=5),
-        min_effect=min_effect,
-        timeout_seconds=30.0,
-        harness=("bench.py",),
-        allow_cross_host=cross,
+def spec(
+    min_effect: float = 0.03, *, opt_ins: frozenset[str] = frozenset()
+) -> BenchmarkSpec:
+    return BenchmarkSpec.model_validate(
+        {
+            "name": "bench",
+            "command": ("python", "bench.py"),
+            "metric": MetricSpec(
+                kind="wall", direction="lower_is_better", unit="s"
+            ),
+            "correctness": CorrectnessSpec(
+                command=("pytest",), timeout_seconds=60.0
+            ),
+            "warmup": 0,
+            "budget": Budget(max_rounds=1000, max_seconds=600.0),
+            "looks": LookSchedule(n0=N0, k=10, max_looks=5),
+            "min_effect": min_effect,
+            "timeout_seconds": 30.0,
+            "harness": ("bench.py",),
+            "objective": "wall_time",
+            "guardrails": (MEMORY_NOT_APPLICABLE,),
+            **{OPT_INS[gate]: True for gate in opt_ins},
+        }
     )
 
 
@@ -136,7 +173,11 @@ def verdict(d: Decision, *, rounds: int = 40) -> Verdict:
         regression=d.regression,
         cross_host=d.session_pairs is not None,
         session_pairs=d.session_pairs,
+        target_class="python_cpu",
         calibration="uncalibrated",
+        diagnostics=Diagnostics(
+            procedure_uncalibrated=d.procedure_uncalibrated
+        ),
     )
 
 
@@ -147,7 +188,7 @@ def record(
     min_effect: float = 0.03,
     machines: tuple[MachineFingerprint, ...] | None = None,
 ) -> RunRecord:
-    cross = v.session_pairs is not None
+    waived = frozenset(g.gate for g in gates if g.status == "waived")
     if machines is None:
         machines = (machine(),) * max(1, 2 * (v.session_pairs or 0))
     return RunRecord(
@@ -155,7 +196,7 @@ def record(
         perfproof_version="0.1.0",
         started_at=T0,
         finished_at=T0 + timedelta(minutes=3),
-        spec=spec(min_effect, cross=cross),
+        spec=spec(min_effect, opt_ins=waived),
         baseline_commit=COMMIT,
         order_seed=1,
         verdict=v,
@@ -163,6 +204,15 @@ def record(
         machines=machines,
         environments=(environment("baseline"), environment("candidate")),
         samples_path="samples.npz" if v.rounds else None,
+        guardrails=()
+        if v.rule == 1
+        else (
+            GuardrailResult(
+                metric="peak_memory",
+                status="not_applicable",
+                reason=NA_REASON,
+            ),
+        ),
     )
 
 
@@ -210,7 +260,13 @@ def test_method_table_rows(
         (True, outcome_with_budget),
         (False, outcome_at_end),
     ):
-        d = decide(passed(), bounds, min_effect=0.03, budget_remains=budget)
+        d = decide(
+            passed(),
+            bounds,
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=budget,
+        )
         assert d.outcome == outcome
         assert d.rule == rule[outcome]
         assert d.reason == reason[outcome]
@@ -219,7 +275,13 @@ def test_method_table_rows(
         assert (d.lower, d.upper) == bounds
     record(
         verdict(
-            decide(passed(), bounds, min_effect=0.03, budget_remains=False)
+            decide(
+                passed(),
+                bounds,
+                min_effect=0.03,
+                calibrated=True,
+                budget_remains=False,
+            )
         ),
         passed(),
     )
@@ -227,7 +289,9 @@ def test_method_table_rows(
 
 def test_method_table_not_measured_row() -> None:
     gates = (GateResult(gate="correctness", status="failed", detail="x"),)
-    d = decide(gates, None, min_effect=0.03, budget_remains=True)
+    d = decide(
+        gates, None, min_effect=0.03, calibrated=True, budget_remains=True
+    )
     assert (d.outcome, d.reason, d.rule, d.gate) == (
         "REJECT",
         "correctness",
@@ -251,7 +315,11 @@ def test_lower_bound_at_the_bar(
     bar = 1 + min_effect
     lower = step(bar, ulps)
     d = decide(
-        passed(), (lower, 2.0), min_effect=min_effect, budget_remains=False
+        passed(),
+        (lower, 2.0),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=False,
     )
     assert d.outcome == ("KEEP" if keep else "INCONCLUSIVE")
     assert d.lower is not None
@@ -269,7 +337,11 @@ def test_upper_bound_at_the_bar(
     bar = 1 + min_effect
     upper = step(bar, ulps)
     d = decide(
-        passed(), (0.5, upper), min_effect=min_effect, budget_remains=False
+        passed(),
+        (0.5, upper),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=False,
     )
     assert d.outcome == ("REJECT" if reject else "INCONCLUSIVE")
     assert d.rule == (3 if reject else 5)
@@ -282,7 +354,11 @@ def test_upper_bound_at_the_bar(
 def test_interval_collapsed_on_the_bar_is_a_reject(min_effect: float) -> None:
     bar = 1 + min_effect
     d = decide(
-        passed(), (bar, bar), min_effect=min_effect, budget_remains=True
+        passed(),
+        (bar, bar),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=True,
     )
     assert (d.outcome, d.rule) == ("REJECT", 3)
     record(verdict(d), passed(), min_effect=min_effect)
@@ -297,7 +373,11 @@ def test_regression_is_exactly_upper_below_one(
     upper: float, regression: bool, min_effect: float
 ) -> None:
     d = decide(
-        passed(), (0.9, upper), min_effect=min_effect, budget_remains=True
+        passed(),
+        (0.9, upper),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=True,
     )
     assert (d.outcome, d.rule) == ("REJECT", 3)
     assert d.regression is regression
@@ -312,11 +392,19 @@ def test_bar_is_one_plus_min_effect_not_exp_log1p(min_effect: float) -> None:
     via_log = math.exp(math.log1p(min_effect))
     assert via_log != bar
     d = decide(
-        passed(), (via_log, 2.0), min_effect=min_effect, budget_remains=False
+        passed(),
+        (via_log, 2.0),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=False,
     )
     assert (d.outcome == "KEEP") is (via_log > bar)
     d = decide(
-        passed(), (0.5, via_log), min_effect=min_effect, budget_remains=False
+        passed(),
+        (0.5, via_log),
+        min_effect=min_effect,
+        calibrated=True,
+        budget_remains=False,
     )
     assert (d.outcome == "REJECT") is (via_log <= bar)
     record(verdict(d), passed(), min_effect=min_effect)
@@ -329,6 +417,7 @@ def test_bounds_pass_through_bit_identical() -> None:
         passed(),
         (np.float64(lower), np.float64(upper)),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=False,
     )
     assert type(d.lower) is float
@@ -343,9 +432,7 @@ def test_bounds_pass_through_bit_identical() -> None:
 
 @pytest.mark.parametrize("cross", [False, True])
 @pytest.mark.parametrize("budget", [False, True])
-@pytest.mark.parametrize(
-    "failed", ["correctness", "lock", "procedure", "runtime", "same_host"]
-)
+@pytest.mark.parametrize("failed", EVERY_GATE)
 def test_failed_gate_overrides_a_keep_worthy_interval(
     cross: bool, budget: bool, failed: GateName
 ) -> None:
@@ -355,6 +442,7 @@ def test_failed_gate_overrides_a_keep_worthy_interval(
         passed(cross=cross),
         (1.2, 1.3),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=budget,
         session_pairs=pairs,
         n0=N0 if cross else None,
@@ -364,14 +452,14 @@ def test_failed_gate_overrides_a_keep_worthy_interval(
         gates,
         (1.2, 1.3),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=budget,
         session_pairs=pairs,
         n0=N0 if cross else None,
     )
-    reason = "correctness" if failed == "correctness" else "integrity"
     assert (d.outcome, d.reason, d.rule, d.gate) == (
         "REJECT",
-        reason,
+        reason_of(failed),
         1,
         failed,
     )
@@ -388,6 +476,7 @@ def test_failed_same_host_ends_cross_host_with_another_failure() -> None:
         gates,
         None,
         min_effect=0.03,
+        calibrated=True,
         budget_remains=False,
         session_pairs=0,
         n0=N0,
@@ -398,16 +487,22 @@ def test_failed_same_host_ends_cross_host_with_another_failure() -> None:
 
 @pytest.mark.parametrize("failed", [None, "lock"])
 def test_unknown_gate_status_raises(failed: GateName | None) -> None:
-    # GateStatus has three values today. A new one must neither pass a
-    # gate nor be reported as a definite correctness failure.
+    # A status the schema lacks must neither pass a gate nor be reported
+    # as a definite correctness failure.
     unknown = GateResult.model_construct(
         gate="correctness", status="error", detail="crashed"
     )
-    gates = (unknown, *passed()[1:])
+    gates = tuple(unknown if g.gate == "correctness" else g for g in passed())
     if failed is not None:
         gates = with_failure(gates, failed)
     with pytest.raises(ValueError, match="input_value='error'"):
-        decide(gates, (1.2, 1.3), min_effect=0.03, budget_remains=True)
+        decide(
+            gates,
+            (1.2, 1.3),
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=True,
+        )
 
 
 @pytest.mark.parametrize("name", ["speed", ["lock"]])
@@ -422,18 +517,26 @@ def test_unknown_gate_name_raises(name: object) -> None:
             (*passed(), unknown),
             (1.2, 1.3),
             min_effect=0.03,
+            calibrated=True,
             budget_remains=True,
         )
 
 
 @pytest.mark.parametrize("gate", ["correctness", "lock", "procedure"])
 def test_waived_gate_that_cannot_be_waived_raises(gate: GateName) -> None:
-    # Only runtime and same_host can be waived. A waiver of any other
-    # gate, which only unvalidated input can carry, must not pass it.
+    # Only side_effects, runtime, same_host and coverage can be waived.
+    # A waiver of any other gate, which only unvalidated input can
+    # carry, must not pass it.
     waived = GateResult.model_construct(gate=gate, status="waived", detail="x")
     gates = tuple(waived if g.gate == gate else g for g in passed())
     with pytest.raises(ValueError, match="cannot be waived"):
-        decide(gates, (1.2, 1.3), min_effect=0.03, budget_remains=True)
+        decide(
+            gates,
+            (1.2, 1.3),
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=True,
+        )
 
 
 @pytest.mark.parametrize("interval", [(0.0, 1.0), (1.3, 1.2), (math.nan, 1.0)])
@@ -442,7 +545,13 @@ def test_invalid_interval_raises_even_when_a_gate_failed(
 ) -> None:
     gates = with_failure(passed(), "correctness")
     with pytest.raises(ValueError, match="interval"):
-        decide(gates, interval, min_effect=0.03, budget_remains=True)
+        decide(
+            gates,
+            interval,
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=True,
+        )
 
 
 @pytest.mark.parametrize("interval", [None, (1.2, 1.3)])
@@ -458,6 +567,7 @@ def test_negative_session_pairs_raise_on_every_path(
             gates,
             interval,
             min_effect=0.03,
+            calibrated=True,
             budget_remains=True,
             session_pairs=-1,
             n0=N0,
@@ -475,7 +585,13 @@ def test_gate_missing_a_required_field_raises(fields: dict[str, Any]) -> None:
     broken = GateResult.model_construct(**fields)
     gates = (*passed()[:1], broken, *passed()[2:])
     with pytest.raises(ValueError, match="lock"):
-        decide(gates, (1.2, 1.3), min_effect=0.03, budget_remains=True)
+        decide(
+            gates,
+            (1.2, 1.3),
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=True,
+        )
 
 
 def test_gates_are_read_once() -> None:
@@ -484,6 +600,7 @@ def test_gates_are_read_once() -> None:
         iter(gates),  # pyright: ignore[reportArgumentType]
         None,
         min_effect=0.03,
+        calibrated=True,
         budget_remains=False,
         session_pairs=N0,
         n0=N0,
@@ -493,11 +610,13 @@ def test_gates_are_read_once() -> None:
 
 # Written out, not read from GATE_PRECEDENCE, so a changed order fails.
 PRECEDENCE: tuple[GateName, ...] = (
+    "side_effects",
     "lock",
     "procedure",
     "runtime",
     "same_host",
     "correctness",
+    "coverage",
 )
 
 
@@ -511,8 +630,34 @@ def test_lock_and_correctness_failing_report_lock_in_either_order() -> None:
     # correctness or integrity depending on which gate ran first.
     gates = with_failure(passed(), "lock", "correctness")
     for order in (gates, gates[::-1]):
-        d = decide(order, None, min_effect=0.03, budget_remains=False)
+        d = decide(
+            order, None, min_effect=0.03, calibrated=True, budget_remains=False
+        )
         assert (d.gate, d.reason) == ("lock", "integrity")
+
+
+def test_side_effects_and_coverage_take_their_places() -> None:
+    gates = with_failure(passed(), "side_effects", "lock")
+    assert decide(
+        gates, None, min_effect=0.03, calibrated=True, budget_remains=False
+    ).gate == ("side_effects")
+    gates = with_failure(passed(), "correctness", "coverage")
+    d = decide(
+        gates, None, min_effect=0.03, calibrated=True, budget_remains=False
+    )
+    assert (d.gate, d.reason) == ("correctness", "correctness")
+    d = decide(
+        with_failure(passed(), "coverage"),
+        (1.2, 1.3),
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=True,
+    )
+    assert (d.outcome, d.gate, d.reason) == (
+        "REJECT",
+        "coverage",
+        "correctness",
+    )
 
 
 FAILED_SETS = [
@@ -522,12 +667,32 @@ FAILED_SETS = [
 ]
 
 
+def run_orders(
+    gates: tuple[GateResult, ...], seed: int
+) -> list[tuple[GateResult, ...]]:
+    """Return the given order, its reverse, its rotations and shuffles.
+
+    All 5040 orders of seven gates for every failed set would take
+    minutes, so this is a fixed sample: every gate comes first once,
+    and the seeded shuffles mix the rest.
+    """
+    orders = [gates[i:] + gates[:i] for i in range(len(gates))]
+    orders += [o[::-1] for o in orders]
+    rng = np.random.default_rng(seed)
+    for _ in range(10):
+        orders.append(
+            tuple(gates[int(i)] for i in rng.permutation(len(gates)))
+        )
+    return orders
+
+
 @pytest.mark.parametrize("cross", [False, True])
 @pytest.mark.parametrize("interval", [(1.2, 1.3), (0.8, 0.9), None])
-@pytest.mark.parametrize("failed", FAILED_SETS)
-def test_failed_gates_decide_alike_in_every_run_order(
+@pytest.mark.parametrize(("index", "failed"), list(enumerate(FAILED_SETS)))
+def test_failed_gates_decide_alike_in_any_run_order(
     cross: bool,
     interval: tuple[float, float] | None,
+    index: int,
     failed: tuple[GateName, ...],
 ) -> None:
     gates = with_failure(passed(cross=cross), *failed)
@@ -536,21 +701,21 @@ def test_failed_gates_decide_alike_in_every_run_order(
             order,
             interval,
             min_effect=0.03,
+            calibrated=True,
             budget_remains=True,
             session_pairs=N0 if cross else None,
             n0=N0 if cross else None,
         )
-        for order in itertools.permutations(gates)
+        for order in run_orders(gates, seed=20261016 + index)
     }
     assert len(decisions) == 1
     (d,) = decisions
-    gate = next(g for g in PRECEDENCE if g in failed)
-    reason = "correctness" if gate == "correctness" else "integrity"
+    gate: GateName = next(g for g in PRECEDENCE if g in failed)
     assert (d.outcome, d.rule, d.gate, d.reason) == (
         "REJECT",
         1,
         gate,
-        reason,
+        reason_of(gate),
     )
     assert (d.lower, d.upper, d.regression) == (None, None, False)
     cross_after = cross and "same_host" not in failed
@@ -560,7 +725,7 @@ def test_failed_gates_decide_alike_in_every_run_order(
     assert rec.verdict.interval is None
 
 
-@pytest.mark.parametrize("failed", EVERY_GATE[:4])
+@pytest.mark.parametrize("failed", [g for g in EVERY_GATE if g != "same_host"])
 def test_gate_fails_before_any_remote_host(failed: GateName) -> None:
     # The same_host waiver comes from the spec, so it is known before
     # any host exists; the failed gate is the only other gate that ran.
@@ -572,6 +737,7 @@ def test_gate_fails_before_any_remote_host(failed: GateName) -> None:
         gates,
         None,
         min_effect=0.03,
+        calibrated=True,
         budget_remains=True,
         session_pairs=0,
         n0=N0,
@@ -587,6 +753,330 @@ def test_gate_fails_before_any_remote_host(failed: GateName) -> None:
     assert rec.verdict.session_pairs == 0
     assert len(rec.machines) == 1
     assert rec.machines[0].host_id == "gate-runner"
+
+
+def with_status(
+    gates: tuple[GateResult, ...], status: str, *names: GateName
+) -> tuple[GateResult, ...]:
+    return tuple(
+        GateResult.model_validate(
+            {"gate": g.gate, "status": status, "detail": "not built"}
+        )
+        if g.gate in names
+        else g
+        for g in gates
+    )
+
+
+NOT_AVAILABLE_ON_ONE_HOST = list(EVERY_GATE)
+NOT_AVAILABLE_CROSS_HOST = [g for g in EVERY_GATE if g != "same_host"]
+
+
+@pytest.mark.parametrize("budget", [False, True])
+@pytest.mark.parametrize(
+    ("cross", "gate"),
+    [(False, g) for g in NOT_AVAILABLE_ON_ONE_HOST]
+    + [(True, g) for g in NOT_AVAILABLE_CROSS_HOST],
+)
+def test_not_available_gate_blocks_keep(
+    cross: bool, gate: GateName, budget: bool
+) -> None:
+    gates = with_status(passed(cross=cross), "not_available", gate)
+    d = decide(
+        gates,
+        (1.2, 1.3),
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=budget,
+        session_pairs=N0 if cross else None,
+        n0=N0 if cross else None,
+    )
+    # Rule 2 matched, so the comparison stops at this look, but a gate
+    # that was never checked cannot give KEEP.
+    assert (d.outcome, d.reason, d.rule, d.gate) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        2,
+        None,
+    )
+    assert (d.lower, d.upper, d.regression) == (1.2, 1.3, False)
+    assert d.blocked_by == (gate,)
+    assert d.session_pairs == (N0 if cross else None)
+    rec = record(verdict(d), gates)
+    assert rec.verdict.interval is not None
+
+
+def test_not_available_gates_are_named_in_precedence_order() -> None:
+    gates = with_status(
+        passed(), "not_available", "coverage", "side_effects", "runtime"
+    )
+    d = decide(
+        gates[::-1],
+        (1.2, 1.3),
+        min_effect=0.03,
+        budget_remains=True,
+        calibrated=True,
+    )
+    assert (d.outcome, d.rule) == ("INCONCLUSIVE", 2)
+    assert d.blocked_by == ("side_effects", "runtime", "coverage")
+    rec = record(verdict(d), gates)
+    named = {g.gate for g in rec.gates if g.status == "not_available"}
+    assert named == set(d.blocked_by)
+
+
+@pytest.mark.parametrize("budget", [False, True])
+@pytest.mark.parametrize(
+    "interval", [(0.99, 1.02), (0.91, 0.97), (1.02, 1.08), (1.03, 1.03), None]
+)
+def test_not_available_changes_no_other_rule(
+    interval: tuple[float, float] | None, budget: bool
+) -> None:
+    unavailable = with_status(
+        passed(), "not_available", "side_effects", "coverage"
+    )
+    d = decide(
+        unavailable,
+        interval,
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=budget,
+    )
+    assert d == decide(
+        passed(),
+        interval,
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=budget,
+    )
+    assert d.outcome != "KEEP"
+    if d.outcome != "CONTINUE":
+        record(verdict(d), unavailable)
+
+
+@pytest.mark.parametrize("gate", NOT_AVAILABLE_ON_ONE_HOST)
+def test_failed_gate_decides_over_not_available(gate: GateName) -> None:
+    failed: GateName = "lock" if gate != "lock" else "coverage"
+    gates = with_failure(with_status(passed(), "not_available", gate), failed)
+    d = decide(
+        gates,
+        (1.2, 1.3),
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=True,
+    )
+    assert (d.outcome, d.rule, d.gate) == ("REJECT", 1, failed)
+    record(verdict(d), gates)
+
+
+def test_not_available_same_host_cross_host_raises() -> None:
+    gates = with_status(passed(), "not_available", "same_host")
+    with pytest.raises(ValueError, match="'not_available'"):
+        decide(
+            gates,
+            (1.2, 1.3),
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=True,
+            session_pairs=N0,
+            n0=N0,
+        )
+
+
+@pytest.mark.parametrize("gate", ["side_effects", "runtime", "coverage"])
+def test_waived_opt_in_gates_do_not_block_keep(gate: GateName) -> None:
+    gates = with_status(passed(), "waived", gate)
+    d = decide(
+        gates,
+        (1.2, 1.3),
+        min_effect=0.03,
+        calibrated=True,
+        budget_remains=True,
+    )
+    assert (d.outcome, d.rule) == ("KEEP", 2)
+    record(verdict(d), gates)
+
+
+# Uncalibrated procedure: the thin path before the M1 exit
+
+THIN_PATH_INTERVALS = [
+    (1.2, 1.3),  # KEEP-worthy
+    (1.05, 1.11),  # KEEP-worthy, a method table row
+    (0.99, 1.02),  # REJECT-worthy
+    (0.91, 0.97),  # REJECT-worthy, regression
+    (1.03, 1.03),  # collapsed on the bar
+    (1.02, 1.08),  # straddles the bar
+    None,
+]
+
+
+@pytest.mark.parametrize("cross", [False, True])
+@pytest.mark.parametrize("interval", THIN_PATH_INTERVALS)
+def test_uncalibrated_never_fires_rules_2_or_3(
+    interval: tuple[float, float] | None, cross: bool
+) -> None:
+    gates = passed(cross=cross)
+    for budget, outcome, rule, reason in (
+        (True, "CONTINUE", 4, None),
+        (False, "INCONCLUSIVE", 5, "insufficient_evidence"),
+    ):
+        d = decide(
+            gates,
+            interval,
+            min_effect=0.03,
+            budget_remains=budget,
+            calibrated=False,
+            session_pairs=N0 if cross else None,
+            n0=N0 if cross else None,
+        )
+        assert (d.outcome, d.rule, d.reason, d.gate) == (
+            outcome,
+            rule,
+            reason,
+            None,
+        )
+        assert d.regression is False
+        assert d.procedure_uncalibrated is True
+        assert (d.lower, d.upper) == (interval or (None, None))
+        assert d.session_pairs == (N0 if cross else None)
+    rec = record(verdict(d), gates)
+    assert rec.verdict.diagnostics.procedure_uncalibrated
+    assert RunRecord.model_validate_json(rec.model_dump_json()) == rec
+
+
+@pytest.mark.parametrize("interval", [(1.2, 1.3), (0.91, 0.97), None])
+def test_uncalibrated_verdict_is_refused_without_its_diagnostic(
+    interval: tuple[float, float] | None,
+) -> None:
+    d = decide(
+        passed(),
+        interval,
+        min_effect=0.03,
+        budget_remains=False,
+        calibrated=False,
+    )
+    v = verdict(d)
+    plain = v.model_copy(
+        update={"diagnostics": Diagnostics(procedure_uncalibrated=False)}
+    )
+    if interval is None:
+        # Without an interval, rule 5 needs no exemption either way.
+        record(plain, passed())
+    else:
+        with pytest.raises(ValidationError, match="contradicts the interval"):
+            record(Verdict.model_validate(plain.model_dump()), passed())
+
+
+@pytest.mark.parametrize("budget", [False, True])
+@pytest.mark.parametrize("failed", EVERY_GATE)
+def test_uncalibrated_failed_gate_still_decides_first(
+    failed: GateName, budget: bool
+) -> None:
+    gates = with_failure(passed(), failed)
+    d = decide(
+        gates,
+        (1.2, 1.3),
+        min_effect=0.03,
+        budget_remains=budget,
+        calibrated=False,
+    )
+    assert (d.outcome, d.rule, d.gate, d.reason) == (
+        "REJECT",
+        1,
+        failed,
+        reason_of(failed),
+    )
+    assert (d.lower, d.upper, d.procedure_uncalibrated) == (None, None, True)
+    rec = record(verdict(d), gates)
+    assert rec.verdict.diagnostics.procedure_uncalibrated
+
+
+def test_uncalibrated_with_a_gate_not_available_is_rule_5() -> None:
+    gates = with_status(passed(), "not_available", "coverage")
+    d = decide(
+        gates,
+        (1.2, 1.3),
+        min_effect=0.03,
+        budget_remains=False,
+        calibrated=False,
+    )
+    assert (d.outcome, d.rule, d.procedure_uncalibrated) == (
+        "INCONCLUSIVE",
+        5,
+        True,
+    )
+    record(verdict(d), gates)
+
+
+def test_calibrated_decisions_carry_no_diagnostic() -> None:
+    for gates in (passed(), with_failure(passed(), "lock")):
+        d = decide(
+            gates,
+            (1.2, 1.3),
+            min_effect=0.03,
+            budget_remains=False,
+            calibrated=True,
+        )
+        assert d.procedure_uncalibrated is False
+
+
+def test_calibrated_has_no_default() -> None:
+    with pytest.raises(TypeError, match="calibrated"):
+        decide(  # pyright: ignore[reportCallIssue]
+            passed(), (1.2, 1.3), min_effect=0.03, budget_remains=False
+        )
+    with pytest.raises(TypeError, match="calibrated"):
+        interval_rules(  # pyright: ignore[reportCallIssue]
+            np.array([1.2]),
+            np.array([1.3]),
+            min_effect=0.03,
+            budget_remains=False,
+        )
+
+
+@pytest.mark.parametrize("value", [1, 0, None, "yes", np.array([True])])
+def test_calibrated_must_be_a_bool(value: object) -> None:
+    with pytest.raises(ValueError, match="calibrated must be a bool"):
+        decide(
+            passed(),
+            (1.2, 1.3),
+            min_effect=0.03,
+            budget_remains=False,
+            calibrated=value,  # type: ignore[arg-type]
+        )
+    with pytest.raises(ValueError, match="calibrated must be a bool"):
+        interval_rules(
+            np.array([1.2]),
+            np.array([1.3]),
+            min_effect=0.03,
+            budget_remains=False,
+            calibrated=value,  # type: ignore[arg-type]
+        )
+
+
+def test_uncalibrated_batch_is_rule_4_or_5_by_budget() -> None:
+    lower = np.array([[1.2, 0.91], [1.02, 1.03]])
+    upper = np.array([[1.3, 0.97], [1.08, 1.03]])
+    budget = np.array([[True, False], [False, True]])
+    for pairs in (None, np.array([N0, N0 + 1])):
+        rules = interval_rules(
+            lower,
+            upper,
+            min_effect=0.03,
+            budget_remains=budget,
+            calibrated=False,
+            session_pairs=pairs,
+            n0=None if pairs is None else N0,
+        )
+        np.testing.assert_array_equal(rules.rule, [[4, 5], [5, 4]])
+        assert not rules.regression.any()
+    calibrated = interval_rules(
+        lower,
+        upper,
+        min_effect=0.03,
+        budget_remains=budget,
+        calibrated=True,
+    )
+    np.testing.assert_array_equal(calibrated.rule, [[2, 3], [5, 3]])
 
 
 # Cross host
@@ -609,6 +1099,7 @@ def test_below_n0_pairs_never_decide_on_speed(
             passed(cross=True),
             interval,
             min_effect=0.03,
+            calibrated=True,
             budget_remains=budget,
             session_pairs=pairs,
             n0=N0,
@@ -629,6 +1120,7 @@ def test_gate_failure_rejects_below_n0_pairs(
         gates,
         (1.2, 1.3),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=True,
         session_pairs=pairs,
         n0=N0,
@@ -655,6 +1147,7 @@ def test_cross_host_keep_needs_n0_pairs(
         passed(cross=True),
         (1.2, 1.3),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=budget,
         session_pairs=pairs,
         n0=N0,
@@ -681,6 +1174,7 @@ def test_cross_host_reject_needs_n0_pairs(
         passed(cross=True),
         (0.8, 0.9),
         min_effect=0.03,
+        calibrated=True,
         budget_remains=False,
         session_pairs=pairs,
         n0=N0,
@@ -695,6 +1189,7 @@ def test_cross_host_without_an_interval(pairs: int) -> None:
         passed(cross=True),
         None,
         min_effect=0.03,
+        calibrated=True,
         budget_remains=False,
         session_pairs=pairs,
         n0=N0,
@@ -710,7 +1205,9 @@ def test_cross_host_without_an_interval(pairs: int) -> None:
 
 @pytest.mark.parametrize("budget", [True, False])
 def test_no_interval_never_decides_on_speed(budget: bool) -> None:
-    d = decide(passed(), None, min_effect=0.03, budget_remains=budget)
+    d = decide(
+        passed(), None, min_effect=0.03, calibrated=True, budget_remains=budget
+    )
     assert d.outcome == ("CONTINUE" if budget else "INCONCLUSIVE")
     assert d.reason == (None if budget else "insufficient_evidence")
     assert (d.lower, d.upper, d.regression) == (None, None, False)
@@ -816,6 +1313,7 @@ def call(**update: Any) -> Decision:
         "interval": (1.0, 1.1),
         "min_effect": 0.03,
         "budget_remains": True,
+        "calibrated": True,
     }
     kwargs.update(update)
     return decide(**kwargs)
@@ -905,6 +1403,7 @@ def test_interval_rules_agree_with_decide(min_effect: float) -> None:
                 lower,
                 upper,
                 min_effect=min_effect,
+                calibrated=True,
                 budget_remains=budget,
                 session_pairs=session_pairs,
                 n0=None if session_pairs is None else N0,
@@ -914,6 +1413,7 @@ def test_interval_rules_agree_with_decide(min_effect: float) -> None:
                     passed(cross=session_pairs is not None),
                     bounds,
                     min_effect=min_effect,
+                    calibrated=True,
                     budget_remains=budget,
                     session_pairs=session_pairs,
                     n0=None if session_pairs is None else N0,
@@ -955,6 +1455,7 @@ def test_interval_rules_broadcast_a_batch() -> None:
         lower,
         upper,
         min_effect=0.03,
+        calibrated=True,
         budget_remains=budget,
         session_pairs=pairs,
         n0=N0,
@@ -990,6 +1491,7 @@ def test_interval_rules_refuse_bad_input(
         "upper": np.array([1.1, 1.1]),
         "min_effect": 0.03,
         "budget_remains": False,
+        "calibrated": True,
     }
     kwargs.update(update)
     with pytest.raises(ValueError, match=re.escape(named)):
@@ -1004,7 +1506,11 @@ def test_interval_rules_refuse_longdouble() -> None:
     upper = np.array([1.1], dtype=np.longdouble)
     with pytest.raises(ValueError, match="float64 or narrower"):
         interval_rules(
-            np.array([1.0]), upper, min_effect=0.03, budget_remains=False
+            np.array([1.0]),
+            upper,
+            min_effect=0.03,
+            calibrated=True,
+            budget_remains=False,
         )
 
 
@@ -1071,6 +1577,7 @@ def test_verdict_from_observations_matches_the_stored_record(
         passed(),
         (lower, upper),
         min_effect=min_effect,
+        calibrated=True,
         budget_remains=False,
     )
     bar = 1 + min_effect
@@ -1163,6 +1670,7 @@ def test_every_verdict_validates_and_no_other_rule_does(
         gates,
         (lower, upper),
         min_effect=min_effect,
+        calibrated=True,
         budget_remains=False,
         session_pairs=pairs,
         n0=n0,
@@ -1179,6 +1687,7 @@ def test_every_verdict_validates_and_no_other_rule_does(
         gates,
         (lower, upper),
         min_effect=min_effect,
+        calibrated=True,
         budget_remains=True,
         session_pairs=pairs,
         n0=n0,
@@ -1187,3 +1696,20 @@ def test_every_verdict_validates_and_no_other_rule_does(
         assert (with_budget.outcome, with_budget.rule) == ("CONTINUE", 4)
     else:
         assert with_budget == d
+    # The same look under an uncalibrated procedure is rule 5 whatever
+    # the interval, and its verdict validates with the diagnostic.
+    thin = decide(
+        gates,
+        (lower, upper),
+        min_effect=min_effect,
+        calibrated=False,
+        budget_remains=False,
+        session_pairs=pairs,
+        n0=n0,
+    )
+    assert (thin.outcome, thin.rule, thin.procedure_uncalibrated) == (
+        "INCONCLUSIVE",
+        5,
+        True,
+    )
+    record(verdict(thin), gates, min_effect=min_effect)

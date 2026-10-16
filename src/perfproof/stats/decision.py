@@ -18,7 +18,7 @@ the same expression `perfproof.schema.RunRecord` checks, not
 ``exp(log1p(min_effect))``, which can differ from it by an ulp. Then,
 with no epsilon, tolerance or display rounding:
 
-- KEEP (rule 2) iff ``L > bar``;
+- rule 2 iff ``L > bar``: KEEP, unless a gate is ``not_available``;
 - performance REJECT (rule 3) iff ``U <= bar``;
 - continue (rule 4) iff ``L <= bar < U`` and budget remains;
 - INCONCLUSIVE (rule 5) iff ``L <= bar < U`` and no budget remains;
@@ -33,22 +33,37 @@ written.
 
 Any failed gate decides first (rule 1), whatever the interval, the
 budget, the host mode or the pair count; when several fail,
-`GATE_PRECEDENCE` names one. Cross host, fewer than ``n0`` completed
-session pairs never give KEEP or a performance REJECT: the comparison
-continues while another pair can be collected (rule 4) and is
-INCONCLUSIVE when none can (rule 5). From ``n0`` pairs on, the bar
-rules above apply.
+`GATE_PRECEDENCE` names one. A gate that is ``not_available`` (not
+built yet, or nothing to check it with) never counts as passed: when
+rule 2 would give KEEP, the comparison is INCONCLUSIVE under rule 2
+instead, at the same look, naming the gates in ``blocked_by``, so it
+can only remove a KEEP. It changes no other rule. The guardrail step
+of rule 2 is not decided here yet; per ``docs/method.md`` a guardrail
+breach under rule 2 gives REJECT even with a gate ``not_available``,
+and `perfproof.schema.RunRecord` already refuses that case recorded
+as INCONCLUSIVE.
+
+Cross host, fewer than ``n0`` completed session pairs never give KEEP
+or a performance REJECT: the comparison continues while another pair
+can be collected (rule 4) and is INCONCLUSIVE when none can (rule 5).
+From ``n0`` pairs on, the bar rules above apply.
+
+Until the interval procedure is calibrated (``calibrated=False``, the
+thin path before the M1 exit), rules 2 and 3 never fire, whatever the
+interval: the comparison continues while budget remains (rule 4) and
+is INCONCLUSIVE when it doesn't (rule 5), and every decision carries
+``procedure_uncalibrated``. A failed gate still decides first.
 """
 
 import math
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final, Literal, cast, get_args
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from perfproof.schema import Arm, GateName, GateResult, Reason
+from perfproof.schema import GATE_REASON, Arm, GateName, GateResult, Reason
 
 __all__ = [
     "GATE_PRECEDENCE",
@@ -68,21 +83,26 @@ DecisionRule = Literal[1, 2, 3, 4, 5]
 """Decision rule number, as in ``docs/method.md``."""
 
 GATE_PRECEDENCE: Final[tuple[GateName, ...]] = (
+    "side_effects",
     "lock",
     "procedure",
     "runtime",
     "same_host",
     "correctness",
+    "coverage",
 )
 """Which failed gate decides when several failed, highest first.
 
-Integrity gates come before correctness because a failed integrity
+The order of rule 1 in ``docs/method.md``. ``side_effects`` comes
+first because it refuses the run before anything executes. The other
+integrity gates come before correctness because a failed integrity
 gate means the experiment itself is invalid, including the correctness
 check run inside it: the ``lock`` gate covers the correctness oracle.
-Among them, the order is that of the integrity table in
-``docs/method.md``. The order the gates ran in never matters. Every
-failed gate stays listed in `perfproof.schema.RunRecord.gates`; this
-only picks the one `perfproof.schema.Verdict.gate` names.
+Among them, the order is that of the integrity table. ``coverage``
+comes last because it asks whether passing checks reached the change.
+The order the gates ran in never matters. Every failed gate stays
+listed in `perfproof.schema.RunRecord.gates`; this only picks the one
+`perfproof.schema.Verdict.gate` names.
 """
 
 _ALL_GATES: Final[frozenset[str]] = frozenset(get_args(GateName))
@@ -108,9 +128,11 @@ class Decision:
         The verdict, or ``CONTINUE`` when rule 4 says to keep running.
     reason : {"performance", "correctness", "integrity", \
 "insufficient_evidence"} or None
-        Why; ``None`` only for ``CONTINUE``.
+        Why; ``None`` only for ``CONTINUE``. Never ``"guardrail"`` yet,
+        since guardrails are not decided here.
     rule : {1, 2, 3, 4, 5}
-        The rule that decided.
+        The rule that decided. Rule 2 with ``INCONCLUSIVE`` means the
+        interval cleared the bar but a gate was ``not_available``.
     gate : str or None
         The failed gate that decided, for rule 1; ``None`` otherwise.
     regression : bool
@@ -123,6 +145,13 @@ class Decision:
         Completed baseline-then-candidate session pairs, cross host;
         ``None`` on one host, and when a failed ``same_host`` gate ends
         the cross-host design.
+    procedure_uncalibrated : bool
+        True when decided with ``calibrated=False``; the caller records
+        it as `perfproof.schema.Diagnostics.procedure_uncalibrated`.
+    blocked_by : tuple of str
+        For a rule 2 INCONCLUSIVE, the ``not_available`` gates that
+        blocked the KEEP, in `GATE_PRECEDENCE` order; empty otherwise.
+        The record names them through their gate status.
     """
 
     outcome: Action
@@ -133,6 +162,8 @@ class Decision:
     lower: float | None
     upper: float | None
     session_pairs: int | None
+    procedure_uncalibrated: bool
+    blocked_by: tuple[GateName, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,25 +188,28 @@ def decide(
     *,
     min_effect: float,
     budget_remains: bool,
+    calibrated: bool,
     session_pairs: int | None = None,
     n0: int | None = None,
 ) -> Decision:
     """Decide one comparison at one look, as in ``docs/method.md``.
 
     The first rule that matches decides: (1) REJECT if a gate failed,
-    (2) KEEP if ``L > bar``, (3) REJECT if ``U <= bar``, (4) continue
-    if budget remains, (5) INCONCLUSIVE. See the module docstring for
-    how ``L``, ``U`` and the bar are computed and compared. Rules 2 to
-    5 are evaluated by `interval_rules`, so the bar comparison exists
-    once.
+    (2) KEEP if ``L > bar``, or INCONCLUSIVE there if a gate is
+    ``not_available``, (3) REJECT if ``U <= bar``, (4) continue if
+    budget remains, (5) INCONCLUSIVE. Rules 2 and 3 apply only when the
+    procedure is calibrated. See the module docstring for how ``L``,
+    ``U`` and the bar are computed and compared. Rules 2 to 5 are
+    evaluated by `interval_rules`, so the bar comparison exists once.
 
     Parameters
     ----------
     gates : sequence of perfproof.schema.GateResult
         Gate results, in any order. If any failed, the failed gate
         first in `GATE_PRECEDENCE` decides, so the order the gates ran
-        in never changes the verdict. If none failed, all five gates
-        must be listed, since an unrun gate is not a passed one.
+        in never changes the verdict. If none failed, every gate must
+        be listed, since an unrun gate is not a passed one; a gate
+        that could not be checked is listed as ``not_available``.
     interval : tuple of (float, float) or None
         ``(L, U)``, the float64 ratio-scale bounds that will be
         recorded, ``L <= U``, both finite and positive. ``None`` when
@@ -188,6 +222,10 @@ def decide(
         Whether another observation can still be collected within the
         run budget: another round on one host, another session pair
         cross host. False ends the comparison.
+    calibrated : bool
+        Whether the interval procedure in force has passed calibration.
+        Required, with no default, so no caller can forget it. False
+        means rules 2 and 3 never fire.
     session_pairs : int, optional
         Cross host only: completed baseline-then-candidate session
         pairs, from `completed_session_pairs`. Give it with ``n0``, and
@@ -198,8 +236,9 @@ def decide(
     Returns
     -------
     Decision
-        Outcome, reason, rule, deciding gate, regression flag, and the
-        bounds and session pairs passed in.
+        Outcome, reason, rule, deciding gate, regression flag, the
+        bounds and session pairs passed in, and whether the procedure
+        was uncalibrated.
 
     Raises
     ------
@@ -210,7 +249,7 @@ def decide(
         refuses (an unknown name or status, or a waiver of a gate that
         cannot be waived); no gate failed and one is missing; or the
         ``same_host`` gate contradicts the host mode (waived on one
-        host; passed or not listed cross host).
+        host; anything but waived or failed cross host).
     """
     _check_min_effect(min_effect)
     _check_host_mode(session_pairs, n0)
@@ -218,23 +257,26 @@ def decide(
         _check_count("session_pairs", session_pairs, 0)
     bounds = None if interval is None else _check_interval(interval)
     budget = _check_bool("budget_remains", budget_remains)
-    gates = tuple(gates)
-    failed = _deciding_gate(gates, cross=session_pairs is not None)
+    uncalibrated = not _check_bool("calibrated", calibrated)
+    seen = _checked_gates(gates, cross=session_pairs is not None)
+    failed = _deciding_gate(seen)
     if failed is not None:
         # A cross-host verdict goes with a waived same_host gate. A
         # failed same_host gate ends the cross-host design, so its
         # verdict is not cross host and counts no pairs.
-        if any(g.gate == "same_host" and _failed(g) for g in gates):
+        if _failed(seen.get("same_host")):
             session_pairs = None
         return Decision(
             outcome="REJECT",
-            reason="correctness" if failed == "correctness" else "integrity",
+            reason=GATE_REASON[failed],
             rule=1,
             gate=failed,
             regression=False,
             lower=None,
             upper=None,
             session_pairs=session_pairs,
+            procedure_uncalibrated=uncalibrated,
+            blocked_by=(),
         )
     if bounds is None:
         rule, outcome, reason = _BY_RULE[4 if budget else 5]
@@ -247,6 +289,8 @@ def decide(
             lower=None,
             upper=None,
             session_pairs=session_pairs,
+            procedure_uncalibrated=uncalibrated,
+            blocked_by=(),
         )
     lower, upper = bounds
     rules = interval_rules(
@@ -254,10 +298,21 @@ def decide(
         upper,
         min_effect=min_effect,
         budget_remains=budget,
+        calibrated=not uncalibrated,
         session_pairs=session_pairs,
         n0=n0,
     )
     rule, outcome, reason = _BY_RULE[int(rules.rule)]
+    blocked_by: tuple[GateName, ...] = ()
+    if rule == 2:
+        blocked_by = tuple(
+            name
+            for name in GATE_PRECEDENCE
+            if (gate := seen.get(name)) is not None
+            and gate.status == "not_available"
+        )
+        if blocked_by:
+            outcome, reason = "INCONCLUSIVE", "insufficient_evidence"
     return Decision(
         outcome=outcome,
         reason=reason,
@@ -267,6 +322,8 @@ def decide(
         lower=lower,
         upper=upper,
         session_pairs=session_pairs,
+        procedure_uncalibrated=uncalibrated,
+        blocked_by=blocked_by,
     )
 
 
@@ -276,6 +333,7 @@ def interval_rules(
     *,
     min_effect: float,
     budget_remains: ArrayLike,
+    calibrated: bool,
     session_pairs: ArrayLike | None = None,
     n0: int | None = None,
 ) -> IntervalRules:
@@ -297,6 +355,10 @@ def interval_rules(
     budget_remains : array_like of bool
         Whether another observation (a round, or cross host a session
         pair) can still be collected; boolean dtype.
+    calibrated : bool
+        Whether the interval procedure has passed calibration; no
+        default. False means rules 2 and 3 never fire: every element is
+        rule 4 or 5 by ``budget_remains``.
     session_pairs : array_like of int, optional
         Cross host only: completed session pairs, integer dtype, at
         least 0. Give it with ``n0``, and only then.
@@ -314,12 +376,13 @@ def interval_rules(
     ValueError
         If a bound is not finite and positive, ``L > U`` anywhere,
         ``lower`` and ``upper`` differ in shape, the inputs do not
-        broadcast, ``budget_remains`` is not boolean,
-        ``session_pairs`` is not a non-negative integer array,
-        ``session_pairs`` and ``n0`` are not given together, or
+        broadcast, ``budget_remains`` is not boolean, ``calibrated`` is
+        not a bool, ``session_pairs`` is not a non-negative integer
+        array, ``session_pairs`` and ``n0`` are not given together, or
         ``min_effect`` or ``n0`` is out of range.
     """
     bar = 1.0 + float(_check_min_effect(min_effect))
+    ready = _check_bool("calibrated", calibrated)
     _check_host_mode(session_pairs, n0)
     lo = _bounds_array("lower", lower)
     hi = _bounds_array("upper", upper)
@@ -347,8 +410,8 @@ def interval_rules(
             f"bound {float(hi[first])!r}"
         )
         raise ValueError(msg)
-    keep = lo > bar
-    reject = hi <= bar
+    keep = (lo > bar) & ready
+    reject = (hi <= bar) & ready
     if pairs is not None and n0 is not None:
         enough = pairs >= n0
         keep = keep & enough
@@ -507,15 +570,14 @@ def _pairs_array(values: ArrayLike) -> NDArray[np.integer]:
     return array
 
 
-def _deciding_gate(gates: Sequence[object], *, cross: bool) -> GateName | None:
-    """Return the failed gate that decides, or ``None`` if none failed.
+def _checked_gates(
+    gates: Iterable[object], *, cross: bool
+) -> dict[str, GateResult]:
+    """Return the gates by name, each validated again, read once.
 
-    The deciding gate is the failed one first in `GATE_PRECEDENCE`.
-
-    Fails closed: with no failure, a gate that is absent was never run,
-    so the gates cannot be called passed. Cross host, the ``same_host``
-    gate is always listed, since its waiver comes from the spec before
-    any host exists; a failed one decides like any other gate.
+    Cross host, the ``same_host`` gate is always listed, waived or
+    failed, since its waiver comes from the spec before any host
+    exists; on one host it is never waived.
     """
     seen: dict[str, GateResult] = {}
     for given in gates:
@@ -528,22 +590,32 @@ def _deciding_gate(gates: Sequence[object], *, cross: bool) -> GateName | None:
             raise ValueError(msg)
         seen[gate.gate] = gate
     same_host = seen.get("same_host")
-    if cross and (same_host is None or same_host.status == "passed"):
-        status = None if same_host is None else same_host.status
+    status = None if same_host is None else same_host.status
+    if cross and status not in ("waived", "failed"):
         msg = (
             "cross host needs the same_host gate listed, waived by the "
             f"opt-in or failed, got {status!r}"
         )
         raise ValueError(msg)
-    if not cross and same_host is not None and same_host.status == "waived":
+    if not cross and status == "waived":
         msg = (
             "the same_host gate is waived, so session_pairs and n0 "
             "are required"
         )
         raise ValueError(msg)
+    return seen
+
+
+def _deciding_gate(seen: Mapping[str, GateResult]) -> GateName | None:
+    """Return the failed gate that decides, or ``None`` if none failed.
+
+    The deciding gate is the failed one first in `GATE_PRECEDENCE`.
+
+    Fails closed: with no failure, a gate that is absent was never run,
+    so the gates cannot be called passed.
+    """
     for name in GATE_PRECEDENCE:
-        gate = seen.get(name)
-        if gate is not None and _failed(gate):
+        if _failed(seen.get(name)):
             return name
     missing = sorted(_ALL_GATES - seen.keys())
     if missing:
@@ -570,9 +642,9 @@ def _revalidated(gate: GateResult) -> GateResult:
     return GateResult.model_validate(gate.model_dump(warnings=False))
 
 
-def _failed(gate: GateResult) -> bool:
-    """Whether ``gate``, already validated, failed."""
-    return gate.status == "failed"
+def _failed(gate: GateResult | None) -> bool:
+    """Whether ``gate``, already validated, is listed and failed."""
+    return gate is not None and gate.status == "failed"
 
 
 def _check_session(index: int, session: object) -> tuple[Arm, bool]:
