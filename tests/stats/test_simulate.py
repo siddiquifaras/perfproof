@@ -38,7 +38,7 @@ import math
 import tracemalloc
 from collections.abc import Callable
 from dataclasses import fields, replace
-from typing import cast
+from typing import Final, cast
 
 import numpy as np
 import pytest
@@ -50,6 +50,7 @@ from perfproof.stats.simulate import (
     LOGNORMAL_CVS,
     HostMode,
     NoiseScenario,
+    OrderDesign,
     Simulated,
     development_scenarios,
     simulate,
@@ -78,6 +79,7 @@ def run(
     n: int = N,
     replications: int = R,
     seed: int = SEED,
+    order: OrderDesign | None = None,
 ) -> Simulated:
     return simulate(
         scenario,
@@ -86,6 +88,7 @@ def run(
         replications=replications,
         mode=mode,
         rng=np.random.default_rng(seed),
+        order=order,
     )
 
 
@@ -150,11 +153,43 @@ class TestShapeAndDesign:
         assert np.all(np.isfinite(sample.log_times))
 
     def test_one_host_order_is_a_fair_coin_per_round(self) -> None:
-        first = run(NoiseScenario(cv=0.05)).candidate_first
+        first = run(NoiseScenario(cv=0.05), order="coin").candidate_first
         assert_rate(int(first.sum()), first.size, 0.5, 0.01)
         # Independent rounds agree with their neighbour half the time.
         same = first[:, 1:] == first[:, :-1]
         assert_rate(int(same.sum()), same.size, 0.5, 0.01)
+
+    @pytest.mark.parametrize("n", [N, N + 1])
+    def test_balanced_order_comes_in_opposite_pairs(self, n: int) -> None:
+        first = run(
+            NoiseScenario(cv=0.05), n=n, order="balanced"
+        ).candidate_first
+        pairs = n // 2
+        lead, follow = first[:, 0 : 2 * pairs : 2], first[:, 1::2]
+        np.testing.assert_array_equal(follow, ~lead)
+        # Which order leads is a fair coin per pair, independent of the
+        # neighbouring pair; an odd last round gets a coin of its own.
+        assert_rate(int(lead.sum()), lead.size, 0.5, 0.01)
+        same = lead[:, 1:] == lead[:, :-1]
+        assert_rate(int(same.sum()), same.size, 0.5, 0.01)
+        if n % 2:
+            last = first[:, -1]
+            assert_rate(int(last.sum()), last.size, 0.5, 0.05)
+            agree = last == lead[:, -1]
+            assert_rate(int(agree.sum()), agree.size, 0.5, 0.05)
+
+    def test_balanced_order_cancels_the_order_effect(self) -> None:
+        # No noise: each pair's two log ratios are log(S) plus and minus
+        # log1p(effect), so every replication's mean is log(S), where a
+        # coin per round leaves the two orders unequal by chance.
+        scenario = NoiseScenario(cv=0.0, order_effect=0.05)
+        speedup = 1.03
+        balanced = run(scenario, speedup=speedup, order="balanced")
+        mean = log_ratio(balanced).mean(axis=-1)
+        np.testing.assert_allclose(mean, math.log(speedup), rtol=0, atol=1e-15)
+        coin = run(scenario, speedup=speedup, order="coin")
+        coin_mean = log_ratio(coin).mean(axis=-1)
+        assert float(np.abs(coin_mean - math.log(speedup)).max()) > 0.01
 
     def test_cross_host_baseline_session_always_first(self) -> None:
         sample = run(NoiseScenario(cv=0.05), mode="cross_host")
@@ -214,6 +249,59 @@ class TestReproducibility:
         a = run(scenario, mode=mode, replications=200)
         b = run(scenario, mode=mode, replications=200, seed=SEED + 1)
         assert not np.array_equal(a.log_times, b.log_times)
+
+    # Each stream alone, every other effect off and no noise where the
+    # stream is not the noise, so the arrays depend on that stream
+    # only: a stream that ignored the seed would give equal arrays.
+    STREAMS: Final[
+        dict[str, tuple[NoiseScenario, HostMode, OrderDesign | None]]
+    ] = {
+        "normal_noise": (NoiseScenario(cv=0.05), "one_host", "coin"),
+        "t_noise": (NoiseScenario(cv=0.05, t_df=4.0), "one_host", "coin"),
+        "slow_mode": (
+            NoiseScenario(cv=0.0, slow_fraction=0.5, slow_factor=1.3),
+            "one_host",
+            "coin",
+        ),
+        "outliers": (
+            NoiseScenario(cv=0.0, outlier_rate=0.5, outlier_factor=3.0),
+            "one_host",
+            "coin",
+        ),
+        "order_coin": (
+            NoiseScenario(cv=0.0, order_effect=0.03),
+            "one_host",
+            "coin",
+        ),
+        "order_balanced": (
+            NoiseScenario(cv=0.0, order_effect=0.03),
+            "one_host",
+            "balanced",
+        ),
+        "offset_one_host": (
+            NoiseScenario(cv=0.0, session_offset_cv=0.15),
+            "one_host",
+            "coin",
+        ),
+        "offset_cross_host": (
+            NoiseScenario(cv=0.0, session_offset_cv=0.15),
+            "cross_host",
+            None,
+        ),
+    }
+
+    @pytest.mark.parametrize("stream", list(STREAMS))
+    def test_each_stream_alone_follows_the_seed(self, stream: str) -> None:
+        scenario, mode, order = self.STREAMS[stream]
+        a = run(scenario, mode=mode, order=order, replications=200)
+        again = run(scenario, mode=mode, order=order, replications=200)
+        b = run(
+            scenario, mode=mode, order=order, replications=200, seed=SEED + 1
+        )
+        np.testing.assert_array_equal(a.log_times, again.log_times)
+        assert not np.array_equal(a.log_times, b.log_times)
+        if stream.startswith("order"):
+            assert not np.array_equal(a.candidate_first, b.candidate_first)
 
     @pytest.mark.parametrize("df", [None, 4.0])
     @pytest.mark.parametrize("mode", MODES)
@@ -334,6 +422,21 @@ class TestNoiseLevel:
         np.testing.assert_allclose(
             log_ratio(sample), math.log(speedup) + swing, rtol=0, atol=1e-9
         )
+
+    def test_heavy_tailed_noise_never_passes_through_exp(self) -> None:
+        # Log sd sqrt(log1p(1e308)) = 26.6 with t3 tails: about 21 of
+        # the 10^6 log times here lie beyond what exp can represent in
+        # float64 (P(none) = exp(-21)), and this seed has some. Noise
+        # formed as times and logged back would turn them into inf or
+        # -inf, or into nan in the ratio.
+        scenario = NoiseScenario(cv=1e154, t_df=3.0)
+        x = run(scenario, speedup=1.03, n=1000, replications=500).log_times
+        tiny = np.finfo(np.float64).smallest_subnormal
+        beyond = (x > math.log(np.finfo(np.float64).max)) | (
+            x < math.log(tiny)
+        )
+        assert int(beyond.sum()) > 0
+        assert np.all(np.isfinite(x))
 
 
 class TestMixtures:
@@ -661,6 +764,27 @@ class TestValidation:
         with pytest.raises(ValueError, match=field):
             NoiseScenario(**kwargs)  # pyright: ignore[reportArgumentType]
 
+    @pytest.mark.parametrize(
+        ("kwargs", "name"),
+        [
+            ({"cv": 1.4e154}, "cv"),
+            ({"cv": 1e155}, "cv"),
+            ({"cv": 1e154, "variance_step": 2.0}, r"cv \* variance_step"),
+            ({"cv": 1e100, "variance_step": 1e300}, r"cv \* variance_step"),
+            ({"cv": 0.05, "session_offset_cv": 1e155}, "session_offset_cv"),
+        ],
+    )
+    def test_scenario_refuses_a_cv_with_no_finite_log_sd(
+        self, kwargs: dict[str, float], name: str
+    ) -> None:
+        with pytest.raises(ValueError, match=f"^{name} = .* not finite"):
+            NoiseScenario(**kwargs)  # pyright: ignore[reportArgumentType]
+
+    def test_largest_cvs_with_a_finite_log_sd_are_accepted(self) -> None:
+        scenario = NoiseScenario(cv=1.3e154, session_offset_cv=1.3e154)
+        sample = run(scenario, n=5, replications=20)
+        assert np.all(np.isfinite(sample.log_times))
+
     def test_every_field_is_validated(self) -> None:
         names = {f.name for f in fields(NoiseScenario)}
         assert names == {
@@ -704,6 +828,8 @@ class TestValidation:
             ("n", True),
             ("replications", 0),
             ("mode", "same_host"),
+            ("order", "random"),
+            ("order", "Balanced"),
             ("rng", 5),
             ("rng", np.random.RandomState(1)),
         ],
@@ -724,6 +850,29 @@ class TestValidation:
                 NoiseScenario(cv=0.05),
                 **kwargs,  # pyright: ignore[reportArgumentType]
             )
+
+    @pytest.mark.parametrize("order", ["balanced", "coin"])
+    def test_cross_host_refuses_an_in_round_order(
+        self, order: OrderDesign
+    ) -> None:
+        with pytest.raises(ValueError, match="in-round order"):
+            run(
+                NoiseScenario(cv=0.05),
+                mode="cross_host",
+                order=order,
+                replications=2,
+            )
+
+    def test_one_host_defaults_to_balanced_order(self) -> None:
+        scenario = NoiseScenario(cv=0.05, order_effect=0.03)
+        default = run(scenario, replications=50)
+        balanced = run(scenario, replications=50, order="balanced")
+        np.testing.assert_array_equal(default.log_times, balanced.log_times)
+        np.testing.assert_array_equal(
+            default.candidate_first, balanced.candidate_first
+        )
+        first = default.candidate_first
+        np.testing.assert_array_equal(first[:, 1::2], ~first[:, 0::2])
 
     def test_simulate_refuses_a_non_scenario(self) -> None:
         with pytest.raises(ValueError, match="scenario"):

@@ -51,12 +51,16 @@ On the log scale, for replication ``r``, observation ``i`` and arm
   time-scale CV is infinite, since ``exp`` of a t variable has no mean.
 - ``B`` and ``O`` are independent Bernoulli draws per value with
   probabilities ``slow_fraction`` and ``outlier_rate``.
-- **One host.** Each round runs both arms back to back in an order
-  drawn by a fair coin per round, returned as
-  `Simulated.candidate_first`. ``second`` is 1 for the arm that ran
-  second, ``p = 2 i + second`` is the execution's position in the
-  session, and the offset ``o`` is drawn once per round and shared by
-  both runs, so it cancels in the round's ratio.
+- **One host.** Each round runs both arms back to back, in an order
+  returned as `Simulated.candidate_first` and set by `OrderDesign`:
+  a fair coin per round (``"coin"``), or balanced order pairs
+  (``"balanced"``), as under "Observations" in ``docs/method.md``:
+  rounds ``2j`` and ``2j + 1`` run in opposite orders, and a fair coin
+  per pair picks which comes first; with odd ``n`` the last round is
+  unpaired and gets a coin of its own. ``second`` is 1 for the arm
+  that ran second, ``p = 2 i + second`` is the execution's position
+  in the session, and the offset ``o`` is drawn once per round and
+  shared by both runs, so it cancels in the round's ratio.
 - **Cross host.** Observation ``i`` is a session pair, as under
   "Comparisons across machines": a baseline session on a fresh host,
   then the candidate session on another fresh host, so
@@ -66,6 +70,7 @@ On the log scale, for replication ``r``, observation ``i`` and arm
   order effect are refused here: they describe state inside one host
   (heat, warm caches) that a fresh host does not inherit, so they have
   no cross-host counterpart that leaves the true speedup defined.
+  No in-round order is drawn, so an explicit ``order`` is refused.
 
 Every term but the last has the same distribution for both arms, or
 is shared within the observation, or enters with the sign of a fair
@@ -96,6 +101,7 @@ __all__ = [
     "LOGNORMAL_CVS",
     "HostMode",
     "NoiseScenario",
+    "OrderDesign",
     "Simulated",
     "development_scenarios",
     "simulate",
@@ -104,6 +110,12 @@ __all__ = [
 HostMode = Literal["one_host", "cross_host"]
 """``one_host``: offsets shared within a round. ``cross_host``: random
 per-session offsets in alternating baseline, candidate session pairs.
+"""
+
+OrderDesign = Literal["coin", "balanced"]
+"""In-round order on one host. ``coin``: a fair coin per round.
+``balanced``: order pairs of opposite orders, a fair coin per pair for
+which comes first, the design ``docs/method.md`` prescribes.
 """
 
 CHUNK_BYTES: Final = 8 * 2**20
@@ -116,6 +128,7 @@ LOGNORMAL_CVS: Final = (0.01, 0.05, 0.15)
 """The CVs of the log-normal development scenarios."""
 
 _MODES: Final = frozenset(get_args(HostMode))
+_ORDERS: Final = frozenset(get_args(OrderDesign))
 
 _Range = tuple[float, float, bool, bool]
 """``(low, high, low_closed, high_closed)``."""
@@ -148,7 +161,8 @@ class NoiseScenario:
     ----------
     cv : float
         Run-to-run noise as a coefficient of variation, ``>= 0``; sets
-        the log-scale sd ``sqrt(log1p(cv**2))``.
+        the log-scale sd ``sqrt(log1p(cv**2))``, which must be finite,
+        also for ``cv * variance_step``, so that every log time is.
     t_df : float or None
         Student-t degrees of freedom for the noise, ``> 2`` so its
         variance is finite; ``None`` for normal noise (log-normal
@@ -183,13 +197,15 @@ class NoiseScenario:
     session_offset_cv : float
         CV of a log-normal multiplicative offset, ``>= 0``: drawn per
         round and shared by both runs on one host, per session cross
-        host.
+        host. Its log-scale sd must be finite, as for ``cv``.
 
     Raises
     ------
     ValueError
         If a value is not a finite real number (bools refused) or is
-        out of its range.
+        out of its range, or a CV is so large (``cv**2`` beyond the
+        float64 range, about ``cv > 1.34e154``) that its log-scale sd
+        and with it every log time would not be finite.
     """
 
     cv: float
@@ -211,6 +227,18 @@ class NoiseScenario:
             value: object = getattr(self, name)
             if not (name == "t_df" and value is None):
                 _check(name, value, bounds)
+        cvs = {
+            "cv": self.cv,
+            "cv * variance_step": self.cv * self.variance_step,
+            "session_offset_cv": self.session_offset_cv,
+        }
+        for name, cv in cvs.items():
+            if not math.isfinite(_log_sd(cv)):
+                msg = (
+                    f"{name} = {cv!r} gives a log-scale sd that is not "
+                    "finite, so no log time would be"
+                )
+                raise ValueError(msg)
 
     @property
     def one_host_only(self) -> bool:
@@ -290,6 +318,7 @@ def simulate(
     replications: int,
     mode: HostMode,
     rng: np.random.Generator,
+    order: OrderDesign | None = None,
 ) -> Simulated:
     """Draw ``replications`` paired samples of ``n`` observations.
 
@@ -313,6 +342,11 @@ def simulate(
         Host mode; see `HostMode`.
     rng : numpy.random.Generator
         The only source of randomness; advanced by the call.
+    order : {"balanced", "coin"} or None, default None
+        In-round order on one host; see `OrderDesign`. ``None`` means
+        ``"balanced"`` on one host, the design ``docs/method.md``
+        prescribes, and is the only value taken cross host, where the
+        baseline session always comes first.
 
     Returns
     -------
@@ -324,7 +358,8 @@ def simulate(
     ------
     ValueError
         If an argument has the wrong type or is out of range, or if
-        ``mode`` is ``"cross_host"`` and the scenario is one host only.
+        ``mode`` is ``"cross_host"`` and the scenario is one host only
+        or ``order`` is not ``None``.
     """
     _check_type("scenario", scenario, NoiseScenario)
     _check("speedup", speedup, _POSITIVE)
@@ -334,6 +369,15 @@ def simulate(
         msg = f"mode must be one of {sorted(_MODES)}, got {mode!r}"
         raise ValueError(msg)
     _check_type("rng", rng, np.random.Generator)
+    if order is not None and order not in _ORDERS:
+        msg = f"order must be one of {sorted(_ORDERS)}, got {order!r}"
+        raise ValueError(msg)
+    if mode == "cross_host" and order is not None:
+        msg = (
+            f"in-round order is one host only; cross_host got order={order!r}"
+        )
+        raise ValueError(msg)
+    design: OrderDesign = "balanced" if order is None else order
     if mode == "cross_host" and scenario.one_host_only:
         msg = (
             "drift and order_effect are one host only; cross_host got "
@@ -352,6 +396,7 @@ def simulate(
             scenario,
             log_speedup,
             mode,
+            design,
             rng,
             log_times[start:stop],
             first[start:stop],
@@ -363,6 +408,7 @@ def _fill(
     scenario: NoiseScenario,
     log_speedup: float,
     mode: HostMode,
+    order: OrderDesign,
     rng: np.random.Generator,
     out: NDArray[np.float64],
     first: NDArray[np.bool_],
@@ -372,8 +418,12 @@ def _fill(
     chunk, n, _ = out.shape
     shape = out.shape
     one_host = mode == "one_host"
-    if one_host:
+    if one_host and order == "coin":
         first[...] = rng.random((chunk, n)) < 0.5
+    elif one_host:
+        coins = rng.random((chunk, (n + 1) // 2)) < 0.5
+        first[:, 0::2] = coins
+        first[:, 1::2] = ~coins[:, : n // 2]
 
     x = _innovations(rng, shape, s.t_df)
     if s.ar1 != 0:
