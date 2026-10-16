@@ -1,0 +1,54 @@
+{
+  "id": "apache-arrow-pr46886-landed",
+  "repository": "apache/arrow",
+  "stars": 17207,
+  "pushed_at": "2026-10-15T02:09:01Z",
+  "task_commit": "587b3fcad5ae4524411714c80a1479ff9a435508",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/apache/arrow/commit/587b3fcad5ae4524411714c80a1479ff9a435508",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/arrow/pull/46886",
+    "title": "GH-43891: [C++][Parquet] Faster reading of FIXED_LEN_BYTE_ARRAY data",
+    "commit": "587b3fcad5ae4524411714c80a1479ff9a435508",
+    "merged_at": "2025-06-30T09:29:28Z",
+    "files": [
+      "cpp/src/arrow/array/builder_binary.h",
+      "cpp/src/arrow/array/builder_primitive.h",
+      "cpp/src/arrow/buffer_builder.h",
+      "cpp/src/arrow/util/spaced_internal.h",
+      "cpp/src/parquet/arrow/reader_writer_benchmark.cc",
+      "cpp/src/parquet/column_reader.cc",
+      "cpp/src/parquet/column_reader.h",
+      "cpp/src/parquet/decoder.cc",
+      "cpp/src/parquet/encoding_test.cc"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/arrow/pull/46886",
+      "note": "description, as matched by the miner: timings: 2.58 seconds; 0.93 seconds; 3.50 seconds; 1.93 seconds; 2.60 seconds; 3.56 seconds; 0.68 seconds | benchmark files changed: cpp/src/parquet/arrow/reader_writer_benchmark.cc"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

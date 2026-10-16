@@ -1,0 +1,47 @@
+{
+  "id": "linkedin-liger-kernel-pr1468",
+  "repository": "linkedin/Liger-Kernel",
+  "stars": 6661,
+  "pushed_at": "2026-10-15T15:49:57Z",
+  "task_commit": "dc1512630de6143d631a397eee4cf1df5c7bf802",
+  "task_commit_basis": "first parent of https://github.com/linkedin/Liger-Kernel/commit/de77856a019c02ff0e6e58a027f447d1a841e297; gh api compare dc1512630de6...de77856a019c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/linkedin/Liger-Kernel/pull/1468",
+    "title": "perf(flce): reuse logits buffers and write input gradients directly",
+    "commit": "de77856a019c02ff0e6e58a027f447d1a841e297",
+    "merged_at": "2026-09-15T23:50:56Z",
+    "files": [
+      "src/liger_kernel/ops/fused_linear_cross_entropy.py",
+      "test/ops/test_fused_linear_cross_entropy.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/ops/test_fused_linear_cross_entropy.py",
+    "source": "test files changed by https://github.com/linkedin/Liger-Kernel/pull/1468 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/linkedin/Liger-Kernel/pull/1468",
+      "note": "description, as matched by the miner: speedup claims: 33.3% less; 46.5% less; 2.2% faster | timings: 100 ms; 400 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

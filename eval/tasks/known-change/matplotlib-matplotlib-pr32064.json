@@ -1,0 +1,48 @@
+{
+  "id": "matplotlib-matplotlib-pr32064",
+  "repository": "matplotlib/matplotlib",
+  "stars": 23373,
+  "pushed_at": "2026-10-15T20:08:53Z",
+  "task_commit": "0607d32c5a6b7e1ae5ca6b0556a135e0c4d20168",
+  "task_commit_basis": "first parent of https://github.com/matplotlib/matplotlib/commit/0098e7f56d84273379daaa3ef508d1deea95145a; gh api compare 0607d32c5a6b...0098e7f56d84 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/matplotlib/matplotlib/pull/32064",
+    "title": "PERF: Let FreeType read font data from memory instead of through Python",
+    "commit": "0098e7f56d84273379daaa3ef508d1deea95145a",
+    "merged_at": "2026-08-07T18:47:32Z",
+    "files": [
+      "extern/meson.build",
+      "lib/matplotlib/tests/test_ft2font.py",
+      "src/ft2font_wrapper.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest lib/matplotlib/tests/test_ft2font.py",
+    "source": "test files changed by https://github.com/matplotlib/matplotlib/pull/32064 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/matplotlib/matplotlib/pull/32064",
+      "note": "description, as matched by the miner: speedup claims: 15x faster; 1.5x faster; 1000x; 10x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

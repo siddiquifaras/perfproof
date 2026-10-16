@@ -1,0 +1,54 @@
+{
+  "id": "python-mypy-pr20578-landed",
+  "repository": "python/mypy",
+  "stars": 20683,
+  "pushed_at": "2026-10-15T12:10:42Z",
+  "task_commit": "59257a28e9b42076b619ae5f2c699d446c875682",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/python/mypy/commit/59257a28e9b42076b619ae5f2c699d446c875682",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/20578",
+    "title": "[mypyc] Speed up ord(str[n]) by inlining",
+    "commit": "59257a28e9b42076b619ae5f2c699d446c875682",
+    "merged_at": "2026-01-13T17:44:18Z",
+    "files": [
+      "mypyc/doc/str_operations.rst",
+      "mypyc/ir/deps.py",
+      "mypyc/irbuild/specialize.py",
+      "mypyc/lib-rt/str_extra_ops.c",
+      "mypyc/lib-rt/str_extra_ops.h",
+      "mypyc/primitives/str_ops.py",
+      "mypyc/test-data/irbuild-str.test",
+      "mypyc/test-data/run-strings.test",
+      "mypyc/test/test_cheader.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest mypyc/test/test_cheader.py",
+    "source": "test files changed by https://github.com/python/mypy/pull/20578 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python/mypy/pull/20578",
+      "note": "description, as matched by the miner: speedup claims: 18x faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

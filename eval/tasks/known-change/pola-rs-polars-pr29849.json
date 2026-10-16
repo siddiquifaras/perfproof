@@ -1,0 +1,50 @@
+{
+  "id": "pola-rs-polars-pr29849",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "153545c4cd45020f41aaa04b7f6b73c1e4283f17",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/5a5df63077df386451b45a9c4e9836b30e44a6fe; gh api compare 153545c4cd45...5a5df63077df touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29849",
+    "title": "perf: Speed up `arg_min` and `arg_max` (especially on data with nulls)",
+    "commit": "5a5df63077df386451b45a9c4e9836b30e44a6fe",
+    "merged_at": "2026-10-13T19:28:36Z",
+    "files": [
+      "Cargo.lock",
+      "Cargo.toml",
+      "crates/polars-core/src/chunked_array/arg_min_max.rs",
+      "crates/polars-utils/src/arg_min_max.rs",
+      "py-polars/tests/unit/series/test_series.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29849",
+      "note": "description, as matched by the miner: speedup claims: 6x speedup; 1.95x; 1.13x; 1.11x; 8.7x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

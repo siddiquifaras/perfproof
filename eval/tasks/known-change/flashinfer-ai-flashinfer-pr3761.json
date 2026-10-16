@@ -1,0 +1,49 @@
+{
+  "id": "flashinfer-ai-flashinfer-pr3761",
+  "repository": "flashinfer-ai/flashinfer",
+  "stars": 6626,
+  "pushed_at": "2026-10-15T22:07:40Z",
+  "task_commit": "78e463b874df7266cfe6e21517812ebff66d1660",
+  "task_commit_basis": "first parent of https://github.com/flashinfer-ai/flashinfer/commit/e9fb62b74e47444eba83da71a573c9437e71cb3b (squash merge); gh api compare 78e463b874df...e9fb62b74e47 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/flashinfer-ai/flashinfer/pull/3761",
+    "title": "perf(moe): optimize CUTLASS fused MoE mem-bound kernels",
+    "commit": "e9fb62b74e47444eba83da71a573c9437e71cb3b",
+    "merged_at": "2026-08-11T10:29:38Z",
+    "files": [
+      "csrc/fused_moe/cutlass_backend/cutlass_fused_moe_kernels.cuh",
+      "csrc/nv_internal/include/tensorrt_llm/common/cudaUtils.h",
+      "include/flashinfer/trtllm/common/cudaUtils.h",
+      "tests/moe/test_trtllm_cutlass_fused_moe.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": "vllm bench throughput --model Qwen/Qwen3-30B-A3B --dataset-name random --moe-backend <backend> -tp <tp>",
+    "source": "quoted in the description of https://github.com/flashinfer-ai/flashinfer/pull/3761",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/flashinfer-ai/flashinfer/pull/3761",
+      "note": "description, as matched by the miner: speedup claims: 4×; 1×; 8×; 2×; 1.08x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

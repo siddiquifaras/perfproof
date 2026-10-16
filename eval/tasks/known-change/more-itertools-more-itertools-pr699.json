@@ -1,0 +1,127 @@
+{
+  "id": "more-itertools-more-itertools-pr699",
+  "repository": "more-itertools/more-itertools",
+  "stars": 4101,
+  "pushed_at": "2026-10-14T18:51:51Z",
+  "task_commit": "4bdd12f7b33da265eac1c417772f5b24631e8055",
+  "task_commit_basis": "first parent of https://github.com/more-itertools/more-itertools/commit/3e705a4e11fd73b4f201e03c907618df12a91c2d; gh api compare 4bdd12f7b33d...3e705a4e11fd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/more-itertools/more-itertools/pull/699",
+    "title": "Optimize _chunked_even_finite()",
+    "commit": "3e705a4e11fd73b4f201e03c907618df12a91c2d",
+    "merged_at": "2023-03-19T18:15:43Z",
+    "files": [
+      "more_itertools/more.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -m timeit -n 1 -r 3 -s \"from more_itertools import chunked_even\" \"[list(chunked_even(range(x), y)) for x in range(500) for y in range(1, 500)]\"",
+    "source": "adapted from the first %timeit line in the description of https://github.com/more-itertools/more-itertools/pull/699",
+    "verified": true
+  },
+  "oracle": {
+    "command": "python -m pytest -q tests/test_more.py",
+    "source": "the test module for more_itertools/more.py, the file https://github.com/more-itertools/more-itertools/pull/699 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/more-itertools/more-itertools/pull/699",
+      "note": "description, as matched by the miner: timings: 2.9 s ± 24.6 ms; 1.39 s ± 12.3 ms; 3.61 s ± 11.1 ms; 1.91 s ± 19.4 ms; 4.33 s ± 34.1 ms; 2.84 s ± 24.4 ms; 4.31 s ± 26.1 ms; 2.72 s ± 7.32 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.17,
+      "date": "2026-10-16T02:23:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 88ms\n   Building more-itertools @ file://eval/mine/work/more-itertools-more-itertools-pr699/task\n      Built more-itertools @ file://eval/mine/work/more-itertools-more-itertools-pr699/task\nPrepared 1 package in 39ms\nInstalled 6 packages in 5ms\n + iniconfig==2.3.1\n + more-itertools==9.1.0 (from file://eval/mine/work/more-itertools-more-itertools-pr699/task)\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q tests/test_more.py",
+      "exit_code": 0,
+      "duration_s": 1.08,
+      "date": "2026-10-16T02:23:18+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "................................................................................ [ 64%]\n.................................. [ 71%]\n.......................................................................................................................... [ 98%]\n.........                                                                [100%]\n=============================== warnings summary ===============================\nmore-itertools-more-itertools-pr699/task/tests/test_more.py::ZipEqualTest::test_equal\nmore-itertools-more-itertools-pr699/task/tests/test_more.py::ZipEqualTest::test_equal\nmore-itertools-more-itertools-pr699/task/tests/test_more.py::ZipEqualTest::test_unequal_lists\nmore-itertools-more-itertools-pr699/task/tests/test_more.py::ZipEqualTest::test_unequal_lists\nmore-itertools-more-itertools-pr699/task/tests/test_more.py::ZipEqualTest::test_unequal_lists\n  eval/mine/work/more-itertools-more-itertools-pr699/task/more_itertools/more.py:1639: DeprecationWarning: zip_equal will be removed in a future version of more-itertools. Use the builtin zip function with strict=True instead.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n466 passed, 5 warnings, 2135 subtests passed in 0.84s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -m timeit -n 1 -r 3 -s \"from more_itertools import chunked_even\" \"[list(chunked_even(range(x), y)) for x in range(500) for y in range(1, 500)]\"",
+      "exit_code": 0,
+      "duration_s": 4.16,
+      "date": "2026-10-16T02:23:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 loop, best of 3: 1.32 sec per loop"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:23+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.17,
+      "date": "2026-10-16T02:23:23+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 93ms\n   Building more-itertools @ file://eval/mine/work/more-itertools-more-itertools-pr699/reference\n      Built more-itertools @ file://eval/mine/work/more-itertools-more-itertools-pr699/reference\nPrepared 1 package in 39ms\nInstalled 6 packages in 5ms\n + iniconfig==2.3.1\n + more-itertools==9.1.0 (from file://eval/mine/work/more-itertools-more-itertools-pr699/reference)\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q tests/test_more.py",
+      "exit_code": 0,
+      "duration_s": 1.08,
+      "date": "2026-10-16T02:23:23+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "................................................................................ [ 64%]\n.................................. [ 71%]\n.......................................................................................................................... [ 98%]\n.........                                                                [100%]\n=============================== warnings summary ===============================\nmore-itertools-more-itertools-pr699/reference/tests/test_more.py::ZipEqualTest::test_equal\nmore-itertools-more-itertools-pr699/reference/tests/test_more.py::ZipEqualTest::test_equal\nmore-itertools-more-itertools-pr699/reference/tests/test_more.py::ZipEqualTest::test_unequal_lists\nmore-itertools-more-itertools-pr699/reference/tests/test_more.py::ZipEqualTest::test_unequal_lists\nmore-itertools-more-itertools-pr699/reference/tests/test_more.py::ZipEqualTest::test_unequal_lists\n  eval/mine/work/more-itertools-more-itertools-pr699/reference/more_itertools/more.py:1639: DeprecationWarning: zip_equal will be removed in a future version of more-itertools. Use the builtin zip function with strict=True instead.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n466 passed, 5 warnings, 2135 subtests passed in 0.84s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -m timeit -n 1 -r 3 -s \"from more_itertools import chunked_even\" \"[list(chunked_even(range(x), y)) for x in range(500) for y in range(1, 500)]\"",
+      "exit_code": 0,
+      "duration_s": 3.25,
+      "date": "2026-10-16T02:23:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1 loop, best of 3: 1.04 sec per loop"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T01:59:37+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

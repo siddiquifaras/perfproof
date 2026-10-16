@@ -1,0 +1,46 @@
+{
+  "id": "zlib-ng-zlib-ng-pr2250",
+  "repository": "zlib-ng/zlib-ng",
+  "stars": 2107,
+  "pushed_at": "2026-10-12T22:37:11Z",
+  "task_commit": "48087450f7b2efab59f678f68cd9f049f16c2701",
+  "task_commit_basis": "first parent of https://github.com/zlib-ng/zlib-ng/commit/c69e75e9e24bba709752268df239fee3c2e3dcfa; gh api compare 48087450f7b2...c69e75e9e24b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/zlib-ng/zlib-ng/pull/2250",
+    "title": "Fix scan_endstr offset in longest_match slow path",
+    "commit": "c69e75e9e24bba709752268df239fee3c2e3dcfa",
+    "merged_at": "2026-05-12T17:59:13Z",
+    "files": [
+      "match_tpl.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/zlib-ng/zlib-ng/pull/2250",
+      "note": "description, as matched by the miner: timings: 4235 ns; 4024 ns; 72437 ns; 48967 ns; 630860 ns; 531667 ns; 5.15 ms; 4.58 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

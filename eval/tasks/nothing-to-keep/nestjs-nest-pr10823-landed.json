@@ -1,0 +1,47 @@
+{
+  "id": "nestjs-nest-pr10823-landed",
+  "repository": "nestjs/nest",
+  "stars": 76852,
+  "pushed_at": "2026-10-15T07:12:49Z",
+  "task_commit": "66a76e2f04166fefc547e9db1ed74c1181248a55",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/nestjs/nest/commit/66a76e2f04166fefc547e9db1ed74c1181248a55",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nestjs/nest/pull/10823",
+    "title": "perf(common): faster logs by caching intl.datetimeformat",
+    "commit": "66a76e2f04166fefc547e9db1ed74c1181248a55",
+    "merged_at": "2023-02-01T10:18:04Z",
+    "files": [
+      "packages/common/services/console-logger.service.ts",
+      "packages/common/services/logger.service.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nestjs/nest/pull/10823",
+      "note": "description, as matched by the miner: speedup claims: 8x | timings: 1ms; 13ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

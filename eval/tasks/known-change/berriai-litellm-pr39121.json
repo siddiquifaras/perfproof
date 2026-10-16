@@ -1,0 +1,68 @@
+{
+  "id": "berriai-litellm-pr39121",
+  "repository": "BerriAI/litellm",
+  "stars": 61333,
+  "pushed_at": "2026-10-15T22:39:41Z",
+  "task_commit": "17e13126cc082134dd2686957c05e74b3e109b05",
+  "task_commit_basis": "first parent of https://github.com/BerriAI/litellm/commit/c091dd46087bc3a40f18ab0bc48dc08a2b0552a8 (squash merge); gh api compare 17e13126cc08...c091dd46087b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/39121",
+    "title": "perf: lazy-load SDK symbols so import litellm stays under 60 MB RSS",
+    "commit": "c091dd46087bc3a40f18ab0bc48dc08a2b0552a8",
+    "merged_at": "2026-09-05T19:58:36Z",
+    "files": [
+      "litellm/__init__.py",
+      "litellm/_lazy_imports.py",
+      "litellm/_lazy_imports_registry.py",
+      "litellm/proxy/__init__.py",
+      "tests/test_litellm/test_lazy_imports.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/39969",
+    "title": "revert: perf: lazy-load SDK symbols so import litellm stays under 60 MB RSS (#39121)",
+    "commit": "b1e2f5bc0bbddb0fe554e710dba8edd39afa5cec",
+    "merged_at": "2026-09-05T23:22:56Z",
+    "files": [
+      "litellm/__init__.py",
+      "litellm/_lazy_imports.py",
+      "litellm/_lazy_imports_registry.py",
+      "litellm/proxy/__init__.py",
+      "tests/test_litellm/test_lazy_imports.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_litellm/test_lazy_imports.py",
+    "source": "test files changed by https://github.com/BerriAI/litellm/pull/39121 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/39121",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/39969",
+      "note": "revert; miner classified it as reverted-breaking from: 'ecks now hit circular imports - The Interactions API bridge fails on every call because `litellm.responses` and `litellm.ares'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

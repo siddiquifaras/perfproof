@@ -1,0 +1,54 @@
+{
+  "id": "tox-dev-tox-pr1324",
+  "repository": "tox-dev/tox",
+  "stars": 3958,
+  "pushed_at": "2026-10-15T22:38:48Z",
+  "task_commit": "8c0275f36a9cf1f560733022008c5782bd9b4eb2",
+  "task_commit_basis": "first parent of https://github.com/tox-dev/tox/commit/afe11da3e339434d2778b5d702fc8e676dc4f54a; gh api compare 8c0275f36a9c...afe11da3e339 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/tox-dev/tox/pull/1324",
+    "title": "Move to importlib-metadata for performance improvements",
+    "commit": "afe11da3e339434d2778b5d702fc8e676dc4f54a",
+    "merged_at": "2019-05-28T15:26:51Z",
+    "files": [
+      "docs/changelog/1324.feature.rst",
+      "setup.cfg",
+      "src/tox/config/__init__.py",
+      "src/tox/package/builder/isolated.py",
+      "src/tox/package/local.py",
+      "src/tox/session/commands/show_config.py",
+      "src/tox/venv.py",
+      "tests/unit/session/test_provision.py",
+      "tox.ini"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/unit/session/test_provision.py",
+    "source": "test files changed by https://github.com/tox-dev/tox/pull/1324 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/tox-dev/tox/pull/1324",
+      "note": "description, as matched by the miner: timings: 298s; 270s; 029s; 208s; 200s; 008s; 90ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "astropy-astropy-pr18446",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "faa8f5ec9d8d32443de6c90004a7f94c0b96bf3d",
+  "task_commit_basis": "first parent of https://github.com/astropy/astropy/commit/efc1efa14ceb8806bd057eaeff76fbd1c27fd211 (squash merge); gh api compare faa8f5ec9d8d...efc1efa14ceb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/18446",
+    "title": "Speed up `utils.diff.diff_values()`",
+    "commit": "efc1efa14ceb8806bd057eaeff76fbd1c27fd211",
+    "merged_at": "2025-07-21T16:26:36Z",
+    "files": [
+      "astropy/utils/diff.py",
+      "astropy/utils/tests/test_diff.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit diff_values(1.11, 1.1)",
+    "source": "quoted in the description of https://github.com/astropy/astropy/pull/18446",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest astropy/utils/tests/test_diff.py",
+    "source": "test files changed by https://github.com/astropy/astropy/pull/18446 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/18446",
+      "note": "description, as matched by the miner: timings: 10.2 μs ± 39 ns; 10.4 μs ± 9.58 ns; 83.6 ns ± 0.119 ns; 94.2 ns ± 0.06 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

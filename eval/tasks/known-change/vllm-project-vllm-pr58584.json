@@ -1,0 +1,50 @@
+{
+  "id": "vllm-project-vllm-pr58584",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "3722645539f4cbf11028e69eea0643dee5cdc773",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/87d9996abe7ae0173fa8c1b6ccc2411041bcac81 (squash merge); gh api compare 3722645539f4...87d9996abe7a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/58584",
+    "title": "[ROCm][Perf][GLM-5.3-Flash] BF16 splitk kernel for sparse MLA decode",
+    "commit": "87d9996abe7ae0173fa8c1b6ccc2411041bcac81",
+    "merged_at": "2026-10-08T02:37:52Z",
+    "files": [
+      "benchmarks/kernels/benchmark_sparse_mla_decode_bf16.py",
+      "tests/kernels/attention/test_rocm_aiter_mla_sink.py",
+      "tests/kernels/attention/test_rocm_triton_attn_dsv4.py",
+      "vllm/v1/attention/backends/mla/rocm_aiter_mla_sparse.py",
+      "vllm/v1/attention/ops/rocm_aiter_mla_sparse.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": "python3 benchmarks/kernels/benchmark_sparse_mla_decode_bf16.py --rows 1 2 4 8 16 64 128 256 --lens 128 512 2048 --splits auto",
+    "source": "quoted in the description of https://github.com/vllm-project/vllm/pull/58584",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/kernels/attention/test_rocm_aiter_mla_sink.py tests/kernels/attention/test_rocm_triton_attn_dsv4.py",
+    "source": "test files changed by https://github.com/vllm-project/vllm/pull/58584 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/58584",
+      "note": "description, as matched by the miner: speedup claims: 6x speedup | timings: 2632ms; 11.92ms; 8.68ms; 2291ms; 11.47ms; 8.64ms; 713ms; 11.48ms | benchmark files changed: benchmarks/kernels/benchmark_sparse_mla_decode_bf16.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

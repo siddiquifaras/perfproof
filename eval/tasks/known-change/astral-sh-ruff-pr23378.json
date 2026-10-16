@@ -1,0 +1,68 @@
+{
+  "id": "astral-sh-ruff-pr23378",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "93a16bd05fba249439848beb6fbcbf3e8a436f03",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/85a8516e0b065e2bd1a859c9529877bd5b48953e; gh api compare 93a16bd05fba...85a8516e0b06 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/23378",
+    "title": "[ty] Completely remove the `NoReturn` shortcut optimization",
+    "commit": "85a8516e0b065e2bd1a859c9529877bd5b48953e",
+    "merged_at": "2026-03-14T07:04:09Z",
+    "files": [
+      "crates/ty_python_semantic/resources/mdtest/exhaustiveness_checking.md",
+      "crates/ty_python_semantic/src/semantic_index/builder.rs",
+      "crates/ty_python_semantic/src/semantic_index/predicate.rs",
+      "crates/ty_python_semantic/src/semantic_index/reachability_constraints.rs",
+      "crates/ty_python_semantic/src/types/narrow.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/23955",
+    "title": "Revert \"[ty] Completely remove the `NoReturn` shortcut optimization\"",
+    "commit": "3bfdb1208392802d3b38ec771789a99437c482d0",
+    "merged_at": "2026-03-14T13:43:29Z",
+    "files": [
+      "crates/ty_python_semantic/resources/mdtest/exhaustiveness_checking.md",
+      "crates/ty_python_semantic/src/semantic_index/builder.rs",
+      "crates/ty_python_semantic/src/semantic_index/predicate.rs",
+      "crates/ty_python_semantic/src/semantic_index/reachability_constraints.rs",
+      "crates/ty_python_semantic/src/types/narrow.rs"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/23378",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/23955",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

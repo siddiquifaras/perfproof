@@ -1,0 +1,62 @@
+{
+  "id": "rails-rails-pr51966",
+  "repository": "rails/rails",
+  "stars": 58839,
+  "pushed_at": "2026-10-15T20:53:55Z",
+  "task_commit": "64d5f8ba0edba39791cdb4874c2e57064b2b691c",
+  "task_commit_basis": "first parent of https://github.com/rails/rails/commit/0378b056de4a9898fe8209ba0b04e04d921d4fa1; gh api compare 64d5f8ba0edb...0378b056de4a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rails/rails/pull/51966",
+    "title": "Optimize `ActiveRecord::Relation#exists?` with no conditions for loaded relations",
+    "commit": "0378b056de4a9898fe8209ba0b04e04d921d4fa1",
+    "merged_at": "2024-06-01T08:26:22Z",
+    "files": [
+      "activerecord/lib/active_record/relation/finder_methods.rb",
+      "activerecord/test/cases/finder_test.rb"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/rails/rails/pull/51985",
+    "title": "Revert \"Optimize `ActiveRecord::Relation#exists?` with no conditions for loaded relations\"",
+    "commit": "d97fb459bd9fa0d67b4909b8a3b87df8b27405fa",
+    "merged_at": "2024-06-01T08:35:40Z",
+    "files": [
+      "activerecord/lib/active_record/relation/finder_methods.rb",
+      "activerecord/test/cases/finder_test.rb"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rails/rails/pull/51966",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/rails/rails/pull/51985",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

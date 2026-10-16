@@ -1,0 +1,55 @@
+{
+  "id": "honojs-hono-pr1015",
+  "repository": "honojs/hono",
+  "stars": 32548,
+  "pushed_at": "2026-10-15T12:26:44Z",
+  "task_commit": "ffbf2502d4ac556eaf77c56d22d1bf15d7b0eb6c",
+  "task_commit_basis": "first parent of https://github.com/honojs/hono/commit/91c04ac073c287f20e05b48e00e7236133641850 (squash merge); gh api compare ffbf2502d4ac...91c04ac073c2 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/honojs/hono/pull/1015",
+    "title": "refactor(utils/url): Decode parameters more accurately without performance degradation.",
+    "commit": "91c04ac073c287f20e05b48e00e7236133641850",
+    "merged_at": "2023-03-29T14:03:01Z",
+    "files": [
+      "benchmarks/query-param/package-lock.json",
+      "benchmarks/query-param/package.json",
+      "benchmarks/query-param/src/bench.mts",
+      "benchmarks/query-param/src/fast-querystring.mts",
+      "benchmarks/query-param/src/hono.mts",
+      "deno_dist/request.ts",
+      "deno_dist/utils/url.ts",
+      "src/request.ts",
+      "src/utils/url.test.ts",
+      "src/utils/url.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "npm run bench:bun",
+    "source": "quoted in the description of https://github.com/honojs/hono/pull/1015",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/honojs/hono/pull/1015",
+      "note": "description, as matched by the miner: speedup claims: 1.01x faster; 1.37x faster; 1.31x faster; 1.33x faster; 1.06x faster | timings: 65.82 ns; 61.54 ns; 198.54 ns; 65.23 ns; 117.97 ns; 133.18 ns; 66.68 ns; 60.56 ns | benchmark files changed: benchmarks/query-param/package-lock.json, benchmarks/query-param/package.json, benchmarks/query-param/src/bench.mts, benchmarks/query-param/src/fast-querystring.mts, benchmarks/query-param/src/hono.mts"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

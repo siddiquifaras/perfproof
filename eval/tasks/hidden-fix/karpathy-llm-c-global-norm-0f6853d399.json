@@ -1,0 +1,47 @@
+{
+  "id": "karpathy-llm-c-global-norm-0f6853d399",
+  "repository": "karpathy/llm.c",
+  "stars": 31160,
+  "pushed_at": "2025-06-26T17:03:40Z",
+  "task_commit": "2bc0b474c5b200aaab2a76dcfa63ce78e709948d",
+  "task_commit_basis": "first parent of https://github.com/karpathy/llm.c/commit/0f6853d39970b11bd2e6d2d29eb088c4c18f677d (gh api commits)",
+  "reference_change": {
+    "kind": "commit",
+    "url": "https://github.com/karpathy/llm.c/commit/0f6853d39970b11bd2e6d2d29eb088c4c18f677d",
+    "title": "Add global norm prod kernels to dev",
+    "commit": "0f6853d39970b11bd2e6d2d29eb088c4c18f677d",
+    "merged_at": "2024-06-15T15:29:14Z",
+    "files": [
+      "dev/cuda/common.h",
+      "dev/cuda/global_norm.cu"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "kernel-version",
+  "target_class": "gpu",
+  "workload": {
+    "command": "cd dev/cuda && nvcc -O3 --use_fast_math global_norm.cu -o global_norm && ./global_norm 4",
+    "source": "compile line in the header of dev/cuda/global_norm.cu at 0f6853d39970; the kernel number is the version this commit adds, so a fixed baseline-vs-candidate command still has to be set up",
+    "verified": false
+  },
+  "oracle": {
+    "command": "cd dev/cuda && nvcc -O3 --use_fast_math global_norm.cu -o global_norm && ./global_norm 4",
+    "source": "dev/cuda/global_norm.cu compares the GPU result against its CPU reference with validate_result when run",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/karpathy/llm.c/commit/0f6853d39970b11bd2e6d2d29eb088c4c18f677d",
+      "note": "dev/cuda/global_norm.cu dispatches global_norm3, global_norm4 after this commit (case N: calling <name><N>); its parent dispatches global_norm [1, 2] (matched by the miner)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here: needs an NVIDIA GPU. Repository kept despite the activity threshold (last push 2025-06-26T17:03:40Z) because the plan names its dev/cuda kernels for GPU tasks",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

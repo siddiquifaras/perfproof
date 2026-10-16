@@ -1,0 +1,47 @@
+{
+  "id": "pytorch-ao-pr4113-landed",
+  "repository": "pytorch/ao",
+  "stars": 3005,
+  "pushed_at": "2026-10-15T22:39:17Z",
+  "task_commit": "10af8620a391e8a98ab0120163a208d32c0a24db",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/pytorch/ao/commit/10af8620a391e8a98ab0120163a208d32c0a24db",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pytorch/ao/pull/4113",
+    "title": "[moe training] Optimize triton_fp8_per_group_colwise_scales for AMDGPU",
+    "commit": "10af8620a391e8a98ab0120163a208d32c0a24db",
+    "merged_at": "2026-04-13T20:00:15Z",
+    "files": [
+      "benchmarks/prototype/moe_training/fp8_rowwise/bench_triton_fp8_per_group_colwise_scales.py",
+      "torchao/prototype/moe_training/kernels/jagged_float8_scales.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pytorch/ao/pull/4113",
+      "note": "description, as matched by the miner: speedup claims: 0.03x; 0.62x; 20x; 0.84x; 6.07x | benchmark files changed: benchmarks/prototype/moe_training/fp8_rowwise/bench_triton_fp8_per_group_colwise_scales.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:01+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

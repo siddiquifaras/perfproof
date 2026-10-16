@@ -1,0 +1,46 @@
+{
+  "id": "astral-sh-ruff-pr29340",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "362e2aebace4b94e78f0f3a484dc759ddbb6148a",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/baf1048106f29a9fb015d05e77117f54d09832de; gh api compare 362e2aebace4...baf1048106f2 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/29340",
+    "title": "[ty] Optimize system path equality",
+    "commit": "baf1048106f29a9fb015d05e77117f54d09832de",
+    "merged_at": "2026-10-13T21:26:46Z",
+    "files": [
+      "crates/ruff_db/src/system/path.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/29340",
+      "note": "description, as matched by the miner: speedup claims: 10.08% fewer; 0.34% fewer"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

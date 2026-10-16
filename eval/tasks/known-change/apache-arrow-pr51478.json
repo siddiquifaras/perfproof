@@ -1,0 +1,55 @@
+{
+  "id": "apache-arrow-pr51478",
+  "repository": "apache/arrow",
+  "stars": 17207,
+  "pushed_at": "2026-10-15T02:09:01Z",
+  "task_commit": "258df1c04405d750eea17a421043bd1af36dbfff",
+  "task_commit_basis": "first parent of https://github.com/apache/arrow/commit/36f655f44cc4fa63c389a35b0bcfbe6723c0f87d; gh api compare 258df1c04405...36f655f44cc4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/arrow/pull/51478",
+    "title": "GH-51476: [C++][Parquet] Vectorise FindMinMax explicitly",
+    "commit": "36f655f44cc4fa63c389a35b0bcfbe6723c0f87d",
+    "merged_at": "2026-10-06T08:56:00Z",
+    "files": [
+      "cpp/src/parquet/CMakeLists.txt",
+      "cpp/src/parquet/level_comparison.cc",
+      "cpp/src/parquet/level_comparison.h",
+      "cpp/src/parquet/level_comparison_avx2.cc",
+      "cpp/src/parquet/level_comparison_avx2_internal.h",
+      "cpp/src/parquet/level_comparison_simd_128.cc",
+      "cpp/src/parquet/level_comparison_simd_256.cc",
+      "cpp/src/parquet/level_comparison_simd_internal.h",
+      "cpp/src/parquet/level_comparison_simd_kernel_internal.h",
+      "cpp/src/parquet/level_conversion_benchmark.cc"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/arrow/pull/51478",
+      "note": "description, as matched by the miner: speedup claims: 9.3x; 17.9x | timings: 513 ns; 54.9 ns; 28.7 ns | benchmark files changed: cpp/src/parquet/level_conversion_benchmark.cc"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

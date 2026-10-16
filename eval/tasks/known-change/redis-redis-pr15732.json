@@ -1,0 +1,51 @@
+{
+  "id": "redis-redis-pr15732",
+  "repository": "redis/redis",
+  "stars": 76833,
+  "pushed_at": "2026-10-15T16:28:22Z",
+  "task_commit": "b261feaf225f8c8c3adc817129fe68a32fccbade",
+  "task_commit_basis": "first parent of https://github.com/redis/redis/commit/5019bc9af1210482664e36022d9d5afefa63d0d0 (squash merge); gh api compare b261feaf225f...5019bc9af121 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/redis/redis/pull/15732",
+    "title": "Accelerate CRC64 checksumming for RDB load with PCLMULQDQ",
+    "commit": "5019bc9af1210482664e36022d9d5afefa63d0d0",
+    "merged_at": "2026-10-15T06:44:14Z",
+    "files": [
+      "src/config.h",
+      "src/crc64.c",
+      "src/crc64.h",
+      "src/rdb.c",
+      "src/rio.c",
+      "src/rio.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/redis/redis/pull/15732",
+      "note": "description, as matched by the miner: speedup claims: 6x faster; 6.2x | timings: 5s; 5.303s; 4.572s; 4.985s; 3.673s; 5.508s; 4.061s; 5.124s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

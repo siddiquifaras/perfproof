@@ -1,0 +1,48 @@
+{
+  "id": "lz4-lz4-pr1158",
+  "repository": "lz4/lz4",
+  "stars": 12148,
+  "pushed_at": "2026-10-15T04:53:25Z",
+  "task_commit": "4de3e98ad206f6afc85bbb4268f6c3a64fc2d487",
+  "task_commit_basis": "first parent of https://github.com/lz4/lz4/commit/72997c5a915ccf80459cd023c6322239c308c025; gh api compare 4de3e98ad206...72997c5a915c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/lz4/lz4/pull/1158",
+    "title": "allocation optimization for lz4frame compression",
+    "commit": "72997c5a915ccf80459cd023c6322239c308c025",
+    "merged_at": "2022-09-08T14:28:54Z",
+    "files": [
+      "lib/lz4frame.c",
+      "lib/lz4frame.h",
+      "tests/fullbench.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/lz4/lz4/pull/1158",
+      "note": "description, as matched by the miner: benchmark files changed: tests/fullbench.c"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,57 @@
+{
+  "id": "internlm-lmdeploy-pr4861",
+  "repository": "InternLM/lmdeploy",
+  "stars": 8106,
+  "pushed_at": "2026-10-09T03:58:16Z",
+  "task_commit": "981090a0987f357b719af1172b9cbc550e3c19b0",
+  "task_commit_basis": "first parent of https://github.com/InternLM/lmdeploy/commit/a52688dc6cc08a79d6998aa8331b8b15e469b4c4 (squash merge); gh api compare 981090a0987f...a52688dc6cc0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/InternLM/lmdeploy/pull/4861",
+    "title": " perf(cuda): use PDL for paged attention and V4 prefill",
+    "commit": "a52688dc6cc08a79d6998aa8331b8b15e469b4c4",
+    "merged_at": "2026-08-24T12:26:41Z",
+    "files": [
+      "lmdeploy/pytorch/backends/cuda/v4_compressor.py",
+      "lmdeploy/pytorch/check_env/triton.py",
+      "lmdeploy/pytorch/kernels/cuda/activation.py",
+      "lmdeploy/pytorch/kernels/cuda/bitonic_topk.py",
+      "lmdeploy/pytorch/kernels/cuda/blocked_gemm_fp8.py",
+      "lmdeploy/pytorch/kernels/cuda/flashattention.py",
+      "lmdeploy/pytorch/kernels/cuda/pagedattention.py",
+      "lmdeploy/pytorch/kernels/cuda/utils.py",
+      "lmdeploy/pytorch/kernels/cuda/v4_compressor.py",
+      "lmdeploy/pytorch/kernels/cuda/w8a8_triton_kernels.py",
+      "requirements/runtime_cuda.txt",
+      "tests/pytorch/kernel/test_v4_compressor.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/pytorch/kernel/test_v4_compressor.py",
+    "source": "test files changed by https://github.com/InternLM/lmdeploy/pull/4861 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/InternLM/lmdeploy/pull/4861",
+      "note": "description, as matched by the miner: timings: 12.096 µs; 11.520 µs; 22.080 µs; 21.248 µs; 21.376 µs; 20.704 µs; 260.384 µs; 259.296 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

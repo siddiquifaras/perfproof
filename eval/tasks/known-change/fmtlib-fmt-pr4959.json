@@ -1,0 +1,48 @@
+{
+  "id": "fmtlib-fmt-pr4959",
+  "repository": "fmtlib/fmt",
+  "stars": 25882,
+  "pushed_at": "2026-10-11T22:29:11Z",
+  "task_commit": "ea0660a1d095d36861dbcf1b43b96060ea0f2ef0",
+  "task_commit_basis": "first parent of https://github.com/fmtlib/fmt/commit/9197f51593dab5f637454a8889fb9638e737711a; gh api compare ea0660a1d095...9197f51593da touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fmtlib/fmt/pull/4959",
+    "title": "Use chunked fills to optimize buffered padding",
+    "commit": "9197f51593dab5f637454a8889fb9638e737711a",
+    "merged_at": "2026-10-02T18:44:42Z",
+    "files": [
+      "include/fmt/format.h",
+      "test/format-test.cc",
+      "test/xchar-test.cc"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fmtlib/fmt/pull/4959",
+      "note": "description, as matched by the miner: speedup claims: 40x faster; 20% less"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "huggingface-diffusers-pr11665",
+  "repository": "huggingface/diffusers",
+  "stars": 34728,
+  "pushed_at": "2026-10-15T22:28:22Z",
+  "task_commit": "1bc6f3dc0f21779480db70a4928d14282c0198ed",
+  "task_commit_basis": "first parent of https://github.com/huggingface/diffusers/commit/5ce4814af1de6d2dc2cc67a46d3862ce62261e2b (squash merge); gh api compare 1bc6f3dc0f21...5ce4814af1de touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/diffusers/pull/11665",
+    "title": "⚡️ Speed up method `AutoencoderKLWan.clear_cache` by 886%",
+    "commit": "5ce4814af1de6d2dc2cc67a46d3862ce62261e2b",
+    "merged_at": "2025-06-18T03:16:03Z",
+    "files": [
+      "src/diffusers/models/autoencoders/autoencoder_kl_wan.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/diffusers/pull/11665",
+      "note": "description, as matched by the miner: speedup claims: 8.86x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

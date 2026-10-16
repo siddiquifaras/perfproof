@@ -1,0 +1,49 @@
+{
+  "id": "scikit-learn-scikit-learn-pr34386",
+  "repository": "scikit-learn/scikit-learn",
+  "stars": 67624,
+  "pushed_at": "2026-10-14T13:00:44Z",
+  "task_commit": "add0e835b7d01bcd14f6d585393d0b8154795bc3",
+  "task_commit_basis": "first parent of https://github.com/scikit-learn/scikit-learn/commit/dfe68afba23a9bbd654da69ec1074d090dba25a0 (squash merge); gh api compare add0e835b7d0...dfe68afba23a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scikit-learn/scikit-learn/pull/34386",
+    "title": "ENH PERF Speed up unique counts for strings, thereby speeding up encoding",
+    "commit": "dfe68afba23a9bbd654da69ec1074d090dba25a0",
+    "merged_at": "2026-07-03T10:03:06Z",
+    "files": [
+      "doc/whats_new/upcoming_changes/sklearn.preprocessing/34386.efficiency.rst",
+      "sklearn/utils/_encode.py",
+      "sklearn/utils/_missing.py",
+      "sklearn/utils/tests/test_encode.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit is_scalar_nan(\"\")",
+    "source": "quoted in the description of https://github.com/scikit-learn/scikit-learn/pull/34386",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sklearn/utils/tests/test_encode.py",
+    "source": "test files changed by https://github.com/scikit-learn/scikit-learn/pull/34386 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/34386",
+      "note": "description, as matched by the miner: speedup claims: 1.00x; 1.77x; 2.88x; 3.98x; 1.56x | timings: 18.465 s; 10.455 s; 6.404 s; 4.636 s; 13.872 s; 8.879 s; 5.704 s; 4.265 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,58 @@
+{
+  "id": "matplotlib-matplotlib-pr32120",
+  "repository": "matplotlib/matplotlib",
+  "stars": 23373,
+  "pushed_at": "2026-10-15T20:08:53Z",
+  "task_commit": "a0acad0712a8571509ce37b864e651255ff9a4fe",
+  "task_commit_basis": "first parent of https://github.com/matplotlib/matplotlib/commit/615ff27caeeeb4934bf9164c51c92706a1cc95a0; gh api compare a0acad0712a8...615ff27caeee touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/matplotlib/matplotlib/pull/32120",
+    "title": "PERF: Text rendering speedups",
+    "commit": "615ff27caeeeb4934bf9164c51c92706a1cc95a0",
+    "merged_at": "2026-09-21T14:40:08Z",
+    "files": [
+      "lib/matplotlib/_text_helpers.py",
+      "lib/matplotlib/backends/backend_agg.py",
+      "lib/matplotlib/testing/conftest.py",
+      "lib/matplotlib/tests/test_agg.py",
+      "lib/matplotlib/tests/test_ft2font.py",
+      "lib/matplotlib/tests/test_textpath.py",
+      "lib/matplotlib/text.py",
+      "lib/matplotlib/textpath.py",
+      "src/_backend_agg.h",
+      "src/_backend_agg_wrapper.cpp",
+      "src/ft2font.cpp",
+      "src/ft2font.h",
+      "src/ft2font_wrapper.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest lib/matplotlib/tests/test_agg.py lib/matplotlib/tests/test_ft2font.py lib/matplotlib/tests/test_textpath.py",
+    "source": "test files changed by https://github.com/matplotlib/matplotlib/pull/32120 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/matplotlib/matplotlib/pull/32120",
+      "note": "description, as matched by the miner: speedup claims: 2.4x; 1.13x; 1.18x; 1.33x; 1.14x | timings: 4.03 sec; 1.86 sec"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

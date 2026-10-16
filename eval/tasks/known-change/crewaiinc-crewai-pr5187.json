@@ -1,0 +1,49 @@
+{
+  "id": "crewaiinc-crewai-pr5187",
+  "repository": "crewAIInc/crewAI",
+  "stars": 59744,
+  "pushed_at": "2026-10-15T21:33:41Z",
+  "task_commit": "c8f3a967794f3564004b111bd36487698776479f",
+  "task_commit_basis": "first parent of https://github.com/crewAIInc/crewAI/commit/3132910084540a309fa0b15543a2f10d2f68c8a3 (squash merge); gh api compare c8f3a967794f...313291008454 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/crewAIInc/crewAI/pull/5187",
+    "title": "perf: reduce framework overhead — lazy event bus, skip tracing when disabled",
+    "commit": "3132910084540a309fa0b15543a2f10d2f68c8a3",
+    "merged_at": "2026-04-01T17:17:57Z",
+    "files": [
+      "lib/crewai/src/crewai/events/event_bus.py",
+      "lib/crewai/src/crewai/events/listeners/tracing/trace_listener.py",
+      "lib/crewai/src/crewai/events/listeners/tracing/utils.py",
+      "lib/crewai/tests/tracing/test_tracing.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest lib/crewai/tests/tracing/test_tracing.py",
+    "source": "test files changed by https://github.com/crewAIInc/crewAI/pull/5187 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/crewAIInc/crewAI/pull/5187",
+      "note": "description, as matched by the miner: timings: 1.3s; 200ms; 10s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

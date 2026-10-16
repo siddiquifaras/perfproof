@@ -1,0 +1,47 @@
+{
+  "id": "fastify-fastify-pr7056",
+  "repository": "fastify/fastify",
+  "stars": 37284,
+  "pushed_at": "2026-10-15T11:18:02Z",
+  "task_commit": "f7f73aa7d0233f5f8455ac75a828ab3862419fc4",
+  "task_commit_basis": "first parent of https://github.com/fastify/fastify/commit/2e3ebc5f984e0744b0738faff207cbac1875c3b3 (squash merge); gh api compare f7f73aa7d023...2e3ebc5f984e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fastify/fastify/pull/7056",
+    "title": "perf: avoid resetting the level of request child loggers",
+    "commit": "2e3ebc5f984e0744b0738faff207cbac1875c3b3",
+    "merged_at": "2026-09-26T16:05:12Z",
+    "files": [
+      "lib/route.js",
+      "test/child-logger-factory.test.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fastify/fastify/pull/7056",
+      "note": "description, as matched by the miner: timings: 100 ns; 827 ns; 730 ns; 6009 ns; 5897 ns; 8270 ns; 8201 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

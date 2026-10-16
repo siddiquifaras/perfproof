@@ -1,0 +1,48 @@
+{
+  "id": "scikit-learn-scikit-learn-pr35044",
+  "repository": "scikit-learn/scikit-learn",
+  "stars": 67624,
+  "pushed_at": "2026-10-14T13:00:44Z",
+  "task_commit": "d34d55c3deb48136ea380a06c6c5cf054ae97e69",
+  "task_commit_basis": "first parent of https://github.com/scikit-learn/scikit-learn/commit/a442e4bb39551feb7b0af4c00075e2cb91cf9b77 (squash merge); gh api compare d34d55c3deb4...a442e4bb3955 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scikit-learn/scikit-learn/pull/35044",
+    "title": "PERF: Speed up BaggingClassifier{Regressor,Classifier}",
+    "commit": "a442e4bb39551feb7b0af4c00075e2cb91cf9b77",
+    "merged_at": "2026-10-03T14:29:24Z",
+    "files": [
+      "doc/whats_new/upcoming_changes/sklearn.ensemble/35044.efficiency.rst",
+      "sklearn/ensemble/_bagging.py",
+      "sklearn/ensemble/tests/test_bagging.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sklearn/ensemble/tests/test_bagging.py",
+    "source": "test files changed by https://github.com/scikit-learn/scikit-learn/pull/35044 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/35044",
+      "note": "description, as matched by the miner: timings: 605s; 891s; 477s; 390s; 461s; 387s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

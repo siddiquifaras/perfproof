@@ -1,0 +1,54 @@
+{
+  "id": "swe-perf-mwaskom-seaborn-2449",
+  "repository": "mwaskom/seaborn",
+  "stars": 14074,
+  "pushed_at": "2026-10-08T01:29:20Z",
+  "task_commit": "80fc0a8eb9ff5fa7535a06e31eea375e12b32eb9",
+  "task_commit_basis": "the base_commit field of SWE-Perf/SWE-Perf row mwaskom__seaborn-2449",
+  "reference_change": {
+    "kind": "benchmark-instance",
+    "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=0&length=100",
+    "title": "swe-perf reference patch for mwaskom__seaborn-2449",
+    "commit": null,
+    "merged_at": null,
+    "files": [
+      "doc/releases/v0.12.0.txt",
+      "seaborn/categorical.py",
+      "seaborn/distributions.py",
+      "seaborn/relational.py",
+      "seaborn/utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "published-benchmark",
+  "change_kind": "benchmark-instance",
+  "target_class": "python",
+  "workload": {
+    "command": "python -m pytest seaborn/tests/test_distributions.py::TestRugPlot::test_empty_data seaborn/tests/test_matrix.py::TestClustermap::test_standard_scale_axis0",
+    "source": "the efficiency_test field of SWE-Perf/SWE-Perf row mwaskom__seaborn-2449",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: SWE-Perf rows carry no test command",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=0&length=100",
+      "note": "datasets-server page holding mwaskom__seaborn-2449; the reference change is base_commit plus the row's patch (head_commit 6c88f982851d75131d73854f77732464293f1843 is the pull request's branch tip, not the reference tree)"
+    },
+    {
+      "url": "https://github.com/chenzhi-cz/performance-optimization-benchmark-reliability/blob/44a1cb86a9f765b0375b4cfb479641f3c19f0774/data/cross_machine_task_summary.csv",
+      "note": "cross-machine audit (arXiv 2607.01211) per-task row"
+    }
+  ],
+  "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=0.59425, min_threshold_margin=0.39 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
+  "status": "candidate",
+  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:05:49+00:00",
+  "miner": "uv run python eval/mine/mine.py benchmarks"
+}

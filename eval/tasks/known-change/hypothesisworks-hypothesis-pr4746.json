@@ -1,0 +1,47 @@
+{
+  "id": "hypothesisworks-hypothesis-pr4746",
+  "repository": "HypothesisWorks/hypothesis",
+  "stars": 9085,
+  "pushed_at": "2026-10-15T20:32:34Z",
+  "task_commit": "0173bf6877260ca20d000f6a61cfee1f4fe6f981",
+  "task_commit_basis": "first parent of https://github.com/HypothesisWorks/hypothesis/commit/2dac8e0c59acab6707b6ae1cabff1004c3529278; gh api compare 0173bf687726...2dac8e0c59ac touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/HypothesisWorks/hypothesis/pull/4746",
+    "title": "Speed up stateful testing with many rules",
+    "commit": "2dac8e0c59acab6707b6ae1cabff1004c3529278",
+    "merged_at": "2026-05-27T02:52:25Z",
+    "files": [
+      "hypothesis/RELEASE.rst",
+      "hypothesis/src/hypothesis/stateful.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/HypothesisWorks/hypothesis/pull/4746",
+      "note": "description, as matched by the miner: speedup claims: 1.20x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "sgl-project-sglang-pr38976",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "33e847d080c5e3c12844024c34e3a4d9e40bb08c",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/759baff47f2193008771f0886bb7947a1d91ac64; gh api compare 33e847d080c5...759baff47f21 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/38976",
+    "title": "[DeepSeek-V4.1] Optimize small DSpark batches on Blackwell (BS1 803 tok/s)",
+    "commit": "759baff47f2193008771f0886bb7947a1d91ac64",
+    "merged_at": "2026-09-11T03:09:57Z",
+    "files": [
+      "python/sglang/kernels/ops/attention/dsv4/wo_a_bf16_small_batch.py",
+      "python/sglang/kernels/ops/layernorm/hc_combine_norm.py",
+      "python/sglang/kernels/ops/speculative/dspark/dspark_draft_model.py",
+      "python/sglang/srt/models/deepseek_v4.py",
+      "python/sglang/srt/models/deepseek_v4_dspark.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": "python bench_bs1.py --out results/bs1 --server-log \"$SERVER_LOG\" --repeat 10",
+    "source": "quoted in the description of https://github.com/sgl-project/sglang/pull/38976",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/38976",
+      "note": "description, as matched by the miner: timings: 11.22 us; 1.78 us; 102.39 us; 3.25 us; 6.933 ms; 6.568 ms; 0.709 ms; 0.697 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

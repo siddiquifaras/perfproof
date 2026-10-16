@@ -1,0 +1,60 @@
+{
+  "id": "triton-lang-triton-pr9204",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "56019d4ce475464e875ab4503e0122ad69fc5e73",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/0f765ca6bd6647ba607e447e282a602638cb2893; gh api compare 56019d4ce475...0f765ca6bd66 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/9204",
+    "title": "[AMD] ReorderInstructions: Remove moveUpTranspose optimization",
+    "commit": "0f765ca6bd6647ba607e447e282a602638cb2893",
+    "merged_at": "2026-01-13T23:25:35Z",
+    "files": [
+      "third_party/amd/lib/TritonAMDGPUTransforms/ReorderInstructions.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/9229",
+    "title": "Revert \"[AMD] ReorderInstructions: Remove moveUpTranspose optimization (#9204)\"",
+    "commit": "8fd91f3243afa8af9a399562ee2de0524193ba85",
+    "merged_at": "2026-01-15T16:42:35Z",
+    "files": [
+      "third_party/amd/lib/TritonAMDGPUTransforms/ReorderInstructions.cpp"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/9204",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/triton-lang/triton/pull/9229",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

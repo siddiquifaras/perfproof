@@ -1,0 +1,51 @@
+{
+  "id": "sanic-org-sanic-pr2074",
+  "repository": "sanic-org/sanic",
+  "stars": 18638,
+  "pushed_at": "2026-07-29T03:09:51Z",
+  "task_commit": "8a2ea626c6d04a5eb1e28d071ffa56bf9ad98a12",
+  "task_commit_basis": "first parent of https://github.com/sanic-org/sanic/commit/15a8b5c8946de0231ef20831e8e5ffb025f55c54 (squash merge); gh api compare 8a2ea626c6d0...15a8b5c8946d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sanic-org/sanic/pull/2074",
+    "title": "Perf improv",
+    "commit": "15a8b5c8946de0231ef20831e8e5ffb025f55c54",
+    "merged_at": "2021-03-21T07:47:22Z",
+    "files": [
+      "sanic/app.py",
+      "sanic/request.py",
+      "sanic/router.py",
+      "tests/benchmark/test_route_resolution_benchmark.py",
+      "tests/test_request.py",
+      "tests/test_routes.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/benchmark/test_route_resolution_benchmark.py tests/test_request.py tests/test_routes.py",
+    "source": "test files changed by https://github.com/sanic-org/sanic/pull/2074 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sanic-org/sanic/pull/2074",
+      "note": "description, as matched by the miner: timings: 10s; 3.60ms; 3.62ms; 77.03ms; 10.05s; 3.63ms; 4.25ms; 87.71ms | benchmark files changed: tests/benchmark/test_route_resolution_benchmark.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

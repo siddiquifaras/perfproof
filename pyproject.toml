@@ -68,13 +68,19 @@ convention = "numpy"
 max-doc-length = 72
 
 [tool.pyright]
-include = ["src", "tests", ".claude/hooks", "examples"]
-exclude = ["reference", "**/__pycache__", ".venv"]
+include = ["src", "tests", ".claude/hooks", "examples", "eval/mine"]
+exclude = [
+    "reference",
+    "**/__pycache__",
+    ".venv",
+    "eval/mine/cache",
+    "eval/mine/work",
+]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "eval/mine"]
 addopts = [
     "--strict-markers",
     "--strict-config",

@@ -1,0 +1,50 @@
+{
+  "id": "astral-sh-ruff-pr28081",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "f4839591d61e986635b69a16bda0847e4d27ad72",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/4125782a78330556641cf0286e2ff6fa65094060 (squash merge); gh api compare f4839591d61e...4125782a7833 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/28081",
+    "title": "[ty] Optimization: reject impossible eager protocol comparisons early",
+    "commit": "4125782a78330556641cf0286e2ff6fa65094060",
+    "merged_at": "2026-08-28T14:24:36Z",
+    "files": [
+      "crates/ty_python_semantic/resources/mdtest/diagnostics/error_context.md",
+      "crates/ty_python_semantic/resources/mdtest/protocols.md",
+      "crates/ty_python_semantic/src/types/cyclic.rs",
+      "crates/ty_python_semantic/src/types/instance.rs",
+      "crates/ty_python_semantic/src/types/relation.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/28081",
+      "note": "description, as matched by the miner: speedup claims: 43× faster | timings: 1.674 s; 0.039 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

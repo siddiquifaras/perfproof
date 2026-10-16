@@ -1,0 +1,46 @@
+{
+  "id": "python-markdown-markdown-pr1090",
+  "repository": "Python-Markdown/markdown",
+  "stars": 4251,
+  "pushed_at": "2026-10-13T19:28:45Z",
+  "task_commit": "ca43456f901abc3706f29f12c3c67ab5c5c4d264",
+  "task_commit_basis": "first parent of https://github.com/Python-Markdown/markdown/commit/4b836201f0dbf1ce763dae3688dee38f1a39a558; gh api compare ca43456f901a...4b836201f0db touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Python-Markdown/markdown/pull/1090",
+    "title": "Optimize away a `len` call in InlineProcessor",
+    "commit": "4b836201f0dbf1ce763dae3688dee38f1a39a558",
+    "merged_at": "2020-12-21T19:19:16Z",
+    "files": [
+      "markdown/treeprocessors.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Python-Markdown/markdown/pull/1090",
+      "note": "description, as matched by the miner: speedup claims: 25% faster | timings: 20s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

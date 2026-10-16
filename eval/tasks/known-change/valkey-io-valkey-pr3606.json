@@ -1,0 +1,51 @@
+{
+  "id": "valkey-io-valkey-pr3606",
+  "repository": "valkey-io/valkey",
+  "stars": 27438,
+  "pushed_at": "2026-10-15T21:57:47Z",
+  "task_commit": "1d7224f3894c8e6db39a9e86c040270b3122c064",
+  "task_commit_basis": "first parent of https://github.com/valkey-io/valkey/commit/89b7baa598b177286572e0784a4391810910f3d2 (squash merge); gh api compare 1d7224f3894c...89b7baa598b1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/valkey-io/valkey/pull/3606",
+    "title": "Speed up cluster startup by 10 seconds",
+    "commit": "89b7baa598b177286572e0784a4391810910f3d2",
+    "merged_at": "2026-05-07T09:58:54Z",
+    "files": [
+      "src/replication.c",
+      "tests/integration/psync2-master-restart.tcl",
+      "tests/integration/replication.tcl",
+      "tests/support/cluster_util.tcl",
+      "tests/support/test.tcl",
+      "tests/test_helper.tcl"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/valkey-io/valkey/pull/3606",
+      "note": "description, as matched by the miner: timings: 10 seconds; 10224 ms; 2324 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

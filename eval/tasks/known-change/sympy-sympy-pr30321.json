@@ -1,0 +1,47 @@
+{
+  "id": "sympy-sympy-pr30321",
+  "repository": "sympy/sympy",
+  "stars": 15016,
+  "pushed_at": "2026-10-15T08:51:08Z",
+  "task_commit": "46076fc5a6c7d1f174835bd3cf4c7cc708ed83c2",
+  "task_commit_basis": "first parent of https://github.com/sympy/sympy/commit/e186eab06dd8119f943391fcad13af48b06d33bc; gh api compare 46076fc5a6c7...e186eab06dd8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sympy/sympy/pull/30321",
+    "title": "ratint: Remove obsolete composite=False from ratint_logpart and speed up integration",
+    "commit": "e186eab06dd8119f943391fcad13af48b06d33bc",
+    "merged_at": "2026-08-24T17:17:50Z",
+    "files": [
+      "sympy/integrals/rationaltools.py",
+      "sympy/integrals/tests/test_integrals.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sympy/integrals/tests/test_integrals.py",
+    "source": "test files changed by https://github.com/sympy/sympy/pull/30321 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sympy/sympy/pull/30321",
+      "note": "description, as matched by the miner: timings: 5.54 s; 875 μs; 5.55 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

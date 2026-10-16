@@ -1,0 +1,49 @@
+{
+  "id": "python-attrs-attrs-pr898-landed",
+  "repository": "python-attrs/attrs",
+  "stars": 5852,
+  "pushed_at": "2026-10-13T13:57:52Z",
+  "task_commit": "3df7bbe089658ecf1dcc21308926bfd9133b12e1",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/python-attrs/attrs/commit/3df7bbe089658ecf1dcc21308926bfd9133b12e1",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-attrs/attrs/pull/898",
+    "title": "Speedup uses of `object.__setattr__`",
+    "commit": "3df7bbe089658ecf1dcc21308926bfd9133b12e1",
+    "merged_at": "2022-01-03T13:39:41Z",
+    "files": [
+      "changelog.d/898.change.rst",
+      "docs/how-does-it-work.rst",
+      "src/attr/_make.py",
+      "tests/test_functional.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_functional.py",
+    "source": "test files changed by https://github.com/python-attrs/attrs/pull/898 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-attrs/attrs/pull/898",
+      "note": "description, as matched by the miner: timings: 499 ns +- 26 ns; 450 ns +- 17 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

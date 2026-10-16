@@ -1,0 +1,46 @@
+{
+  "id": "scipy-scipy-pr25058",
+  "repository": "scipy/scipy",
+  "stars": 15114,
+  "pushed_at": "2026-10-15T16:49:39Z",
+  "task_commit": "f82b3f9d3c30cc6e7f906b0d00b8b43bfea02e5c",
+  "task_commit_basis": "first parent of https://github.com/scipy/scipy/commit/c1ee62b49622c98f57445bcf86247866e9a48442; gh api compare f82b3f9d3c30...c1ee62b49622 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scipy/scipy/pull/25058",
+    "title": "ENH: faster `SphericalVoronoi` 3D area calculations",
+    "commit": "c1ee62b49622c98f57445bcf86247866e9a48442",
+    "merged_at": "2026-04-23T06:02:25Z",
+    "files": [
+      "scipy/spatial/_spherical_voronoi.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scipy/scipy/pull/25058",
+      "note": "description, as matched by the miner: timings: 1μs; 0.5μs; 0.02ms; 0.01ms; 0.1ms; 0.08ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

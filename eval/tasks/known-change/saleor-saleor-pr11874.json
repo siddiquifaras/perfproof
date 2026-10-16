@@ -1,0 +1,46 @@
+{
+  "id": "saleor-saleor-pr11874",
+  "repository": "saleor/saleor",
+  "stars": 23442,
+  "pushed_at": "2026-10-15T15:55:51Z",
+  "task_commit": "6219fa9d0ab6470bf1d496deec93a57b352b6fdb",
+  "task_commit_basis": "first parent of https://github.com/saleor/saleor/commit/c744965940f4f0b44c2e14106eac5da49686fbad; gh api compare 6219fa9d0ab6...c744965940f4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/saleor/saleor/pull/11874",
+    "title": "Optimize order 0150_update_authorize_and_charge_status migration",
+    "commit": "c744965940f4f0b44c2e14106eac5da49686fbad",
+    "merged_at": "2023-02-07T14:46:34Z",
+    "files": [
+      "saleor/order/migrations/0150_update_authorize_and_charge_status.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/saleor/saleor/pull/11874",
+      "note": "description, as matched by the miner: timings: 5s; 3s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

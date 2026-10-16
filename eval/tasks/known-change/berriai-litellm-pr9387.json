@@ -1,0 +1,60 @@
+{
+  "id": "berriai-litellm-pr9387",
+  "repository": "BerriAI/litellm",
+  "stars": 61333,
+  "pushed_at": "2026-10-15T22:39:41Z",
+  "task_commit": "08e461484226b7abbe3fa98b6f868c4a82d50b3b",
+  "task_commit_basis": "first parent of https://github.com/BerriAI/litellm/commit/57503954fea39c96af880de515858f0c06ddc89f; gh api compare 08e461484226...57503954fea3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/9387",
+    "title": "Fix latency redis",
+    "commit": "57503954fea39c96af880de515858f0c06ddc89f",
+    "merged_at": "2025-03-20T01:11:18Z",
+    "files": [
+      "litellm/router_strategy/lowest_latency.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/9388",
+    "title": "Revert \"Fix latency redis\"",
+    "commit": "220aa66f984d650a10125f81e960fd6d1d4e520e",
+    "merged_at": "2025-03-20T01:11:36Z",
+    "files": [
+      "litellm/router_strategy/lowest_latency.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/9387",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/9388",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

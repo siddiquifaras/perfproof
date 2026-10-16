@@ -1,0 +1,62 @@
+{
+  "id": "nestjs-nest-pr13056",
+  "repository": "nestjs/nest",
+  "stars": 76852,
+  "pushed_at": "2026-10-15T07:12:49Z",
+  "task_commit": "5bf519675fc830128eb6449583dc42b4838af73a",
+  "task_commit_basis": "first parent of https://github.com/nestjs/nest/commit/b3f84f427a0555de17c54603da240dca85cfd052; gh api compare 5bf519675fc8...b3f84f427a05 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nestjs/nest/pull/13056",
+    "title": "perf(common): Improve error handling for undefined tokens",
+    "commit": "b3f84f427a0555de17c54603da240dca85cfd052",
+    "merged_at": "2024-01-23T12:15:48Z",
+    "files": [
+      "packages/common/decorators/core/inject.decorator.ts",
+      "packages/common/test/decorators/inject.decorator.spec.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/nestjs/nest/pull/13370",
+    "title": "Revert \"perf(common): Improve error handling for undefined tokens\"",
+    "commit": "55967291fce297828f31d18d6659c33d1f184e67",
+    "merged_at": "2024-03-28T07:33:58Z",
+    "files": [
+      "packages/common/decorators/core/inject.decorator.ts",
+      "packages/common/test/decorators/inject.decorator.spec.ts"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nestjs/nest/pull/13056",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/nestjs/nest/pull/13370",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

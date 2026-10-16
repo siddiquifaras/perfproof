@@ -1,0 +1,46 @@
+{
+  "id": "ggml-org-llama-cpp-pr30526",
+  "repository": "ggml-org/llama.cpp",
+  "stars": 131304,
+  "pushed_at": "2026-10-15T22:31:14Z",
+  "task_commit": "2ce20d22fdc10cd43bc7c3076559f028a4f45401",
+  "task_commit_basis": "first parent of https://github.com/ggml-org/llama.cpp/commit/23f83e056d88ddae0d56b01ccc65fa42ab6625f7; gh api compare 2ce20d22fdc1...23f83e056d88 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/30526",
+    "title": "ggml-cpu : optimize pad_f32",
+    "commit": "23f83e056d88ddae0d56b01ccc65fa42ab6625f7",
+    "merged_at": "2026-10-15T07:13:19Z",
+    "files": [
+      "ggml/src/ggml-cpu/ops.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/30526",
+      "note": "description, as matched by the miner: timings: 133.39 us; 273.66 us; 237.63 us; 504.71 us; 1.74 us; 4.01 us; 1.66 us; 2.66 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

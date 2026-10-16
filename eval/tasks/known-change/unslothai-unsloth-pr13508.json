@@ -1,0 +1,52 @@
+{
+  "id": "unslothai-unsloth-pr13508",
+  "repository": "unslothai/unsloth",
+  "stars": 78073,
+  "pushed_at": "2026-10-15T22:40:26Z",
+  "task_commit": "dc1860c40e36b6cd3f9ddbb4eb7c1b3cb6355bd5",
+  "task_commit_basis": "first parent of https://github.com/unslothai/unsloth/commit/0f7bdbb62386abbe9f7ab0610b2d3986ce7a214d (squash merge); gh api compare dc1860c40e36...0f7bdbb62386 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/unslothai/unsloth/pull/13508",
+    "title": "Studio: close the LTX-2.5 two-stage speed gaps in a shared multi-stage layer",
+    "commit": "0f7bdbb62386abbe9f7ab0610b2d3986ce7a214d",
+    "merged_at": "2026-10-13T01:37:00Z",
+    "files": [
+      "studio/backend/core/inference/diffusion_multistage.py",
+      "studio/backend/core/inference/diffusion_preview.py",
+      "studio/backend/core/inference/video.py",
+      "studio/backend/core/inference/video_ltx25.py",
+      "studio/backend/tests/test_diffusion_multistage.py",
+      "studio/backend/tests/test_diffusion_preview.py",
+      "studio/backend/tests/test_video_ltx25.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest studio/backend/tests/test_diffusion_multistage.py studio/backend/tests/test_diffusion_preview.py studio/backend/tests/test_video_ltx25.py",
+    "source": "test files changed by https://github.com/unslothai/unsloth/pull/13508 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/unslothai/unsloth/pull/13508",
+      "note": "description, as matched by the miner: speedup claims: 1.60x; 1.46x | timings: 157 ms; 44 ms; 4.095 s; 3.900 s; 5.160 s; 4.240 s; 8.335 s; 6.910 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:58+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

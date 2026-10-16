@@ -1,0 +1,47 @@
+{
+  "id": "nestjs-nest-pr18136",
+  "repository": "nestjs/nest",
+  "stars": 76852,
+  "pushed_at": "2026-10-15T07:12:49Z",
+  "task_commit": "de2574ef7c91ddd220bac38f767cff5a7612fd99",
+  "task_commit_basis": "first parent of https://github.com/nestjs/nest/commit/06dac356f4398134ae6281f7d370601627320b1b; gh api compare de2574ef7c91...06dac356f439 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nestjs/nest/pull/18136",
+    "title": "perf(core): avoid AsyncResource.bind() per request in the interceptor chain",
+    "commit": "06dac356f4398134ae6281f7d370601627320b1b",
+    "merged_at": "2026-10-13T18:23:15Z",
+    "files": [
+      "packages/core/interceptors/interceptors-consumer.ts",
+      "packages/core/test/interceptors/interceptors-consumer.spec.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nestjs/nest/pull/18136",
+      "note": "description, as matched by the miner: timings: 800 ns; 31 ns; 7 µs; 1.8 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

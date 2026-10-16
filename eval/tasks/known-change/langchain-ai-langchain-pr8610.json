@@ -1,0 +1,60 @@
+{
+  "id": "langchain-ai-langchain-pr8610",
+  "repository": "langchain-ai/langchain",
+  "stars": 147886,
+  "pushed_at": "2026-10-15T20:15:17Z",
+  "task_commit": "05b75f3f13946883764bb7610c046d957701aa13",
+  "task_commit_basis": "first parent of https://github.com/langchain-ai/langchain/commit/930639407803c6f9f21d798dfc98a30b68f4a7ec (squash merge); gh api compare 05b75f3f1394...930639407803 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/langchain-ai/langchain/pull/8610",
+    "title": "improve the performance of base.py",
+    "commit": "930639407803c6f9f21d798dfc98a30b68f4a7ec",
+    "merged_at": "2023-09-28T00:36:03Z",
+    "files": [
+      "libs/langchain/langchain/agents/agent_toolkits/csv/base.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/langchain-ai/langchain/pull/11143",
+    "title": "Revert \"improve the performance of base.py\"",
+    "commit": "258d67b0ac533eca056a0603f8d4880429cbda55",
+    "merged_at": "2023-09-28T00:37:29Z",
+    "files": [
+      "libs/langchain/langchain/agents/agent_toolkits/csv/base.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/langchain-ai/langchain/pull/8610",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/langchain-ai/langchain/pull/11143",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

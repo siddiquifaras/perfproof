@@ -1,0 +1,50 @@
+{
+  "id": "facebook-zstd-pr4276",
+  "repository": "facebook/zstd",
+  "stars": 28031,
+  "pushed_at": "2026-10-06T01:11:59Z",
+  "task_commit": "30e0f29c4dbfac9f4df56310d70d4d904587e2f5",
+  "task_commit_basis": "first parent of https://github.com/facebook/zstd/commit/ef2bf5781112a4cd6b62ac1817f7842bbdc7ea8f; gh api compare 30e0f29c4dbf...ef2bf5781112 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/facebook/zstd/pull/4276",
+    "title": "fix speed of --patch-from mode at high compression levels",
+    "commit": "ef2bf5781112a4cd6b62ac1817f7842bbdc7ea8f",
+    "merged_at": "2025-02-06T04:12:56Z",
+    "files": [
+      ".github/workflows/dev-long-tests.yml",
+      "Makefile",
+      "lib/compress/zstd_compress.c",
+      "lib/compress/zstdmt_compress.c",
+      "tests/regression/results.csv"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/facebook/zstd/pull/4276",
+      "note": "description, as matched by the miner: timings: 250 s; 80 s; 350 s; 118 s; 420 s; 145 s; 510 s; 200 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

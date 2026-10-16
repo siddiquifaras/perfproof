@@ -1,0 +1,48 @@
+{
+  "id": "simdjson-simdjson-pr2805",
+  "repository": "simdjson/simdjson",
+  "stars": 24424,
+  "pushed_at": "2026-10-14T23:54:39Z",
+  "task_commit": "6deddc5b73d84c9d322f735e8bab08d4abcdb27f",
+  "task_commit_basis": "first parent of https://github.com/simdjson/simdjson/commit/b3072d2524b72ad58f2b3aa92498922bf8d7af6e (squash merge); gh api compare 6deddc5b73d8...b3072d2524b7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/simdjson/simdjson/pull/2805",
+    "title": "perf: eliminate libc memcpy/memset/memmove calls in to_chars hotpath",
+    "commit": "b3072d2524b72ad58f2b3aa92498922bf8d7af6e",
+    "merged_at": "2026-08-04T18:10:22Z",
+    "files": [
+      "include/simdjson/dom/serialization-inl.h",
+      "include/simdjson/generic/builder/json_string_builder-inl.h",
+      "src/to_chars.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "./build/benchmark/car_builder/benchmark_car_builder",
+    "source": "quoted in the description of https://github.com/simdjson/simdjson/pull/2805",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/simdjson/simdjson/pull/2805",
+      "note": "description, as matched by the miner: timings: 0.84 ns; 0.85 ns; 0.81 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

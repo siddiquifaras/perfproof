@@ -1,0 +1,58 @@
+{
+  "id": "astral-sh-ruff-pr25962-landed",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "0cbbbf48a407cc338f55c4461f1a3c04336de5c5",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/astral-sh/ruff/commit/0cbbbf48a407cc338f55c4461f1a3c04336de5c5",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/25962",
+    "title": "[ty] Speed up module resolution for projects with many search paths",
+    "commit": "0cbbbf48a407cc338f55c4461f1a3c04336de5c5",
+    "merged_at": "2026-06-15T12:39:47Z",
+    "files": [
+      "crates/ruff_db/src/files.rs",
+      "crates/ruff_db/src/files/directory.rs",
+      "crates/ruff_db/src/system.rs",
+      "crates/ruff_db/src/system/os.rs",
+      "crates/ruff_db/src/system/test.rs",
+      "crates/ty/tests/file_watching.rs",
+      "crates/ty_module_resolver/src/list.rs",
+      "crates/ty_module_resolver/src/module.rs",
+      "crates/ty_module_resolver/src/path.rs",
+      "crates/ty_module_resolver/src/resolve.rs",
+      "crates/ty_server/src/system.rs",
+      "crates/ty_test/src/db.rs",
+      "crates/ty_wasm/src/lib.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/25962",
+      "note": "description, as matched by the miner: timings: 0.953s; 0.987s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

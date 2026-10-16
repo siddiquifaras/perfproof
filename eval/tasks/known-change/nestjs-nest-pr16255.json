@@ -1,0 +1,46 @@
+{
+  "id": "nestjs-nest-pr16255",
+  "repository": "nestjs/nest",
+  "stars": 76852,
+  "pushed_at": "2026-10-15T07:12:49Z",
+  "task_commit": "7d8a4428a89518589b376a3e791663a67c56e680",
+  "task_commit_basis": "first parent of https://github.com/nestjs/nest/commit/bd83c3f5ebcbf9d26a9298eb19bf01620d6bda08; gh api compare 7d8a4428a895...bd83c3f5ebcb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nestjs/nest/pull/16255",
+    "title": "perf(core): use set instead of array for module registry lookup",
+    "commit": "bd83c3f5ebcbf9d26a9298eb19bf01620d6bda08",
+    "merged_at": "2026-01-28T19:47:52Z",
+    "files": [
+      "packages/core/injector/injector.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nestjs/nest/pull/16255",
+      "note": "description, as matched by the miner: speedup claims: 2.7x faster; 5.5x faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

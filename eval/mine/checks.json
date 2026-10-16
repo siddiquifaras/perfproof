@@ -1,0 +1,71 @@
+{
+  "networkx-networkx-pr7810": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest"
+    ],
+    "workload": "python -c \"import networkx as nx; G = nx.complete_graph(100); nx.square_clustering(G)\"",
+    "workload_source": "adapted from the complete_graph(100) %timeit case in the description of https://github.com/networkx/networkx/pull/7810",
+    "oracle": "python -m pytest -q networkx/algorithms/tests/test_cluster.py networkx/algorithms/bipartite/tests/test_cluster.py",
+    "oracle_source": "the test modules for the two files https://github.com/networkx/networkx/pull/7810 changes; targeted tests only, not the full suite"
+  },
+  "more-itertools-more-itertools-pr773": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest"
+    ],
+    "workload": "python -m timeit -s \"from more_itertools import combination_with_replacement_index\" \"combination_with_replacement_index('adf', 'abcdefg')\"",
+    "workload_source": "adapted from the %timeit line in the description of https://github.com/more-itertools/more-itertools/pull/773",
+    "oracle": "python -m pytest -q tests/test_more.py",
+    "oracle_source": "the test module for more_itertools/more.py, the file https://github.com/more-itertools/more-itertools/pull/773 changes; targeted tests only"
+  },
+  "more-itertools-more-itertools-pr699": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest"
+    ],
+    "workload": "python -m timeit -n 1 -r 3 -s \"from more_itertools import chunked_even\" \"[list(chunked_even(range(x), y)) for x in range(500) for y in range(1, 500)]\"",
+    "workload_source": "adapted from the first %timeit line in the description of https://github.com/more-itertools/more-itertools/pull/699",
+    "oracle": "python -m pytest -q tests/test_more.py",
+    "oracle_source": "the test module for more_itertools/more.py, the file https://github.com/more-itertools/more-itertools/pull/699 changes; targeted tests only"
+  },
+  "python-attrs-attrs-pr1463": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "0.0.0"
+    },
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest hypothesis"
+    ],
+    "workload": "python -m timeit -s \"import attrs\" -s \"Simple = attrs.make_class('Simple', ['i', 's', 'l'], slots=True)\" -s \"s = Simple(10, 'hi', [3, 1, 4])\" \"attrs.asdict(s)\"",
+    "workload_source": "adapted from the pyperf script in the description of https://github.com/python-attrs/attrs/pull/1463 (make_class instead of a @define class)",
+    "oracle": "python -m pytest -q tests/test_funcs.py",
+    "oracle_source": "test files changed by https://github.com/python-attrs/attrs/pull/1463 (gh pr view files); targeted tests only",
+    "notes": "The checkout is a git archive with no .git, so hatch-vcs gets its version from SETUPTOOLS_SCM_PRETEND_VERSION"
+  },
+  "python-jsonschema-jsonschema-pr1482": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "0.0.0"
+    },
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest"
+    ],
+    "workload": "python -c \"import jsonschema; jsonschema.Draft202012Validator({'type': 'array', 'uniqueItems': True}).validate([{'a': i} for i in range(2000)])\"",
+    "workload_source": "written here from the description of https://github.com/python-jsonschema/jsonschema/pull/1482 (uniqueItems over objects, which cannot be sorted); the pull request quotes no command",
+    "oracle": "python -m pytest -q jsonschema/tests/test_utils.py jsonschema/tests/test_validators.py",
+    "oracle_source": "test_utils.py is changed by https://github.com/python-jsonschema/jsonschema/pull/1482 (gh pr view files); test_validators.py added here as the validator-level check; targeted tests only",
+    "notes": "The checkout is a git archive with no .git, so hatch-vcs gets its version from SETUPTOOLS_SCM_PRETEND_VERSION"
+  },
+  "pygments-pygments-pr3187": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install -e . pytest~=8.2 wcag-contrast-ratio"
+    ],
+    "workload": "python -c \"from pygments.lexers import RellLexer; list(RellLexer().get_tokens('/* ' + 'x\\n' * 200000 + ' */'))\"",
+    "workload_source": "written here from the description of https://github.com/pygments/pygments/pull/3187 (matching a long /* ... */ comment in the Rell lexer, whose comment rule the change rewrites); the pull request quotes no command",
+    "oracle": "python -m pytest -q tests",
+    "oracle_source": "pygments' full test suite under tests/, with the test dependencies from its tox.ini at the reference commit (pytest-cov and pytest-randomly left out)",
+    "notes": "On the first check here the suite had one failure on both trees (tests/examplefiles/fstar/example.fst golden output), and each workload run took under 0.1 s of wall time per tree (single runs; exact times in runs), so it probably does not exercise the change enough; needs a better workload and a look at the fstar failure"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "langchain-ai-langgraph-pr9248",
+  "repository": "langchain-ai/langgraph",
+  "stars": 43323,
+  "pushed_at": "2026-10-15T20:14:04Z",
+  "task_commit": "bfcfea554ed5c7f7be562cebf8825e911b493ab1",
+  "task_commit_basis": "first parent of https://github.com/langchain-ai/langgraph/commit/93a5a280080a85914ded6ad85005087ce1447635; gh api compare bfcfea554ed5...93a5a280080a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/langchain-ai/langgraph/pull/9248",
+    "title": "perf(checkpoint-postgres): start the delta walk at the target",
+    "commit": "93a5a280080a85914ded6ad85005087ce1447635",
+    "merged_at": "2026-10-09T12:31:16Z",
+    "files": [
+      "libs/checkpoint-postgres/langgraph/checkpoint/postgres/__init__.py",
+      "libs/checkpoint-postgres/langgraph/checkpoint/postgres/aio.py",
+      "libs/checkpoint-postgres/langgraph/checkpoint/postgres/base.py",
+      "libs/checkpoint-postgres/tests/test_delta_pagination.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest libs/checkpoint-postgres/tests/test_delta_pagination.py",
+    "source": "test files changed by https://github.com/langchain-ai/langgraph/pull/9248 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/langchain-ai/langgraph/pull/9248",
+      "note": "description, as matched by the miner: timings: 3.1 ms; 2.7 ms; 4.5 ms; 2.9 ms; 8.9 ms; 2.8 ms; 15.7 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

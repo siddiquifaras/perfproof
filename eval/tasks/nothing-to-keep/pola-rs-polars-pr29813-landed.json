@@ -1,0 +1,48 @@
+{
+  "id": "pola-rs-polars-pr29813-landed",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "534d8fcd9e008091ac357446d48df9e505eca87d",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/pola-rs/polars/commit/534d8fcd9e008091ac357446d48df9e505eca87d",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29813",
+    "title": "perf: Huge speedup creating wide `Struct` data",
+    "commit": "534d8fcd9e008091ac357446d48df9e505eca87d",
+    "merged_at": "2026-10-14T12:26:17Z",
+    "files": [
+      "crates/polars-core/src/series/any_value.rs",
+      "crates/polars/tests/it/core/series.rs",
+      "py-polars/tests/unit/datatypes/test_struct.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29813",
+      "note": "description, as matched by the miner: speedup claims: 86×; 02×; 18×; 06×; 07×"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

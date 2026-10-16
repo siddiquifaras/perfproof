@@ -1,0 +1,78 @@
+{
+  "id": "hypothesisworks-hypothesis-pr4395",
+  "repository": "HypothesisWorks/hypothesis",
+  "stars": 9085,
+  "pushed_at": "2026-10-15T20:32:34Z",
+  "task_commit": "df9e33257b6c1a1f032c9973e9bd664a2398dc31",
+  "task_commit_basis": "first parent of https://github.com/HypothesisWorks/hypothesis/commit/c36a9c991e417198f4e1f585c5baba7c82400f97; gh api compare df9e33257b6c...c36a9c991e41 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/HypothesisWorks/hypothesis/pull/4395",
+    "title": "Improve `st.characters` repr",
+    "commit": "c36a9c991e417198f4e1f585c5baba7c82400f97",
+    "merged_at": "2025-05-20T02:49:26Z",
+    "files": [
+      "hypothesis-python/RELEASE.rst",
+      "hypothesis-python/docs/compatibility.rst",
+      "hypothesis-python/docs/conf.py",
+      "hypothesis-python/src/hypothesis/core.py",
+      "hypothesis-python/src/hypothesis/database.py",
+      "hypothesis-python/src/hypothesis/extra/django/_impl.py",
+      "hypothesis-python/src/hypothesis/extra/ghostwriter.py",
+      "hypothesis-python/src/hypothesis/internal/cache.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/data.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/datatree.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/engine.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/providers.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/shrinker.py",
+      "hypothesis-python/src/hypothesis/stateful.py",
+      "hypothesis-python/src/hypothesis/strategies/_internal/core.py",
+      "hypothesis-python/src/hypothesis/strategies/_internal/strings.py",
+      "hypothesis-python/tests/conjecture/common.py",
+      "hypothesis-python/tests/conjecture/test_choice.py",
+      "hypothesis-python/tests/conjecture/test_shrinker.py",
+      "hypothesis-python/tests/cover/test_core.py",
+      "hypothesis-python/tests/cover/test_custom_reprs.py",
+      "hypothesis-python/tests/cover/test_database_backend.py",
+      "hypothesis-python/tests/cover/test_reproduce_failure.py",
+      "hypothesis-python/tests/nocover/test_explore_arbitrary_languages.py",
+      "hypothesis-python/tests/pytest/test_pytest_detection.py",
+      "hypothesis-python/tests/quality/test_shrink_quality.py",
+      "tooling/codespell-dict.txt",
+      "tooling/codespell-ignore.txt",
+      "tooling/src/hypothesistooling/__main__.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "regression",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest hypothesis-python/tests/conjecture/test_choice.py hypothesis-python/tests/conjecture/test_shrinker.py hypothesis-python/tests/cover/test_core.py hypothesis-python/tests/cover/test_custom_reprs.py hypothesis-python/tests/cover/test_database_backend.py hypothesis-python/tests/cover/test_reproduce_failure.py hypothesis-python/tests/nocover/test_explore_arbitrary_languages.py hypothesis-python/tests/pytest/test_pytest_detection.py hypothesis-python/tests/quality/test_shrink_quality.py",
+    "source": "test files changed by https://github.com/HypothesisWorks/hypothesis/pull/4395 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/HypothesisWorks/hypothesis/pull/4395",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/HypothesisWorks/hypothesis/pull/4440",
+      "note": "regression fix naming this change as the cause: '`dataclasses.asdict` deepcopies and can be very expensive. Regressed in https://github.com/HypothesisWorks/hypothesis/pull/4395, where I copied `attrs.asdict` -> `dataclasses.asdict` (but'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

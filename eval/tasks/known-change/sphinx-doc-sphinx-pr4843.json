@@ -1,0 +1,49 @@
+{
+  "id": "sphinx-doc-sphinx-pr4843",
+  "repository": "sphinx-doc/sphinx",
+  "stars": 8061,
+  "pushed_at": "2026-10-12T01:40:54Z",
+  "task_commit": "d6ffdde45e042caa6bb0f497f2545d387e364216",
+  "task_commit_basis": "first parent of https://github.com/sphinx-doc/sphinx/commit/ccb694882c0ddec9617563485c9af4ff410dbf75; gh api compare d6ffdde45e04...ccb694882c0d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sphinx-doc/sphinx/pull/4843",
+    "title": "4803 optimize latex show urls",
+    "commit": "ccb694882c0ddec9617563485c9af4ff410dbf75",
+    "merged_at": "2018-04-15T04:23:19Z",
+    "files": [
+      "CHANGES",
+      "sphinx/builders/latex/__init__.py",
+      "sphinx/builders/latex/transforms.py",
+      "sphinx/writers/latex.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sphinx-doc/sphinx/pull/4843",
+      "note": "description, as matched by the miner: timings: 69.88s; 1.18s; 64.74s; 0.63s; 64.62s; 0.54s; 18.01s; 0.58s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

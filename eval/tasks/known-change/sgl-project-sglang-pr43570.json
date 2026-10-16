@@ -1,0 +1,50 @@
+{
+  "id": "sgl-project-sglang-pr43570",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "01f684069351bfeeec5d877b7420e55fafb7df84",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/4e0fa525302165845a5b6a0950ea633527487f31 (squash merge); gh api compare 01f684069351...4e0fa5253021 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/43570",
+    "title": "[Perf] Compact GDN causal-conv grids for skewed prefill batches",
+    "commit": "4e0fa525302165845a5b6a0950ea633527487f31",
+    "merged_at": "2026-10-13T09:45:07Z",
+    "files": [
+      "python/sglang/srt/layers/attention/linear/gdn_backend.py",
+      "python/sglang/srt/layers/attention/mamba/mamba2_metadata.py",
+      "test/registered/attention/test_gdn_prefill_layout.py",
+      "test/registered/unit/layers/attention/test_gdn_prefill_backend_policy.py",
+      "test/registered/unit/layers/attention/test_mamba_track_state_dtype.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/registered/attention/test_gdn_prefill_layout.py test/registered/unit/layers/attention/test_gdn_prefill_backend_policy.py test/registered/unit/layers/attention/test_mamba_track_state_dtype.py",
+    "source": "test files changed by https://github.com/sgl-project/sglang/pull/43570 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/43570",
+      "note": "description, as matched by the miner: speedup claims: 18x | timings: 12.913 s; 34.86 ms; 48.72 s; 1.000 s; 44.55 ms; 68.98 s; 104.0 us; 86.7 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

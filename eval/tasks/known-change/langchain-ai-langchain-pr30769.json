@@ -1,0 +1,62 @@
+{
+  "id": "langchain-ai-langchain-pr30769",
+  "repository": "langchain-ai/langchain",
+  "stars": 147886,
+  "pushed_at": "2026-10-15T20:15:17Z",
+  "task_commit": "ada740b5b9b8594ec49bf22c667739d762fbe651",
+  "task_commit_basis": "first parent of https://github.com/langchain-ai/langchain/commit/4f69094b51bd1d637c15433050b6a793202354c4 (squash merge); gh api compare ada740b5b9b8...4f69094b51bd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/langchain-ai/langchain/pull/30769",
+    "title": "core[performance]: use custom `__getattr__` in `__init__.py` files for lazy imports",
+    "commit": "4f69094b51bd1d637c15433050b6a793202354c4",
+    "merged_at": "2025-04-14T12:57:54Z",
+    "files": [
+      "libs/core/langchain_core/_api/__init__.py",
+      "libs/core/langchain_core/callbacks/__init__.py",
+      "libs/core/langchain_core/document_loaders/__init__.py",
+      "libs/core/langchain_core/documents/__init__.py",
+      "libs/core/langchain_core/embeddings/__init__.py",
+      "libs/core/langchain_core/example_selectors/__init__.py",
+      "libs/core/langchain_core/indexing/__init__.py",
+      "libs/core/langchain_core/language_models/__init__.py",
+      "libs/core/langchain_core/load/__init__.py",
+      "libs/core/langchain_core/messages/__init__.py",
+      "libs/core/langchain_core/output_parsers/__init__.py",
+      "libs/core/langchain_core/outputs/__init__.py",
+      "libs/core/langchain_core/prompts/__init__.py",
+      "libs/core/langchain_core/runnables/__init__.py",
+      "libs/core/langchain_core/tools/__init__.py",
+      "libs/core/langchain_core/tracers/__init__.py",
+      "libs/core/langchain_core/utils/__init__.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/langchain-ai/langchain/pull/30769",
+      "note": "description, as matched by the miner: speedup claims: 50% speed up"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

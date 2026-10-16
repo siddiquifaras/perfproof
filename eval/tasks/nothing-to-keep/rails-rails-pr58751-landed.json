@@ -1,0 +1,49 @@
+{
+  "id": "rails-rails-pr58751-landed",
+  "repository": "rails/rails",
+  "stars": 58839,
+  "pushed_at": "2026-10-15T20:53:55Z",
+  "task_commit": "c23b2a4468a45f0a11820e3ad8597ac1e3ac19eb",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/rails/rails/commit/c23b2a4468a45f0a11820e3ad8597ac1e3ac19eb",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rails/rails/pull/58751",
+    "title": "Speed up TimeWithZone#xmlschema, #to_s and TimeZone.seconds_to_utc_offset",
+    "commit": "c23b2a4468a45f0a11820e3ad8597ac1e3ac19eb",
+    "merged_at": "2026-09-16T05:28:13Z",
+    "files": [
+      "activesupport/lib/active_support/time_with_zone.rb",
+      "activesupport/lib/active_support/values/time_zone.rb",
+      "activesupport/test/core_ext/time_with_zone_test.rb",
+      "activesupport/test/time_zone_test.rb"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rails/rails/pull/58751",
+      "note": "description, as matched by the miner: speedup claims: 3.10x; 2.70x; 1.20x; 1.78x; 1.96x | timings: 100ms; 654.61 ns; 5.065034s; 210.99 ns; 5.061557s; 704.20 ns; 5.028475s; 260.33 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

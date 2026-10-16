@@ -1,0 +1,52 @@
+{
+  "id": "apache-arrow-pr50030",
+  "repository": "apache/arrow",
+  "stars": 17207,
+  "pushed_at": "2026-10-15T02:09:01Z",
+  "task_commit": "60615a55e6341d038e8129d2d60b3ef3184fb1ff",
+  "task_commit_basis": "first parent of https://github.com/apache/arrow/commit/924ee2f1a634d92038c20703dd9df8c13f661dc1 (squash merge); gh api compare 60615a55e634...924ee2f1a634 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/arrow/pull/50030",
+    "title": "GH-50026: [C++][Parquet] SIMD-accelerate SBBF probe via branchless autovec",
+    "commit": "924ee2f1a634d92038c20703dd9df8c13f661dc1",
+    "merged_at": "2026-06-18T14:45:59Z",
+    "files": [
+      "cpp/src/parquet/CMakeLists.txt",
+      "cpp/src/parquet/bloom_filter.cc",
+      "cpp/src/parquet/bloom_filter.h",
+      "cpp/src/parquet/bloom_filter_avx2.cc",
+      "cpp/src/parquet/bloom_filter_avx2_internal.h",
+      "cpp/src/parquet/bloom_filter_block_impl_internal.h",
+      "cpp/src/parquet/bloom_filter_test.cc"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/arrow/pull/50030",
+      "note": "description, as matched by the miner: speedup claims: 5.0×; 2.5×; 1.4× | timings: 3.85 ns; 2.41 ns; 9.04 ns; 8.62 ns; 4.32 ns; 15.29 ns; 4.33 ns; 12.35 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

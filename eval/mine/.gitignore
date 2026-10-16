@@ -1,0 +1,4 @@
+# Raw API responses and dataset pages, re-creatable by the miner
+cache/
+# Clones and virtualenvs for local build-and-run checks
+work/

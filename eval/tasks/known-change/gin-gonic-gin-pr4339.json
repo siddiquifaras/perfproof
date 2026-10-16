@@ -1,0 +1,47 @@
+{
+  "id": "gin-gonic-gin-pr4339",
+  "repository": "gin-gonic/gin",
+  "stars": 89364,
+  "pushed_at": "2026-10-10T04:20:35Z",
+  "task_commit": "28172fa68206b2ced9df3417fad50bcabd6d9eb6",
+  "task_commit_basis": "first parent of https://github.com/gin-gonic/gin/commit/f9bd00a6b7939b941fde3fdd239367f4a7d6b137; gh api compare 28172fa68206...f9bd00a6b793 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gin-gonic/gin/pull/4339",
+    "title": "perf(context): optimize getMapFromFormData performance",
+    "commit": "f9bd00a6b7939b941fde3fdd239367f4a7d6b137",
+    "merged_at": "2025-09-13T23:29:11Z",
+    "files": [
+      "context.go",
+      "context_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gin-gonic/gin/pull/4339",
+      "note": "description, as matched by the miner: timings: 299.7 ns; 272.4 ns; 448.2 ns; 463.8 ns; 406.9 ns; 11929 ns; 7647 ns; 5400 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

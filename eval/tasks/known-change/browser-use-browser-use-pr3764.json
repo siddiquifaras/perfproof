@@ -1,0 +1,49 @@
+{
+  "id": "browser-use-browser-use-pr3764",
+  "repository": "browser-use/browser-use",
+  "stars": 118095,
+  "pushed_at": "2026-10-15T20:24:04Z",
+  "task_commit": "63004c624e3c6c990c9722a7da3b73c713e593df",
+  "task_commit_basis": "first parent of https://github.com/browser-use/browser-use/commit/1e60ca3466d43c9077889e0ca2b715e00283a7eb; gh api compare 63004c624e3c...1e60ca3466d4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/browser-use/browser-use/pull/3764",
+    "title": "perf: lazy import for openai and reportlab to reduce startup latency",
+    "commit": "1e60ca3466d43c9077889e0ca2b715e00283a7eb",
+    "merged_at": "2025-12-14T19:48:20Z",
+    "files": [
+      "browser_use/agent/views.py",
+      "browser_use/filesystem/file_system.py",
+      "browser_use/llm/messages.py",
+      "browser_use/utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/browser-use/browser-use/pull/3764",
+      "note": "description, as matched by the miner: speedup claims: 28.7% faster; 35.1% faster | timings: 0.88s; 2.272s; 1.619s; 1.377s; 0.894s; 0.9s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

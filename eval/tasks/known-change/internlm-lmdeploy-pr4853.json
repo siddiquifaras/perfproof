@@ -1,0 +1,75 @@
+{
+  "id": "internlm-lmdeploy-pr4853",
+  "repository": "InternLM/lmdeploy",
+  "stars": 8106,
+  "pushed_at": "2026-10-09T03:58:16Z",
+  "task_commit": "1263d5cd889b7ad500e85b8eb20401327a4516ab",
+  "task_commit_basis": "first parent of https://github.com/InternLM/lmdeploy/commit/8286ee4ccf124180c53388fc53a47ced0f13e1da (squash merge); gh api compare 1263d5cd889b...8286ee4ccf12 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/InternLM/lmdeploy/pull/4853",
+    "title": "perf: further optimize GLM-5.2 serving",
+    "commit": "8286ee4ccf124180c53388fc53a47ced0f13e1da",
+    "merged_at": "2026-08-24T03:58:22Z",
+    "files": [
+      "lmdeploy/pytorch/backends/base.py",
+      "lmdeploy/pytorch/backends/communicator.py",
+      "lmdeploy/pytorch/backends/cuda/attention/mla.py",
+      "lmdeploy/pytorch/backends/cuda/blockedf8_modules.py",
+      "lmdeploy/pytorch/backends/cuda/comm/__init__.py",
+      "lmdeploy/pytorch/backends/cuda/comm/communicator.py",
+      "lmdeploy/pytorch/backends/cuda/comm/flashinfer_allreduce.py",
+      "lmdeploy/pytorch/backends/cuda/comm/symm_mem_allreduce.py",
+      "lmdeploy/pytorch/backends/cuda/moe_router.py",
+      "lmdeploy/pytorch/backends/cuda/op_backend.py",
+      "lmdeploy/pytorch/backends/default/moe_router.py",
+      "lmdeploy/pytorch/backends/default/op_backend.py",
+      "lmdeploy/pytorch/backends/dlinfer/op_backend.py",
+      "lmdeploy/pytorch/backends/moe_router.py",
+      "lmdeploy/pytorch/distributed.py",
+      "lmdeploy/pytorch/engine/executor/base_worker.py",
+      "lmdeploy/pytorch/engine/executor/ray_executor.py",
+      "lmdeploy/pytorch/envs.py",
+      "lmdeploy/pytorch/kernels/cuda/blocked_gemm_fp8.py",
+      "lmdeploy/pytorch/kernels/cuda/utils.py",
+      "lmdeploy/pytorch/models/deepseek_v2.py",
+      "lmdeploy/pytorch/models/deepseek_v32.py",
+      "lmdeploy/pytorch/nn/moe/route.py",
+      "lmdeploy/pytorch/nn/norm.py",
+      "lmdeploy/pytorch/spec_decode/base.py",
+      "lmdeploy/pytorch/third_party/deep_gemm/__init__.py",
+      "requirements/runtime_cuda.txt",
+      "tests/pytorch/kernel/test_mla_attention.py",
+      "tests/pytorch/kernel/test_router_gemm.py",
+      "tests/pytorch/test_cuda_communicator.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/pytorch/kernel/test_mla_attention.py tests/pytorch/kernel/test_router_gemm.py tests/pytorch/test_cuda_communicator.py",
+    "source": "test files changed by https://github.com/InternLM/lmdeploy/pull/4853 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/InternLM/lmdeploy/pull/4853",
+      "note": "description, as matched by the miner: timings: 14.88 ms; 13.69 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

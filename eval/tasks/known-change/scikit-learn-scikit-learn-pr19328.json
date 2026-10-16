@@ -1,0 +1,47 @@
+{
+  "id": "scikit-learn-scikit-learn-pr19328",
+  "repository": "scikit-learn/scikit-learn",
+  "stars": 67624,
+  "pushed_at": "2026-10-14T13:00:44Z",
+  "task_commit": "d831babc6b430d5f41fb0cec7fe5b7f806830481",
+  "task_commit_basis": "first parent of https://github.com/scikit-learn/scikit-learn/commit/673f6259f3fb7bd2a057b1889e23b280fe638998 (squash merge); gh api compare d831babc6b43...673f6259f3fb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scikit-learn/scikit-learn/pull/19328",
+    "title": "Fix min_pos when all negative + speed up",
+    "commit": "673f6259f3fb7bd2a057b1889e23b280fe638998",
+    "merged_at": "2021-02-03T21:52:18Z",
+    "files": [
+      "sklearn/utils/arrayfuncs.pyx",
+      "sklearn/utils/tests/test_arrayfuncs.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit min_pos(X)",
+    "source": "quoted in the description of https://github.com/scikit-learn/scikit-learn/pull/19328",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sklearn/utils/tests/test_arrayfuncs.py",
+    "source": "test files changed by https://github.com/scikit-learn/scikit-learn/pull/19328 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/19328",
+      "note": "description, as matched by the miner: timings: 5.9 µs ± 35.5 ns; 297 ns ± 2.41 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

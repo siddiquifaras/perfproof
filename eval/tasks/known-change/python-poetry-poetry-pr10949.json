@@ -1,0 +1,48 @@
+{
+  "id": "python-poetry-poetry-pr10949",
+  "repository": "python-poetry/poetry",
+  "stars": 34307,
+  "pushed_at": "2026-10-12T22:24:45Z",
+  "task_commit": "298068d32cc16e7d2a086c3bdf219daa30a85a8b",
+  "task_commit_basis": "first parent of https://github.com/python-poetry/poetry/commit/e4f991548b710895d26530148de2e371e76d632f; gh api compare 298068d32cc1...e4f991548b71 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-poetry/poetry/pull/10949",
+    "title": "perf: avoid to construct package objects to build the link cache when only name and version is needed",
+    "commit": "e4f991548b710895d26530148de2e371e76d632f",
+    "merged_at": "2026-06-11T12:45:53Z",
+    "files": [
+      "src/poetry/repositories/link_sources/base.py",
+      "src/poetry/repositories/link_sources/html.py",
+      "src/poetry/repositories/link_sources/json.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-poetry/poetry/pull/10949",
+      "note": "description, as matched by the miner: speedup claims: 10 % faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

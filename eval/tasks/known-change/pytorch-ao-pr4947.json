@@ -1,0 +1,49 @@
+{
+  "id": "pytorch-ao-pr4947",
+  "repository": "pytorch/ao",
+  "stars": 3005,
+  "pushed_at": "2026-10-15T22:39:17Z",
+  "task_commit": "c9c0f312bb072df6d1285985db9bd6c963050a84",
+  "task_commit_basis": "first parent of https://github.com/pytorch/ao/commit/3972ed015091f659418dedf12edb980a8ca56b53; gh api compare c9c0f312bb07...3972ed015091 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pytorch/ao/pull/4947",
+    "title": "Optimize Arm decode for all low-bit weights",
+    "commit": "3972ed015091f659418dedf12edb980a8ca56b53",
+    "merged_at": "2026-09-25T21:18:22Z",
+    "files": [
+      "torchao/csrc/cpu/shared_kernels/linear_8bit_act_xbit_weight/kernel_selector.h",
+      "torchao/csrc/cpu/shared_kernels/tests/test_linear_8bit_act_xbit_weight.cpp",
+      "torchao/csrc/cpu/torch_free_kernels/aarch64/linear/channelwise_8bit_activation_groupwise_lowbit_weight/channelwise_8bit_activation_groupwise_lowbit_weight.h",
+      "torchao/csrc/cpu/torch_free_kernels/aarch64/linear/channelwise_8bit_activation_groupwise_lowbit_weight/kernel_1x8x16_f32_neondot-impl.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pytorch/ao/pull/4947",
+      "note": "description, as matched by the miner: speedup claims: 1.33x; 24.5% lower; 1.33x speedup | timings: 240 us; 181 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:01+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

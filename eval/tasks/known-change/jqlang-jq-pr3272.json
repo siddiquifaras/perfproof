@@ -1,0 +1,49 @@
+{
+  "id": "jqlang-jq-pr3272",
+  "repository": "jqlang/jq",
+  "stars": 35829,
+  "pushed_at": "2026-10-13T07:47:59Z",
+  "task_commit": "5df471fa5b8d4a5b1c8fe0d92992d9a9ea987558",
+  "task_commit_basis": "first parent of https://github.com/jqlang/jq/commit/dc849e9bb74a7a164a3ea52f661cc712b1ffbd43; gh api compare 5df471fa5b8d...dc849e9bb74a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/jqlang/jq/pull/3272",
+    "title": "Improve performance of repeating strings",
+    "commit": "dc849e9bb74a7a164a3ea52f661cc712b1ffbd43",
+    "merged_at": "2025-03-04T13:13:56Z",
+    "files": [
+      "src/builtin.c",
+      "src/jv.c",
+      "src/jv.h",
+      "tests/jq.test"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/jqlang/jq/pull/3272",
+      "note": "description, as matched by the miner: timings: 375.4 ms; 2.8 ms; 363.7 ms; 10.5 ms; 371.8 ms; 380.5 ms; 115.9 ms; 0.7 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

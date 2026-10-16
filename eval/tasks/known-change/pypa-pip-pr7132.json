@@ -1,0 +1,62 @@
+{
+  "id": "pypa-pip-pr7132",
+  "repository": "pypa/pip",
+  "stars": 10293,
+  "pushed_at": "2026-10-14T22:10:06Z",
+  "task_commit": "a6b06059c96c60af4003f2e3146cad5d786bc58a",
+  "task_commit_basis": "first parent of https://github.com/pypa/pip/commit/f718a8f34c8c5dc819b5cc0798e0c69bb7603bdd; gh api compare a6b06059c96c...f718a8f34c8c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pypa/pip/pull/7132",
+    "title": "Optimize upgrade of already-satisfied pinned requirement",
+    "commit": "f718a8f34c8c5dc819b5cc0798e0c69bb7603bdd",
+    "merged_at": "2019-10-07T05:47:32Z",
+    "files": [
+      "news/7132.feature",
+      "src/pip/_internal/legacy_resolve.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pypa/pip/pull/7158",
+    "title": "Revert \"Optimize upgrade of already-satisfied pinned requiremen…",
+    "commit": "d451338b45fc9d3017f438b22634687e6749294f",
+    "merged_at": "2019-10-07T16:04:34Z",
+    "files": [
+      "news/7132.feature",
+      "src/pip/_internal/legacy_resolve.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pypa/pip/pull/7132",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/pypa/pip/pull/7158",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "fastify-fastify-pr6444",
+  "repository": "fastify/fastify",
+  "stars": 37284,
+  "pushed_at": "2026-10-15T11:18:02Z",
+  "task_commit": "1350428d1538b62e1b3d830c529ba6b02d5d4f78",
+  "task_commit_basis": "first parent of https://github.com/fastify/fastify/commit/c89945df8b6ec3507ba0fc444d561bac010a949a (squash merge); gh api compare 1350428d1538...c89945df8b6e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fastify/fastify/pull/6444",
+    "title": "perf: use native WebStream API instead of Readable.fromWeb wrapper",
+    "commit": "c89945df8b6ec3507ba0fc444d561bac010a949a",
+    "merged_at": "2026-01-15T11:45:49Z",
+    "files": [
+      "examples/benchmark/webstream.js",
+      "lib/reply.js",
+      "test/web-api.test.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fastify/fastify/pull/6444",
+      "note": "description, as matched by the miner: speedup claims: 20% improvement | timings: 36.6 ms; 30.4 ms | benchmark files changed: examples/benchmark/webstream.js"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

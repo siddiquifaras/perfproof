@@ -1,0 +1,64 @@
+{
+  "id": "triton-lang-triton-pr7770",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "58ae6f0e9a35c5527c198d6e8aaf8a57f05c13c8",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/8b2ed6d86ae61a327c7854df3b804d1dae84da02 (squash merge); gh api compare 58ae6f0e9a35...8b2ed6d86ae6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/7770",
+    "title": "[IMP][Launch Latency] misc improvements to compiler/kernel",
+    "commit": "8b2ed6d86ae61a327c7854df3b804d1dae84da02",
+    "merged_at": "2025-08-11T15:59:50Z",
+    "files": [
+      "python/test/unit/runtime/test_driver.py",
+      "python/triton/compiler/compiler.py",
+      "python/triton/runtime/driver.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/7848",
+    "title": "Revert \"[IMP][Launch Latency] misc improvements to compiler/kernel\"",
+    "commit": "abb66fe40fd9fc7a566cf27091ed0e7995aca9d1",
+    "merged_at": "2025-08-13T17:54:09Z",
+    "files": [
+      "python/test/unit/runtime/test_driver.py",
+      "python/triton/compiler/compiler.py",
+      "python/triton/runtime/driver.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/7770",
+      "note": "description, as matched by the miner: timings: 27.16 us; 23.9 us; 25.10 us; 2.06 us; 21.71 us; 5.45 us; 26.80 us; 0.36 us"
+    },
+    {
+      "url": "https://github.com/triton-lang/triton/pull/7848",
+      "note": "revert; miner classified it as reverted-unknown-reason from: 'Revert This breaks tutorials'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

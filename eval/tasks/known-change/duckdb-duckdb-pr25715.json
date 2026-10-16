@@ -1,0 +1,46 @@
+{
+  "id": "duckdb-duckdb-pr25715",
+  "repository": "duckdb/duckdb",
+  "stars": 42186,
+  "pushed_at": "2026-10-15T19:24:23Z",
+  "task_commit": "64394c4390ae8ebf5c7df6119e07e0ef7118ed72",
+  "task_commit_basis": "first parent of https://github.com/duckdb/duckdb/commit/28d91e9331bb402286539b0bc253b91e3c8f5f87; gh api compare 64394c4390ae...28d91e9331bb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/duckdb/duckdb/pull/25715",
+    "title": "Faster string_t optimized CompareInlineBytes (for stats writer)",
+    "commit": "28d91e9331bb402286539b0bc253b91e3c8f5f87",
+    "merged_at": "2026-09-16T03:52:46Z",
+    "files": [
+      "src/include/duckdb/storage/statistics/stats_writer.hpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/duckdb/duckdb/pull/25715",
+      "note": "description, as matched by the miner: timings: 1.87 s; 1.47 s; 0.78 s; 0.73 s; 0.98 s; 0.85 s; 1.31 s; 1.18 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

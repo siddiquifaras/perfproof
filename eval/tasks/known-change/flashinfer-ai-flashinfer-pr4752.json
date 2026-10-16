@@ -1,0 +1,52 @@
+{
+  "id": "flashinfer-ai-flashinfer-pr4752",
+  "repository": "flashinfer-ai/flashinfer",
+  "stars": 6626,
+  "pushed_at": "2026-10-15T22:07:40Z",
+  "task_commit": "b250399302acb2c4925b03416188c6678b762fbd",
+  "task_commit_basis": "first parent of https://github.com/flashinfer-ai/flashinfer/commit/6f9a513ab9046319d765dd8c6c7085439a29afbf (squash merge); gh api compare b250399302ac...6f9a513ab904 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/flashinfer-ai/flashinfer/pull/4752",
+    "title": "perf(sparse mla): Update sparse MLA half-Q-tile heuristic to apply to short queries only",
+    "commit": "6f9a513ab9046319d765dd8c6c7085439a29afbf",
+    "merged_at": "2026-09-02T17:57:10Z",
+    "files": [
+      ".claude/skills/benchmark-kernel/SKILL.md",
+      "benchmarks/README.md",
+      "benchmarks/routines/attention.py",
+      "benchmarks/routines/flashinfer_benchmark_utils.py",
+      "benchmarks/samples/sample_testlist.txt",
+      "benchmarks/test_flashinfer_benchmark.py",
+      "include/flashinfer/trtllm/fmha/fmhaKernels.cuh"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": "python3 benchmarks/flashinfer_benchmark.py --routine trtllm_batch_decode_sparse_mla_dsv4 --backends trtllm-gen --batch_size 1 --s_qo 16384 --s_kv 16384 --num_qo_heads 16 --num_kv_heads 1 --head_dim_qk 512 --head_dim_vo 512 --page_size 256 --swa_topk 128 --compressed_kv_len 4096 --compressed_page_size 64 --compressed_topk 1920 --kv_layout HND --q_dtype fp8_e4m3 --kv_dtype fp8_e4m3 --out_dtype bfloat16 --no_cuda_graph --refcheck --dry_run_iters 20 --num_iters 100 --generate_repro_command --case_tag dsv4-q16384 -vv",
+    "source": "quoted in the description of https://github.com/flashinfer-ai/flashinfer/pull/4752",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/flashinfer-ai/flashinfer/pull/4752",
+      "note": "description, as matched by the miner: speedup claims: 1x; 1.000x; 1.002x; 1.001x; 1.162x | timings: 142.38 ms; 75.89 ms; 198.72 ms; 132.66 ms; 648.73 ms; 589.02 ms; 66.48 ms; 66.10 ms | benchmark files changed: benchmarks/README.md, benchmarks/routines/attention.py, benchmarks/routines/flashinfer_benchmark_utils.py, benchmarks/samples/sample_testlist.txt, benchmarks/test_flashinfer_benchmark.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

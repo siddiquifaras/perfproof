@@ -1,0 +1,46 @@
+{
+  "id": "django-django-pr20911",
+  "repository": "django/django",
+  "stars": 91331,
+  "pushed_at": "2026-10-15T06:51:05Z",
+  "task_commit": "9b2cc7a950b14cdde4c85d8ed0ebc59784a68725",
+  "task_commit_basis": "first parent of https://github.com/django/django/commit/994fa7780d73f6d618dc3a03339e96b5353b4e71; gh api compare 9b2cc7a950b1...994fa7780d73 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/20911",
+    "title": "Fixed #36960 -- Enabled the use of psycopg 3's optimized timestamp loader.",
+    "commit": "994fa7780d73f6d618dc3a03339e96b5353b4e71",
+    "merged_at": "2026-03-20T20:31:25Z",
+    "files": [
+      "django/db/backends/postgresql/psycopg_any.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/django/django/pull/20911",
+      "note": "description, as matched by the miner: timings: 12.543 s ± 0.084 s; 4.647 s ± 0.039 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "assafelovic-gpt-researcher-pr1642",
+  "repository": "assafelovic/gpt-researcher",
+  "stars": 30115,
+  "pushed_at": "2026-10-10T22:03:53Z",
+  "task_commit": "74e540e4fba7c78bd828a4f065a73fe5a77fc08f",
+  "task_commit_basis": "first parent of https://github.com/assafelovic/gpt-researcher/commit/059592d03cd3f94a9f8eec09bdd4c35b116a3ce4; gh api compare 74e540e4fba7...059592d03cd3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/assafelovic/gpt-researcher/pull/1642",
+    "title": "perf: add URL deduplication to prevent redundant scraping",
+    "commit": "059592d03cd3f94a9f8eec09bdd4c35b116a3ce4",
+    "merged_at": "2026-03-01T14:11:10Z",
+    "files": [
+      "gpt_researcher/scraper/scraper.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/assafelovic/gpt-researcher/pull/1642",
+      "note": "description, as matched by the miner: speedup claims: 49% improvement; 20% reduction; 13% reduction | timings: 28.89s; 14.74s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

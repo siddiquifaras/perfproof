@@ -1,0 +1,47 @@
+{
+  "id": "vllm-project-vllm-pr58194-landed",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "38cc054fc2269941cd35ecdfd198aacbb2eabfb8",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/vllm-project/vllm/commit/38cc054fc2269941cd35ecdfd198aacbb2eabfb8",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/58194",
+    "title": "[Perf][Kernel] Vectorized flat abs-max for dynamic per-tensor FP8 quantization",
+    "commit": "38cc054fc2269941cd35ecdfd198aacbb2eabfb8",
+    "merged_at": "2026-09-25T15:19:48Z",
+    "files": [
+      "csrc/libtorch_stable/quantization/w8a8/fp8/common.cu",
+      "tests/kernels/quantization/test_fp8_quant.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "serving",
+  "workload": {
+    "command": "vllm bench throughput --model Qwen/Qwen3-30B-A3B --quantization fp8 --max-model-len 2048 --dataset-name random --input-len 1024 --output-len 128 --num-prompts 512",
+    "source": "quoted in the description of https://github.com/vllm-project/vllm/pull/58194",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/kernels/quantization/test_fp8_quant.py",
+    "source": "test files changed by https://github.com/vllm-project/vllm/pull/58194 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/58194",
+      "note": "description, as matched by the miner: speedup claims: 1.46x; 1.89x; 1.30x; 1.43x; 1.60x | timings: 1.876 s; 1.843 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

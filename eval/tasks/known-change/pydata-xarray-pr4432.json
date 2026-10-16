@@ -1,0 +1,64 @@
+{
+  "id": "pydata-xarray-pr4432",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "b0d8d93665dbb6d28e33dfd28ad27036c20c60bf",
+  "task_commit_basis": "first parent of https://github.com/pydata/xarray/commit/9a8a62ba551e737dc87e39aded2f7cc788ff118d (squash merge); gh api compare b0d8d93665db...9a8a62ba551e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/4432",
+    "title": "Fix optimize for chunked DataArray",
+    "commit": "9a8a62ba551e737dc87e39aded2f7cc788ff118d",
+    "merged_at": "2020-09-17T23:19:23Z",
+    "files": [
+      "doc/whats-new.rst",
+      "xarray/core/variable.py",
+      "xarray/tests/test_dask.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/4434",
+    "title": "Revert \"Fix optimize for chunked DataArray\"",
+    "commit": "902f1fcd9d455d70af6dd4cd39b403fe05dda993",
+    "merged_at": "2020-09-18T03:06:46Z",
+    "files": [
+      "doc/whats-new.rst",
+      "xarray/core/variable.py",
+      "xarray/tests/test_dask.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest xarray/tests/test_dask.py",
+    "source": "test files changed by https://github.com/pydata/xarray/pull/4432 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydata/xarray/pull/4432",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/pydata/xarray/pull/4434",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

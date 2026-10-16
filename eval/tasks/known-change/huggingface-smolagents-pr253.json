@@ -1,0 +1,62 @@
+{
+  "id": "huggingface-smolagents-pr253",
+  "repository": "huggingface/smolagents",
+  "stars": 29865,
+  "pushed_at": "2026-10-06T18:35:07Z",
+  "task_commit": "a2ca95107fac7f704384d0d06d37cb9696c0aae5",
+  "task_commit_basis": "first parent of https://github.com/huggingface/smolagents/commit/d19ebc7a481346bf884791588a7215cbe3c3e661 (squash merge); gh api compare a2ca95107fac...d19ebc7a4813 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/smolagents/pull/253",
+    "title": "Make import time faster (optional deps + delay imports)",
+    "commit": "d19ebc7a481346bf884791588a7215cbe3c3e661",
+    "merged_at": "2025-01-20T09:59:44Z",
+    "files": [
+      "docs/source/en/guided_tour.md",
+      "docs/source/en/reference/agents.md",
+      "docs/source/zh/guided_tour.md",
+      "docs/source/zh/reference/agents.md",
+      "pyproject.toml",
+      "src/smolagents/__init__.py",
+      "src/smolagents/_transformers_utils.py",
+      "src/smolagents/default_tools.py",
+      "src/smolagents/gradio_ui.py",
+      "src/smolagents/models.py",
+      "src/smolagents/tools.py",
+      "src/smolagents/types.py",
+      "src/smolagents/utils.py",
+      "tests/test_default_tools.py",
+      "tests/test_final_answer.py",
+      "tests/test_tools.py",
+      "tests/test_types.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_default_tools.py tests/test_final_answer.py tests/test_tools.py tests/test_types.py",
+    "source": "test files changed by https://github.com/huggingface/smolagents/pull/253 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/smolagents/pull/253",
+      "note": "description, as matched by the miner: timings: 3.8s; 0.5s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

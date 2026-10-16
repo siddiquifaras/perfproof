@@ -1,0 +1,48 @@
+{
+  "id": "scikit-learn-scikit-learn-pr25713",
+  "repository": "scikit-learn/scikit-learn",
+  "stars": 67624,
+  "pushed_at": "2026-10-14T13:00:44Z",
+  "task_commit": "21ed0815f4c5d1f89c07dcc80090f6f07b0d048a",
+  "task_commit_basis": "first parent of https://github.com/scikit-learn/scikit-learn/commit/eae3f294d3ba8ae636730537faef4cdd612083ff (squash merge); gh api compare 21ed0815f4c5...eae3f294d3ba touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scikit-learn/scikit-learn/pull/25713",
+    "title": "ENH Speed-up expected mutual information",
+    "commit": "eae3f294d3ba8ae636730537faef4cdd612083ff",
+    "merged_at": "2023-03-06T16:20:43Z",
+    "files": [
+      "doc/whats_new/v1.3.rst",
+      "sklearn/metrics/cluster/_expected_mutual_info_fast.pyx",
+      "sklearn/metrics/cluster/_supervised.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit expected_mutual_information(contingency, n_samples)",
+    "source": "quoted in the description of https://github.com/scikit-learn/scikit-learn/pull/25713",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/25713",
+      "note": "description, as matched by the miner: timings: 350ms; 20s; 3s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

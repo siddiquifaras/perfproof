@@ -1,0 +1,597 @@
+# Evaluation tasks
+
+The task set for the external evaluation in
+[docs/evaluation.md](../docs/evaluation.md). This directory holds the
+miner that finds candidates (`mine/`) and one manifest per task
+(`tasks/<family>/<id>.json`).
+
+Every task here is a **development candidate**. Nothing is in the
+held-out split yet: that needs the lead's review of these candidates,
+and a task used for development never moves to the held-out set.
+
+Nothing in a manifest is a performance label. Labels come from the
+independent procedure in T4.2. The miner's classifications (family,
+change kind, revert reason) are keyword rules over GitHub text, kept
+with the text they matched so each one can be checked by hand.
+
+## Counts
+
+Mined on 16 October 2026 (`uv run python eval/mine/mine.py counts`).
+There are 376 candidates from 102 repositories. These counts are after
+the review fixes listed under "Removed after review" below.
+
+**This is a candidate pool, not a reviewed task set.** The rules are
+keyword and pattern rules, so the pool has known noise: changes that
+aren't runtime optimizations, revert reasons the text doesn't support,
+and evidence that isn't about speed. Four review rounds sampled it
+against GitHub and fixed what they found by rule, but more noise
+remains. Step 1 of the selection rule in docs/evaluation.md guards any
+task that is drawn: before the hash-order draw, each candidate's change
+is read, and misclassified candidates are removed with the reason
+recorded.
+
+| Family | python | native | web | serving | gpu | agentic | Total |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| hidden-fix | 7 | 6 | 3 | 2 | 12 | 0 | 30 |
+| known-change | 79 | 64 | 37 | 32 | 29 | 30 | 271 |
+| nothing-to-keep | 13 | 11 | 7 | 3 | 6 | 1 | 41 |
+| published-benchmark | 34 | 0 | 0 | 0 | 0 | 0 | 34 |
+| **Total** | 133 | 81 | 47 | 37 | 47 | 31 | 376 |
+
+| Change kind | Tasks |
+|---|---:|
+| improvement | 246 |
+| after-landed | 41 |
+| benchmark-instance | 34 |
+| reverted-unknown-reason | 28 |
+| kernel-version | 12 |
+| regression | 8 |
+| reverted-breaking | 7 |
+| reverted-no-gain | 0 |
+
+| Status | Tasks |
+|---|---:|
+| runs | 5 |
+| builds | 1 |
+| candidate | 370 |
+
+Read these counts with these caveats:
+
+- **Missing commands.** 95 of the 376 have a workload command and 125
+  have an oracle command. The rest have `null` and have to be
+  completed by hand.
+- **Workload commands.** A workload quoted over several lines with
+  backslash continuations is joined into one command. If it can't be
+  recovered whole, it is `null`. A `vllm bench` line counts only with
+  a `serve`, `latency` or `throughput` subcommand.
+- **No no-gain reverts.** No revert was classified `reverted-no-gain`.
+  So the nothing-to-keep family is all `after-landed` for now. Reverts
+  with no stated reason, or reverted for a build or CI failure, are
+  known-change `reverted-unknown-reason`.
+- **Dropped and skipped pull requests.**
+  - 4 selected pull requests were dropped because `mine.pr_base` found
+    no base whose diff touches exactly their files: tqdm#955,
+    flashinfer#6506, agno#9694 and agno#7708.
+  - A reviewer checked tqdm#955 and agno#9694. They are genuine drops:
+    a merge commit and a squash whose diff doesn't match the pull
+    request's file list. The other 2 weren't investigated.
+  - 2 more were skipped because they are also SWE-fficiency instances:
+    xarray#5661 and dask#11625.
+- **GPU and agentic.** All 12 GPU hidden-fix tasks are from llm.c
+  `dev/cuda`. No agentic hidden-fix candidate passed the rules.
+- **Published benchmarks** are Python only: GSO 7, SWE-Perf 9,
+  SWE-fficiency 18.
+
+### Removed after review
+
+**Round 2** (after 77130ae). The second review found manifests
+that were wrong. The rules
+were fixed, rather than single files edited, and the manifests were
+regenerated. Each fix and the rule it changed:
+
+1. **Kernel versions.** An llm.c commit that renames a kernel into a
+   numbered slot no longer counts as a new version. The parent must
+   not already define or call that version's launcher
+   (`<name><N>(`).
+2. **Kernel file lists.** An llm.c task's `reference_change.files`
+   lists every file the commit touched, read from the API.
+3. **Workload commands.** Backslash continuations are joined, as in
+   the caveat above. Nine manifests had stored a first-line fragment,
+   such as matplotlib's `python3 -m timeit \`, which timed `pass`.
+4. **Source files.** An improvement or a reverted change must touch a
+   source file. CI configuration and build or packaging scripts no
+   longer count as source.
+5. **Build and CI reverts.** A revert whose text puts a failure word
+   next to a build word ("breaks the AMD CI image build", "wheel
+   creation to fail", "breaks tutorials") is `reverted-unknown-reason`,
+   not `reverted-breaking`.
+6. **Names in titles.** `optimize` or `vectorize` used as a name
+   (after a dot, or before a dot, slash or colon) is not a performance
+   word. This excludes SciPy's `optimize.` module and
+   `numpy.vectorize`.
+
+39 candidates were removed, each for the reason below.
+
+| Task | Removed because |
+|---|---|
+| `agno-agi-agno-pr7708-landed` | Moved to known-change when caps freed a slot, then `pr_base` found no base whose diff matches its files |
+| `agno-agi-agno-pr9706` | Changes no source file (`cookbook/performance/README.md`, `cookbook/performance/comparison/README.md`, `scripts/perf_setup.sh`) |
+| `aio-libs-aiohttp-pr12606` | Changes no source file (`CHANGES/12606.contrib.rst`, `tests/test_client_functional.py`, `tests/test_http_parser.py`) |
+| `astral-sh-uv-pr21055` | Changes no source file (`.github/workflows/bench.yml`) |
+| `berriai-litellm-pr45551-landed` | Changes no source file (`.github/ci-coverage-allowlist.yml`, `.github/workflows/test-unit.yml`, `tests/local_testing/test_anthropic_prompt_caching.py` and 17 more) |
+| `berriai-litellm-pr46713` | Changes no source file (`.github/workflows/test-linting.yml`, `tests/e2e/AGENTS.md`, `tests/e2e/e2e_http.py` and 30 more) |
+| `deepset-ai-haystack-pr5828` | Changes no source file (`.github/workflows/linting.yml`) |
+| `fastapi-fastapi-pr13583` | Changes no source file (`tests/test_tutorial/test_security/test_tutorial005.py`, `tests/test_tutorial/test_sql_databases/test_tutorial001.py`, `tests/test_tutorial/test_sql_databases/test_tutorial002.py`) |
+| `ggml-org-llama-cpp-pr23869` | Changes no source file (`docs/speculative.md`, `requirements/requirements-server-bench.txt`, `scripts/server-bench.py` and 4 more) |
+| `huggingface-diffusers-pr12366` | Changes no source file (`docs/source/en/_toctree.yml`, `docs/source/en/optimization/cache_dit.md`) |
+| `huggingface-smolagents-pr907` | Changes no source file (`tests/test_local_python_executor.py`) |
+| `hypothesisworks-hypothesis-pr456-landed` | Changes no source file (`tests/common/__init__.py`, `tests/conftest.py`, `tests/cover/test_conjecture_engine.py` and 4 more) |
+| `karpathy-llm-c-layernorm-forward-f28613e0b9` | A rename, not a new kernel: the parent already defines and calls the launcher `layernorm_forward3(` |
+| `lz4-lz4-pr1330` | Changes no source file (`appveyor.yml`, `tests/fullbench.c`) |
+| `numpy-numpy-pr23061` | Title matched only a name (`optimize` module, `numpy.vectorize`): 'Revert "ENH: Enabled the use of numpy.vectorize as a decorator"' |
+| `ollama-ollama-pr8643` | Changes no source file (`benchmark/server_benchmark_test.go`, `docs/benchmark.md`) |
+| `openai-openai-agents-python-pr4197-landed` | Changes no source file (`.github/scripts/run_serial_tests.py`, `Makefile`, `tests/README.md` and 1 more) |
+| `openai-openai-agents-python-pr4200` | Changes no source file (`Makefile`) |
+| `openai-openai-agents-python-pr4874` | Changes no source file (`.github/scripts/run-asyncio-teardown-stability.sh`, `tests/test_asyncio_stability_command.py`) |
+| `openhands-openhands-pr12256` | Changes no source file (`openhands/runtime/utils/runtime_templates/Dockerfile.j2`) |
+| `openhands-openhands-pr13590` | Changes no source file (`.github/workflows/ghcr-build.yml`, `containers/build.sh`, `openhands/runtime/utils/runtime_templates/Dockerfile.j2`) |
+| `pyca-cryptography-pr6511` | Changes no source file (`tox.ini`) |
+| `pydantic-pydantic-ai-pr5389` | Changes no source file (`.github/workflows/ci.yml`, `tests/models/test_model.py`, `tests/models/test_openai_responses.py` and 5 more) |
+| `pytest-dev-pytest-pr15151` | Changes no source file (`testing/test_debugging.py`, `testing/test_terminal.py`) |
+| `pytorch-ao-pr2973` | Changes no source file (`.github/scripts/torchao_model_releases/eval_latency.sh`) |
+| `pytorch-ao-pr4807` | Changes no source file (`.github/workflows/regression_test_pt2e_cpu.yml`, `dev-requirements.txt`, `test/quantization/pt2e/test_graph_utils.py` and 1 more) |
+| `saleor-saleor-pr18686` | Changes no source file (`.devcontainer/docker-compose.yml`) |
+| `sanic-org-sanic-pr63` | Changes no source file (`requirements-dev.txt`, `tests/performance/tornado/simple_server.py`) |
+| `scipy-scipy-pr10083` | Title matched only a name (`optimize` module, `numpy.vectorize`): 'Revert "Clean ``_clean_inputs`` in optimize.linprog"' |
+| `scipy-scipy-pr127` | Title matched only a name (`optimize` module, `numpy.vectorize`): 'Revert "ENH: optimize/minimize: combine hess and hessp parameters" (#161...' |
+| `sgl-project-sglang-pr43762` | Changes no source file (`test/registered/basic_perf/test_vlm_serving_flashinfer.py`) |
+| `simdjson-simdjson-pr2819` | Changes no source file (`benchmark/json2msgpack/simdjson_ondemand.h`) |
+| `tile-ai-tilelang-pr3191-landed` | Changes no source file (`CMakeLists.txt`) |
+| `tile-ai-tilelang-pr3315` | Changes no source file (`.github/workflows/dist.yml`) |
+| `triton-inference-server-server-pr5032` | Changes no source file (`qa/L0_lifecycle/lifecycle_test.py`, `qa/L0_lifecycle/test.sh`) |
+| `valkey-io-valkey-pr3157-landed` | Changes no source file (`src/valkey-benchmark.c`) |
+| `valkey-io-valkey-pr3463` | Changes no source file (`tests/unit/cluster/faster-failover.tcl`) |
+| `vllm-project-vllm-pr60511` | Changes no source file (`tests/benchmarks/test_serve_cli.py`, `vllm/benchmarks/serve.py`) |
+| `wagtail-wagtail-pr6158` | Changes no source file (`.squash.yml`) |
+
+8 more kept their pull request but changed family when the caps were re-filled, so they got a new id: `ggml-org-llama-cpp-pr30119-landed` is now `ggml-org-llama-cpp-pr30119`, `ollama-ollama-pr11863-landed` is now `ollama-ollama-pr11863`, `openhands-openhands-pr12105-landed` is now `openhands-openhands-pr12105`, `pytest-dev-pytest-pr851-landed` is now `pytest-dev-pytest-pr851`, `pytorch-ao-pr4310-landed` is now `pytorch-ao-pr4310`, `saleor-saleor-pr11900-landed` is now `saleor-saleor-pr11900`, `sgl-project-sglang-pr43570-landed` is now `sgl-project-sglang-pr43570`, `vllm-project-vllm-pr58584-landed` is now `vllm-project-vllm-pr58584`.
+
+14 candidates are new. They fill cap slots the removals freed, by the same rules: `agno-agi-agno-pr3013-landed`, `berriai-litellm-pr45228-landed`, `berriai-litellm-pr45252`, `ggml-org-llama-cpp-pr29857-landed`, `karpathy-llm-c-layernorm-forward-cb791c4ef5`, `ollama-ollama-pr10678-landed`, `openai-openai-agents-python-pr2563`, `openhands-openhands-pr9925`, `pytorch-ao-pr4113-landed`, `saleor-saleor-pr11874-landed`, `sgl-project-sglang-pr43551-landed`, `tile-ai-tilelang-pr2659`, `valkey-io-valkey-pr3033`, `vllm-project-vllm-pr58194-landed`.
+
+**Round 3** (after 96c0a42). Rules changed:
+
+1. **llm.c versions** come from the dispatch switch (`case N:` calling `<name><N>(`), not from kernel function names.
+2. **Source files** exclude lockfiles, docs trees and `.md`/`.mdx`, `scripts/`, examples and cookbooks, and JSON data. A title about speeding up tests, CI or docs doesn't qualify.
+3. **A multiplier counts as a speedup** only with performance context: a speed, time or benchmark word within a few words, on its line, or in its table's header. It must also have no device, memory unit or further number right after it, so `1x GPU`, `4x GiB` and `64 x 4096` don't count.
+4. **`vllm bench`** must be followed by `serve`, `latency` or `throughput` to count as a workload. That moves vllm#48223 from the PR's typo `vllm bench deepseek-ai/...` to its next quoted block, `vllm bench serve ...`.
+
+20 candidates were removed:
+
+| Task | Removed because |
+|---|---|
+| `agno-agi-agno-pr9705` | Changes no source file (`cookbook/performance/README.md`, `cookbook/performance/baselines/2026-08-22-apple-m4-max-post-9700.json`) |
+| `astral-sh-uv-pr21634` | Title is about tests, CI, docs or examples: 'Use Packse scenarios to speed up tool tests' |
+| `cline-cline-pr12568` | Changes no source file (`apps/examples/desktop-app/sidecar/ARCHITECTURE.md`, `apps/examples/desktop-app/sidecar/commands.ts`, `apps/examples/desktop-app/sidecar/context.ts` and 12 more) |
+| `deepset-ai-haystack-pr9451` | Title is about tests, CI, docs or examples: 'test: speed up some tests + minor refactorings' |
+| `duckdb-duckdb-pr26837` | Title is about tests, CI, docs or examples: 'Speed up prepare CI job' |
+| `internlm-lmdeploy-pr4830-landed` | Its multipliers (`0.55x`, `0.57x`, ...) sit in a table whose header reads `\| M \| Triton µs \| Gluon µs \| ... \| Gluon TFLOP/s \|` under a paragraph ending "Values are median p50 latency". The round-3 rule read neither. Restored in round 4 |
+| `karpathy-llm-c-attention-backward-e278112c19` | Its kernel3 is a softmax helper dispatched as `case 3: attention_backward1(...)`, not a new numbered launcher. The file no longer has a task |
+| `karpathy-llm-c-attention-forward-5f99fb30d2` | Its workload ran `./attention_forward 5`, but the dispatch switch only has cases 1 to 4 (`softmax_forward_kernel5` is a helper). The file's task is now `bb4f04bdf8`, which adds `attention_forward2` |
+| `karpathy-llm-c-layernorm-forward-cb791c4ef5` | Not the earliest commit that adds a dispatched version. `466723bb06` adds `case 3: layernorm_forward3` and is now the file's task |
+| `karpathy-llm-c-matmul-forward-bb89efdcb1` | Its kernel4 isn't dispatched by `case 4: matmul_forward4`. The file's task is now `8822e7803e`, which adds `matmul_forward3` |
+| `ollama-ollama-pr10678-landed` | `1x GPU: 5.7 GiB`, `2x GPU: 7.8 GiB`, ... count GPUs in a VRAM list. Nothing else in the description counts as evidence |
+| `openai-codex-pr42638` | Changes no source file (`codex-rs/models-manager/models.json`) |
+| `openai-openai-agents-python-pr2563` | Title is about tests, CI, docs or examples: 'perf: speed up make tests with xdist and deterministic waits' |
+| `saleor-saleor-pr19294` | Title is about tests, CI, docs or examples: 'fix(tests): slow tests caused by pytest-socket' |
+| `scikit-learn-scikit-learn-pr34982-landed` | Changes no source file (`examples/applications/plot_wikipedia_principal_eigenvector.py`) |
+| `sgl-project-sglang-pr43551-landed` | Title is about tests, CI, docs or examples: '[Docs] Document Qwen3-4B/8B H200 mixed-chunk latency tradeoffs' |
+| `simdjson-simdjson-pr2876` | `3 ×` is the repeat count in "best of 3 × 300 iterations". Nothing else in the description counts as evidence |
+| `tile-ai-tilelang-pr2659` | Title is about tests, CI, docs or examples: '[Example][Opt] deepseek_v32 topk_selector kernel memory access optimization (~1.9× faster)' |
+| `tile-ai-tilelang-pr3419` | Changes no source file (`examples/kpool/benchmark_glm53_kpool_hadamard.py`, `examples/kpool/example_glm53_kpool_compress.py`, `examples/kpool/example_glm53_kpool_decode_tail.py`) |
+| `unslothai-unsloth-pr13404-landed` | Its one multiplier is in "prefill 1997 to 2121 tok/s (1.062x)", on a line beginning "measured in the Zoo PR". The round-3 rule counted neither `tok/s` nor "measured". Restored in round 4 as `unslothai-unsloth-pr13404` (known-change) |
+
+6 changed family when the caps were re-filled, so they got a new id: `agno-agi-agno-pr3013-landed` is now `agno-agi-agno-pr3013`, `astral-sh-uv-pr20118-landed` is now `astral-sh-uv-pr20118`, `cline-cline-pr4676-landed` is now `cline-cline-pr4676`, `duckdb-duckdb-pr25547-landed` is now `duckdb-duckdb-pr25547`, `openai-codex-pr17039-landed` is now `openai-codex-pr17039`, `saleor-saleor-pr11874-landed` is now `saleor-saleor-pr11874`.
+
+10 are new: `astral-sh-uv-pr18311-landed`, `duckdb-duckdb-pr25527-landed`, `internlm-lmdeploy-pr4827-landed`, `karpathy-llm-c-attention-forward-bb4f04bdf8`, `karpathy-llm-c-gelu-forward-45252d434c`, `karpathy-llm-c-layernorm-forward-466723bb06`, `karpathy-llm-c-matmul-forward-8822e7803e`, `karpathy-llm-c-residual-forward-4ffcf5b90a`, `saleor-saleor-pr11175-landed`, `unslothai-unsloth-pr13255-landed`. Five of them are llm.c tasks the dispatch rule now selects. The rest fill freed cap slots by the same rules.
+
+**Round 4** (after eb54fd1). Rules changed:
+
+1. **Speed context** also accepts unit words without a leading digit
+   (`ns`, `ms`, `µs`, `us` as a column or in parentheses, `tok/s`,
+   `tokens/s`, `TFLOP/s`, `GB/s`, `req/s`, `it/s`) and "measured". For
+   a multiplier in a table, the four lines above the table (its heading
+   or lead paragraph) are read too. lmdeploy#4830 and unsloth#13404
+   come back, with tests on their captured text in `mine/fixtures/`.
+2. **File lists** for pull requests with 100 or more changed files are
+   paged from `gh api repos/<r>/pulls/<n>/files`. `gh pr view` stops at
+   100. `reference_change.files_truncated` is true only when GitHub's
+   own 3000-file listing limit is reached, or paging failed. No
+   current manifest is truncated. flashinfer#6543-landed now lists all
+   118 files.
+3. **Test paths:** `spec` counts as a test path only as a `spec/`
+   directory or a `*_spec.rb` / `*.spec.js` file, and a pytest oracle
+   names only `test_*.py` or `*_test.py` files. lmdeploy's
+   `spec_decode/` (speculative decoding) is no longer passed to pytest.
+4. **Class fit:** a change whose source files are all browser frontend
+   code (a `frontend/`, `web/` or `ui/` tree, TypeScript, JavaScript,
+   CSS, HTML) is outside the python, native, serving and GPU classes,
+   and is dropped there.
+
+3 candidates were removed:
+
+| Task | Removed because |
+|---|---|
+| `internlm-lmdeploy-pr4827-landed` | lmdeploy's one after-landed slot went back to the restored `internlm-lmdeploy-pr4830-landed`. Its oracle had also passed `spec_decode/` source files to pytest, which rule 3 now prevents |
+| `unslothai-unsloth-pr13255-landed` | All its source files are in `studio/frontend/` (`low-device-scale.ts` and others, 195 files listed in full). A frontend change in a GPU-class repository |
+| `unslothai-unsloth-pr13602` | All its source files are in `studio/frontend/src/features/browser/agent/` (`executor.ts`, `page-agent.ts`, `page-wait.ts`). A frontend change in a GPU-class repository |
+
+3 are new or restored: `internlm-lmdeploy-pr4830-landed` and
+`unslothai-unsloth-pr13404` (restored), and
+`unslothai-unsloth-pr13236-landed` ("Studio: faster image LoRA
+training", in `studio/backend/core/training/`), which fills the freed
+after-landed slot. The family and class counts are unchanged: each
+removal was replaced in the same cell.
+
+## Manifest schema
+
+One JSON file per task, `tasks/<family>/<id>.json`. The schema is the
+`Task` model in [mine/task.py](mine/task.py). The root `uv run pytest`
+validates every committed manifest against it (its `testpaths` include
+`eval/mine`, whose tests are offline), and the root `uv run pyright`
+type-checks `eval/mine` in strict mode.
+
+| Field | Meaning | Source |
+|---|---|---|
+| `id` | Unique id, also the file name | Built from repository and pull request, commit or instance |
+| `repository` | `owner/name` on GitHub | Search or dataset row |
+| `stars`, `pushed_at` | Popularity and last push at mining time | `gh repo view` |
+| `task_commit` | The commit an agent starts from | See `task_commit_basis` |
+| `task_commit_basis` | How `task_commit` was found | For pull requests, the base found with `gh api` commits and compare (see "Base of a pull request" below) |
+| `reference_change` | The known change: `kind` (`pull-request`, `commit`, `benchmark-instance`), `url`, `title`, `commit`, `merged_at`, `files`, `files_truncated` (true only if GitHub's listing limit may have cut `files` short) | `gh pr view`, `gh api`, or the dataset row |
+| `revert` | The pull request that reverted the change, same shape, or `null` | `gh pr view` |
+| `family` | `known-change`, `published-benchmark`, `hidden-fix`, `nothing-to-keep` | Rules below |
+| `change_kind` | `improvement`, `after-landed`, `reverted-no-gain`, `reverted-breaking`, `reverted-unknown-reason`, `regression`, `kernel-version`, `benchmark-instance` | Rules below |
+| `target_class` | `python`, `native`, `web`, `serving`, `gpu`, `agentic` | The seed list's class for the repository |
+| `workload` | `command`, `source` (where it came from, or `unknown`), `verified` (run here) | Quoted in the pull request, a dataset field, a file header, or a command run here |
+| `oracle` | Same shape: the independent correctness check | Test files the change touched, a dataset field, or a command run here |
+| `evidence` | Links with notes, one per source used above | |
+| `audit` | For published-benchmark tasks: the 2026 cross-machine audit's per-task row | Audit data repository, pinned commit |
+| `status` | `candidate` (not built here), `builds`, `runs`, `failed` | `mine/check.py` |
+| `status_reason` | What was and wasn't checked | |
+| `runs` | Every command run here: step, tree (`task` or `reference`), command, exit code, wall time, date, machine, output tail | `mine/check.py` |
+| `split` | Always `development-candidate` for now | |
+| `mined_at`, `miner` | When and by which command the manifest was written | |
+
+An unknown stays unknown: a workload or oracle the miner couldn't
+identify has `command: null` and `source: "unknown"`, and a revert
+whose reason the text doesn't state is `reverted-unknown-reason`.
+
+## How candidates were found
+
+All GitHub data comes through `gh` and is cached by argv under
+`mine/cache/gh/` (gitignored), with 2.5 s between search calls (the
+search API allows 30 a minute) and 0.5 s between other calls.
+
+```bash
+uv run python eval/mine/mine.py repos       # gh repo view each seed
+uv run python eval/mine/mine.py search      # gh search prs per repository
+uv run python eval/mine/mine.py view        # gh pr view / gh api for hits
+uv run python eval/mine/mine.py llmc        # llm.c dev/cuda kernel versions
+uv run python eval/mine/mine.py benchmarks  # GSO, SWE-Perf, SWE-fficiency
+uv run python eval/mine/mine.py manifests   # write tasks/
+uv run python eval/mine/mine.py counts      # the tables above
+uv run python eval/mine/check.py <id> ...   # build and run here
+```
+
+1. **Repositories.** [mine/seeds.json](mine/seeds.json) is a
+   hand-picked list of repositories per target class. Each is checked
+   with `gh repo view` and kept only with at least 2000 stars, a push
+   in the last 365 days and not archived. Rejected seeds, with the
+   reason, are printed by the `repos` stage.
+2. **Search.** In each kept repository, merged pull requests matching
+   `perf OR performance OR faster OR speedup OR optimize in:title`,
+   `speed OR optimization OR optimized OR throughput OR latency
+   in:title`, `revert in:title` and `regression in:title`, filtered
+   to titles with a performance word.
+3. **Evidence.** An improvement needs numbers in its description (a
+   speedup or percentage claim, or two timings next to benchmarking
+   words) or a benchmark file in its diff. Rules and their tests are in
+   [mine/classify.py](mine/classify.py) and
+   [mine/test_mine.py](mine/test_mine.py).
+4. **Reverts.** The reverted pull request is found from "Reverts
+   owner/repo#N", a pull request link, "This reverts commit <sha>"
+   (resolved with `gh api repos/<r>/commits/<sha>/pulls`) or the
+   `(#N)` in a GitHub revert title. The revert's text decides the
+   kind. It is no gain when the text says slower or no gain only, and
+   breaking when it says breaking behaviour only. It is unknown when
+   the text says neither or both, or names a build, CI or lint failure
+   (a failure word within a few words of a build word in one sentence).
+5. **Regressions.** Some regression fixes name the cause in their
+   description: "regression introduced in #N", "slowdown caused by #N",
+   "regressed by #N". Each such fix gives its culprit pull request as a
+   regression task. A bare "introduced in #N" is not enough, because it
+   also describes features and optimizations.
+
+### For the runner (T4.3)
+
+- A hidden-fix oracle names the test files the pull request touched,
+  which points at where the fix is. The agent must not see the oracle
+  command.
+- Task ids and file names contain pull request numbers
+  (`...-pr7810`), and the leakage check searches transcripts for them.
+  Keep ids out of checkout paths and prompts.
+
+### Families and kinds
+
+| Family | Kind | Task commit | Reference change | Right outcome |
+|---|---|---|---|---|
+| known-change | improvement | base of the pull request | the merged pull request | Set by T4.2's measurement |
+| known-change | reverted-breaking, reverted-unknown-reason | base of the pull request | the reverted pull request | Set by T4.2; the oracle should catch a breaking change |
+| known-change | regression | base of the culprit | the culprit pull request | Set by T4.2; expected not a KEEP |
+| hidden-fix | improvement, kernel-version | base of the change | the change, never shown to the agent | Set by T4.2 |
+| nothing-to-keep | after-landed | the merge commit itself | the optimization that already landed | No KEEP |
+| nothing-to-keep | reverted-no-gain | base of the pull request | the pull request reverted for not helping | No KEEP |
+| published-benchmark | benchmark-instance | the dataset's base commit | GSO: `opt_commit`; SWE-Perf and SWE-fficiency: the base commit plus the row's `patch` (`commit` is `null`) | Set by T4.2; the audit flags stability |
+
+**Base of a pull request.** For a merge commit (two parents) or a
+squash, the base is the first parent. A rebase merge replays the pull
+request's `k` commits, so there the first parent is the pull request's
+own second-to-last commit, which already holds most of the change.
+`mine.pr_base` reads the pull request's commit headlines
+(`gh pr view --json commits`). When a single-parent merge commit and
+the `k - 1` commits before it carry those headlines in order, it takes
+the base as `k` first parents back; otherwise it treats the merge as a
+squash. GitHub shortens long headlines and ends them with "…", so a
+shortened headline is matched as a prefix. The base is kept only if
+`gh api repos/<r>/compare/<base>...<merge>` touches exactly the pull
+request's files. A pull request that fails this is dropped and printed
+by the `manifests` stage. SWE-Perf's `head_commit` is the pull request's
+branch tip, which can sit behind the base and touch other files, so it
+is kept as evidence only.
+
+Each pull request backs at most one task, so no reference change can
+sit in both splits. This holds across the mined tasks and the
+SWE-Perf and SWE-fficiency instances (whose ids end in the pull request
+number) and GSO's (by the `(#N)` in the commit title), and a test
+checks it. A change landed twice and reverted twice under the same
+title is kept once.
+
+Per repository, at most one hidden-fix is kept, apart from llm.c's
+kernel files (below). A hidden-fix needs an improvement with numbers,
+a quoted benchmark command and at most three non-test source files
+changed. Also per repository: at most three known-change improvements,
+one after-landed task, three reverts and two regressions. This keeps
+any single repository from dominating a class.
+
+A hidden-fix task's commit is the base of the change, exported
+without later history, as docs/evaluation.md specifies. A later commit
+with the change reverted is used only where the base no longer
+builds; no such case has come up yet.
+
+An improvement, or a reverted change, must touch at least one source
+file. None of these count as source files:
+
+- tests and benchmarks;
+- docs: `docs/` trees, `.md` and `.mdx` files;
+- changelogs;
+- CI configuration: `.github/` and the like;
+- build or packaging files: `Dockerfile`, `Makefile`, `*.sh`, `*.yml`,
+  `pyproject.toml` and similar;
+- lockfiles: `uv.lock`, `*.lock`, `package-lock.json`;
+- `scripts/`, examples and cookbooks;
+- JSON data files.
+
+A change whose title is about making tests, CI or docs faster ("Speed
+up prepare CI job", "perf: speed up make tests", "[Docs] ...") doesn't
+count either. Neither does a change whose source files are all browser
+frontend code, in a python, native, serving or GPU repository. Titles
+are checked again against the current rules when candidates are
+selected.
+
+### GPU: llm.c `dev/cuda`
+
+[karpathy/llm.c](https://github.com/karpathy/llm.c) fails the activity
+threshold (last push 2025-06-26). It is kept because the plan names
+its kernels for GPU tasks, and each manifest says so.
+
+**Which commits count as a new version.** A version is a label in the
+file's dispatch switch, `case N:`, that calls the launcher `<name><N>(`.
+Kernel function names are not used, because helpers such as
+`softmax_forward_kernel5` carry numbers of their own. The `llmc` stage
+reads the history of every `dev/cuda/*.cu` file. For each file it keeps
+the earliest non-merge commit after which the file dispatches a
+version `N` above every version of that launcher in the parent, where
+the parent dispatches at least one. That gives 12 files.
+
+**Commits whose dispatch never qualifies.** In `attention_backward.cu`,
+cases 2 and 3 call `attention_backward1` with different softmax
+launchers, so the rule never sees a new numbered launcher there, and
+it has no task.
+
+**Files touched.** `reference_change.files` lists every file the
+commit touched, from the API. Most of the 12 touch only their own
+`.cu` file. The exceptions are:
+
+- global_norm also touches `dev/cuda/common.h`.
+- layernorm_backward and matmul_backward_bias also touch
+  `train_gpt2.cu`.
+- matmul_forward also touches `Makefile`, `test_gpt2.cu` and
+  `train_gpt2.cu`.
+
+**Workload and oracle.** The workload compiles with the `nvcc` line
+from the file's header, then runs the new version, a `case N:` that
+exists at the reference commit. At the reference commit, 8 of the 12
+files call `validate_result`, which checks the GPU result against the
+file's CPU reference, and that run is the oracle. The other 4
+(attention_forward, layernorm_forward, matmul_forward, softmax_forward)
+have no `validate_result` call at that commit, so their oracle is
+`null`.
+
+**Still candidates.** A fixed command that runs the newest kernel on
+both trees still has to be set up, so all 12 stay candidates. Their
+workload lines (`cd dev/cuda && nvcc ... && ./<kernel> <N>`) are shell
+lines. `mine/check.py` runs commands without a shell, so it can't run
+them as written.
+
+## Published benchmarks
+
+| | GSO | SWE-Perf | SWE-fficiency |
+|---|---|---|---|
+| Paper | [arXiv 2505.23671](https://arxiv.org/abs/2505.23671) | [arXiv 2507.12415](https://arxiv.org/abs/2507.12415) | [arXiv 2511.06090](https://arxiv.org/abs/2511.06090) |
+| Code | [gso-bench/gso](https://github.com/gso-bench/gso) | [SWE-Perf/SWE-Perf](https://github.com/SWE-Perf/SWE-Perf) | [swefficiency/swefficiency](https://github.com/swefficiency/swefficiency) |
+| Dataset | `gso-bench/gso`, split `test`, 102 rows | `SWE-Perf/SWE-Perf`, split `test`, 140 rows | `swefficiency/swefficiency`, split `test`, 498 rows |
+| Workload field | `prob_script` | `efficiency_test` (pytest ids) | `workload` |
+| Test command field | none | none | `test_cmd`, `rebuild_cmd` |
+| Environments | linux/amd64 images (`slimshetty/gso`) | linux/amd64 images (`betty1202/sweb.eval.x86_64.*`) | linux/amd64 images (`ghcr.io/swefficiency/swefficiency-images`) |
+
+**Fetching the task lists.** The Hugging Face datasets-server rows API,
+paginated:
+
+```
+https://datasets-server.huggingface.co/rows?dataset=<id>&config=default&split=test&offset=<o>&length=<n>
+```
+
+`n = 100` works for GSO and SWE-Perf. SWE-fficiency's rows carry full
+workload scripts and patches (2.88 GB of JSON pages in all), so it needs
+`n = 10`; at 100 a page timed out and others returned HTTP 502, and
+two pages at 10 returned 502 once before succeeding on retry.
+`mine/benchmarks.py` fetches any page not cached, with retries. The
+Parquet export (`/parquet?dataset=<id>`) is an alternative that wasn't
+used.
+
+The rows API serves a dataset's current revision and takes no revision
+argument. The revisions shown below were read from
+`https://huggingface.co/api/datasets/<id>` on the day the pages were
+fetched. Each was last modified months earlier, so the cached pages
+are probably from these revisions, but that wasn't checked.
+
+| Dataset | Revision | Last modified |
+|---|---|---|
+| `gso-bench/gso` | `c2e4f1a58427cccd15e0e542f136bd204fb19284` | 2026-03-23 |
+| `SWE-Perf/SWE-Perf` | `6298f128c550e92ac25af17653cf092224046516` | 2025-08-05 |
+| `swefficiency/swefficiency` | `7fbfe6c2f1f409afb17acc4c3f737991ec6e1c27` | 2026-03-30 |
+
+The workload scripts (`prob_script`, `workload`) and the reference
+patches live only in the rows, which are cached under the gitignored
+`mine/cache/`. A benchmark task can be rebuilt by fetching the rows
+again, not from what is committed here.
+
+**The cross-machine audit.** "Are Performance-Optimization Benchmarks
+Reliably Measuring Coding Agents?" ([arXiv
+2607.01211](https://arxiv.org/abs/2607.01211)) replays each reference
+patch on four GCP machine profiles, three rounds each. Its per-task
+data is public at
+[chenzhi-cz/performance-optimization-benchmark-reliability](https://github.com/chenzhi-cz/performance-optimization-benchmark-reliability),
+read here at commit `44a1cb86a9f7`. From `data/cross_machine_task_summary.csv`
+(counted here, matching the paper's 39/102, 11/140 and 411/498):
+
+| `final_status` | GSO | SWE-Perf | SWE-fficiency |
+|---|---:|---:|---:|
+| cross-machine-construction-valid | 39 | 11 | 411 |
+| has-hard-flip | 43 | 101 | 28 |
+| below-construction-threshold | 16 | 5 | 59 |
+| has-no-significant-gain | 0 | 21 | 0 |
+| not-fully-evaluable | 4 | 0 | 0 |
+| not in the summary | 0 | 2 | 0 |
+
+The audit's raw replay logs are not public; only these summaries and
+the per-observation table are.
+
+**Selection.** Instances with `final_status` of
+`cross-machine-construction-valid`, in repositories whose environments
+plausibly build on macOS arm64 with uv (pure Python, or Python with
+prebuilt wheels for compiled dependencies), at most six per benchmark
+and repository, in instance-id order. "Plausibly builds" is an
+inference from the repository, not a build: none has been built here.
+Each manifest's `audit` field carries the audit's row. All of the
+benchmarks' own images are linux/amd64, so a native environment has to
+be built for each; the benchmarks' reported speedups were measured on
+x86_64 and may not carry over to arm64.
+
+Two things in the datasets look wrong and are not used: SWE-fficiency's
+`speedup` column is 0.0 for all 498 rows, and every GSO
+`setup_commands` list contains `sudo upt upgrade -y`.
+
+## Built and run here
+
+`mine/check.py` builds a task from `mine/checks.json`. For each of the
+two trees, the task commit and the reference change, it:
+
+1. extracts that commit with `git archive`, so no later history is
+   present;
+2. creates a uv virtualenv in it;
+3. runs the setup lines;
+4. runs the oracle, then the workload.
+
+Commands run through `shlex.split`, never a shell. The results go
+into the manifest's `runs`. All of this happens under `mine/work/`,
+which is gitignored. A `pytest.ini` there stops pytest from climbing
+up to perfproof's own `pyproject.toml`. The first attempt without it
+picked up perfproof's warnings-as-errors setting and failed two
+more-itertools tests.
+
+Machine: M4 MacBook Pro, `macOS-15.7.7-arm64-arm-64bit`, CPython
+3.12.12 from uv.
+
+| Task | Status | Workload | Oracle |
+|---|---|---|---|
+| `hidden-fix/networkx-networkx-pr7810` | runs | `nx.square_clustering` on `complete_graph(100)`, from the PR's `%timeit` | `test_cluster.py` (both), 36 passed, 20 skipped (numpy not installed) |
+| `hidden-fix/more-itertools-more-itertools-pr773` | runs | `python -m timeit` of the PR's `%timeit` line | `tests/test_more.py`, 491 passed on both trees |
+| `known-change/more-itertools-more-itertools-pr699` | runs | `python -m timeit` of the PR's first `%timeit` line | `tests/test_more.py`, 466 passed on both trees |
+| `known-change/python-attrs-attrs-pr1463` | runs | `python -m timeit` of `attrs.asdict`, adapted from the PR's pyperf script | `tests/test_funcs.py`, 51 passed (task), 52 (reference) |
+| `known-change/python-jsonschema-jsonschema-pr1482` | runs | `uniqueItems` over 2000 objects, written here from the PR's description | `test_utils.py` and `test_validators.py`, 329 passed (task), 341 (reference) |
+| `known-change/pygments-pygments-pr3187` | builds | A long Rell comment, written here; single runs took 0.06 s (task) and 0.04 s (reference), so probably too light | Full suite: 1 failure on both trees (`tests/examplefiles/fstar/example.fst`) |
+
+The exact commands, exit codes, wall times and output tails are in
+each manifest's `runs`. Those wall times come from one run each. They
+are not measurements and say nothing about whether a change is
+faster. That is T4.2's job.
+
+## Not verified
+
+- **Nothing has a label.** No performance or correctness label has
+  been produced for any task.
+- **370 of 376 tasks are unbuilt.** That covers every native, web,
+  serving, GPU, agentic and published-benchmark task. Their workload
+  and oracle fields come from text and dataset fields, not from runs.
+  This includes all 12 llm.c tasks, which need an NVIDIA GPU, and all
+  34 benchmark instances.
+- **The 5 tasks that run were checked against targeted tests only.**
+  These are tests the change touched, or the module's own test file,
+  not the full test suite (the evaluation's oracle). Their workloads
+  were adapted or written here, as each manifest's `workload.source`
+  says.
+- **Most of the miner's classifications have not been checked by
+  hand.** Family, change kind and revert reason all come from keyword
+  rules, and evidence detection is a regular expression. Two reviews
+  sampled manifests against GitHub, and the false matches they found
+  are fixed by rule ("Ryzen 7 5800X" read as a speedup, and the fixes
+  under "Removed after review"). Others will remain. The 10 candidates
+  that are new in round 3 have not been checked by a reviewer. That
+  includes 5 llm.c tasks the dispatch rule selects (attention_forward
+  bb4f04bd, gelu_forward 45252d43, layernorm_forward 466723bb,
+  matmul_forward 8822e780, residual_forward 4ffcf5b9).
+- **Repository activity is GitHub's `pushedAt`.** A push to any branch
+  counts, so it is not a check of maintainer activity.
+- **The search was not exhaustive.** It returned the top 60 hits per
+  query (100 for the revert query), best match first. At most 6
+  improvement hits, 6 reverts and 4 named culprits per repository were
+  viewed.
+  Some searches came back empty and were not investigated:
+  `Kludex/starlette`, `pallets/flask`, `expressjs/express`,
+  `ijl/orjson`, `microsoft/mimalloc`.
+- **Known gaps in the tooling:**
+  - `mine/check.py` can't build SWE-Perf or SWE-fficiency tasks. Their
+    reference is a patch, and it has no step that applies one, so it
+    records them as `failed`.
+  - The one-task-per-PR check finds a GSO instance's pull request only
+    through a `(#N)` in its commit title. Two instances, transformers
+    `d51b589` and tornado `ac13ee5`, have none. No mined task comes
+    from those repositories today.
+  - A pull request that is dropped or skipped still counts against its
+    repository's caps, so that repository ends up one task short.
+- **"Plausibly builds here" for benchmark instances is an inference.**
+  It comes from the repository's languages, not from a build. Each
+  benchmark's own environments are linux/amd64 images. Of
+  SWE-fficiency's 498 images, only 9 were checked for architecture
+  (all amd64).

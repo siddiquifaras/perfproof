@@ -1,0 +1,46 @@
+{
+  "id": "pydata-xarray-pr6107",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "2694046c748a51125de6d460073635f1d789958e",
+  "task_commit_basis": "first parent of https://github.com/pydata/xarray/commit/e391f131451ca8962106f2a146abd024b91e21e2; gh api compare 2694046c748a...e391f131451c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/6107",
+    "title": "is_dask_collection: micro optimization",
+    "commit": "e391f131451ca8962106f2a146abd024b91e21e2",
+    "merged_at": "2021-12-29T16:27:55Z",
+    "files": [
+      "xarray/core/pycompat.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit xr.core.pycompat.DuckArrayModule(\"dask\").available",
+    "source": "quoted in the description of https://github.com/pydata/xarray/pull/6107",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydata/xarray/pull/6107",
+      "note": "description, as matched by the miner: timings: 18.9 µs ± 97.7 ns; 77.1 ns ± 1.22 ns; 2.7 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

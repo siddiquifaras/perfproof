@@ -1,0 +1,48 @@
+{
+  "id": "mem0ai-mem0-pr6680",
+  "repository": "mem0ai/mem0",
+  "stars": 67238,
+  "pushed_at": "2026-10-14T15:40:09Z",
+  "task_commit": "e168d48e047f40cc37465268e0b04e526f9657ee",
+  "task_commit_basis": "first parent of https://github.com/mem0ai/mem0/commit/1ac3aa7256bd7a657f6a53cff454c2c9aa581e70; gh api compare e168d48e047f...1ac3aa7256bd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/mem0ai/mem0/pull/6680",
+    "title": "fix(zapier): raise the add_memory poll budget past the real API latency tail",
+    "commit": "1ac3aa7256bd7a657f6a53cff454c2c9aa581e70",
+    "merged_at": "2026-07-29T16:02:23Z",
+    "files": [
+      "AGENTS.md",
+      "integrations/zapier-mem0/src/creates/add_memory.ts",
+      "integrations/zapier-mem0/test/unit.test.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/mem0ai/mem0/pull/6680",
+      "note": "description, as matched by the miner: timings: 18 seconds; 4.3s; 7.9s; 18s; 60s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

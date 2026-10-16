@@ -1,0 +1,61 @@
+{
+  "id": "swe-perf-pydata-xarray-5845",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "bcb96ce8fc1012b05ba6966fff70bc687cd6125f",
+  "task_commit_basis": "the base_commit field of SWE-Perf/SWE-Perf row pydata__xarray-5845",
+  "reference_change": {
+    "kind": "benchmark-instance",
+    "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=0&length=100",
+    "title": "swe-perf reference patch for pydata__xarray-5845",
+    "commit": null,
+    "merged_at": null,
+    "files": [
+      "ci/min_deps_check.py",
+      "ci/requirements/py37-bare-minimum.yml",
+      "ci/requirements/py37-min-all-deps.yml",
+      "doc/getting-started-guide/installing.rst",
+      "doc/whats-new.rst",
+      "setup.cfg",
+      "xarray/__init__.py",
+      "xarray/backends/plugins.py",
+      "xarray/core/formatting_html.py",
+      "xarray/static/__init__.py",
+      "xarray/static/css/__init__.py",
+      "xarray/static/html/__init__.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "published-benchmark",
+  "change_kind": "benchmark-instance",
+  "target_class": "python",
+  "workload": {
+    "command": "python -m pytest xarray/tests/test_formatting.py::test_repr_file_collapsed",
+    "source": "the efficiency_test field of SWE-Perf/SWE-Perf row pydata__xarray-5845",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: SWE-Perf rows carry no test command",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=0&length=100",
+      "note": "datasets-server page holding pydata__xarray-5845; the reference change is base_commit plus the row's patch (head_commit 28c848586bcf0c34d5e3e25c95e1605439366574 is the pull request's branch tip, not the reference tree)"
+    },
+    {
+      "url": "https://github.com/chenzhi-cz/performance-optimization-benchmark-reliability/blob/44a1cb86a9f765b0375b4cfb479641f3c19f0774/data/cross_machine_task_summary.csv",
+      "note": "cross-machine audit (arXiv 2607.01211) per-task row"
+    }
+  ],
+  "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=0.753, min_threshold_margin=0.63 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
+  "status": "candidate",
+  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:05:49+00:00",
+  "miner": "uv run python eval/mine/mine.py benchmarks"
+}

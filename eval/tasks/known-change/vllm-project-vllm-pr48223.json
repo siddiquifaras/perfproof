@@ -1,0 +1,62 @@
+{
+  "id": "vllm-project-vllm-pr48223",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "466855a2bfc57e58f7e2d03ee2deba79ceab2617",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/47ececb58e073c6ff7a99033950455763f302055 (squash merge); gh api compare 466855a2bfc5...47ececb58e07 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/48223",
+    "title": "[Perf][ROCm] Dual-stream decode with hipgraphs",
+    "commit": "47ececb58e073c6ff7a99033950455763f302055",
+    "merged_at": "2026-08-12T01:32:24Z",
+    "files": [
+      "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "vllm/model_executor/layers/fused_moe/runner/shared_experts.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/52024",
+    "title": "Revert \"[Perf][ROCm] Dual-stream decode with hipgraphs\"",
+    "commit": "3d204dfdaaf09d67d49c7855630ef949754e0f8f",
+    "merged_at": "2026-08-13T04:38:35Z",
+    "files": [
+      "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "vllm/model_executor/layers/fused_moe/runner/shared_experts.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "serving",
+  "workload": {
+    "command": "vllm bench serve --backend vllm --model deepseek-ai/DeepSeek-V3-0324 --dataset-name random --random-input-len 1024 --random-output-len 1024 --host localhost --port 8000 --ignore-eos --ready-check-timeout-sec 6000 --seed 5678 --max-concurrency 128 --num-prompts 1280 --num-warmups 256",
+    "source": "quoted in the description of https://github.com/vllm-project/vllm/pull/48223",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/48223",
+      "note": "description, as matched by the miner: timings: 1902 ms"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/52024",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

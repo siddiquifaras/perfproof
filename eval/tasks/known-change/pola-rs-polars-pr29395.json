@@ -1,0 +1,96 @@
+{
+  "id": "pola-rs-polars-pr29395",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "3f06658dfeca557e2b9ad5ed31cfbeb1a262ee58",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/b026723a5370484cd4fecaa8bcae4dd2b3f94357 (squash merge); gh api compare 3f06658dfeca...b026723a5370 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29395",
+    "title": "perf: Coerce float literals to decimal instead of casting the column",
+    "commit": "b026723a5370484cd4fecaa8bcae4dd2b3f94357",
+    "merged_at": "2026-09-20T12:29:57Z",
+    "files": [
+      "crates/polars-compute/src/decimal.rs",
+      "crates/polars-core/src/datatypes/dtype.rs",
+      "crates/polars-core/src/series/mod.rs",
+      "crates/polars-core/src/utils/supertype.rs",
+      "crates/polars-plan/dsl-schema-hashes.json",
+      "crates/polars-plan/src/plans/aexpr/dyn_fold.rs",
+      "crates/polars-plan/src/plans/aexpr/function_expr/cum.rs",
+      "crates/polars-plan/src/plans/aexpr/function_expr/schema.rs",
+      "crates/polars-plan/src/plans/aexpr/mod.rs",
+      "crates/polars-plan/src/plans/aexpr/schema.rs",
+      "crates/polars-plan/src/plans/conversion/type_coercion/binary.rs",
+      "crates/polars-plan/src/plans/conversion/type_coercion/mod.rs",
+      "crates/polars-plan/src/plans/lit.rs",
+      "crates/polars-plan/src/plans/optimizer/simplify_expr/mod.rs",
+      "crates/polars-python/src/conversion/mod.rs",
+      "py-polars/tests/unit/datatypes/test_datatypes.py",
+      "py-polars/tests/unit/datatypes/test_decimal.py",
+      "py-polars/tests/unit/operations/arithmetic/test_arithmetic.py",
+      "pyo3-polars/pyo3-polars/src/types.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29503",
+    "title": "Revert \"perf: Coerce float literals to decimal instead of casting the column\"",
+    "commit": "4d8c14dd6b789cfe832ebd44a027b6558f65c5c0",
+    "merged_at": "2026-09-24T12:36:54Z",
+    "files": [
+      "crates/polars-compute/src/decimal.rs",
+      "crates/polars-core/src/datatypes/dtype.rs",
+      "crates/polars-core/src/series/mod.rs",
+      "crates/polars-core/src/utils/supertype.rs",
+      "crates/polars-plan/dsl-schema-hashes.json",
+      "crates/polars-plan/src/plans/aexpr/dyn_fold.rs",
+      "crates/polars-plan/src/plans/aexpr/function_expr/cum.rs",
+      "crates/polars-plan/src/plans/aexpr/function_expr/schema.rs",
+      "crates/polars-plan/src/plans/aexpr/mod.rs",
+      "crates/polars-plan/src/plans/aexpr/schema.rs",
+      "crates/polars-plan/src/plans/conversion/type_coercion/binary.rs",
+      "crates/polars-plan/src/plans/conversion/type_coercion/mod.rs",
+      "crates/polars-plan/src/plans/lit.rs",
+      "crates/polars-plan/src/plans/optimizer/simplify_expr/mod.rs",
+      "crates/polars-python/src/conversion/mod.rs",
+      "py-polars/tests/unit/datatypes/test_datatypes.py",
+      "py-polars/tests/unit/datatypes/test_decimal.py",
+      "py-polars/tests/unit/operations/arithmetic/test_arithmetic.py",
+      "pyo3-polars/pyo3-polars/src/types.rs"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29395",
+      "note": "description, as matched by the miner: timings: 540ms; 382ms"
+    },
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29503",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

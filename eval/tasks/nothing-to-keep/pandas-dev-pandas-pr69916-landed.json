@@ -1,0 +1,48 @@
+{
+  "id": "pandas-dev-pandas-pr69916-landed",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "93ed0471db24c55359a9312c6b3dc6eecb6fa097",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/pandas-dev/pandas/commit/93ed0471db24c55359a9312c6b3dc6eecb6fa097",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/69916",
+    "title": "PERF: skip NA membership checks when na_values is empty",
+    "commit": "93ed0471db24c55359a9312c6b3dc6eecb6fa097",
+    "merged_at": "2026-10-13T15:03:15Z",
+    "files": [
+      "doc/source/whatsnew/v3.1.0.rst",
+      "pandas/_libs/lib.pyx",
+      "pandas/tests/tools/test_to_numeric.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest pandas/tests/tools/test_to_numeric.py",
+    "source": "test files changed by https://github.com/pandas-dev/pandas/pull/69916 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/69916",
+      "note": "description, as matched by the miner: timings: 74.01 ms; 55.75 ms; 106.55 ms; 88.95 ms; 85.98 ms; 67.69 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

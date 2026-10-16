@@ -1,0 +1,47 @@
+{
+  "id": "more-itertools-more-itertools-pr793",
+  "repository": "more-itertools/more-itertools",
+  "stars": 4101,
+  "pushed_at": "2026-10-14T18:51:51Z",
+  "task_commit": "b4e68d645a9815056678fa1795423eb18c6a2d44",
+  "task_commit_basis": "first parent of https://github.com/more-itertools/more-itertools/commit/399df10fca8a82ea8e67ee2cc43b264a732e507a; gh api compare b4e68d645a98...399df10fca8a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/more-itertools/more-itertools/pull/793",
+    "title": "Speed up `ichunked`",
+    "commit": "399df10fca8a82ea8e67ee2cc43b264a732e507a",
+    "merged_at": "2024-02-15T17:59:53Z",
+    "files": [
+      "more_itertools/more.py",
+      "tests/test_more.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_more.py",
+    "source": "test files changed by https://github.com/more-itertools/more-itertools/pull/793 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/more-itertools/more-itertools/pull/793",
+      "note": "description, as matched by the miner: speedup claims: 2x faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

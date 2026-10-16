@@ -1,0 +1,60 @@
+{
+  "id": "libuv-libuv-pr2064",
+  "repository": "libuv/libuv",
+  "stars": 27260,
+  "pushed_at": "2026-10-13T02:39:20Z",
+  "task_commit": "e94c184c7c4a18f3de569c97caeb83f4ff98a4b2",
+  "task_commit_basis": "first parent of https://github.com/libuv/libuv/commit/00c6b1649d13fdd94bedbfe7ad26c9269c80b32c; gh api compare e94c184c7c4a...00c6b1649d13 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/libuv/libuv/pull/2064",
+    "title": "darwin: speed up uv_set_process_title()",
+    "commit": "00c6b1649d13fdd94bedbfe7ad26c9269c80b32c",
+    "merged_at": "2018-11-04T17:40:16Z",
+    "files": [
+      "src/unix/darwin-proctitle.c",
+      "src/unix/proctitle.c",
+      "test/test-process-title-threadsafe.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/libuv/libuv/pull/2405",
+    "title": "Revert \"darwin: speed up uv_set_process_title()\"",
+    "commit": "97e86dde84198208984b4ed107adb76b8632409f",
+    "merged_at": "2019-08-03T19:25:37Z",
+    "files": [],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/libuv/libuv/pull/2064",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/libuv/libuv/pull/2405",
+      "note": "revert; miner classified it as reverted-breaking from: \"It's been reported (and I can confirm) that this change breaks `process.title = 'foo'` in Node.js. Since libuv just ca\""
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

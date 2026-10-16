@@ -1,0 +1,49 @@
+{
+  "id": "encode-django-rest-framework-pr6709",
+  "repository": "encode/django-rest-framework",
+  "stars": 30209,
+  "pushed_at": "2026-10-14T22:32:27Z",
+  "task_commit": "62ed1f82707916a23b4e97aae8e48f09ddaf1dea",
+  "task_commit_basis": "first parent of https://github.com/encode/django-rest-framework/commit/c2293e9f251b1f215825186a7bcbf5a006df0cb0; gh api compare 62ed1f827079...c2293e9f251b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/encode/django-rest-framework/pull/6709",
+    "title": "Improve performance of lazy validation message formatting",
+    "commit": "c2293e9f251b1f215825186a7bcbf5a006df0cb0",
+    "merged_at": "2019-05-29T18:32:04Z",
+    "files": [
+      "rest_framework/compat.py",
+      "rest_framework/fields.py",
+      "rest_framework/utils/formatting.py",
+      "tests/test_utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_utils.py",
+    "source": "test files changed by https://github.com/encode/django-rest-framework/pull/6709 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/encode/django-rest-framework/pull/6709",
+      "note": "description, as matched by the miner: timings: 100ms; 8.337 seconds; 2.645 seconds; 7.123 seconds; 1.609 seconds"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

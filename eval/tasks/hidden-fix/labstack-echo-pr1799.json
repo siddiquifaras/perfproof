@@ -1,0 +1,51 @@
+{
+  "id": "labstack-echo-pr1799",
+  "repository": "labstack/echo",
+  "stars": 32769,
+  "pushed_at": "2026-10-12T15:06:45Z",
+  "task_commit": "cffd3efa91c8cb95d104ec1cbebd2e1c0a8981c0",
+  "task_commit_basis": "first parent of https://github.com/labstack/echo/commit/5622ecc1808899388fb24aeee70d6ced353a731e (squash merge); gh api compare cffd3efa91c8...5622ecc18088 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/labstack/echo/pull/1799",
+    "title": "fix performance regression. Do not escape request path in echo.ServeH…",
+    "commit": "5622ecc1808899388fb24aeee70d6ced353a731e",
+    "merged_at": "2021-03-08T01:01:03Z",
+    "files": [
+      "echo.go",
+      "echo_test.go",
+      "middleware/middleware.go",
+      "middleware/middleware_test.go",
+      "middleware/proxy_test.go",
+      "middleware/rewrite_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "go test -run=\"-\" -bench=\"BenchmarkEcho.*\" -count 10 > before_problem.out",
+    "source": "quoted in the description of https://github.com/labstack/echo/pull/1799",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/labstack/echo/pull/1799",
+      "note": "description, as matched by the miner: timings: 19.9µs; 28.2µs; 22.6µs; 28.4µs; 32.7µs; 56.7µs; 33.1µs; 2.52µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

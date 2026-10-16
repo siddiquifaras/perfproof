@@ -1,0 +1,83 @@
+{
+  "id": "flashinfer-ai-flashinfer-pr4675",
+  "repository": "flashinfer-ai/flashinfer",
+  "stars": 6626,
+  "pushed_at": "2026-10-15T22:07:40Z",
+  "task_commit": "f910ea9fdf5cd2c39ba33f6294165e66605d5871",
+  "task_commit_basis": "first parent of https://github.com/flashinfer-ai/flashinfer/commit/b462a6a1e292dd0bd08489699419dff8f90a1d21 (squash merge); gh api compare f910ea9fdf5c...b462a6a1e292 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/flashinfer-ai/flashinfer/pull/4675",
+    "title": "perf(cake_kda): further optimize recurrent-KDA prefill on Blackwell",
+    "commit": "b462a6a1e292dd0bd08489699419dff8f90a1d21",
+    "merged_at": "2026-08-25T04:10:30Z",
+    "files": [
+      "benchmarks/README.md",
+      "benchmarks/bench_recurrent_kda_prefill.py",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64_s7.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64_s7_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64_s9.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_chain_m64_s9_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_prepare.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_prepare_beta_tma.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_prepare_beta_tma_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_prepare_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_bt16_prepare_chain_m64_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_h12_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_h12_long.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_h12_short.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_n16.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_n16_binding.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_n16_short.cu",
+      "csrc/kda/cake_flashkda_bf16_fused_m128_tensor_state_decay.cu",
+      "csrc/kda/cake_flashkda_bf16_persistent_m128.cu",
+      "csrc/kda/cake_flashkda_bt16_binding_common.cuh",
+      "csrc/kda/cake_flashkda_bt16_chain_binding_impl.cuh",
+      "csrc/kda/cake_flashkda_bt16_prepare_binding_impl.cuh",
+      "csrc/kda/flashkda_bf16_fused_m128.cu",
+      "csrc/kda/flashkda_bf16_fused_m128_binding.cu",
+      "csrc/kda/flashkda_bf16_fused_m64.cu",
+      "csrc/kda/flashkda_binding_common.cuh",
+      "docs/api/kda_prefill.rst",
+      "flashinfer/aot.py",
+      "flashinfer/jit/flash_kda.py",
+      "flashinfer/jit/flash_kda_training.py",
+      "flashinfer/kda.py",
+      "flashinfer/kda_kernels/kda_chunked_bt16.py",
+      "flashinfer/kda_prefill.py",
+      "tests/jit/test_flash_kda_prefill_jit.py",
+      "tests/kda/test_recurrent_kda_prefill.py",
+      "tests/kda/test_recurrent_kda_prefill_benchmark.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": "python benchmarks/bench_recurrent_kda_prefill.py --case-set production --backend cake --flash-kda-peer --flash-kda-source-dir /path/to/FlashKDA",
+    "source": "quoted in the description of https://github.com/flashinfer-ai/flashinfer/pull/4675",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/flashinfer-ai/flashinfer/pull/4675",
+      "note": "description, as matched by the miner: speedup claims: 1.0x; 2.291x; 1.028x; 2.443x; 1.099x | timings: 345.374 us; 791.359 us; 354.928 us; 314.306 us; 767.958 us; 345.493 us; 316.847 us; 753.879 us | benchmark files changed: benchmarks/README.md, benchmarks/bench_recurrent_kda_prefill.py, tests/kda/test_recurrent_kda_prefill_benchmark.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

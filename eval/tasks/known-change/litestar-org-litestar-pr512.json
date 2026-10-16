@@ -1,0 +1,47 @@
+{
+  "id": "litestar-org-litestar-pr512",
+  "repository": "litestar-org/litestar",
+  "stars": 8515,
+  "pushed_at": "2026-10-13T19:25:58Z",
+  "task_commit": "a1cadb086bb8a598aff88f673653692bd47c8946",
+  "task_commit_basis": "first parent of https://github.com/litestar-org/litestar/commit/029685ffb02cef8ab7d75c840b393741e2175c2b; gh api compare a1cadb086bb8...029685ffb02c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/litestar-org/litestar/pull/512",
+    "title": "Improve `normalize_path` function speed",
+    "commit": "029685ffb02cef8ab7d75c840b393741e2175c2b",
+    "merged_at": "2022-09-24T17:15:12Z",
+    "files": [
+      "starlite/utils/url.py",
+      "tests/utils/test_url.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/utils/test_url.py",
+    "source": "test files changed by https://github.com/litestar-org/litestar/pull/512 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/litestar-org/litestar/pull/512",
+      "note": "description, as matched by the miner: speedup claims: 7.5% improvement | timings: 0.157 seconds; 0.145 seconds"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

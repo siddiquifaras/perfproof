@@ -1,0 +1,47 @@
+{
+  "id": "pygments-pygments-pr3185",
+  "repository": "pygments/pygments",
+  "stars": 2214,
+  "pushed_at": "2026-09-27T07:00:56Z",
+  "task_commit": "53750ec8def276668ce4ce6b565a70105b5085e3",
+  "task_commit_basis": "first parent of https://github.com/pygments/pygments/commit/c97c0b54f58d496e34f4b37eb9d0c482e79e21b3; gh api compare 53750ec8def2...c97c0b54f58d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pygments/pygments/pull/3185",
+    "title": "Speed up HtmlFormatter token escaping with quote=False",
+    "commit": "c97c0b54f58d496e34f4b37eb9d0c482e79e21b3",
+    "merged_at": "2026-07-07T07:11:34Z",
+    "files": [
+      "pygments/formatters/html.py",
+      "tests/test_html_formatter.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_html_formatter.py",
+    "source": "test files changed by https://github.com/pygments/pygments/pull/3185 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pygments/pygments/pull/3185",
+      "note": "description, as matched by the miner: speedup claims: 7% faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

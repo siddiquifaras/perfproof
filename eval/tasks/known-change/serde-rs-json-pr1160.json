@@ -1,0 +1,47 @@
+{
+  "id": "serde-rs-json-pr1160",
+  "repository": "serde-rs/json",
+  "stars": 5650,
+  "pushed_at": "2026-10-11T15:31:49Z",
+  "task_commit": "40dd7f5e862436f02471fe076f3486c55e472bc2",
+  "task_commit_basis": "first parent of https://github.com/serde-rs/json/commit/b0d678cfb473386830d559b6ab255d9e21ba39c5; gh api compare 40dd7f5e8624...b0d678cfb473 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/serde-rs/json/pull/1160",
+    "title": "Optimize position search in error path",
+    "commit": "b0d678cfb473386830d559b6ab255d9e21ba39c5",
+    "merged_at": "2024-07-28T21:02:33Z",
+    "files": [
+      "Cargo.toml",
+      "src/read.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/serde-rs/json/pull/1160",
+      "note": "description, as matched by the miner: speedup claims: 2x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

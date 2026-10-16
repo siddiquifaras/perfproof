@@ -1,0 +1,46 @@
+{
+  "id": "mem0ai-mem0-pr1260",
+  "repository": "mem0ai/mem0",
+  "stars": 67238,
+  "pushed_at": "2026-10-14T15:40:09Z",
+  "task_commit": "11fc4a84519e6774e648af185b71e829b80e1e71",
+  "task_commit_basis": "first parent of https://github.com/mem0ai/mem0/commit/8fd0e1f3b043b8e51bc4d4caa0abf057bb1ec09e (squash merge); gh api compare 11fc4a84519e...8fd0e1f3b043 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/mem0ai/mem0/pull/1260",
+    "title": "⚡️ Speed up `read_env_file()` by 21% in `embedchain/utils/cli.py`",
+    "commit": "8fd0e1f3b043b8e51bc4d4caa0abf057bb1ec09e",
+    "merged_at": "2024-06-09T16:11:15Z",
+    "files": [
+      "embedchain/utils/cli.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/mem0ai/mem0/pull/1260",
+      "note": "description, as matched by the miner: timings: 842.51μs; 698.00μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

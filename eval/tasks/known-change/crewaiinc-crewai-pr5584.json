@@ -1,0 +1,53 @@
+{
+  "id": "crewaiinc-crewai-pr5584",
+  "repository": "crewAIInc/crewAI",
+  "stars": 59744,
+  "pushed_at": "2026-10-15T21:33:41Z",
+  "task_commit": "160e25c1a923e94711f07a7785c9bbda2f05d0cc",
+  "task_commit_basis": "first parent of https://github.com/crewAIInc/crewAI/commit/3be2fb65dc574fad2aa8712c607bbd35f7d91d4d (squash merge); gh api compare 160e25c1a923...3be2fb65dc57 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/crewAIInc/crewAI/pull/5584",
+    "title": "perf: lazy-load MCP SDK and event types to reduce cold start by ~29%",
+    "commit": "3be2fb65dc574fad2aa8712c607bbd35f7d91d4d",
+    "merged_at": "2026-04-22T05:17:33Z",
+    "files": [
+      ".github/workflows/import-time.yml",
+      ".gitignore",
+      "lib/crewai-tools/pyproject.toml",
+      "lib/crewai/src/crewai/agent/core.py",
+      "lib/crewai/src/crewai/events/__init__.py",
+      "lib/crewai/src/crewai/mcp/__init__.py",
+      "pyproject.toml",
+      "scripts/benchmark_import_time.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/crewAIInc/crewAI/pull/5584",
+      "note": "description, as matched by the miner: speedup claims: 29% improvement | timings: 4.7s; 3.4s; 400ms | benchmark files changed: scripts/benchmark_import_time.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

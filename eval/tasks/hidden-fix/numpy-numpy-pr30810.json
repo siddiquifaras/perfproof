@@ -1,0 +1,46 @@
+{
+  "id": "numpy-numpy-pr30810",
+  "repository": "numpy/numpy",
+  "stars": 33018,
+  "pushed_at": "2026-10-15T16:29:00Z",
+  "task_commit": "7a205df72ca94563351442f2f2eeb16a0b8833e8",
+  "task_commit_basis": "first parent of https://github.com/numpy/numpy/commit/2df36e9df59d72feb8a7a1ad465ad0fb8394efe1; gh api compare 7a205df72ca9...2df36e9df59d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/numpy/numpy/pull/30810",
+    "title": "PERF: speed up array_equal for equal_nan=True",
+    "commit": "2df36e9df59d72feb8a7a1ad465ad0fb8394efe1",
+    "merged_at": "2026-02-12T07:06:43Z",
+    "files": [
+      "numpy/_core/numeric.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "asv continuous main HEAD -b \"bench_array_equal.ArrayEqual\"",
+    "source": "quoted in the description of https://github.com/numpy/numpy/pull/30810",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/numpy/numpy/pull/30810",
+      "note": "description, as matched by the miner: speedup claims: 4.5× faster; 2.2× faster | timings: 1ms; 0.08ms; 0.2μs; 0.4μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

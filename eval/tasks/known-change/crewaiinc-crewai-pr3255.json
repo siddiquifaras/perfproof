@@ -1,0 +1,49 @@
+{
+  "id": "crewaiinc-crewai-pr3255",
+  "repository": "crewAIInc/crewAI",
+  "stars": 59744,
+  "pushed_at": "2026-10-15T21:33:41Z",
+  "task_commit": "7ce20cfcc6f26cd2021fbdefa8ca9e6110013eaa",
+  "task_commit_basis": "first parent of https://github.com/crewAIInc/crewAI/commit/7dc86dc79a51ae4e7a21560cd191db249de1c041 (squash merge); gh api compare 7ce20cfcc6f2...7dc86dc79a51 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/crewAIInc/crewAI/pull/3255",
+    "title": "feat: optimize string operations with partition() over split()[0]",
+    "commit": "7dc86dc79a51ae4e7a21560cd191db249de1c041",
+    "merged_at": "2025-08-06T19:04:53Z",
+    "files": [
+      "src/crewai/llm.py",
+      "src/crewai/utilities/agent_utils.py",
+      "src/crewai/utilities/events/utils/console_formatter.py",
+      "src/crewai/utilities/llm_utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/crewAIInc/crewAI/pull/3255",
+      "note": "description, as matched by the miner: speedup claims: 29% faster; 16% faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "labstack-echo-pr1689-landed",
+  "repository": "labstack/echo",
+  "stars": 32769,
+  "pushed_at": "2026-10-12T15:06:45Z",
+  "task_commit": "4602335be890754216435f9527997c583bf00281",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/labstack/echo/commit/4602335be890754216435f9527997c583bf00281",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/labstack/echo/pull/1689",
+    "title": "Improve router performance with dedicated child types",
+    "commit": "4602335be890754216435f9527997c583bf00281",
+    "merged_at": "2020-12-16T03:08:18Z",
+    "files": [
+      "router.go",
+      "router_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/labstack/echo/pull/1689",
+      "note": "description, as matched by the miner: timings: 20.0µs; 20.3µs; 1.02µs; 0.66µs; 38.9µs; 37.0µs; 1.25µs; 0.77µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

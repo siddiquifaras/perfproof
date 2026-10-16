@@ -1,0 +1,49 @@
+{
+  "id": "python-poetry-poetry-pr10951",
+  "repository": "python-poetry/poetry",
+  "stars": 34307,
+  "pushed_at": "2026-10-12T22:24:45Z",
+  "task_commit": "e4f991548b710895d26530148de2e371e76d632f",
+  "task_commit_basis": "first parent of https://github.com/python-poetry/poetry/commit/d57090395b14ba260a24a97ab704819667bf6cf1; gh api compare e4f991548b71...d57090395b14 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-poetry/poetry/pull/10951",
+    "title": "perf: create link objects lazily",
+    "commit": "d57090395b14ba260a24a97ab704819667bf6cf1",
+    "merged_at": "2026-06-12T09:33:06Z",
+    "files": [
+      "src/poetry/repositories/link_sources/base.py",
+      "src/poetry/repositories/link_sources/html.py",
+      "src/poetry/repositories/link_sources/json.py",
+      "tests/repositories/link_sources/test_base.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/repositories/link_sources/test_base.py",
+    "source": "test files changed by https://github.com/python-poetry/poetry/pull/10951 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-poetry/poetry/pull/10951",
+      "note": "description, as matched by the miner: speedup claims: 10 % faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

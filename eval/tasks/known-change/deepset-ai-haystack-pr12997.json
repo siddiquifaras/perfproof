@@ -1,0 +1,49 @@
+{
+  "id": "deepset-ai-haystack-pr12997",
+  "repository": "deepset-ai/haystack",
+  "stars": 26744,
+  "pushed_at": "2026-10-15T14:27:45Z",
+  "task_commit": "9ea8e3a8acd4d324bbc5eefe6e3f9822114fe3be",
+  "task_commit_basis": "first parent of https://github.com/deepset-ai/haystack/commit/43b12cce8ebbba8e2e908915acb76280b040556c; gh api compare 9ea8e3a8acd4...43b12cce8ebb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/deepset-ai/haystack/pull/12997",
+    "title": "perf: query the Document Store once in SentenceWindowRetriever",
+    "commit": "43b12cce8ebbba8e2e908915acb76280b040556c",
+    "merged_at": "2026-09-28T11:21:44Z",
+    "files": [
+      "haystack/components/retrievers/sentence_window_retriever.py",
+      "releasenotes/notes/sentence-window-retriever-single-filter-call-f4bf129e4fd0055a.yaml",
+      "test/components/retrievers/test_sentence_window_retriever.py",
+      "test/components/retrievers/test_sentence_window_retriever_async.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/components/retrievers/test_sentence_window_retriever.py test/components/retrievers/test_sentence_window_retriever_async.py",
+    "source": "test files changed by https://github.com/deepset-ai/haystack/pull/12997 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/deepset-ai/haystack/pull/12997",
+      "note": "description, as matched by the miner: timings: 16.3 ms; 4.0 ms; 67.3 ms; 6.6 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

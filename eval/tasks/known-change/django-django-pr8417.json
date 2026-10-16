@@ -1,0 +1,62 @@
+{
+  "id": "django-django-pr8417",
+  "repository": "django/django",
+  "stars": 91331,
+  "pushed_at": "2026-10-15T06:51:05Z",
+  "task_commit": "8095496a1c07a68d0904d594cdc3b1d9557625e0",
+  "task_commit_basis": "first parent of https://github.com/django/django/commit/e62ea0bb9cbb54c1eef848871fe3eab2bad268dc; gh api compare 8095496a1c07...e62ea0bb9cbb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/8417",
+    "title": "Refs #20939 -- Moved subquery ordering clearing optimization to the _in lookup.",
+    "commit": "e62ea0bb9cbb54c1eef848871fe3eab2bad268dc",
+    "merged_at": "2017-04-27T22:42:31Z",
+    "files": [
+      "django/db/models/lookups.py",
+      "django/db/models/sql/query.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/8433",
+    "title": "Revert \"Refs #20939 -- Moved subquery ordering clearing optimization to the __in lookup.\"",
+    "commit": "eb4724a0632928bda2a512a9117a91260096e457",
+    "merged_at": "2017-04-28T13:30:35Z",
+    "files": [
+      "django/db/models/lookups.py",
+      "django/db/models/sql/query.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/django/django/pull/8417",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/django/django/pull/8433",
+      "note": "revert; miner classified it as reverted-breaking from: 'Revert . This ended up breaking multi-column __in lookups and _meta.order_wrt on Oracle.'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

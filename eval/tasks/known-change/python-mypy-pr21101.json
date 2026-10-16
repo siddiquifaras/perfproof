@@ -1,0 +1,57 @@
+{
+  "id": "python-mypy-pr21101",
+  "repository": "python/mypy",
+  "stars": 20683,
+  "pushed_at": "2026-10-15T12:10:42Z",
+  "task_commit": "978b711c21adadf5dae4db80127ddf270d79af5f",
+  "task_commit_basis": "first parent of https://github.com/python/mypy/commit/b137e4ed41d6178f6dbd0e609db56b8c1ad5384a (squash merge); gh api compare 978b711c21ad...b137e4ed41d6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/21101",
+    "title": "[mypyc] Speed up native-to-native imports within the same group",
+    "commit": "b137e4ed41d6178f6dbd0e609db56b8c1ad5384a",
+    "merged_at": "2026-03-26T10:35:15Z",
+    "files": [
+      "mypyc/build.py",
+      "mypyc/codegen/emitmodule.py",
+      "mypyc/common.py",
+      "mypyc/irbuild/builder.py",
+      "mypyc/irbuild/statement.py",
+      "mypyc/lib-rt/CPy.h",
+      "mypyc/lib-rt/misc_ops.c",
+      "mypyc/primitives/misc_ops.py",
+      "mypyc/test-data/run-multimodule.test",
+      "mypyc/test/test_run.py",
+      "mypyc/test/test_statement.py",
+      "setup.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest mypyc/test/test_run.py mypyc/test/test_statement.py",
+    "source": "test files changed by https://github.com/python/mypy/pull/21101 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python/mypy/pull/21101",
+      "note": "description, as matched by the miner: speedup claims: 10x; 1.5x faster | timings: 30s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

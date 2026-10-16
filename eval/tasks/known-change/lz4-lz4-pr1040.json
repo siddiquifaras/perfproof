@@ -1,0 +1,46 @@
+{
+  "id": "lz4-lz4-pr1040",
+  "repository": "lz4/lz4",
+  "stars": 12148,
+  "pushed_at": "2026-10-15T04:53:25Z",
+  "task_commit": "8f61d8eb7c6979769a484cde8df61ff7c4c77765",
+  "task_commit_basis": "first parent of https://github.com/lz4/lz4/commit/db57809cf189feb2dd690d55abc2884c95c6fc00; gh api compare 8f61d8eb7c69...db57809cf189 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/lz4/lz4/pull/1040",
+    "title": "Enable fast decoding on Apple/AArch64 builds (18-25% faster decompression)",
+    "commit": "db57809cf189feb2dd690d55abc2884c95c6fc00",
+    "merged_at": "2021-11-23T00:48:54Z",
+    "files": [
+      "lib/lz4.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/lz4/lz4/pull/1040",
+      "note": "description, as matched by the miner: timings: 513 ms; 406 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

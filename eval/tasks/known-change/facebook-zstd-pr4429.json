@@ -1,0 +1,48 @@
+{
+  "id": "facebook-zstd-pr4429",
+  "repository": "facebook/zstd",
+  "stars": 28031,
+  "pushed_at": "2026-10-06T01:11:59Z",
+  "task_commit": "c768d7b94b7b612e040420fe2057a2e3bf9a3f82",
+  "task_commit_basis": "first parent of https://github.com/facebook/zstd/commit/afa96bbf254ba63529fa14aa7f14d82f748e90d7; gh api compare c768d7b94b7b...afa96bbf254b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/facebook/zstd/pull/4429",
+    "title": "Improve speed of ZSTD_compressSequencesAndLiterals using Neon",
+    "commit": "afa96bbf254ba63529fa14aa7f14d82f748e90d7",
+    "merged_at": "2025-07-14T07:52:48Z",
+    "files": [
+      ".github/workflows/dev-short-tests.yml",
+      "lib/compress/zstd_compress.c",
+      "tests/fuzzer.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/facebook/zstd/pull/4429",
+      "note": "description, as matched by the miner: speedup claims: 2.905x; 1.786x; 2.352x; 1.417x; 3.117x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

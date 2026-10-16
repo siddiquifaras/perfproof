@@ -1,0 +1,48 @@
+{
+  "id": "deepseek-ai-deepgemm-pr193",
+  "repository": "deepseek-ai/DeepGEMM",
+  "stars": 8973,
+  "pushed_at": "2026-10-14T05:35:55Z",
+  "task_commit": "ea9c5d9270226c5dd7a577c212e9ea385f6ef048",
+  "task_commit_basis": "first parent of https://github.com/deepseek-ai/DeepGEMM/commit/79f48ee15a82dd5fad5cd9beaa393c1f755e6b55 (squash merge); gh api compare ea9c5d927022...79f48ee15a82 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/deepseek-ai/DeepGEMM/pull/193",
+    "title": "Fix multicast bug and optimize masked GEMM",
+    "commit": "79f48ee15a82dd5fad5cd9beaa393c1f755e6b55",
+    "merged_at": "2025-09-12T09:12:27Z",
+    "files": [
+      "csrc/jit_kernels/heuristics/common.hpp",
+      "csrc/jit_kernels/heuristics/sm100.hpp",
+      "csrc/jit_kernels/heuristics/sm90.hpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/deepseek-ai/DeepGEMM/pull/193",
+      "note": "description, as matched by the miner: speedup claims: 20% speedup | timings: 79 us; 45 us; 92 us; 44 us; 95 us; 46 us; 67 us; 35 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

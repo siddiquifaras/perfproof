@@ -1,0 +1,64 @@
+{
+  "id": "astral-sh-ruff-pr2768",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "d0f9ee33eccb8556e454b56d96aee32314c15428",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/863e39fe5fcdfb3d33f82d27dbf465201602841d; gh api compare d0f9ee33eccb...863e39fe5fcd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/2768",
+    "title": "perf: Use custom allocator",
+    "commit": "863e39fe5fcdfb3d33f82d27dbf465201602841d",
+    "merged_at": "2023-02-11T18:26:07Z",
+    "files": [
+      "Cargo.lock",
+      "crates/ruff_cli/Cargo.toml",
+      "crates/ruff_cli/src/main.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/2841",
+    "title": "Revert \"perf: Use custom allocator (#2768)\"",
+    "commit": "48a5cd1dd942caa5b00ea07f3393168306d4e1f4",
+    "merged_at": "2023-02-13T03:31:34Z",
+    "files": [
+      "Cargo.lock",
+      "crates/ruff_cli/Cargo.toml",
+      "crates/ruff_cli/src/main.rs"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/2768",
+      "note": "description, as matched by the miner: timings: 208.8ms; 190.5ms; 32.8ms; 31ms; 436.3ms; 380ms; 40.9ms; 39.6ms"
+    },
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/2841",
+      "note": "revert; miner classified it as reverted-unknown-reason from: 'Revert This is causing wheel creation to fail on some of our more exotic build targets: https://github.co'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

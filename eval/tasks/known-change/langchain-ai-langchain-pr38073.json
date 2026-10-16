@@ -1,0 +1,48 @@
+{
+  "id": "langchain-ai-langchain-pr38073",
+  "repository": "langchain-ai/langchain",
+  "stars": 147886,
+  "pushed_at": "2026-10-15T20:15:17Z",
+  "task_commit": "ae1c9418b52eb0366118ccb564cf5b753bd1089b",
+  "task_commit_basis": "first parent of https://github.com/langchain-ai/langchain/commit/138727c008bec135ff8474f194278bf9c2cef09d (squash merge); gh api compare ae1c9418b52e...138727c008be touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/langchain-ai/langchain/pull/38073",
+    "title": "perf(core): memoize `BaseTool.tool_call_schema` subset model and cache `model_json_schema`",
+    "commit": "138727c008bec135ff8474f194278bf9c2cef09d",
+    "merged_at": "2026-06-17T21:17:15Z",
+    "files": [
+      "libs/core/langchain_core/tools/base.py",
+      "libs/core/tests/benchmarks/test_tool_schema_conversion.py",
+      "libs/core/tests/unit_tests/test_tools.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest libs/core/tests/benchmarks/test_tool_schema_conversion.py libs/core/tests/unit_tests/test_tools.py",
+    "source": "test files changed by https://github.com/langchain-ai/langchain/pull/38073 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/langchain-ai/langchain/pull/38073",
+      "note": "description, as matched by the miner: timings: 1.5ms; 33ms; 0.33ms | benchmark files changed: libs/core/tests/benchmarks/test_tool_schema_conversion.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

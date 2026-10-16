@@ -1,0 +1,55 @@
+{
+  "id": "ggml-org-llama-cpp-pr30341",
+  "repository": "ggml-org/llama.cpp",
+  "stars": 131304,
+  "pushed_at": "2026-10-15T22:31:14Z",
+  "task_commit": "0f701c88298606b41a13268a027e97c877ff63ca",
+  "task_commit_basis": "first parent of https://github.com/ggml-org/llama.cpp/commit/8bb3cf0d216a5ae48360179f2931daf284be4d01 (squash merge); gh api compare 0f701c882986...8bb3cf0d216a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/30341",
+    "title": "hexagon: optimize CPY/CONCAT — round 3, short-rows edition",
+    "commit": "8bb3cf0d216a5ae48360179f2931daf284be4d01",
+    "merged_at": "2026-10-12T14:39:56Z",
+    "files": [
+      "ggml/src/ggml-hexagon/ggml-hexagon.cpp",
+      "ggml/src/ggml-hexagon/htp/CMakeLists.txt",
+      "ggml/src/ggml-hexagon/htp/concat-ops.c",
+      "ggml/src/ggml-hexagon/htp/concat-ops.h",
+      "ggml/src/ggml-hexagon/htp/cpy-ops.c",
+      "ggml/src/ggml-hexagon/htp/cpy-ops.h",
+      "ggml/src/ggml-hexagon/htp/gather-rows.c",
+      "ggml/src/ggml-hexagon/htp/gather-rows.h",
+      "ggml/src/ggml-hexagon/htp/main.c",
+      "scripts/snapdragon/build.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/30341",
+      "note": "description, as matched by the miner: timings: 204.49 ms; 0.28 ms; 2094.93 ms; 16.50 ms; 280.89 ms; 0.38 ms; 3519.24 ms; 27.71 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

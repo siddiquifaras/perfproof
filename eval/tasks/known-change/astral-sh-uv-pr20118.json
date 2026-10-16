@@ -1,0 +1,46 @@
+{
+  "id": "astral-sh-uv-pr20118",
+  "repository": "astral-sh/uv",
+  "stars": 90798,
+  "pushed_at": "2026-10-15T21:36:40Z",
+  "task_commit": "5fc35b0fea5e597cc38df6f776a32c2335e0170b",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/uv/commit/8ee34679302e73145b8a48ac26eb97343c0c56c9 (squash merge); gh api compare 5fc35b0fea5e...8ee34679302e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/uv/pull/20118",
+    "title": "Optimize version parsing for common `\\d.\\d.\\d` cases",
+    "commit": "8ee34679302e73145b8a48ac26eb97343c0c56c9",
+    "merged_at": "2026-07-07T01:23:27Z",
+    "files": [
+      "crates/uv-pep440/src/version.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/uv/pull/20118",
+      "note": "description, as matched by the miner: speedup claims: 1.95× faster | timings: 9.82 ns; 5.03 ns; 7.86 ns; 8.29 ns; 11.59 ns; 11.66 ns; 8.74 ns; 10.05 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

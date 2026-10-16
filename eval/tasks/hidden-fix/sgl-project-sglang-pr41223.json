@@ -1,0 +1,46 @@
+{
+  "id": "sgl-project-sglang-pr41223",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "3ed56a341b57eb57c8e37e0cec353e67ebb35c3b",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/a5c8afab48a3ee850d05e7fba6fc8d1e0dc0dae9 (squash merge); gh api compare 3ed56a341b57...a5c8afab48a3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/41223",
+    "title": "[Perf] Mamba2 selective_state_update up to 2x faster on B200 via 8x1 launch config for dstate 128 (+7.5% Nemotron-3-Super serving)",
+    "commit": "a5c8afab48a3ee850d05e7fba6fc8d1e0dc0dae9",
+    "merged_at": "2026-09-26T09:27:02Z",
+    "files": [
+      "python/sglang/kernels/ops/mamba/triton_ops/mamba_ssm.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": "python -m sglang.bench_serving --dataset-name sharegpt --num-prompts 1000 --seed 42 --request-rate inf --flush-cache",
+    "source": "quoted in the description of https://github.com/sgl-project/sglang/pull/41223",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/41223",
+      "note": "description, as matched by the miner: speedup claims: 1.19x; 1.86x; 2.02x faster; 2.02x; 3x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

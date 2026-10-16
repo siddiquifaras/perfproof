@@ -1,0 +1,48 @@
+{
+  "id": "pypa-pip-pr14108",
+  "repository": "pypa/pip",
+  "stars": 10293,
+  "pushed_at": "2026-10-14T22:10:06Z",
+  "task_commit": "10dfb6b9005484578b386f64b9f36982e3dc6679",
+  "task_commit_basis": "first parent of https://github.com/pypa/pip/commit/1230a60b7e2c86e9c9d0f72670b8ed6600417d57 (squash merge); gh api compare 10dfb6b90054...1230a60b7e2c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pypa/pip/pull/14108",
+    "title": "perf: Optimize uninstall path compaction",
+    "commit": "1230a60b7e2c86e9c9d0f72670b8ed6600417d57",
+    "merged_at": "2026-07-01T19:03:18Z",
+    "files": [
+      "news/14107.bugfix.rst",
+      "src/pip/_internal/req/req_uninstall.py",
+      "tests/unit/test_req_uninstall.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/unit/test_req_uninstall.py",
+    "source": "test files changed by https://github.com/pypa/pip/pull/14108 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pypa/pip/pull/14108",
+      "note": "description, as matched by the miner: timings: 0.418757s; 0.017444s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

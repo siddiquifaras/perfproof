@@ -1,0 +1,46 @@
+{
+  "id": "huggingface-diffusers-pr13019",
+  "repository": "huggingface/diffusers",
+  "stars": 34728,
+  "pushed_at": "2026-10-15T22:28:22Z",
+  "task_commit": "7a02fadad322788c64f3b61f1bb660aef8c458a9",
+  "task_commit_basis": "first parent of https://github.com/huggingface/diffusers/commit/699297f64777796194d6cc84c224082e7faa0c71; gh api compare 7a02fadad322...699297f64777 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/diffusers/pull/13019",
+    "title": "feat: accelerate longcat-image with regional compile",
+    "commit": "699297f64777796194d6cc84c224082e7faa0c71",
+    "merged_at": "2026-01-22T14:51:46Z",
+    "files": [
+      "src/diffusers/models/transformers/transformer_longcat_image.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/diffusers/pull/13019",
+      "note": "description, as matched by the miner: speedup claims: 2x speedup"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

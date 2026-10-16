@@ -1,0 +1,57 @@
+{
+  "id": "pydantic-pydantic-pr11244",
+  "repository": "pydantic/pydantic",
+  "stars": 29050,
+  "pushed_at": "2026-10-15T14:13:38Z",
+  "task_commit": "47222838a71ec6cd8272085c718ad02221087f20",
+  "task_commit_basis": "first parent of https://github.com/pydantic/pydantic/commit/8fe3aae8378ad268301c58143d3d9701638d1237 (squash merge); gh api compare 47222838a71e...8fe3aae8378a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydantic/pydantic/pull/11244",
+    "title": "Refactor and optimize schema cleaning logic",
+    "commit": "8fe3aae8378ad268301c58143d3d9701638d1237",
+    "merged_at": "2025-01-29T17:55:51Z",
+    "files": [
+      "pydantic/_internal/_core_utils.py",
+      "pydantic/_internal/_dataclasses.py",
+      "pydantic/_internal/_discriminated_union.py",
+      "pydantic/_internal/_generate_schema.py",
+      "pydantic/_internal/_model_construction.py",
+      "pydantic/_internal/_schema_gather.py",
+      "pydantic/type_adapter.py",
+      "tests/test_edge_cases.py",
+      "tests/test_generics.py",
+      "tests/test_internal.py",
+      "tests/test_type_alias_type.py",
+      "tests/test_utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_edge_cases.py tests/test_generics.py tests/test_internal.py tests/test_type_alias_type.py tests/test_utils.py",
+    "source": "test files changed by https://github.com/pydantic/pydantic/pull/11244 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydantic/pydantic/pull/11244",
+      "note": "description, as matched by the miner: timings: 4s; 20ms; 230ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

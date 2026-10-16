@@ -1,0 +1,46 @@
+{
+  "id": "django-django-pr21460",
+  "repository": "django/django",
+  "stars": 91331,
+  "pushed_at": "2026-10-15T06:51:05Z",
+  "task_commit": "125e337a4c91e907d022f02c9aa8a393fd2921ed",
+  "task_commit_basis": "first parent of https://github.com/django/django/commit/f89101088a149d8c9eca4e4796723a3f0de5b129; gh api compare 125e337a4c91...f89101088a14 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/21460",
+    "title": "Fixed #37163 -- Optimized @user_passes_test async checking.",
+    "commit": "f89101088a149d8c9eca4e4796723a3f0de5b129",
+    "merged_at": "2026-06-16T15:48:22Z",
+    "files": [
+      "django/contrib/auth/decorators.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "%timeit foo(SimpleNamespace(user=None))",
+    "source": "quoted in the description of https://github.com/django/django/pull/21460",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/django/django/pull/21460",
+      "note": "description, as matched by the miner: timings: 500 ns; 749 ns ± 2.08 ns; 262 ns ± 0.488 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,64 @@
+{
+  "id": "duckdb-duckdb-pr25527-landed",
+  "repository": "duckdb/duckdb",
+  "stars": 42186,
+  "pushed_at": "2026-10-15T19:24:23Z",
+  "task_commit": "a8aa07933b705cbe833dfe6ba9334b899dc76dd5",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/duckdb/duckdb/commit/a8aa07933b705cbe833dfe6ba9334b899dc76dd5",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/duckdb/duckdb/pull/25527",
+    "title": "Optimize keyword matching for the PEG parser",
+    "commit": "a8aa07933b705cbe833dfe6ba9334b899dc76dd5",
+    "merged_at": "2026-09-17T09:42:17Z",
+    "files": [
+      "src/include/duckdb/parser/peg/grammar_literal_table.hpp",
+      "src/include/duckdb/parser/peg/keyword_helper.hpp",
+      "src/include/duckdb/parser/peg/keyword_helper/parsed_grammar_keyword_helper.hpp",
+      "src/include/duckdb/parser/peg/matcher/identifier_matcher.hpp",
+      "src/include/duckdb/parser/peg/matcher/keyword_matcher.hpp",
+      "src/include/duckdb/parser/peg/matcher/literal_choice_matcher.hpp",
+      "src/include/duckdb/parser/peg/matcher_factory.hpp",
+      "src/include/duckdb/parser/peg/matcher_token.hpp",
+      "src/include/duckdb/parser/peg/parsed_grammar.hpp",
+      "src/include/duckdb/parser/token_iterator.hpp",
+      "src/parser/peg/compiled_grammar.cpp",
+      "src/parser/peg/dialect_extension.cpp",
+      "src/parser/peg/keyword_helper/CMakeLists.txt",
+      "src/parser/peg/keyword_helper/grammar_literal_table.cpp",
+      "src/parser/peg/keyword_helper/parsed_grammar_keyword_helper.cpp",
+      "src/parser/peg/matcher_factory.cpp",
+      "src/parser/peg/matcher_process.cpp",
+      "src/parser/token_iterator.cpp",
+      "test/api/test_grammar_extension.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/duckdb/duckdb/pull/25527",
+      "note": "description, as matched by the miner: speedup claims: 34% improvement"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

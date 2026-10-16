@@ -1,0 +1,47 @@
+{
+  "id": "scipy-scipy-pr24660",
+  "repository": "scipy/scipy",
+  "stars": 15114,
+  "pushed_at": "2026-10-15T16:49:39Z",
+  "task_commit": "2db1c0552cbd854bde483c060406aed7315b789e",
+  "task_commit_basis": "first parent of https://github.com/scipy/scipy/commit/d000170128f5017834709f6cac70459349b34602 (squash merge); gh api compare 2db1c0552cbd...d000170128f5 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scipy/scipy/pull/24660",
+    "title": "ENH: stats.ShiftedScaledDistribution: speed up handling of negative scale",
+    "commit": "d000170128f5017834709f6cac70459349b34602",
+    "merged_at": "2026-08-15T14:02:08Z",
+    "files": [
+      "scipy/stats/_distribution_infrastructure.py",
+      "scipy/stats/tests/test_continuous.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "%timeit Y.icdf(0.4, method='inversion')",
+    "source": "quoted in the description of https://github.com/scipy/scipy/pull/24660",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest scipy/stats/tests/test_continuous.py",
+    "source": "test files changed by https://github.com/scipy/scipy/pull/24660 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scipy/scipy/pull/24660",
+      "note": "description, as matched by the miner: timings: 23.6 ms ± 222 μs; 12.2 ms ± 29.6 μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

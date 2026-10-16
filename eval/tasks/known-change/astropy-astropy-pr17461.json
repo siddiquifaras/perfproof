@@ -1,0 +1,62 @@
+{
+  "id": "astropy-astropy-pr17461",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "44b110be0aee6147e450575b90efdb1280cd1c63",
+  "task_commit_basis": "first parent of https://github.com/astropy/astropy/commit/49765f493c16405ef523762781d3c2972d86ce3b (squash merge); gh api compare 44b110be0aee...49765f493c16 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/17461",
+    "title": "Optimize getting config item values ",
+    "commit": "49765f493c16405ef523762781d3c2972d86ce3b",
+    "merged_at": "2024-12-10T03:05:01Z",
+    "files": [
+      "astropy/config/configuration.py",
+      "docs/changes/config/17461.perf.rst"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/18144",
+    "title": "Revert PR 17461 (Optimize getting config item values)",
+    "commit": "79fb7d6c8e6ade478a61b5190b31af6445b34041",
+    "merged_at": "2025-05-14T16:30:03Z",
+    "files": [
+      "astropy/config/configuration.py",
+      "docs/changes/config/17461.perf.rst"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/17461",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/astropy/astropy/pull/18144",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

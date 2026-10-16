@@ -1,0 +1,76 @@
+{
+  "id": "pandas-dev-pandas-pr64671",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "d6e4557a6d531c3117338b36f41677e838d0c1d0",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/7eb33fad7c9c7617aa4ba94350cbfcc7b230a9ea; gh api compare d6e4557a6d53...7eb33fad7c9c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/64671",
+    "title": "PERF: Use _global_config directly when accessing configs",
+    "commit": "7eb33fad7c9c7617aa4ba94350cbfcc7b230a9ea",
+    "merged_at": "2026-03-26T00:36:15Z",
+    "files": [
+      "pandas/core/arrays/categorical.py",
+      "pandas/core/arrays/datetimelike.py",
+      "pandas/core/arrays/datetimes.py",
+      "pandas/core/arrays/sparse/array.py",
+      "pandas/core/arrays/string_.py",
+      "pandas/core/computation/align.py",
+      "pandas/core/computation/common.py",
+      "pandas/core/computation/expressions.py",
+      "pandas/core/config_init.py",
+      "pandas/core/dtypes/dtypes.py",
+      "pandas/core/frame.py",
+      "pandas/core/generic.py",
+      "pandas/core/indexes/base.py",
+      "pandas/core/indexes/multi.py",
+      "pandas/core/internals/managers.py",
+      "pandas/core/nanops.py",
+      "pandas/core/reshape/reshape.py",
+      "pandas/io/clipboards.py",
+      "pandas/io/excel/_base.py",
+      "pandas/io/formats/console.py",
+      "pandas/io/formats/format.py",
+      "pandas/io/formats/html.py",
+      "pandas/io/formats/info.py",
+      "pandas/io/formats/printing.py",
+      "pandas/io/formats/style.py",
+      "pandas/io/formats/style_render.py",
+      "pandas/io/parquet.py",
+      "pandas/io/pytables.py",
+      "pandas/io/sql.py",
+      "pandas/plotting/_core.py",
+      "pandas/plotting/_matplotlib/converter.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit get_option(\"mode.performance_warnings\")",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/64671",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/64671",
+      "note": "description, as matched by the miner: speedup claims: 20x faster | timings: 707 ns ± 6.74 ns; 30.2 ns ± 3.59 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

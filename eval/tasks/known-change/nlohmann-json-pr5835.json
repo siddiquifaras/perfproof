@@ -1,0 +1,51 @@
+{
+  "id": "nlohmann-json-pr5835",
+  "repository": "nlohmann/json",
+  "stars": 50762,
+  "pushed_at": "2026-10-15T20:47:17Z",
+  "task_commit": "6a27b9acb2032b63f9e63808215f6b6364bf9c8b",
+  "task_commit_basis": "first parent of https://github.com/nlohmann/json/commit/4f115126414cbe60380d142659d308a53fa66d79 (squash merge); gh api compare 6a27b9acb203...4f115126414c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nlohmann/json/pull/5835",
+    "title": "Speed up container destruction, iterator access and diff()",
+    "commit": "4f115126414cbe60380d142659d308a53fa66d79",
+    "merged_at": "2026-10-15T18:01:33Z",
+    "files": [
+      "include/nlohmann/detail/iterators/iter_impl.hpp",
+      "include/nlohmann/json.hpp",
+      "single_include/nlohmann/json.hpp",
+      "tests/src/unit-constructor2.cpp",
+      "tests/src/unit-iterators1.cpp",
+      "tests/src/unit-json_patch.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nlohmann/json/pull/5835",
+      "note": "description, as matched by the miner: timings: 17.4 ns; 15 ns; 1.8 ns; 1.3 ns; 0.70 ms; 0.41 ms; 1.62 ms; 3.5 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

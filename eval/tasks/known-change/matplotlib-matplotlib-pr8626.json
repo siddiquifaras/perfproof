@@ -1,0 +1,64 @@
+{
+  "id": "matplotlib-matplotlib-pr8626",
+  "repository": "matplotlib/matplotlib",
+  "stars": 23373,
+  "pushed_at": "2026-10-15T20:08:53Z",
+  "task_commit": "5cbe37fccab498c4c72b352555e140d34f4cad6a",
+  "task_commit_basis": "first parent of https://github.com/matplotlib/matplotlib/commit/1636bed2dc4c7aa96e8b1ae0f0c48a8d2d295dd1; gh api compare 5cbe37fccab4...1636bed2dc4c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/matplotlib/matplotlib/pull/8626",
+    "title": "Axes.__init__ speedup",
+    "commit": "1636bed2dc4c7aa96e8b1ae0f0c48a8d2d295dd1",
+    "merged_at": "2017-11-08T04:08:01Z",
+    "files": [
+      "lib/matplotlib/axes/_base.py",
+      "lib/matplotlib/projections/polar.py",
+      "lib/matplotlib/spines.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/matplotlib/matplotlib/pull/9718",
+    "title": "Revert \"Axes.__init__ speedup\"",
+    "commit": "f2afc4c472e50d0428e41f365026bd5a32dbe41a",
+    "merged_at": "2017-11-08T14:23:17Z",
+    "files": [
+      "lib/matplotlib/axes/_base.py",
+      "lib/matplotlib/projections/polar.py",
+      "lib/matplotlib/spines.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "python",
+  "workload": {
+    "command": "python3 -m timeit -s \"from matplotlib.figure import Figure; from matplotlib.axes import Axes; fig = Figure()\" \"Axes(fig, (0, 0, 1 ,1))\"",
+    "source": "quoted in the description of https://github.com/matplotlib/matplotlib/pull/8626",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/matplotlib/matplotlib/pull/8626",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/matplotlib/matplotlib/pull/9718",
+      "note": "revert; miner classified it as reverted-breaking from: 'Revert , because it broke lots of stuff on master: https://travis-ci.org/matplotlib/m'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "vllm-project-vllm-pr12405",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "df5dafaa5ba611f7179720958ba63e49615c927f",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/3132a933b65d8ed3383e082264c682940d92d803; gh api compare df5dafaa5ba6...3132a933b65d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/12405",
+    "title": "[Bugfix][Kernel] FA3 Fix - RuntimeError: This flash attention build only supports pack_gqa (for build size reasons).",
+    "commit": "3132a933b65d8ed3383e082264c682940d92d803",
+    "merged_at": "2025-01-24T20:20:59Z",
+    "files": [
+      "CMakeLists.txt"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "regression",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/12405",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/12434",
+      "note": "regression fix naming this change as the cause: 'Fix perf regression caused by https://github.com/vllm-project/vllm/pull/12405 (resulted in falling back on FA2) Tested using: ``` VLLM_F'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

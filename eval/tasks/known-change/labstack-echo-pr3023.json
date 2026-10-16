@@ -1,0 +1,49 @@
+{
+  "id": "labstack-echo-pr3023",
+  "repository": "labstack/echo",
+  "stars": 32769,
+  "pushed_at": "2026-10-12T15:06:45Z",
+  "task_commit": "78c3d9543be665b4bb9ed5ece3ac829108e3efa5",
+  "task_commit_basis": "first parent of https://github.com/labstack/echo/commit/cc07fa957464a7c288859083b3008ca970c68a6e (squash merge); gh api compare 78c3d9543be6...cc07fa957464 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/labstack/echo/pull/3023",
+    "title": "perf(json): pooled-buffer JSON deserialize",
+    "commit": "cc07fa957464a7c288859083b3008ca970c68a6e",
+    "merged_at": "2026-06-22T16:44:54Z",
+    "files": [
+      "bind_test.go",
+      "json.go",
+      "json_test.go",
+      "perf_bench_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/labstack/echo/pull/3023",
+      "note": "description, as matched by the miner: speedup claims: 12% faster | benchmark files changed: perf_bench_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

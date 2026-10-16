@@ -1,0 +1,46 @@
+{
+  "id": "networkx-networkx-pr8893",
+  "repository": "networkx/networkx",
+  "stars": 17329,
+  "pushed_at": "2026-10-06T17:42:21Z",
+  "task_commit": "301b9a9381c697534c37aab5c1d088d2c831c71d",
+  "task_commit_basis": "first parent of https://github.com/networkx/networkx/commit/68206456ba00ec15c9e557330f58e2d8052b21b6; gh api compare 301b9a9381c6...68206456ba00 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/networkx/networkx/pull/8893",
+    "title": "ENH: Speed up connectivity checks in random_reference and lattice_reference",
+    "commit": "68206456ba00ec15c9e557330f58e2d8052b21b6",
+    "merged_at": "2026-09-02T19:05:55Z",
+    "files": [
+      "networkx/algorithms/smallworld.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/networkx/networkx/pull/8893",
+      "note": "description, as matched by the miner: speedup claims: 548× faster; 45× faster | timings: 12.6030 s; 0.0230 s; 4.1919 s; 0.0929 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

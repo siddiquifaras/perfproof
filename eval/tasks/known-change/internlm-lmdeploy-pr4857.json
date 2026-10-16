@@ -1,0 +1,68 @@
+{
+  "id": "internlm-lmdeploy-pr4857",
+  "repository": "InternLM/lmdeploy",
+  "stars": 8106,
+  "pushed_at": "2026-10-09T03:58:16Z",
+  "task_commit": "e47e39f6806cb95a151cbd239c2b1b4674c18a78",
+  "task_commit_basis": "first parent of https://github.com/InternLM/lmdeploy/commit/a96cb3fc3be536ade6a99728d87cba6afac9f4fd (squash merge); gh api compare e47e39f6806c...a96cb3fc3be5 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/InternLM/lmdeploy/pull/4857",
+    "title": "perf(pytorch): optimize compact blocked FP8 MoE and route preparation",
+    "commit": "a96cb3fc3be536ade6a99728d87cba6afac9f4fd",
+    "merged_at": "2026-08-26T03:42:07Z",
+    "files": [
+      "lmdeploy/pytorch/backends/cuda/moe/blocked_fp8.py",
+      "lmdeploy/pytorch/backends/cuda/moe/default.py",
+      "lmdeploy/pytorch/backends/cuda/moe/static_fp8.py",
+      "lmdeploy/pytorch/backends/cuda/moe/v4_fp4.py",
+      "lmdeploy/pytorch/backends/cuda/moe_router.py",
+      "lmdeploy/pytorch/kernels/cuda/__init__.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/__init__.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/blocked_fp8.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/ep.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/ep_fp8.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/fused_moe.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/route_noaux_tc.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/route_single_group.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/v4_fp4.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/v4_fp4_grouped_gemm.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/v4_swiglu_quant.py",
+      "lmdeploy/pytorch/kernels/cuda/moe/w8a8.py",
+      "tests/pytorch/kernel/test_fuse_moe_blocked_fp8.py",
+      "tests/pytorch/kernel/test_fuse_moe_v4_fp4.py",
+      "tests/pytorch/kernel/test_fused_moe.py",
+      "tests/pytorch/kernel/test_fused_moe_static_fp8.py",
+      "tests/pytorch/kernel/test_moe_route.py",
+      "tests/pytorch/kernel/test_v4_fp4_grouped_gemm.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/pytorch/kernel/test_fuse_moe_blocked_fp8.py tests/pytorch/kernel/test_fuse_moe_v4_fp4.py tests/pytorch/kernel/test_fused_moe.py tests/pytorch/kernel/test_fused_moe_static_fp8.py tests/pytorch/kernel/test_moe_route.py tests/pytorch/kernel/test_v4_fp4_grouped_gemm.py",
+    "source": "test files changed by https://github.com/InternLM/lmdeploy/pull/4857 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/InternLM/lmdeploy/pull/4857",
+      "note": "description, as matched by the miner: speedup claims: 2.36x; 2.18x; 1.32x; 1.23x | timings: 6.44 us; 2.72 us; 7.04 us; 3.23 us; 7.65 us; 5.81 us; 8.17 us; 6.64 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

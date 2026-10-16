@@ -1,0 +1,47 @@
+{
+  "id": "gin-gonic-gin-pr4466",
+  "repository": "gin-gonic/gin",
+  "stars": 89364,
+  "pushed_at": "2026-10-10T04:20:35Z",
+  "task_commit": "19b877fa50cbbb9282763099fb177a1e5cc5c850",
+  "task_commit_basis": "first parent of https://github.com/gin-gonic/gin/commit/64a6ed9a41ab72076506bd590dc4b916ca4b66a5; gh api compare 19b877fa50cb...64a6ed9a41ab touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gin-gonic/gin/pull/4466",
+    "title": "perf(recovery): optimize line reading in stack function",
+    "commit": "64a6ed9a41ab72076506bd590dc4b916ca4b66a5",
+    "merged_at": "2025-12-12T05:42:03Z",
+    "files": [
+      "recovery.go",
+      "recovery_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gin-gonic/gin/pull/4466",
+      "note": "description, as matched by the miner: speedup claims: 33% faster; 94% reduction; 47% increase; 7% reduction; 31% faster | timings: 994 ns; 139 ns; 25.44s; 17.51s; 0.0247s; 0.0170s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

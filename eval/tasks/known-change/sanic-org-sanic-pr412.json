@@ -1,0 +1,46 @@
+{
+  "id": "sanic-org-sanic-pr412",
+  "repository": "sanic-org/sanic",
+  "stars": 18638,
+  "pushed_at": "2026-07-29T03:09:51Z",
+  "task_commit": "d8c4c1525d5a6d10fa280cd47190a500876eb41f",
+  "task_commit_basis": "first parent of https://github.com/sanic-org/sanic/commit/bb3d48f98b499d262bb03f71087046edc872bc31; gh api compare d8c4c1525d5a...bb3d48f98b49 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sanic-org/sanic/pull/412",
+    "title": "Header performance gains",
+    "commit": "bb3d48f98b499d262bb03f71087046edc872bc31",
+    "merged_at": "2017-02-12T21:48:46Z",
+    "files": [
+      "sanic/response.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sanic-org/sanic/pull/412",
+      "note": "description, as matched by the miner: timings: 10s; 2.92ms; 673.12us; 9.52ms; 10.02s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

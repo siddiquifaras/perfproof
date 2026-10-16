@@ -1,0 +1,48 @@
+{
+  "id": "astral-sh-ruff-pr28257",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "108d36c75269961a0aea465e48bf60f21d3ff565",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/6e6622ca53a88471d16e203d823880a3b155b34f; gh api compare 108d36c75269...6e6622ca53a8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/28257",
+    "title": "[ty] Optimize recursive protocol checks for nested type variables",
+    "commit": "6e6622ca53a88471d16e203d823880a3b155b34f",
+    "merged_at": "2026-09-02T22:03:16Z",
+    "files": [
+      "crates/ruff_benchmark/benches/ty.rs",
+      "crates/ty_python_semantic/resources/mdtest/protocols.md",
+      "crates/ty_python_semantic/src/types/instance.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/28257",
+      "note": "description, as matched by the miner: timings: 0.22 seconds; 4.54 seconds | benchmark files changed: crates/ruff_benchmark/benches/ty.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

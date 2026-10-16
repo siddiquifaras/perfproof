@@ -1,0 +1,129 @@
+{
+  "id": "python-attrs-attrs-pr1463",
+  "repository": "python-attrs/attrs",
+  "stars": 5852,
+  "pushed_at": "2026-10-13T13:57:52Z",
+  "task_commit": "57f0d5441c9deaac44aebbbf45e38e477651e4f2",
+  "task_commit_basis": "first parent of https://github.com/python-attrs/attrs/commit/7369ad9f4b273e400478c8e65399d826ab3f3b32 (squash merge); gh api compare 57f0d5441c9d...7369ad9f4b27 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-attrs/attrs/pull/1463",
+    "title": "Improve performance of asdict in the common case",
+    "commit": "7369ad9f4b273e400478c8e65399d826ab3f3b32",
+    "merged_at": "2025-09-08T13:45:17Z",
+    "files": [
+      "changelog.d/1463.change.md",
+      "src/attr/_funcs.py",
+      "tests/test_funcs.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -m timeit -s \"import attrs\" -s \"Simple = attrs.make_class('Simple', ['i', 's', 'l'], slots=True)\" -s \"s = Simple(10, 'hi', [3, 1, 4])\" \"attrs.asdict(s)\"",
+    "source": "adapted from the pyperf script in the description of https://github.com/python-attrs/attrs/pull/1463 (make_class instead of a @define class)",
+    "verified": true
+  },
+  "oracle": {
+    "command": "python -m pytest -q tests/test_funcs.py",
+    "source": "test files changed by https://github.com/python-attrs/attrs/pull/1463 (gh pr view files); targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-attrs/attrs/pull/1463",
+      "note": "description, as matched by the miner: speedup claims: 1.64x faster; 1.28x faster | timings: 4.07 us +- 0.41 us; 2.48 us +- 0.21 us"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The checkout is a git archive with no .git, so hatch-vcs gets its version from SETUPTOOLS_SCM_PRETEND_VERSION",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv pip install -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 1.31,
+      "date": "2026-10-16T02:23:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 8 packages in 1.16s\n   Building attrs @ file://eval/mine/work/python-attrs-attrs-pr1463/task\n      Built attrs @ file://eval/mine/work/python-attrs-attrs-pr1463/task\nPrepared 1 package in 72ms\nInstalled 8 packages in 7ms\n + attrs==0.0.0 (from file://eval/mine/work/python-attrs-attrs-pr1463/task)\n + hypothesis==6.170.0\n + iniconfig==2.3.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m pytest -q tests/test_funcs.py",
+      "exit_code": 0,
+      "duration_s": 2.98,
+      "date": "2026-10-16T02:23:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...................................................                      [100%]\n51 passed in 2.12s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m timeit -s \"import attrs\" -s \"Simple = attrs.make_class('Simple', ['i', 's', 'l'], slots=True)\" -s \"s = Simple(10, 'hi', [3, 1, 4])\" \"attrs.asdict(s)\"",
+      "exit_code": 0,
+      "duration_s": 1.77,
+      "date": "2026-10-16T02:23:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "200000 loops, best of 5: 1.21 usec per loop"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv pip install -e . pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 0.37,
+      "date": "2026-10-16T02:23:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 8 packages in 222ms\n   Building attrs @ file://eval/mine/work/python-attrs-attrs-pr1463/reference\n      Built attrs @ file://eval/mine/work/python-attrs-attrs-pr1463/reference\nPrepared 1 package in 76ms\nInstalled 8 packages in 8ms\n + attrs==0.0.0 (from file://eval/mine/work/python-attrs-attrs-pr1463/reference)\n + hypothesis==6.170.0\n + iniconfig==2.3.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m pytest -q tests/test_funcs.py",
+      "exit_code": 0,
+      "duration_s": 2.82,
+      "date": "2026-10-16T02:23:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "....................................................                     [100%]\n52 passed in 2.10s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m timeit -s \"import attrs\" -s \"Simple = attrs.make_class('Simple', ['i', 's', 'l'], slots=True)\" -s \"s = Simple(10, 'hi', [3, 1, 4])\" \"attrs.asdict(s)\"",
+      "exit_code": 0,
+      "duration_s": 2.63,
+      "date": "2026-10-16T02:23:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "500000 loops, best of 5: 755 nsec per loop"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T01:55:51+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

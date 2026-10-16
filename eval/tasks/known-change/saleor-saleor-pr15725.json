@@ -1,0 +1,55 @@
+{
+  "id": "saleor-saleor-pr15725",
+  "repository": "saleor/saleor",
+  "stars": 23442,
+  "pushed_at": "2026-10-15T15:55:51Z",
+  "task_commit": "f2d594c9536b34da357e96e8acb1120adf8b56a1",
+  "task_commit_basis": "first parent of https://github.com/saleor/saleor/commit/bb1e21e1b338e307574b5f4597a70929ccb9116c (squash merge); gh api compare f2d594c9536b...bb1e21e1b338 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/saleor/saleor/pull/15725",
+    "title": "Optimize category-related resolvers. ",
+    "commit": "bb1e21e1b338e307574b5f4597a70929ccb9116c",
+    "merged_at": "2024-05-15T13:40:21Z",
+    "files": [
+      "saleor/graphql/product/dataloaders/products.py",
+      "saleor/graphql/product/resolvers.py",
+      "saleor/graphql/product/tests/benchmark/test_category.py",
+      "saleor/graphql/product/types/categories.py",
+      "saleor/product/migrations/0187_productvariantchannellisting_product_pro_price_a_fb6bd3_gin.py",
+      "saleor/product/migrations/0188_merge_20240513_1023.py",
+      "saleor/product/migrations/0190_merge_20240513_1042.py",
+      "saleor/product/migrations/0192_merge_20240513_1055.py",
+      "saleor/product/migrations/0193_merge_20240513_1105.py",
+      "saleor/product/models.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest saleor/graphql/product/tests/benchmark/test_category.py",
+    "source": "test files changed by https://github.com/saleor/saleor/pull/15725 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/saleor/saleor/pull/15725",
+      "note": "description, as matched by the miner: timings: 330ms; 20ms | benchmark files changed: saleor/graphql/product/tests/benchmark/test_category.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "ggml-org-llama-cpp-pr30119",
+  "repository": "ggml-org/llama.cpp",
+  "stars": 131304,
+  "pushed_at": "2026-10-15T22:31:14Z",
+  "task_commit": "ecdd29e8b2076bb85da9e9ca7ee3d84264375bd1",
+  "task_commit_basis": "first parent of https://github.com/ggml-org/llama.cpp/commit/77c4540ce4667f4577753fe034a3a8042f510b8f; gh api compare ecdd29e8b207...77c4540ce466 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/30119",
+    "title": "vulkan: Optimize pool_2d when the pooling window is large",
+    "commit": "77c4540ce4667f4577753fe034a3a8042f510b8f",
+    "merged_at": "2026-10-13T15:18:00Z",
+    "files": [
+      "ggml/src/ggml-vulkan/ggml-vulkan-types.h",
+      "ggml/src/ggml-vulkan/ggml-vulkan.cpp",
+      "ggml/src/ggml-vulkan/vulkan-shaders/pool2d.comp",
+      "ggml/src/ggml-vulkan/vulkan-shaders/vulkan-shaders-gen.cpp",
+      "tests/test-backend-ops.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/30119",
+      "note": "description, as matched by the miner: timings: 12.30 us; 47.50 us; 23.63 us; 224.49 us; 1.50 us; 20.70 us; 1.58 us; 165.22 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "swe-perf-sympy-sympy-26935",
+  "repository": "sympy/sympy",
+  "stars": 15016,
+  "pushed_at": "2026-10-15T08:51:08Z",
+  "task_commit": "583993a9b99faa3f244b1863feddf4c2480ac640",
+  "task_commit_basis": "the base_commit field of SWE-Perf/SWE-Perf row sympy__sympy-26935",
+  "reference_change": {
+    "kind": "benchmark-instance",
+    "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=100&length=100",
+    "title": "swe-perf reference patch for sympy__sympy-26935",
+    "commit": null,
+    "merged_at": null,
+    "files": [
+      "sympy/integrals/heurisch.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "published-benchmark",
+  "change_kind": "benchmark-instance",
+  "target_class": "python",
+  "workload": {
+    "command": "python -m pytest sympy/integrals/tests/test_integrals.py::test_mul_pow_derivative",
+    "source": "the efficiency_test field of SWE-Perf/SWE-Perf row sympy__sympy-26935",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: SWE-Perf rows carry no test command",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://datasets-server.huggingface.co/rows?dataset=SWE-Perf/SWE-Perf&config=default&split=test&offset=100&length=100",
+      "note": "datasets-server page holding sympy__sympy-26935; the reference change is base_commit plus the row's patch (head_commit 39d7c4ab3813ed99ad7dcbc4069b7a45851ff3bb is the pull request's branch tip, not the reference tree)"
+    },
+    {
+      "url": "https://github.com/chenzhi-cz/performance-optimization-benchmark-reliability/blob/44a1cb86a9f765b0375b4cfb479641f3c19f0774/data/cross_machine_task_summary.csv",
+      "note": "cross-machine audit (arXiv 2607.01211) per-task row"
+    }
+  ],
+  "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=0.433, min_threshold_margin=0.37 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
+  "status": "candidate",
+  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:05:49+00:00",
+  "miner": "uv run python eval/mine/mine.py benchmarks"
+}

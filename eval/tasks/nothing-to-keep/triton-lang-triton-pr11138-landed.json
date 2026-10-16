@@ -1,0 +1,52 @@
+{
+  "id": "triton-lang-triton-pr11138-landed",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "80c48091e94f9b57b88ed1a77b918865ef823f55",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/triton-lang/triton/commit/80c48091e94f9b57b88ed1a77b918865ef823f55",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/11138",
+    "title": "[ConSan] Optimize ConSan by fusing helper functions",
+    "commit": "80c48091e94f9b57b88ed1a77b918865ef823f55",
+    "merged_at": "2026-08-03T18:09:43Z",
+    "files": [
+      "include/triton/Dialect/TritonInstrument/IR/FunctionBuilder.h",
+      "lib/Conversion/TritonInstrumentToLLVM/InstrumentationToLLVM.cpp",
+      "lib/Dialect/TritonInstrument/IR/FunctionBuilder.cpp",
+      "lib/Dialect/TritonInstrument/Transforms/ConcurrencySanitizer.cpp",
+      "test/Conversion/tritoninstrument_to_llvm.mlir",
+      "test/TritonGPU/amd/amd-consan.mlir",
+      "test/TritonGPU/consan.mlir"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/11138",
+      "note": "description, as matched by the miner: speedup claims: 28.46% faster; 15.81% faster; 2.83% faster; 5.20% faster | timings: 9.498 s; 9.180 ms; 23.937 s; 925.220 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

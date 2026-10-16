@@ -1,0 +1,47 @@
+{
+  "id": "fastapi-fastapi-pr2615",
+  "repository": "fastapi/fastapi",
+  "stars": 103116,
+  "pushed_at": "2026-10-15T14:24:58Z",
+  "task_commit": "278adc012a417baf4c565d7a01d6034bd6b2e858",
+  "task_commit_basis": "first parent of https://github.com/fastapi/fastapi/commit/a71077c530fc4c73390f6222bb5a590dbac1ea07 (squash merge); gh api compare 278adc012a41...a71077c530fc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fastapi/fastapi/pull/2615",
+    "title": "📝 Update docs for `ORJSONResponse` with details about improving performance",
+    "commit": "a71077c530fc4c73390f6222bb5a590dbac1ea07",
+    "merged_at": "2022-09-01T09:59:06Z",
+    "files": [
+      "docs/en/docs/advanced/custom-response.md",
+      "docs_src/custom_response/tutorial001b.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fastapi/fastapi/pull/2615",
+      "note": "description, as matched by the miner: speedup claims: 6x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

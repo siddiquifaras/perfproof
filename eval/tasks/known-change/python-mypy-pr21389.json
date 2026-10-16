@@ -1,0 +1,46 @@
+{
+  "id": "python-mypy-pr21389",
+  "repository": "python/mypy",
+  "stars": 20683,
+  "pushed_at": "2026-10-15T12:10:42Z",
+  "task_commit": "5e7e91bc7aafccf370b2a3f3111377cbab0057e3",
+  "task_commit_basis": "first parent of https://github.com/python/mypy/commit/28751e9c68752a2e3b5a087974f7ac3ae370a4b0 (squash merge); gh api compare 5e7e91bc7aaf...28751e9c6875 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/21389",
+    "title": "Optimize SCC scheduler `not_ready_deps` tracking",
+    "commit": "28751e9c68752a2e3b5a087974f7ac3ae370a4b0",
+    "merged_at": "2026-06-05T00:38:42Z",
+    "files": [
+      "mypy/build.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python/mypy/pull/21389",
+      "note": "description, as matched by the miner: speedup claims: 2% speed up"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

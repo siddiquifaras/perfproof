@@ -1,0 +1,49 @@
+{
+  "id": "python-attrs-attrs-pr991",
+  "repository": "python-attrs/attrs",
+  "stars": 5852,
+  "pushed_at": "2026-10-13T13:57:52Z",
+  "task_commit": "983c2c42935ccfc2fce77d6f20dac7821bc720e8",
+  "task_commit_basis": "first parent of https://github.com/python-attrs/attrs/commit/a8191556c0aad84125d2c3435c5a2352b2f8a9ba (squash merge); gh api compare 983c2c42935c...a8191556c0aa touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-attrs/attrs/pull/991",
+    "title": "Speedup `_setattr` usage and fix slight performance regressions",
+    "commit": "a8191556c0aad84125d2c3435c5a2352b2f8a9ba",
+    "merged_at": "2022-08-07T07:52:28Z",
+    "files": [
+      "changelog.d/991.change.rst",
+      "docs/how-does-it-work.rst",
+      "src/attr/_make.py",
+      "tests/test_functional.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_functional.py",
+    "source": "test files changed by https://github.com/python-attrs/attrs/pull/991 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-attrs/attrs/pull/991",
+      "note": "description, as matched by the miner: timings: 499 ns +- 26 ns; 450 ns +- 17 ns; 425 ns +- 16 ns; 1.01 us +- 0.04 us; 1.18 us +- 0.04 us; 941 ns +- 45 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

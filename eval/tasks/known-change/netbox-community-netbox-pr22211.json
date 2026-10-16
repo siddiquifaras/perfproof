@@ -1,0 +1,59 @@
+{
+  "id": "netbox-community-netbox-pr22211",
+  "repository": "netbox-community/netbox",
+  "stars": 21698,
+  "pushed_at": "2026-10-15T20:56:51Z",
+  "task_commit": "bc7ed0e9bbc3263090c1193f6d3eeb1564c83e2c",
+  "task_commit_basis": "first parent of https://github.com/netbox-community/netbox/commit/8f974e3cc8e91e6522583ffb1ef00ddedf0122fe; gh api compare bc7ed0e9bbc3...8f974e3cc8e9 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/netbox-community/netbox/pull/22211",
+    "title": "Closes #21870: Optimized Prefix and IP Range availability and utilization calculations",
+    "commit": "8f974e3cc8e91e6522583ffb1ef00ddedf0122fe",
+    "merged_at": "2026-06-13T22:02:52Z",
+    "files": [
+      "netbox/ipam/api/views.py",
+      "netbox/ipam/fields.py",
+      "netbox/ipam/lookups.py",
+      "netbox/ipam/managers.py",
+      "netbox/ipam/migrations/0092_iprange_host_indexes.py",
+      "netbox/ipam/models/ip.py",
+      "netbox/ipam/querysets.py",
+      "netbox/ipam/tests/test_fields.py",
+      "netbox/ipam/tests/test_lookups.py",
+      "netbox/ipam/tests/test_models.py",
+      "netbox/ipam/tests/test_querysets.py",
+      "netbox/ipam/utils.py",
+      "netbox/templates/ipam/iprange/ip_addresses.html",
+      "netbox/templates/ipam/panels/prefix_addressing.html"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest netbox/ipam/tests/test_fields.py netbox/ipam/tests/test_lookups.py netbox/ipam/tests/test_models.py netbox/ipam/tests/test_querysets.py",
+    "source": "test files changed by https://github.com/netbox-community/netbox/pull/22211 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/netbox-community/netbox/pull/22211",
+      "note": "description, as matched by the miner: timings: 1429 ms; 13.9 ms; 893 ms; 13.7 ms; 897 ms; 25.1 ms; 13.1 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "astral-sh-ruff-pr26565",
+  "repository": "astral-sh/ruff",
+  "stars": 50104,
+  "pushed_at": "2026-10-15T22:37:40Z",
+  "task_commit": "ad264082c713ec6aad9191e5a6a8d342ed480a4b",
+  "task_commit_basis": "first parent of https://github.com/astral-sh/ruff/commit/c36f66207d6968dbbe1769bd50f80a4c02d17b57 (squash merge); gh api compare ad264082c713...c36f66207d69 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/ruff/pull/26565",
+    "title": "Improve performance of rendering edits in preview mode",
+    "commit": "c36f66207d6968dbbe1769bd50f80a4c02d17b57",
+    "merged_at": "2026-07-09T13:51:29Z",
+    "files": [
+      "crates/ruff_db/src/diagnostic/render/full.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine -w 3 -i \"./ruff_main check --preview --select=ALL\"",
+    "source": "quoted in the description of https://github.com/astral-sh/ruff/pull/26565",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/ruff/pull/26565",
+      "note": "description, as matched by the miner: speedup claims: 1.75x speedup | timings: 355.7 ms; 2.0 ms; 559.8 ms; 45.0 ms; 352.2 ms; 358.4 ms; 205.0 ms; 4.6 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

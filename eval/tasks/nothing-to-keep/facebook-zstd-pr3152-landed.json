@@ -1,0 +1,52 @@
+{
+  "id": "facebook-zstd-pr3152-landed",
+  "repository": "facebook/zstd",
+  "stars": 28031,
+  "pushed_at": "2026-10-06T01:11:59Z",
+  "task_commit": "f6ef14329f396eb8b2c1290790e7547d070d9511",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/facebook/zstd/commit/f6ef14329f396eb8b2c1290790e7547d070d9511",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/facebook/zstd/pull/3152",
+    "title": "\"Short cache\" optimization for level 1-4 DMS (+5-30% compression speed)",
+    "commit": "f6ef14329f396eb8b2c1290790e7547d070d9511",
+    "merged_at": "2022-06-21T21:27:19Z",
+    "files": [
+      "lib/compress/zstd_compress.c",
+      "lib/compress/zstd_compress_internal.h",
+      "lib/compress/zstd_double_fast.c",
+      "lib/compress/zstd_double_fast.h",
+      "lib/compress/zstd_fast.c",
+      "lib/compress/zstd_fast.h",
+      "lib/compress/zstd_ldm.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/facebook/zstd/pull/3152",
+      "note": "description, as matched by the miner: speedup claims: 2x; 1.5x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "textualize-rich-pr2217-landed",
+  "repository": "Textualize/rich",
+  "stars": 57546,
+  "pushed_at": "2026-06-23T03:10:19Z",
+  "task_commit": "65227ba120a3ddcba72af4cd253ed2eabc053c87",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/Textualize/rich/commit/65227ba120a3ddcba72af4cd253ed2eabc053c87",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Textualize/rich/pull/2217",
+    "title": "optimization for Segment.divid",
+    "commit": "65227ba120a3ddcba72af4cd253ed2eabc053c87",
+    "merged_at": "2022-04-25T09:16:25Z",
+    "files": [
+      "CHANGELOG.md",
+      "rich/segment.py",
+      "tools/profile_divide.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Textualize/rich/pull/2217",
+      "note": "description, as matched by the miner: speedup claims: 20% improvement"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

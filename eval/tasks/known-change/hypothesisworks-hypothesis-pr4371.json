@@ -1,0 +1,51 @@
+{
+  "id": "hypothesisworks-hypothesis-pr4371",
+  "repository": "HypothesisWorks/hypothesis",
+  "stars": 9085,
+  "pushed_at": "2026-10-15T20:32:34Z",
+  "task_commit": "44231f885baee4c629e77524446a6036cadd9629",
+  "task_commit_basis": "first parent of https://github.com/HypothesisWorks/hypothesis/commit/17f4b0b0c06d84c87e3fb5f28133194b870a798b; gh api compare 44231f885bae...17f4b0b0c06d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/HypothesisWorks/hypothesis/pull/4371",
+    "title": "Optimize local constants further",
+    "commit": "17f4b0b0c06d84c87e3fb5f28133194b870a798b",
+    "merged_at": "2025-04-22T21:22:30Z",
+    "files": [
+      "hypothesis-python/RELEASE.rst",
+      "hypothesis-python/src/hypothesis/internal/conjecture/providers.py",
+      "hypothesis-python/src/hypothesis/internal/constants_ast.py",
+      "hypothesis-python/tests/conjecture/test_local_constants.py",
+      "hypothesis-python/tests/cover/test_constants_ast.py",
+      "hypothesis-python/tox.ini"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest hypothesis-python/tests/conjecture/test_local_constants.py hypothesis-python/tests/cover/test_constants_ast.py",
+    "source": "test files changed by https://github.com/HypothesisWorks/hypothesis/pull/4371 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/HypothesisWorks/hypothesis/pull/4371",
+      "note": "description, as matched by the miner: timings: 3.07s; 2.67s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

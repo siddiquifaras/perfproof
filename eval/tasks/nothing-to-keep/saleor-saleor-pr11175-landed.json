@@ -1,0 +1,46 @@
+{
+  "id": "saleor-saleor-pr11175-landed",
+  "repository": "saleor/saleor",
+  "stars": 23442,
+  "pushed_at": "2026-10-15T15:55:51Z",
+  "task_commit": "f6edcd7b4f7ee334245733f118d3b10cd065d671",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/saleor/saleor/commit/f6edcd7b4f7ee334245733f118d3b10cd065d671",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/saleor/saleor/pull/11175",
+    "title": "Optimize memory usage of delete_expired_checkouts task",
+    "commit": "f6edcd7b4f7ee334245733f118d3b10cd065d671",
+    "merged_at": "2022-11-14T10:20:45Z",
+    "files": [
+      "saleor/checkout/tasks.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/saleor/saleor/pull/11175",
+      "note": "description, as matched by the miner: timings: 25.22s; 23.16s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

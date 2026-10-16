@@ -1,0 +1,47 @@
+{
+  "id": "gin-gonic-gin-pr4252",
+  "repository": "gin-gonic/gin",
+  "stars": 89364,
+  "pushed_at": "2026-10-10T04:20:35Z",
+  "task_commit": "61c2b1c28f0c5a754330545e31f02cd6d6f7944e",
+  "task_commit_basis": "first parent of https://github.com/gin-gonic/gin/commit/3c12d2a80e40930632fc4a4a4e1a45140f33fb12; gh api compare 61c2b1c28f0c...3c12d2a80e40 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gin-gonic/gin/pull/4252",
+    "title": "perf(recover): replace bytes with strings in function for better performance",
+    "commit": "3c12d2a80e40930632fc4a4a4e1a45140f33fb12",
+    "merged_at": "2025-05-31T00:41:14Z",
+    "files": [
+      "recovery.go",
+      "recovery_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gin-gonic/gin/pull/4252",
+      "note": "description, as matched by the miner: timings: 29.97 ns; 7.158 ns; 71.61 ns; 40.54 ns; 67586 ns; 61093 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,53 @@
+{
+  "id": "cline-cline-pr11731",
+  "repository": "cline/cline",
+  "stars": 70370,
+  "pushed_at": "2026-10-15T22:32:43Z",
+  "task_commit": "6ddf48d227f501500f04af35c1ec2b898fe832ca",
+  "task_commit_basis": "first parent of https://github.com/cline/cline/commit/9eebc44f24359e96c4b82f4f1b2efdc706056c19 (squash merge); gh api compare 6ddf48d227f5...9eebc44f2435 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/cline/cline/pull/11731",
+    "title": "chore: Optimize Cline Hub webview bundle",
+    "commit": "9eebc44f24359e96c4b82f4f1b2efdc706056c19",
+    "merged_at": "2026-06-22T23:40:02Z",
+    "files": [
+      "apps/cline-hub/src/webview/package.json",
+      "apps/cline-hub/src/webview/src/App.tsx",
+      "apps/cline-hub/src/webview/src/components/ai-elements/code-block.tsx",
+      "apps/cline-hub/src/webview/src/components/ai-elements/message.tsx",
+      "apps/cline-hub/src/webview/src/components/ai-elements/reasoning.tsx",
+      "apps/cline-hub/src/webview/src/components/ai-elements/streamdown.tsx",
+      "apps/cline-hub/src/webview/vite.config.ts",
+      "bun.lock"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/cline/cline/pull/11731",
+      "note": "description, as matched by the miner: timings: 1.03s; 7.51 s; 762ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

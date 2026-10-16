@@ -1,0 +1,64 @@
+{
+  "id": "pandas-dev-pandas-pr51227",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "12faa2edd6d28ac2f2c9751e612db4bfe2c432ac",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/7ffc0ad1e803513f7a24e351c198fc0308c1cc9f (squash merge); gh api compare 12faa2edd6d2...7ffc0ad1e803 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/51227",
+    "title": "PERF: ArrowExtensionArray.to_numpy(dtype=object)",
+    "commit": "7ffc0ad1e803513f7a24e351c198fc0308c1cc9f",
+    "merged_at": "2023-02-09T17:33:43Z",
+    "files": [
+      "doc/source/whatsnew/v2.0.0.rst",
+      "pandas/core/arrays/arrow/array.py",
+      "pandas/tests/extension/test_arrow.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/51273",
+    "title": "Revert \"PERF: ArrowExtensionArray.to_numpy(dtype=object)\"",
+    "commit": "3e8c3b04a1406652180edfdc291566820c8a75a6",
+    "merged_at": "2023-02-09T19:09:30Z",
+    "files": [
+      "doc/source/whatsnew/v2.0.0.rst",
+      "pandas/core/arrays/arrow/array.py",
+      "pandas/tests/extension/test_arrow.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit df.sum(axis=1)",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/51227",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest pandas/tests/extension/test_arrow.py",
+    "source": "test files changed by https://github.com/pandas-dev/pandas/pull/51227 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/51227",
+      "note": "description, as matched by the miner: timings: 4.04 s ± 53.4 ms; 796 ms ± 22.6 ms; 4.82 s ± 159 ms; 1.51 s ± 10.3 ms"
+    },
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/51273",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

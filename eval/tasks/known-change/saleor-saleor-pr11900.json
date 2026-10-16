@@ -1,0 +1,46 @@
+{
+  "id": "saleor-saleor-pr11900",
+  "repository": "saleor/saleor",
+  "stars": 23442,
+  "pushed_at": "2026-10-15T15:55:51Z",
+  "task_commit": "87ea1864f7b1ccdff34fe81c4e438fef1dfa0588",
+  "task_commit_basis": "first parent of https://github.com/saleor/saleor/commit/6219fa9d0ab6470bf1d496deec93a57b352b6fdb; gh api compare 87ea1864f7b1...6219fa9d0ab6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/saleor/saleor/pull/11900",
+    "title": "Optimize 0044_fulfill_checkout_line_new_fields migration",
+    "commit": "6219fa9d0ab6470bf1d496deec93a57b352b6fdb",
+    "merged_at": "2023-02-07T14:45:49Z",
+    "files": [
+      "saleor/checkout/migrations/0044_fulfill_checkout_line_new_fields.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/saleor/saleor/pull/11900",
+      "note": "description, as matched by the miner: timings: 23s; 34s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

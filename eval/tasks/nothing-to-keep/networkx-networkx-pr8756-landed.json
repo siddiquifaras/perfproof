@@ -1,0 +1,48 @@
+{
+  "id": "networkx-networkx-pr8756-landed",
+  "repository": "networkx/networkx",
+  "stars": 17329,
+  "pushed_at": "2026-10-06T17:42:21Z",
+  "task_commit": "f77c3b6852fb2ec3ed6575d0f42cd028c9a9dcb0",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/networkx/networkx/commit/f77c3b6852fb2ec3ed6575d0f42cd028c9a9dcb0",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/networkx/networkx/pull/8756",
+    "title": "Speed up the residual flow reset in `edmonds_karp` and simplify the `minimum_cut` partition",
+    "commit": "f77c3b6852fb2ec3ed6575d0f42cd028c9a9dcb0",
+    "merged_at": "2026-07-17T18:53:12Z",
+    "files": [
+      "networkx/algorithms/flow/edmondskarp.py",
+      "networkx/algorithms/flow/maxflow.py",
+      "networkx/algorithms/flow/tests/test_maxflow.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest networkx/algorithms/flow/tests/test_maxflow.py",
+    "source": "test files changed by https://github.com/networkx/networkx/pull/8756 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/networkx/networkx/pull/8756",
+      "note": "description, as matched by the miner: speedup claims: 3.1x; 77x; 56x; 35x; 79x | timings: 8.1s; 21.1s; 6.9s; 0.30ms; 0.004ms; 0.46ms; 0.008ms; 0.27ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

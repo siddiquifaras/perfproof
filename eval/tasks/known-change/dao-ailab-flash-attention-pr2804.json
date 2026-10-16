@@ -1,0 +1,46 @@
+{
+  "id": "dao-ailab-flash-attention-pr2804",
+  "repository": "Dao-AILab/flash-attention",
+  "stars": 25140,
+  "pushed_at": "2026-10-15T18:25:14Z",
+  "task_commit": "94345b456854a91582f6a4b26a6feda2c8e09419",
+  "task_commit_basis": "first parent of https://github.com/Dao-AILab/flash-attention/commit/d86dabd8e75f32fd632614d559532cdf31973057 (squash merge); gh api compare 94345b456854...d86dabd8e75f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Dao-AILab/flash-attention/pull/2804",
+    "title": "[CuTe] Speed up SM100 hdim-64 bwd: dedicated P/dS TMEM slots + per-warp signaling",
+    "commit": "d86dabd8e75f32fd632614d559532cdf31973057",
+    "merged_at": "2026-09-09T00:17:30Z",
+    "files": [
+      "flash_attn/cute/flash_bwd_sm100.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Dao-AILab/flash-attention/pull/2804",
+      "note": "description, as matched by the miner: speedup claims: 1.150x; 1.147x; 1.075x; 1.123x; 1.131x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "pydata-xarray-pr10921-landed",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "33ce95e30ecf8ce4b367401ea3b52b4b748e2f6f",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/pydata/xarray/commit/33ce95e30ecf8ce4b367401ea3b52b4b748e2f6f",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/10921",
+    "title": "Optimize padding for coarsening.",
+    "commit": "33ce95e30ecf8ce4b367401ea3b52b4b748e2f6f",
+    "merged_at": "2025-11-14T17:45:11Z",
+    "files": [
+      "asv_bench/benchmarks/coarsen.py",
+      "doc/whats-new.rst",
+      "xarray/core/variable.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydata/xarray/pull/10921",
+      "note": "description, as matched by the miner: timings: 1ms; 0.4ms; 0.1ms | benchmark files changed: asv_bench/benchmarks/coarsen.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

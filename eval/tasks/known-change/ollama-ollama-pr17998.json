@@ -1,0 +1,52 @@
+{
+  "id": "ollama-ollama-pr17998",
+  "repository": "ollama/ollama",
+  "stars": 183318,
+  "pushed_at": "2026-10-15T22:30:46Z",
+  "task_commit": "147509c0c595527cc14eb7275ef199838d85c960",
+  "task_commit_basis": "first parent of https://github.com/ollama/ollama/commit/77e3b0ac7a09655b1cf855f48b98bb8b0cb85ae5; gh api compare 147509c0c595...77e3b0ac7a09 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ollama/ollama/pull/17998",
+    "title": "mlxrunner: avoid Metal GPU timeouts when loading models from slow storage",
+    "commit": "77e3b0ac7a09655b1cf855f48b98bb8b0cb85ae5",
+    "merged_at": "2026-08-26T00:14:57Z",
+    "files": [
+      "x/mlxrunner/runner.go",
+      "x/models/cohere2_moe/cohere2_moe.go",
+      "x/models/gemma3/gemma3.go",
+      "x/models/gemma4/gemma4.go",
+      "x/models/laguna/laguna.go",
+      "x/models/nemotron_h/nemotron_h.go",
+      "x/models/qwen3_5/qwen3_5.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ollama/ollama/pull/17998",
+      "note": "description, as matched by the miner: timings: 1.9s; 1.45s; 1.27s; 1.2s; 6s; 346s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

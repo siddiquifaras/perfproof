@@ -1,0 +1,51 @@
+{
+  "id": "python-mypy-pr5465",
+  "repository": "python/mypy",
+  "stars": 20683,
+  "pushed_at": "2026-10-15T12:10:42Z",
+  "task_commit": "e236664e75dd891d714cdc37ff2a8cff0fcaa092",
+  "task_commit_basis": "first parent of https://github.com/python/mypy/commit/e402c1316cf7f31e1ffa37b32fb8b932d79de07c; gh api compare e236664e75dd...e402c1316cf7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/5465",
+    "title": "Invalidate cache when previously missing stubs are added",
+    "commit": "e402c1316cf7f31e1ffa37b32fb8b932d79de07c",
+    "merged_at": "2018-08-13T23:27:04Z",
+    "files": [
+      "mypy/build.py",
+      "test-data/unit/check-incremental.test"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "regression",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python/mypy/pull/5465",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/python/mypy/pull/5556",
+      "note": "regression fix naming this change as the cause: 'l/5544 that takes care of the daemon performance regression caused by #5465. (I separated it from original PR as requested by @JukkaL.)'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

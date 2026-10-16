@@ -1,0 +1,53 @@
+{
+  "id": "pola-rs-polars-pr29866",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "11adf78a45dbc7dc7b0cbd8e9afc19b8d17e3d9b",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/9e9462d3c3e4fc7fb8c522596eaff76cd32a111f; gh api compare 11adf78a45db...9e9462d3c3e4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29866",
+    "title": "perf: Decode fixed-length binary Parquet decimals directly into i128",
+    "commit": "9e9462d3c3e4fc7fb8c522596eaff76cd32a111f",
+    "merged_at": "2026-10-12T07:38:29Z",
+    "files": [
+      "crates/polars-parquet/src/arrow/read/deserialize/mod.rs",
+      "crates/polars-parquet/src/arrow/read/deserialize/primitive/fixed_len_decimal.rs",
+      "crates/polars-parquet/src/arrow/read/deserialize/primitive/mod.rs",
+      "crates/polars-parquet/src/arrow/read/deserialize/primitive/plain/mod.rs",
+      "crates/polars-parquet/src/arrow/read/deserialize/simple.rs",
+      "crates/polars-parquet/src/arrow/read/mod.rs",
+      "crates/polars-parquet/src/arrow/read/statistics/bounds.rs",
+      "py-polars/tests/unit/io/test_parquet.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29866",
+      "note": "description, as matched by the miner: speedup claims: 2x | timings: 23.3s; 11.8s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

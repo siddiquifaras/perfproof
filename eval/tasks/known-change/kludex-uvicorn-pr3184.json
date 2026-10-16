@@ -1,0 +1,47 @@
+{
+  "id": "kludex-uvicorn-pr3184",
+  "repository": "Kludex/uvicorn",
+  "stars": 11015,
+  "pushed_at": "2026-10-11T21:36:05Z",
+  "task_commit": "cc3bfff4ea66628da38bfe010192b155f4caf3b4",
+  "task_commit_basis": "first parent of https://github.com/Kludex/uvicorn/commit/7af50e631484a2a3dc27698c3c794768429366d0; gh api compare cc3bfff4ea66...7af50e631484 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Kludex/uvicorn/pull/3184",
+    "title": "Speed up startup when reload patterns match many directories",
+    "commit": "7af50e631484a2a3dc27698c3c794768429366d0",
+    "merged_at": "2026-10-11T13:37:49Z",
+    "files": [
+      "tests/test_config.py",
+      "uvicorn/config.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_config.py",
+    "source": "test files changed by https://github.com/Kludex/uvicorn/pull/3184 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Kludex/uvicorn/pull/3184",
+      "note": "description, as matched by the miner: timings: 5.3 s; 0.09 s; 21 s; 0.19 s; 120 s; 0.39 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

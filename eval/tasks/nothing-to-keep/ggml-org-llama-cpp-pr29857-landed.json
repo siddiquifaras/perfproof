@@ -1,0 +1,46 @@
+{
+  "id": "ggml-org-llama-cpp-pr29857-landed",
+  "repository": "ggml-org/llama.cpp",
+  "stars": 131304,
+  "pushed_at": "2026-10-15T22:31:14Z",
+  "task_commit": "8b2fbaf32cad6fbe08cf85348dbbb84d8e3c70f0",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/ggml-org/llama.cpp/commit/8b2fbaf32cad6fbe08cf85348dbbb84d8e3c70f0",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/29857",
+    "title": "CUDA: Optimize accumulation in mmq for NVFP4 type",
+    "commit": "8b2fbaf32cad6fbe08cf85348dbbb84d8e3c70f0",
+    "merged_at": "2026-10-05T11:43:08Z",
+    "files": [
+      "ggml/src/ggml-cuda/mmq-vec-dot.cuh"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/29857",
+      "note": "description, as matched by the miner: speedup claims: 6.74% less; 1.00x; 1.072x; 7.23% higher; 2.65% higher | timings: 153.01 ms; 142.69 ms; 564.30 ms; 549.72 ms; 14.58 ms; 808.39 us; 751.55 us; 453.48 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

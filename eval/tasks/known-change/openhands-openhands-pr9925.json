@@ -1,0 +1,50 @@
+{
+  "id": "openhands-openhands-pr9925",
+  "repository": "OpenHands/OpenHands",
+  "stars": 90999,
+  "pushed_at": "2026-10-15T22:19:09Z",
+  "task_commit": "03c8312f5fbbf021344d154bd64f70c628a1e2b0",
+  "task_commit_basis": "first parent of https://github.com/OpenHands/OpenHands/commit/a32a6230782be168002cc4050efa71c9aabccc9c (squash merge); gh api compare 03c8312f5fbb...a32a6230782b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/OpenHands/OpenHands/pull/9925",
+    "title": "perf(gemini): Apply Gemini 2.5 Pro performance optimizations from PR 9913",
+    "commit": "a32a6230782be168002cc4050efa71c9aabccc9c",
+    "merged_at": "2025-07-29T23:28:50Z",
+    "files": [
+      "openhands/core/config/llm_config.py",
+      "openhands/llm/llm.py",
+      "openhands/memory/conversation_memory.py",
+      "openhands/runtime/impl/cli/cli_runtime.py",
+      "tests/unit/test_llm.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/OpenHands/OpenHands/pull/9925",
+      "note": "description, as matched by the miner: speedup claims: 2.4x; 2.4x speedup"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

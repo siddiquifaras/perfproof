@@ -1,0 +1,86 @@
+{
+  "id": "pytorch-ao-pr464",
+  "repository": "pytorch/ao",
+  "stars": 3005,
+  "pushed_at": "2026-10-15T22:39:17Z",
+  "task_commit": "fd9f95d614fa03f09d85d73a2c2740cc647d7b9b",
+  "task_commit_basis": "first parent of https://github.com/pytorch/ao/commit/5c4a7ee367bd864a4f07702ea98027c1345be38a; gh api compare fd9f95d614fa...5c4a7ee367bd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pytorch/ao/pull/464",
+    "title": "Add semi-structured sparse perf/accuracy benchmarks for SAM",
+    "commit": "5c4a7ee367bd864a4f07702ea98027c1345be38a",
+    "merged_at": "2024-07-02T16:15:58Z",
+    "files": [
+      "README.md",
+      "benchmarks/benchmark_sam.py",
+      "scripts/sam/.gitignore",
+      "scripts/sam/README.md",
+      "scripts/sam/benchmark.sh",
+      "scripts/sam/data.py",
+      "scripts/sam/eval_combo.py",
+      "scripts/sam/flash_4_configs.p",
+      "scripts/sam/metrics.py",
+      "scripts/sam/results.csv",
+      "scripts/sam/setup.sh",
+      "torchao/sparsity/README.md",
+      "torchao/sparsity/prototype/dynamic_quant_sparse.py",
+      "torchao/sparsity/sparse_api.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pytorch/ao/pull/465",
+    "title": "Revert \"Add semi-structured sparse perf/accuracy benchmarks for SAM\"",
+    "commit": "68e146f00ddfe6b98e7d4a937e0e47e25c8e877d",
+    "merged_at": "2024-07-02T16:17:13Z",
+    "files": [
+      "README.md",
+      "benchmarks/benchmark_sam.py",
+      "scripts/sam/.gitignore",
+      "scripts/sam/README.md",
+      "scripts/sam/benchmark.sh",
+      "scripts/sam/data.py",
+      "scripts/sam/eval_combo.py",
+      "scripts/sam/flash_4_configs.p",
+      "scripts/sam/metrics.py",
+      "scripts/sam/results.csv",
+      "scripts/sam/setup.sh",
+      "torchao/sparsity/README.md",
+      "torchao/sparsity/prototype/dynamic_quant_sparse.py",
+      "torchao/sparsity/sparse_api.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pytorch/ao/pull/464",
+      "note": "description, as matched by the miner: benchmark files changed: benchmarks/benchmark_sam.py, scripts/sam/benchmark.sh"
+    },
+    {
+      "url": "https://github.com/pytorch/ao/pull/465",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:01+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

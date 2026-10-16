@@ -1,0 +1,46 @@
+{
+  "id": "textualize-rich-pr3845",
+  "repository": "Textualize/rich",
+  "stars": 57546,
+  "pushed_at": "2026-06-23T03:10:19Z",
+  "task_commit": "7f40063da781f4990d21423f23f7ccb3165ce0bd",
+  "task_commit_basis": "first parent of https://github.com/Textualize/rich/commit/a86dce09714f4e5195cce8c15fce7a586d7b562a; gh api compare 7f40063da781...a86dce09714f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Textualize/rich/pull/3845",
+    "title": "Use faster generator for link IDs",
+    "commit": "a86dce09714f4e5195cce8c15fce7a586d7b562a",
+    "merged_at": "2026-04-11T02:40:51Z",
+    "files": [
+      "rich/style.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Textualize/rich/pull/3845",
+      "note": "description, as matched by the miner: timings: 0.381s; 3.056s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

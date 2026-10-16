@@ -1,0 +1,48 @@
+{
+  "id": "dask-dask-pr11899",
+  "repository": "dask/dask",
+  "stars": 13935,
+  "pushed_at": "2026-09-29T10:11:03Z",
+  "task_commit": "37f4687723705de75700104c1c87772f3158b577",
+  "task_commit_basis": "first parent of https://github.com/dask/dask/commit/ef1c0131b62f5150a9d31e689990927b97d222a1 (squash merge); gh api compare 37f468772370...ef1c0131b62f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dask/dask/pull/11899",
+    "title": "Simplify (and speed up) culling",
+    "commit": "ef1c0131b62f5150a9d31e689990927b97d222a1",
+    "merged_at": "2025-05-05T07:38:29Z",
+    "files": [
+      "dask/_task_spec.py",
+      "dask/blockwise.py",
+      "dask/highlevelgraph.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit arr.dask.cull(arr.__dask_keys__())",
+    "source": "quoted in the description of https://github.com/dask/dask/pull/11899",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dask/dask/pull/11899",
+      "note": "description, as matched by the miner: speedup claims: 40% faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

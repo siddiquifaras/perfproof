@@ -1,0 +1,47 @@
+{
+  "id": "pandas-dev-pandas-pr70972",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "b40d70f21176d497fc583d613f9b2badcb32ae3e",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/4427490668eb93fd4ace0e58e9768a387f3507c1 (squash merge); gh api compare b40d70f21176...4427490668eb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/70972",
+    "title": "PERF: Improve groupby.pct_change",
+    "commit": "4427490668eb93fd4ace0e58e9768a387f3507c1",
+    "merged_at": "2026-10-14T00:20:48Z",
+    "files": [
+      "doc/source/whatsnew/v3.2.0.rst",
+      "pandas/core/groupby/groupby.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit gb.pct_change()",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/70972",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/70972",
+      "note": "description, as matched by the miner: timings: 41.1 ms; 14.1 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

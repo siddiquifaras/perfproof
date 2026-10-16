@@ -1,0 +1,53 @@
+{
+  "id": "sympy-sympy-pr29921",
+  "repository": "sympy/sympy",
+  "stars": 15016,
+  "pushed_at": "2026-10-15T08:51:08Z",
+  "task_commit": "fc709aa4c714869c16cc226b0656ee9b5c71e6c4",
+  "task_commit_basis": "first parent of https://github.com/sympy/sympy/commit/bdbabc83ebbfc0913dca115ecfe8a82d302216e8; gh api compare fc709aa4c714...bdbabc83ebbf touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sympy/sympy/pull/29921",
+    "title": "Decouple recursive handles from `ask` (70% speedup for `ask`)",
+    "commit": "bdbabc83ebbfc0913dca115ecfe8a82d302216e8",
+    "merged_at": "2026-06-25T12:37:02Z",
+    "files": [
+      "sympy/assumptions/ask.py",
+      "sympy/assumptions/handlers/calculus.py",
+      "sympy/assumptions/handlers/common.py",
+      "sympy/assumptions/handlers/matrices.py",
+      "sympy/assumptions/handlers/ntheory.py",
+      "sympy/assumptions/handlers/order.py",
+      "sympy/assumptions/handlers/sets.py",
+      "sympy/assumptions/tests/test_query.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sympy/assumptions/tests/test_query.py",
+    "source": "test files changed by https://github.com/sympy/sympy/pull/29921 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sympy/sympy/pull/29921",
+      "note": "description, as matched by the miner: timings: 13.266s; 14.370s; 13.713s; 7.752s; 9.115s; 8.020s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

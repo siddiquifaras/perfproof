@@ -1,0 +1,51 @@
+{
+  "id": "gso-huggingface-transformers-211f93a",
+  "repository": "huggingface/transformers",
+  "stars": 167731,
+  "pushed_at": "2026-10-15T23:03:22Z",
+  "task_commit": "4e931a8eb3b3cec669379a89c07e240c384c83f2",
+  "task_commit_basis": "first parent of 211f93aab95d1c683494e61c3cf8ff10e1f5d6b7 (gh api commits); the row gives base_commit as '211f93aab95d1c683494e61c3cf8ff10e1f5d6b7^'",
+  "reference_change": {
+    "kind": "commit",
+    "url": "https://github.com/huggingface/transformers/commit/211f93aab95d1c683494e61c3cf8ff10e1f5d6b7",
+    "title": "[Whisper Tokenizer] Make decoding faster after adding timestamps (#26299)",
+    "commit": "211f93aab95d1c683494e61c3cf8ff10e1f5d6b7",
+    "merged_at": null,
+    "files": [
+      "src/transformers/models/whisper/tokenization_whisper.py",
+      "src/transformers/models/whisper/tokenization_whisper_fast.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "published-benchmark",
+  "change_kind": "benchmark-instance",
+  "target_class": "python",
+  "workload": {
+    "command": "python workload.py",
+    "source": "the prob_script field of gso-bench/gso row huggingface__transformers-211f93a, saved as workload.py",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: GSO rows carry no test command; its 5 generated tests check results against a stored reference",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://datasets-server.huggingface.co/rows?dataset=gso-bench/gso&config=default&split=test&offset=100&length=100",
+      "note": "datasets-server page holding huggingface__transformers-211f93a; the reference change is base_commit plus the row's gt_diff"
+    },
+    {
+      "url": "https://github.com/chenzhi-cz/performance-optimization-benchmark-reliability/blob/44a1cb86a9f765b0375b4cfb479641f3c19f0774/data/cross_machine_task_summary.csv",
+      "note": "cross-machine audit (arXiv 2607.01211) per-task row"
+    }
+  ],
+  "audit": "final_status=cross-machine-construction-valid, strict_drop_reason=empty, observed_run_count=12, construction_valid_run_count=12, faster_only_all_runs=true, construction_valid_all_runs=true, median_native_score=3554.234845632132, min_threshold_margin=1339.0256944444448 (from data/cross_machine_task_summary.csv at github.com/chenzhi-cz/performance-optimization-benchmark-reliability@44a1cb86a9f7)",
+  "status": "candidate",
+  "status_reason": "not built or run here; the benchmark's own environments are linux/amd64 images, so a native macOS arm64 environment still has to be built",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:05:49+00:00",
+  "miner": "uv run python eval/mine/mine.py benchmarks"
+}

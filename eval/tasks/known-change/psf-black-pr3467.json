@@ -1,0 +1,48 @@
+{
+  "id": "psf-black-pr3467",
+  "repository": "psf/black",
+  "stars": 41930,
+  "pushed_at": "2026-10-12T22:11:17Z",
+  "task_commit": "3246df89d6d80fc09357b445630fad87f08f57ce",
+  "task_commit_basis": "first parent of https://github.com/psf/black/commit/3feff21eca0eee4b9fe72d12b506ac273cb5bcd0 (squash merge); gh api compare 3246df89d6d8...3feff21eca0e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/psf/black/pull/3467",
+    "title": "Significantly speedup ESP on large expressions that contain many strings",
+    "commit": "3feff21eca0eee4b9fe72d12b506ac273cb5bcd0",
+    "merged_at": "2022-12-23T20:13:45Z",
+    "files": [
+      "CHANGES.md",
+      "src/black/trans.py",
+      "tests/data/preview/long_strings.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/psf/black/pull/3467",
+      "note": "description, as matched by the miner: timings: 111 seconds; 3.7s; 2.5s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

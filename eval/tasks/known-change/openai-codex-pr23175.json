@@ -1,0 +1,50 @@
+{
+  "id": "openai-codex-pr23175",
+  "repository": "openai/codex",
+  "stars": 129391,
+  "pushed_at": "2026-10-15T22:32:40Z",
+  "task_commit": "e734cb5713086aa31db81f9180c78c0742a446b9",
+  "task_commit_basis": "first parent of https://github.com/openai/codex/commit/adca1b643fd0d2733030ef4fdaf5273036f02d9a; gh api compare e734cb571308...adca1b643fd0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/openai/codex/pull/23175",
+    "title": "[1 of 2] Optimize TUI startup terminal probes",
+    "commit": "adca1b643fd0d2733030ef4fdaf5273036f02d9a",
+    "merged_at": "2026-05-18T16:04:03Z",
+    "files": [
+      "codex-rs/tui/src/app.rs",
+      "codex-rs/tui/src/lib.rs",
+      "codex-rs/tui/src/terminal_palette.rs",
+      "codex-rs/tui/src/terminal_probe.rs",
+      "codex-rs/tui/src/tui.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/openai/codex/pull/23175",
+      "note": "description, as matched by the miner: timings: 250.5ms; 152ms; 100ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

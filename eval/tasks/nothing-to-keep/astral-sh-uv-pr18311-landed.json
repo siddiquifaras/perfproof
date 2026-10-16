@@ -1,0 +1,81 @@
+{
+  "id": "astral-sh-uv-pr18311-landed",
+  "repository": "astral-sh/uv",
+  "stars": 90798,
+  "pushed_at": "2026-10-15T21:36:40Z",
+  "task_commit": "53d3f5443441ff5ef17b66a0d68cf7091dd5a091",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/astral-sh/uv/commit/53d3f5443441ff5ef17b66a0d68cf7091dd5a091",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astral-sh/uv/pull/18311",
+    "title": "Speedup discovery of large workspaces",
+    "commit": "53d3f5443441ff5ef17b66a0d68cf7091dd5a091",
+    "merged_at": "2026-06-05T11:57:48Z",
+    "files": [
+      "Cargo.lock",
+      "crates/uv-build-frontend/Cargo.toml",
+      "crates/uv-build-frontend/src/lib.rs",
+      "crates/uv-distribution/src/metadata/build_requires.rs",
+      "crates/uv-distribution/src/metadata/dependency_groups.rs",
+      "crates/uv-distribution/src/metadata/mod.rs",
+      "crates/uv-distribution/src/metadata/requires_dist.rs",
+      "crates/uv-distribution/src/source/mod.rs",
+      "crates/uv-workspace/Cargo.toml",
+      "crates/uv-workspace/src/lib.rs",
+      "crates/uv-workspace/src/workspace.rs",
+      "crates/uv/src/commands/build_frontend.rs",
+      "crates/uv/src/commands/pip/operations.rs",
+      "crates/uv/src/commands/project/add.rs",
+      "crates/uv/src/commands/project/audit.rs",
+      "crates/uv/src/commands/project/check.rs",
+      "crates/uv/src/commands/project/export.rs",
+      "crates/uv/src/commands/project/format.rs",
+      "crates/uv/src/commands/project/init.rs",
+      "crates/uv/src/commands/project/lock.rs",
+      "crates/uv/src/commands/project/remove.rs",
+      "crates/uv/src/commands/project/run.rs",
+      "crates/uv/src/commands/project/sync.rs",
+      "crates/uv/src/commands/project/tree.rs",
+      "crates/uv/src/commands/project/version.rs",
+      "crates/uv/src/commands/python/find.rs",
+      "crates/uv/src/commands/python/pin.rs",
+      "crates/uv/src/commands/venv.rs",
+      "crates/uv/src/commands/workspace/dir.rs",
+      "crates/uv/src/commands/workspace/list.rs",
+      "crates/uv/src/commands/workspace/metadata.rs",
+      "crates/uv/src/lib.rs",
+      "crates/uv/tests/it/lock.rs",
+      "crates/uv/tests/it/version.rs",
+      "crates/uv/tests/it/workspace.rs",
+      "crates/uv/tests/it/workspace_dir.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astral-sh/uv/pull/18311",
+      "note": "description, as matched by the miner: speedup claims: 1.8x faster; 1.81x | timings: 104.7 ms; 102.8 ms; 130.9 ms; 189.4 ms; 188.8 ms; 204.2 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

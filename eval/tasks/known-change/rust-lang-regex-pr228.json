@@ -1,0 +1,51 @@
+{
+  "id": "rust-lang-regex-pr228",
+  "repository": "rust-lang/regex",
+  "stars": 4044,
+  "pushed_at": "2026-08-10T16:19:27Z",
+  "task_commit": "738a364ddd37e39cba63e0e87f9bac7ab12e44b4",
+  "task_commit_basis": "first parent of https://github.com/rust-lang/regex/commit/e27b87a1adbc6ae8742b774aea36332a4b83fdbc; gh api compare 738a364ddd37...e27b87a1adbc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rust-lang/regex/pull/228",
+    "title": "Reintroduce the reverse suffix literal optimization.",
+    "commit": "e27b87a1adbc6ae8742b774aea36332a4b83fdbc",
+    "merged_at": "2016-05-07T00:02:11Z",
+    "files": [
+      "bench/src/main.rs",
+      "bench/src/misc.rs",
+      "src/dfa.rs",
+      "src/exec.rs",
+      "src/literals.rs",
+      "tests/suffix_reverse.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rust-lang/regex/pull/228",
+      "note": "description, as matched by the miner: benchmark files changed: bench/src/main.rs, bench/src/misc.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "scipy-scipy-pr24913-landed",
+  "repository": "scipy/scipy",
+  "stars": 15114,
+  "pushed_at": "2026-10-15T16:49:39Z",
+  "task_commit": "ce1f46f895c4e06f4aafcd0bb43f84f93b81cc3a",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/scipy/scipy/commit/ce1f46f895c4e06f4aafcd0bb43f84f93b81cc3a",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scipy/scipy/pull/24913",
+    "title": "ENH: linalg.cholesky: leverage symmetry for performance",
+    "commit": "ce1f46f895c4e06f4aafcd0bb43f84f93b81cc3a",
+    "merged_at": "2026-04-03T10:32:29Z",
+    "files": [
+      "benchmarks/benchmarks/linalg.py",
+      "scipy/linalg/_decomp_cholesky.py",
+      "scipy/linalg/src/_common_array_utils.hh",
+      "scipy/linalg/src/_linalg_cholesky.hh",
+      "scipy/linalg/tests/test_decomp_cholesky.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest scipy/linalg/tests/test_decomp_cholesky.py",
+    "source": "test files changed by https://github.com/scipy/scipy/pull/24913 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scipy/scipy/pull/24913",
+      "note": "description, as matched by the miner: speedup claims: 3x; 5x | timings: 0.016ms; 0.018ms; 0.009ms; 0.047ms; 0.063ms; 0.024ms; 0.106ms; 0.153ms | benchmark files changed: benchmarks/benchmarks/linalg.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "nlohmann-json-pr5592",
+  "repository": "nlohmann/json",
+  "stars": 50762,
+  "pushed_at": "2026-10-15T20:47:17Z",
+  "task_commit": "0490778fc30c7887db704f278941612587b0e0b7",
+  "task_commit_basis": "first parent of https://github.com/nlohmann/json/commit/5ecb704f6b930bd5925d3f268444f0630a829ead (squash merge); gh api compare 0490778fc30c...5ecb704f6b93 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nlohmann/json/pull/5592",
+    "title": "Speedup; check for the expected separator before the lexer's token switch",
+    "commit": "5ecb704f6b930bd5925d3f268444f0630a829ead",
+    "merged_at": "2026-10-06T06:36:40Z",
+    "files": [
+      "include/nlohmann/detail/input/lexer.hpp",
+      "include/nlohmann/detail/input/parser.hpp",
+      "single_include/nlohmann/json.hpp",
+      "tests/src/unit-class_parser.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nlohmann/json/pull/5592",
+      "note": "description, as matched by the miner: speedup claims: 6.3% faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,62 @@
+{
+  "id": "sgl-project-sglang-pr26235",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "7c04b9e9427aa584ae460d4487dcc775d20e89e9",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/a77449f86d56f7c4b3420d4392e123286b1179bd; gh api compare 7c04b9e9427a...a77449f86d56 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/26235",
+    "title": "[perf][spec decoding] Skip full-vocab softmax in EAGLE draft when topk == 1",
+    "commit": "a77449f86d56f7c4b3420d4392e123286b1179bd",
+    "merged_at": "2026-05-25T09:06:50Z",
+    "files": [
+      "python/sglang/srt/speculative/eagle_draft_extend_cuda_graph_runner.py",
+      "python/sglang/srt/speculative/eagle_worker_v2.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/26358",
+    "title": "Revert \"[perf][spec decoding] Skip full-vocab softmax in EAGLE draft when topk == 1 (#26235)\"",
+    "commit": "9409969fd5a0089017ad20d2ce0760afe0a02ea8",
+    "merged_at": "2026-05-26T09:47:53Z",
+    "files": [
+      "python/sglang/srt/speculative/eagle_draft_extend_cuda_graph_runner.py",
+      "python/sglang/srt/speculative/eagle_worker_v2.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/26235",
+      "note": "description, as matched by the miner: speedup claims: 2×; 1× | timings: 43 µs; 175 µs; 2.41 ms; 2.36 ms; 0.05 ms; 2.37 ms; 2.34 ms; 0.03 ms"
+    },
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/26358",
+      "note": "revert; miner classified it as reverted-breaking from: '5-25 09:06 UTC) because it caused DeepSeek-V3.2 + MTP GSM8K accuracy to collapse to ~0.04 with ~96% invalid output on the very n'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

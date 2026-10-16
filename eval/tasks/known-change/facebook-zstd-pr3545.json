@@ -1,0 +1,47 @@
+{
+  "id": "facebook-zstd-pr3545",
+  "repository": "facebook/zstd",
+  "stars": 28031,
+  "pushed_at": "2026-10-06T01:11:59Z",
+  "task_commit": "488e45f38bbee92b2b50129efee6f07843aaa919",
+  "task_commit_basis": "first parent of https://github.com/facebook/zstd/commit/53bad103ce61fd2c170bf49bf335201a8a51f72f (squash merge); gh api compare 488e45f38bbe...53bad103ce61 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/facebook/zstd/pull/3545",
+    "title": "patch-from speed optimization",
+    "commit": "53bad103ce61fd2c170bf49bf335201a8a51f72f",
+    "merged_at": "2023-03-15T00:36:56Z",
+    "files": [
+      "lib/compress/zstd_compress.c",
+      "tests/regression/results.csv"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/facebook/zstd/pull/3545",
+      "note": "description, as matched by the miner: speedup claims: 617.6% increase; 0.47% increase"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,129 @@
+{
+  "id": "networkx-networkx-pr7810",
+  "repository": "networkx/networkx",
+  "stars": 17329,
+  "pushed_at": "2026-10-06T17:42:21Z",
+  "task_commit": "37fd64ced70b896d92eb4940f2d6a78bfc3ad328",
+  "task_commit_basis": "first parent of https://github.com/networkx/networkx/commit/7c0a998775cc093bc4f2bfe75df35fa1b6939a8e (squash merge); gh api compare 37fd64ced70b...7c0a998775cc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/networkx/networkx/pull/7810",
+    "title": "Faster `square_clustering`",
+    "commit": "7c0a998775cc093bc4f2bfe75df35fa1b6939a8e",
+    "merged_at": "2025-04-14T03:29:58Z",
+    "files": [
+      "networkx/algorithms/bipartite/cluster.py",
+      "networkx/algorithms/cluster.py",
+      "networkx/algorithms/tests/test_cluster.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -c \"import networkx as nx; G = nx.complete_graph(100); nx.square_clustering(G)\"",
+    "source": "adapted from the complete_graph(100) %timeit case in the description of https://github.com/networkx/networkx/pull/7810",
+    "verified": true
+  },
+  "oracle": {
+    "command": "python -m pytest -q networkx/algorithms/tests/test_cluster.py networkx/algorithms/bipartite/tests/test_cluster.py",
+    "source": "the test modules for the two files https://github.com/networkx/networkx/pull/7810 changes; targeted tests only, not the full suite",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/networkx/networkx/pull/7810",
+      "note": "description, as matched by the miner: speedup claims: 90x speedup | timings: 307 ms ± 36.5 ms; 217 ms ± 31.4 ms; 5.54 s ± 197 ms; 60.6 ms ± 4.69 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 1.39,
+      "date": "2026-10-16T02:23:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 1.17s\n   Building networkx @ file://eval/mine/work/networkx-networkx-pr7810/task\n      Built networkx @ file://eval/mine/work/networkx-networkx-pr7810/task\nPrepared 1 package in 151ms\nInstalled 6 packages in 7ms\n + iniconfig==2.3.1\n + networkx==3.5rc0.dev0 (from file://eval/mine/work/networkx-networkx-pr7810/task)\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q networkx/algorithms/tests/test_cluster.py networkx/algorithms/bipartite/tests/test_cluster.py",
+      "exit_code": 0,
+      "duration_s": 0.61,
+      "date": "2026-10-16T02:23:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...........sssssssssssssss............sssss.............                 [100%]\n36 passed, 20 skipped in 0.14s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"import networkx as nx; G = nx.complete_graph(100); nx.square_clustering(G)\"",
+      "exit_code": 0,
+      "duration_s": 1.68,
+      "date": "2026-10-16T02:23:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.6,
+      "date": "2026-10-16T02:23:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 392ms\n   Building networkx @ file://eval/mine/work/networkx-networkx-pr7810/reference\n      Built networkx @ file://eval/mine/work/networkx-networkx-pr7810/reference\nPrepared 1 package in 148ms\nInstalled 6 packages in 5ms\n + iniconfig==2.3.1\n + networkx==3.5rc0.dev0 (from file://eval/mine/work/networkx-networkx-pr7810/reference)\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q networkx/algorithms/tests/test_cluster.py networkx/algorithms/bipartite/tests/test_cluster.py",
+      "exit_code": 0,
+      "duration_s": 0.65,
+      "date": "2026-10-16T02:23:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...........sssssssssssssss............sssss.............                 [100%]\n36 passed, 20 skipped in 0.14s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"import networkx as nx; G = nx.complete_graph(100); nx.square_clustering(G)\"",
+      "exit_code": 0,
+      "duration_s": 0.09,
+      "date": "2026-10-16T02:23:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T01:55:00+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

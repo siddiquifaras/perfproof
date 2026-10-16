@@ -1,0 +1,48 @@
+{
+  "id": "jqlang-jq-pr3643",
+  "repository": "jqlang/jq",
+  "stars": 35829,
+  "pushed_at": "2026-10-13T07:47:59Z",
+  "task_commit": "a5323a369c904b34d7e5c2c81d2066b81bcf6a6f",
+  "task_commit_basis": "first parent of https://github.com/jqlang/jq/commit/b904884b94ca48e025a12697ab172711e6c134d8 (squash merge); gh api compare a5323a369c90...b904884b94ca touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/jqlang/jq/pull/3643",
+    "title": "Improve performance of string output",
+    "commit": "b904884b94ca48e025a12697ab172711e6c134d8",
+    "merged_at": "2026-10-10T12:50:10Z",
+    "files": [
+      "src/jv_print.c",
+      "tests/jq.test",
+      "tests/utf8test"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/jqlang/jq/pull/3643",
+      "note": "description, as matched by the miner: speedup claims: 1.04×; 0.95×; 1.02×; 1.00×; 1.01× | timings: 1.073s; 0.379s; 0.626s; 0.482s; 0.872s; 0.542s; 0.812s; 0.446s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

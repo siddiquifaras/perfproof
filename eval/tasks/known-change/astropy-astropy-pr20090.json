@@ -1,0 +1,47 @@
+{
+  "id": "astropy-astropy-pr20090",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "440fe546589c4e496235d712bc29783ecf5a5fec",
+  "task_commit_basis": "first parent of https://github.com/astropy/astropy/commit/ec6d5966189722a2f30e8a182812059280f0cc52; gh api compare 440fe546589c...ec6d59661897 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/20090",
+    "title": "PERF: cache string conversions for units",
+    "commit": "ec6d5966189722a2f30e8a182812059280f0cc52",
+    "merged_at": "2026-08-08T10:34:31Z",
+    "files": [
+      "astropy/units/core.py",
+      "docs/changes/units/20090.perf.rst"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit Unit(\"km/s\")",
+    "source": "quoted in the description of https://github.com/astropy/astropy/pull/20090",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/20090",
+      "note": "description, as matched by the miner: timings: 150 ns ± 0.472 ns; 26.2 μs; 1.44 μs ± 9.21 ns; 6.62 μs ± 27.8 ns; 833 ns ± 5.94 ns; 28.4 μs; 6.3 μs ± 42.6 ns; 743 ns ± 0.629 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

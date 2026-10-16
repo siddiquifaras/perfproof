@@ -1,0 +1,66 @@
+{
+  "id": "pandas-dev-pandas-pr49404",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "9097263ad5b670dfc79f913d1520a451382aa1e2",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/a063af0e6d443c4b5826eed2102a6d3c988da9a0 (squash merge); gh api compare 9097263ad5b6...a063af0e6d44 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/49404",
+    "title": "BUG/PERF: Series.replace with dtype=\"category\"",
+    "commit": "a063af0e6d443c4b5826eed2102a6d3c988da9a0",
+    "merged_at": "2023-01-18T20:29:40Z",
+    "files": [
+      "doc/source/whatsnew/v2.0.0.rst",
+      "pandas/core/arrays/categorical.py",
+      "pandas/core/internals/blocks.py",
+      "pandas/tests/arrays/categorical/test_replace.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/50848",
+    "title": "Revert \"BUG/PERF: Series.replace with dtype=\"category\"\"",
+    "commit": "305c938fabc0d66947b387ce6b8c4f365129bf87",
+    "merged_at": "2023-01-18T23:24:04Z",
+    "files": [
+      "doc/source/whatsnew/v2.0.0.rst",
+      "pandas/core/arrays/categorical.py",
+      "pandas/core/internals/blocks.py",
+      "pandas/tests/arrays/categorical/test_replace.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit ser.replace(np.arange(200), 5)",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/49404",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest pandas/tests/arrays/categorical/test_replace.py",
+    "source": "test files changed by https://github.com/pandas-dev/pandas/pull/49404 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/49404",
+      "note": "description, as matched by the miner: timings: 681 ms ± 9.65 ms; 11 ms ± 690 µs"
+    },
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/50848",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "deepseek-ai-deepgemm-pr68-landed",
+  "repository": "deepseek-ai/DeepGEMM",
+  "stars": 8973,
+  "pushed_at": "2026-10-14T05:35:55Z",
+  "task_commit": "3b3783d06cd4d06ac4ba048633e604151d1ee535",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/deepseek-ai/DeepGEMM/commit/3b3783d06cd4d06ac4ba048633e604151d1ee535",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/deepseek-ai/DeepGEMM/pull/68",
+    "title": "Correctly flush L2 (+performance impact & upcoming optimization fork)",
+    "commit": "3b3783d06cd4d06ac4ba048633e604151d1ee535",
+    "merged_at": "2025-03-16T01:16:34Z",
+    "files": [
+      "deep_gemm/utils.py",
+      "tests/test_core.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/deepseek-ai/DeepGEMM/pull/68",
+      "note": "description, as matched by the miner: timings: 10 us; 15 us; 9 us; 39 us; 13 us; 6 us; 11 us; 16 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

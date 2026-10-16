@@ -1,0 +1,62 @@
+{
+  "id": "tox-dev-tox-pr3692",
+  "repository": "tox-dev/tox",
+  "stars": 3958,
+  "pushed_at": "2026-10-15T22:38:48Z",
+  "task_commit": "746ad73c063d997b9bd829e69600a5d7168dee23",
+  "task_commit_basis": "first parent of https://github.com/tox-dev/tox/commit/f9deb2cf019586d2d17cf11bd8863e441c2cef8c; gh api compare 746ad73c063d...f9deb2cf0195 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/tox-dev/tox/pull/3692",
+    "title": "🚀 perf(tests): prevent stale fixture state and fix flaky timing assertions",
+    "commit": "f9deb2cf019586d2d17cf11bd8863e441c2cef8c",
+    "merged_at": "2026-02-14T21:16:56Z",
+    "files": [
+      ".github/workflows/check.yaml",
+      "docs/changelog/3489.bugfix.rst",
+      "docs/changelog/3692.bugfix.rst",
+      "docs/changelog/498.doc.rst",
+      "docs/plugins.rst",
+      "pyproject.toml",
+      "src/tox/session/cmd/run/common.py",
+      "tests/conftest.py",
+      "tests/journal/test_main_journal.py",
+      "tests/session/cmd/test_depends.py",
+      "tests/session/cmd/test_devenv.py",
+      "tests/session/cmd/test_sequential.py",
+      "tests/tox_env/python/virtual_env/package/test_package_pyproject.py",
+      "tests/tox_env/python/virtual_env/test_setuptools.py",
+      "tests/tox_env/python/virtual_env/test_virtualenv_api.py",
+      "tests/util/test_spinner.py",
+      "tox.toml"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/journal/test_main_journal.py tests/session/cmd/test_depends.py tests/session/cmd/test_devenv.py tests/session/cmd/test_sequential.py tests/tox_env/python/virtual_env/package/test_package_pyproject.py tests/tox_env/python/virtual_env/test_setuptools.py tests/tox_env/python/virtual_env/test_virtualenv_api.py tests/util/test_spinner.py",
+    "source": "test files changed by https://github.com/tox-dev/tox/pull/3692 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/tox-dev/tox/pull/3692",
+      "note": "description, as matched by the miner: timings: 1.5s; 49 seconds; 30 seconds"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

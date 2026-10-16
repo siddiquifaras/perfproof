@@ -1,0 +1,55 @@
+{
+  "id": "burntsushi-ripgrep-pr1238",
+  "repository": "BurntSushi/ripgrep",
+  "stars": 69132,
+  "pushed_at": "2026-08-04T13:59:44Z",
+  "task_commit": "743d64f2e4093a3302895e128fbbc58e6fb8ed18",
+  "task_commit_basis": "first parent of https://github.com/BurntSushi/ripgrep/commit/09108b7fda7af6db7c1c4f0366301f9a21cc485d; gh api compare 743d64f2e409...09108b7fda7a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BurntSushi/ripgrep/pull/1238",
+    "title": "regex: make multi-literal searcher faster",
+    "commit": "09108b7fda7af6db7c1c4f0366301f9a21cc485d",
+    "merged_at": "2019-04-07T23:11:04Z",
+    "files": [
+      "CHANGELOG.md",
+      "Cargo.lock",
+      "grep-regex/Cargo.toml",
+      "grep-regex/src/config.rs",
+      "grep-regex/src/crlf.rs",
+      "grep-regex/src/lib.rs",
+      "grep-regex/src/matcher.rs",
+      "grep-regex/src/multi.rs",
+      "grep-regex/src/word.rs",
+      "src/args.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BurntSushi/ripgrep/pull/1238",
+      "note": "description, as matched by the miner: speedup claims: 10x; 2x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

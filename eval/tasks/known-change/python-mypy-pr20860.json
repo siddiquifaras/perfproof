@@ -1,0 +1,62 @@
+{
+  "id": "python-mypy-pr20860",
+  "repository": "python/mypy",
+  "stars": 20683,
+  "pushed_at": "2026-10-15T12:10:42Z",
+  "task_commit": "1abbafd4d0edb4ba116995b8aafd3d1556ee3ece",
+  "task_commit_basis": "first parent of https://github.com/python/mypy/commit/0bf9b146b1a805cb0f008bb25ffdc76170b00568 (squash merge); gh api compare 1abbafd4d0ed...0bf9b146b1a8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/20860",
+    "title": "Avoid unnecessary work when checking deferred functions",
+    "commit": "0bf9b146b1a805cb0f008bb25ffdc76170b00568",
+    "merged_at": "2026-02-25T00:27:13Z",
+    "files": [
+      "mypy/checker.py",
+      "test-data/unit/check-functions.test",
+      "test-data/unit/check-redefine2.test"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/python/mypy/pull/20894",
+    "title": "Revert a perf optimization for deferred nodes",
+    "commit": "d66ea1442b946fdf6e0af914127b3e14a3210193",
+    "merged_at": "2026-02-25T01:35:35Z",
+    "files": [
+      "mypy/checker.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python/mypy/pull/20860",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/python/mypy/pull/20894",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

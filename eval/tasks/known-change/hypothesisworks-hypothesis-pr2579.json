@@ -1,0 +1,53 @@
+{
+  "id": "hypothesisworks-hypothesis-pr2579",
+  "repository": "HypothesisWorks/hypothesis",
+  "stars": 9085,
+  "pushed_at": "2026-10-15T20:32:34Z",
+  "task_commit": "d92d86d6c88468b6a2221bc0ef4a187e906e6846",
+  "task_commit_basis": "first parent of https://github.com/HypothesisWorks/hypothesis/commit/7794e186e365f8a9500bb56ca1eeb2e87ce38665; gh api compare d92d86d6c884...7794e186e365 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/HypothesisWorks/hypothesis/pull/2579",
+    "title": "Improve L* learning performance significantly",
+    "commit": "7794e186e365f8a9500bb56ca1eeb2e87ce38665",
+    "merged_at": "2020-09-15T14:15:00Z",
+    "files": [
+      "hypothesis-python/RELEASE.rst",
+      "hypothesis-python/src/hypothesis/internal/conjecture/dfa/__init__.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/dfa/lstar.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/junkdrawer.py",
+      "hypothesis-python/src/hypothesis/internal/conjecture/shrinking/learned_dfas.py",
+      "hypothesis-python/tests/conjecture/test_junkdrawer.py",
+      "hypothesis-python/tests/conjecture/test_lstar.py",
+      "hypothesis-python/tests/quality/test_normalization.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest hypothesis-python/tests/conjecture/test_junkdrawer.py hypothesis-python/tests/conjecture/test_lstar.py hypothesis-python/tests/quality/test_normalization.py",
+    "source": "test files changed by https://github.com/HypothesisWorks/hypothesis/pull/2579 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/HypothesisWorks/hypothesis/pull/2579",
+      "note": "description, as matched by the miner: timings: 1.6s; 0.36s; 0.2s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

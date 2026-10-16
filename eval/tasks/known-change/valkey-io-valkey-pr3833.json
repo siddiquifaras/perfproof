@@ -1,0 +1,52 @@
+{
+  "id": "valkey-io-valkey-pr3833",
+  "repository": "valkey-io/valkey",
+  "stars": 27438,
+  "pushed_at": "2026-10-15T21:57:47Z",
+  "task_commit": "f1addd8f393b14b7968644a1ee9174a69c9e4a49",
+  "task_commit_basis": "first parent of https://github.com/valkey-io/valkey/commit/f2c1c5e9dece9ec51818327b31bbcb6a9499233f (squash merge); gh api compare f1addd8f393b...f2c1c5e9dece touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/valkey-io/valkey/pull/3833",
+    "title": "Speed up split-vote elections with the new FAILOVER_AUTH_NACK message",
+    "commit": "f2c1c5e9dece9ec51818327b31bbcb6a9499233f",
+    "merged_at": "2026-09-01T03:27:17Z",
+    "files": [
+      "src/cluster_legacy.c",
+      "src/cluster_legacy.h",
+      "src/debug.c",
+      "src/server.c",
+      "src/server.h",
+      "tests/support/cluster_util.tcl",
+      "tests/unit/cluster/failover2.tcl"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/valkey-io/valkey/pull/3833",
+      "note": "description, as matched by the miner: speedup claims: 2 ×"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,52 @@
+{
+  "id": "tile-ai-tilelang-pr2809",
+  "repository": "tile-ai/tilelang",
+  "stars": 8627,
+  "pushed_at": "2026-10-15T08:59:08Z",
+  "task_commit": "a426ff3657b9ed76cbcc097827b07b7b8da0c38f",
+  "task_commit_basis": "first parent of https://github.com/tile-ai/tilelang/commit/478ab70d8dd1dfea3416f73a43dcbc6bb9cc2be3 (squash merge); gh api compare a426ff3657b9...478ab70d8dd1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/tile-ai/tilelang/pull/2809",
+    "title": "[Enhancement] Speed up cold parallel/AOT compilation up to ~4x",
+    "commit": "478ab70d8dd1dfea3416f73a43dcbc6bb9cc2be3",
+    "merged_at": "2026-08-03T07:55:32Z",
+    "files": [
+      "benchmark/compile_speed/README.md",
+      "benchmark/compile_speed/benchmark_compile_speed.py",
+      "benchmark/compile_speed/kernel_zoo.py",
+      "tilelang/autotuner/tuner.py",
+      "tilelang/cache/kernel_cache.py",
+      "tilelang/jit/__init__.py",
+      "tilelang/utils/device.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": "python benchmark/compile_speed/benchmark_compile_speed.py",
+    "source": "quoted in the description of https://github.com/tile-ai/tilelang/pull/2809",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/tile-ai/tilelang/pull/2809",
+      "note": "description, as matched by the miner: speedup claims: 1.00x | timings: 50.3s; 16.2s | benchmark files changed: benchmark/compile_speed/README.md, benchmark/compile_speed/benchmark_compile_speed.py, benchmark/compile_speed/kernel_zoo.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

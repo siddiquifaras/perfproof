@@ -1,0 +1,128 @@
+{
+  "id": "python-jsonschema-jsonschema-pr1482",
+  "repository": "python-jsonschema/jsonschema",
+  "stars": 4989,
+  "pushed_at": "2026-10-12T19:02:34Z",
+  "task_commit": "ee670d9605aed790c8378c5a70fe03f9e0bbbdd9",
+  "task_commit_basis": "first parent of https://github.com/python-jsonschema/jsonschema/commit/9f6fc68476453e5dac836cb38252f32e952481fe; gh api compare ee670d9605ae...9f6fc6847645 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-jsonschema/jsonschema/pull/1482",
+    "title": "Speed up uniqueItems validation with structural hashing",
+    "commit": "9f6fc68476453e5dac836cb38252f32e952481fe",
+    "merged_at": "2026-05-12T11:57:55Z",
+    "files": [
+      "jsonschema/_utils.py",
+      "jsonschema/tests/test_utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -c \"import jsonschema; jsonschema.Draft202012Validator({'type': 'array', 'uniqueItems': True}).validate([{'a': i} for i in range(2000)])\"",
+    "source": "written here from the description of https://github.com/python-jsonschema/jsonschema/pull/1482 (uniqueItems over objects, which cannot be sorted); the pull request quotes no command",
+    "verified": true
+  },
+  "oracle": {
+    "command": "python -m pytest -q jsonschema/tests/test_utils.py jsonschema/tests/test_validators.py",
+    "source": "test_utils.py is changed by https://github.com/python-jsonschema/jsonschema/pull/1482 (gh pr view files); test_validators.py added here as the validator-level check; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-jsonschema/jsonschema/pull/1482",
+      "note": "description, as matched by the miner: speedup claims: 17x faster | timings: 57 s; 9 s; 530 s; 30 s"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The checkout is a git archive with no .git, so hatch-vcs gets its version from SETUPTOOLS_SCM_PRETEND_VERSION",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.62,
+      "date": "2026-10-16T02:23:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Building jsonschema @ file://eval/mine/work/python-jsonschema-jsonschema-pr1482/task\n      Built jsonschema @ file://eval/mine/work/python-jsonschema-jsonschema-pr1482/task\nPrepared 1 package in 79ms\nInstalled 11 packages in 28ms\n + attrs==26.1.0\n + iniconfig==2.3.1\n + jsonschema==0.0.0 (from file://eval/mine/work/python-jsonschema-jsonschema-pr1482/task)\n + jsonschema-specifications==2025.9.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + referencing==0.37.0\n + rpds-py==2026.9.1\n + typing-extensions==4.16.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m pytest -q jsonschema/tests/test_utils.py jsonschema/tests/test_validators.py",
+      "exit_code": 0,
+      "duration_s": 0.65,
+      "date": "2026-10-16T02:23:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "........................................................................ [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n.........................................                                [100%]\n329 passed in 0.39s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -c \"import jsonschema; jsonschema.Draft202012Validator({'type': 'array', 'uniqueItems': True}).validate([{'a': i} for i in range(2000)])\"",
+      "exit_code": 0,
+      "duration_s": 1.57,
+      "date": "2026-10-16T02:23:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-16T02:23:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 uv pip install -e . pytest",
+      "exit_code": 0,
+      "duration_s": 0.35,
+      "date": "2026-10-16T02:23:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Building jsonschema @ file://eval/mine/work/python-jsonschema-jsonschema-pr1482/reference\n      Built jsonschema @ file://eval/mine/work/python-jsonschema-jsonschema-pr1482/reference\nPrepared 1 package in 74ms\nInstalled 11 packages in 7ms\n + attrs==26.1.0\n + iniconfig==2.3.1\n + jsonschema==0.0.0 (from file://eval/mine/work/python-jsonschema-jsonschema-pr1482/reference)\n + jsonschema-specifications==2025.9.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + referencing==0.37.0\n + rpds-py==2026.9.1\n + typing-extensions==4.16.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m pytest -q jsonschema/tests/test_utils.py jsonschema/tests/test_validators.py",
+      "exit_code": 0,
+      "duration_s": 0.66,
+      "date": "2026-10-16T02:23:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "........................................................................ [ 21%]\n........................................................................ [ 42%]\n........................................................................ [ 63%]\n........................................................................ [ 84%]\n.....................................................                    [100%]\n341 passed in 0.42s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -c \"import jsonschema; jsonschema.Draft202012Validator({'type': 'array', 'uniqueItems': True}).validate([{'a': i} for i in range(2000)])\"",
+      "exit_code": 0,
+      "duration_s": 0.05,
+      "date": "2026-10-16T02:23:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T02:01:21+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

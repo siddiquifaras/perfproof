@@ -1,0 +1,51 @@
+{
+  "id": "nlohmann-json-pr5504-landed",
+  "repository": "nlohmann/json",
+  "stars": 50762,
+  "pushed_at": "2026-10-15T20:47:17Z",
+  "task_commit": "44f8ec30e93dd70d3d8f8ef8647b5fab2dff0481",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/nlohmann/json/commit/44f8ec30e93dd70d3d8f8ef8647b5fab2dff0481",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nlohmann/json/pull/5504",
+    "title": "Bound UBJSON optimized arrays of a valueless type",
+    "commit": "44f8ec30e93dd70d3d8f8ef8647b5fab2dff0481",
+    "merged_at": "2026-09-11T06:34:47Z",
+    "files": [
+      "docs/mkdocs/docs/features/binary_formats/ubjson.md",
+      "docs/mkdocs/docs/home/exceptions.md",
+      "include/nlohmann/detail/input/binary_reader.hpp",
+      "include/nlohmann/detail/output/binary_writer.hpp",
+      "single_include/nlohmann/json.hpp",
+      "tests/src/unit-ubjson.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nlohmann/json/pull/5504",
+      "note": "description, as matched by the miner: timings: 150 seconds; 0 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

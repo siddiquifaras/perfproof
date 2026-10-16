@@ -1,0 +1,46 @@
+{
+  "id": "astropy-astropy-pr18455",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "6c0e50dcca72655f91df0e6aff9f2758bf32e6a1",
+  "task_commit_basis": "first parent of https://github.com/astropy/astropy/commit/55f89b0ac34efc86a06c378297c35ec4ae3349d6; gh api compare 6c0e50dcca72...55f89b0ac34e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/18455",
+    "title": "Speed up `io.votable` Boolean array conversions",
+    "commit": "55f89b0ac34efc86a06c378297c35ec4ae3349d6",
+    "merged_at": "2025-12-24T01:11:22Z",
+    "files": [
+      "astropy/io/votable/converters.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit bool_to_bitarray(smaller_arr)",
+    "source": "quoted in the description of https://github.com/astropy/astropy/pull/18455",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/18455",
+      "note": "description, as matched by the miner: timings: 2.34 μs ± 67.7 ns; 188 μs ± 86.9 ns; 4.14 μs ± 30.7 ns; 376 μs ± 689 ns; 1.16 μs ± 3 ns; 5.6 μs ± 6.68 ns; 1.21 μs ± 1.69 ns; 1.69 μs ± 0.978 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

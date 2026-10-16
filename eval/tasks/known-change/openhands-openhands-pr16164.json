@@ -1,0 +1,53 @@
+{
+  "id": "openhands-openhands-pr16164",
+  "repository": "OpenHands/OpenHands",
+  "stars": 90999,
+  "pushed_at": "2026-10-15T22:19:09Z",
+  "task_commit": "96b6aab34d5d2201dc598ef475aa85b81613fb9d",
+  "task_commit_basis": "first parent of https://github.com/OpenHands/OpenHands/commit/e5fc3a4be206348fe0bcc5b50f4fae0267abc39a (squash merge); gh api compare 96b6aab34d5d...e5fc3a4be206 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/OpenHands/OpenHands/pull/16164",
+    "title": "perf: batch StreamingDeltaEvents so the UI keeps up with fast models",
+    "commit": "e5fc3a4be206348fe0bcc5b50f4fae0267abc39a",
+    "merged_at": "2026-08-18T12:35:31Z",
+    "files": [
+      "__tests__/contexts/conversation-websocket-context.test.tsx",
+      "__tests__/hooks/use-websocket.test.ts",
+      "__tests__/stores/use-event-store.test.ts",
+      "__tests__/utils/streaming-delta-batcher.test.ts",
+      "src/contexts/conversation-websocket-context.tsx",
+      "src/hooks/use-websocket.ts",
+      "src/stores/use-event-store.ts",
+      "src/utils/streaming-delta-batcher.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/OpenHands/OpenHands/pull/16164",
+      "note": "description, as matched by the miner: speedup claims: 85% fewer; 6.5× | timings: 3.0ms; 3.03µs; 11.9ms; 5.97µs; 44.3ms; 11.08µs; 174.7ms; 21.84µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

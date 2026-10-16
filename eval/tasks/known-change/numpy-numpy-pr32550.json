@@ -1,0 +1,48 @@
+{
+  "id": "numpy-numpy-pr32550",
+  "repository": "numpy/numpy",
+  "stars": 33018,
+  "pushed_at": "2026-10-15T16:29:00Z",
+  "task_commit": "e6c0e3dbeeedcc4d6320d57ec09b5cd0850d9680",
+  "task_commit_basis": "first parent of https://github.com/numpy/numpy/commit/9b2580b71415826e05b05cc3ff87aa39bcff3833 (squash merge); gh api compare e6c0e3dbeeed...9b2580b71415 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/numpy/numpy/pull/32550",
+    "title": "ENH: speed up the fixed-width string casts and unicode scalars",
+    "commit": "9b2580b71415826e05b05cc3ff87aa39bcff3833",
+    "merged_at": "2026-09-18T22:21:26Z",
+    "files": [
+      "doc/release/upcoming_changes/32550.performance.rst",
+      "numpy/_core/src/multiarray/arraytypes.c.src",
+      "numpy/_core/src/multiarray/scalarapi.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/numpy/numpy/pull/32550",
+      "note": "description, as matched by the miner: speedup claims: 2.9x; 2.1x; 1.4x; 1.47x; 1.10x | timings: 60.3 ms; 20.8 ms; 68.5 ms; 33.0 ms; 20.9 ms; 15.1 ms; 35.1 ms; 23.9 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

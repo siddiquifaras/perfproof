@@ -1,0 +1,47 @@
+{
+  "id": "sharkdp-fd-pr853",
+  "repository": "sharkdp/fd",
+  "stars": 44754,
+  "pushed_at": "2026-10-14T21:14:21Z",
+  "task_commit": "21fd01307313e7442670f6f2047371e465c53bba",
+  "task_commit_basis": "2 first parents back from https://github.com/sharkdp/fd/commit/fc2a97208264f4cd6d092c28c0c6aac4ee6df7dd: a rebase merge whose commits carry the pull request's commit headlines; gh api compare 21fd01307313...fc2a97208264 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sharkdp/fd/pull/853",
+    "title": "Faster colors",
+    "commit": "fc2a97208264f4cd6d092c28c0c6aac4ee6df7dd",
+    "merged_at": "2021-11-14T16:42:16Z",
+    "files": [
+      "CHANGELOG.md",
+      "src/output.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine ./fd-{before,after}\" --color=always -HI -j1 --search-path=../../linux >/dev/null\"",
+    "source": "quoted in the description of https://github.com/sharkdp/fd/pull/853",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sharkdp/fd/pull/853",
+      "note": "description, as matched by the miner: timings: 802.3 ms; 4.8 ms; 360.0 ms; 531.7 ms; 795.8 ms; 808.9 ms; 263.3 ms; 3.0 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

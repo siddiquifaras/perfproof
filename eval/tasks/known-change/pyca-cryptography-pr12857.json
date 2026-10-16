@@ -1,0 +1,55 @@
+{
+  "id": "pyca-cryptography-pr12857",
+  "repository": "pyca/cryptography",
+  "stars": 7804,
+  "pushed_at": "2026-10-15T15:25:25Z",
+  "task_commit": "39601218fa07968d5879845d540a1b2b9699417c",
+  "task_commit_basis": "first parent of https://github.com/pyca/cryptography/commit/6801b2eb6554abfcb8e4bb48e97a01cdb6f69798 (squash merge); gh api compare 39601218fa07...6801b2eb6554 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pyca/cryptography/pull/12857",
+    "title": "Add `py311` wheels with faster `PyBuffer` API for significant buffer performance gains",
+    "commit": "6801b2eb6554abfcb8e4bb48e97a01cdb6f69798",
+    "merged_at": "2025-05-06T01:06:25Z",
+    "files": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/wheel-builder.yml",
+      "CHANGELOG.rst",
+      "Cargo.lock",
+      "Cargo.toml",
+      "noxfile.py",
+      "src/rust/Cargo.toml",
+      "src/rust/build.rs",
+      "src/rust/src/buf.rs",
+      "src/rust/src/types.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pyca/cryptography/pull/12857",
+      "note": "description, as matched by the miner: speedup claims: 47% faster; 42% faster; 44% faster; 49% faster; 30% faster | timings: 2735.0 ns; 1455.25 ns; 2765.0 ns; 1593.0 ns; 2845.0 ns; 1603.0 ns; 2825.0 ns; 1583.0 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

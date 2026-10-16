@@ -1,0 +1,68 @@
+{
+  "id": "pola-rs-polars-pr28494",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "4f632e0316c6ce7d6e2f66eba093f96e570ba52a",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/1c16e1f5500d22dab4af6c6f10d0a9971ad34382 (squash merge); gh api compare 4f632e0316c6...1c16e1f5500d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/28494",
+    "title": "feat: SQL conformance",
+    "commit": "1c16e1f5500d22dab4af6c6f10d0a9971ad34382",
+    "merged_at": "2026-08-18T08:02:18Z",
+    "files": [
+      "crates/polars-sql/src/context.rs",
+      "crates/polars-sql/src/functions.rs",
+      "crates/polars-sql/src/sql_expr.rs",
+      "crates/polars-sql/src/sql_visitors.rs",
+      "crates/polars-sql/src/subquery.rs",
+      "py-polars/src/polars/sql/context.py",
+      "py-polars/tests/unit/sql/test_agg_semantics.py",
+      "py-polars/tests/unit/sql/test_correlated_subqueries.py",
+      "py-polars/tests/unit/sql/test_exists_subqueries.py",
+      "py-polars/tests/unit/sql/test_group_by.py",
+      "py-polars/tests/unit/sql/test_joins.py",
+      "py-polars/tests/unit/sql/test_miscellaneous.py",
+      "py-polars/tests/unit/sql/test_operators.py",
+      "py-polars/tests/unit/sql/test_order_by.py",
+      "py-polars/tests/unit/sql/test_qualify.py",
+      "py-polars/tests/unit/sql/test_select_naming.py",
+      "py-polars/tests/unit/sql/test_set_ops.py",
+      "py-polars/tests/unit/sql/test_structs.py",
+      "py-polars/tests/unit/sql/test_subqueries.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "regression",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/28494",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29427",
+      "note": "regression fix naming this change as the cause: 'down can continue with a `Projection::Len` state. * (AI) Regression from https://github.com/pola-rs/polars/pull/28494 <details> <summary>(AI generated) root cause due to add'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

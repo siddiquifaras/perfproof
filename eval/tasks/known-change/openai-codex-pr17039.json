@@ -1,0 +1,57 @@
+{
+  "id": "openai-codex-pr17039",
+  "repository": "openai/codex",
+  "stars": 129391,
+  "pushed_at": "2026-10-15T22:32:40Z",
+  "task_commit": "80ebc80be5dbe61b300279c0123918275fc145a5",
+  "task_commit_basis": "first parent of https://github.com/openai/codex/commit/359e17a852b70eec7108ca25669c6141af2c78c2 (squash merge); gh api compare 80ebc80be5db...359e17a852b7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/openai/codex/pull/17039",
+    "title": "fix(tui): reduce startup and new-session latency",
+    "commit": "359e17a852b70eec7108ca25669c6141af2c78c2",
+    "merged_at": "2026-04-08T01:16:10Z",
+    "files": [
+      "codex-rs/tui/src/app.rs",
+      "codex-rs/tui/src/app_event.rs",
+      "codex-rs/tui/src/app_server_session.rs",
+      "codex-rs/tui/src/chatwidget.rs",
+      "codex-rs/tui/src/chatwidget/tests/status_command_tests.rs",
+      "codex-rs/tui/src/lib.rs",
+      "codex-rs/tui/src/status/card.rs",
+      "codex-rs/tui/src/status/rate_limits.rs",
+      "codex-rs/tui/src/status/snapshots/codex_tui__status__tests__status_snapshot_shows_refreshing_limits_notice.snap",
+      "codex-rs/tui/src/status/snapshots/codex_tui__status__tests__status_snapshot_shows_unavailable_limits_message.snap",
+      "codex-rs/tui/src/status/snapshots/codex_tui__status__tests__status_snapshot_treats_refreshing_empty_limits_as_unavailable.snap",
+      "codex-rs/tui/src/status/tests.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/openai/codex/pull/17039",
+      "note": "description, as matched by the miner: timings: 670 ms; 70 ms; 900 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

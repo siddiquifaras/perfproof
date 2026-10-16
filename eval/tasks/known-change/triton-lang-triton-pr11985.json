@@ -1,0 +1,64 @@
+{
+  "id": "triton-lang-triton-pr11985",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "305953d02c28036a1e6cf10152773dd2de0fae09",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/ef633a550d8565a8c4cd89edce63213c8b173e2b (squash merge); gh api compare 305953d02c28...ef633a550d85 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/11985",
+    "title": "[NVIDIA] Optimize BF16 to FP32 conversions",
+    "commit": "ef633a550d8565a8c4cd89edce63213c8b173e2b",
+    "merged_at": "2026-09-28T16:18:48Z",
+    "files": [
+      "python/test/unit/language/test_core.py",
+      "test/Conversion/tritongpu_to_ptx.mlir",
+      "third_party/nvidia/lib/TritonNVIDIAGPUToLLVM/ElementwiseOpToLLVM.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/12008",
+    "title": "Revert \"[NVIDIA] Optimize BF16 to FP32 conversions\"",
+    "commit": "88ccb04fc94590f0b6d94f43e4b5b499e20b56ce",
+    "merged_at": "2026-09-28T20:45:05Z",
+    "files": [
+      "python/test/unit/language/test_core.py",
+      "test/Conversion/tritongpu_to_ptx.mlir",
+      "third_party/nvidia/lib/TritonNVIDIAGPUToLLVM/ElementwiseOpToLLVM.cpp"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/11985",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/triton-lang/triton/pull/12008",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,63 @@
+{
+  "id": "pandas-dev-pandas-pr42761",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "d0eba0a0f2466187e8a5e802588b7680be25ec97",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/13560bbc699d795b49b41a5a42a8141c6eb0c77d (squash merge); gh api compare d0eba0a0f246...13560bbc699d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/42761",
+    "title": "PERF: nancorr pearson",
+    "commit": "13560bbc699d795b49b41a5a42a8141c6eb0c77d",
+    "merged_at": "2021-07-31T00:59:44Z",
+    "files": [
+      "doc/source/whatsnew/v1.4.0.rst",
+      "pandas/_libs/algos.pyx"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/45646",
+    "title": "Revert \"PERF: nancorr pearson (#42761)\"",
+    "commit": "b33c630a1d740b9d89c0d5188669981c921d3304",
+    "merged_at": "2022-01-26T23:34:01Z",
+    "files": [
+      "doc/source/whatsnew/v1.4.1.rst",
+      "pandas/_libs/algos.pyx",
+      "pandas/tests/frame/methods/test_cov_corr.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/42761",
+      "note": "description, as matched by the miner: timings: 5μs; 10μs; 0.6ms; 0.2ms; 0.7ms; 0.8ms; 0.3ms; 0.5ms"
+    },
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/45646",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

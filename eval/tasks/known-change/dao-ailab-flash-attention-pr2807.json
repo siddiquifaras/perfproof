@@ -1,0 +1,54 @@
+{
+  "id": "dao-ailab-flash-attention-pr2807",
+  "repository": "Dao-AILab/flash-attention",
+  "stars": 25140,
+  "pushed_at": "2026-10-15T18:25:14Z",
+  "task_commit": "8d3a3b80d4758ebde5a867c50d24d4351443cf2b",
+  "task_commit_basis": "first parent of https://github.com/Dao-AILab/flash-attention/commit/38ddafeb35e580901f85884a712faefcbd9d7ce8 (squash merge); gh api compare 8d3a3b80d475...38ddafeb35e5 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Dao-AILab/flash-attention/pull/2807",
+    "title": "[CuTe, SM100, HD256] optimize SM100 HD256 varlen scheduling and epilogues",
+    "commit": "38ddafeb35e580901f85884a712faefcbd9d7ce8",
+    "merged_at": "2026-09-14T21:03:37Z",
+    "files": [
+      "flash_attn/cute/interface.py",
+      "flash_attn/cute/sm100_hd256_2cta_fmha_backward.py",
+      "flash_attn/cute/sm100_hd256_2cta_fmha_backward_dkdvkernel.py",
+      "flash_attn/cute/sm100_hd256_2cta_fmha_backward_dqkernel.py",
+      "flash_attn/cute/sm100_hd256_2cta_fmha_forward.py",
+      "flash_attn/cute/tile_scheduler.py",
+      "tests/cute/test_flash_attn.py",
+      "tests/cute/test_flash_attn_varlen.py",
+      "tests/cute/test_hd256_varlen_scheduler.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/cute/test_flash_attn.py tests/cute/test_flash_attn_varlen.py tests/cute/test_hd256_varlen_scheduler.py",
+    "source": "test files changed by https://github.com/Dao-AILab/flash-attention/pull/2807 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Dao-AILab/flash-attention/pull/2807",
+      "note": "description, as matched by the miner: speedup claims: 1.08x; 0.97x; 1.00x; 0.98x; 0.99x | timings: 1.662 ms; 0.683 ms; 1.699 ms; 0.727 ms; 1.223 ms; 1.131 ms; 1.938 ms; 1.994 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

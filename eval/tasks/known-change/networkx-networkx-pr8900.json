@@ -1,0 +1,49 @@
+{
+  "id": "networkx-networkx-pr8900",
+  "repository": "networkx/networkx",
+  "stars": 17329,
+  "pushed_at": "2026-10-06T17:42:21Z",
+  "task_commit": "caa3b60b526afe51f0120d22b91df10f10972352",
+  "task_commit_basis": "first parent of https://github.com/networkx/networkx/commit/675034adb14a790336121e4e0f9d8097b880ec41 (squash merge); gh api compare caa3b60b526a...675034adb14a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/networkx/networkx/pull/8900",
+    "title": "[BUG][PERF] Fix ISMAGS directed matching and monomorphism overhead",
+    "commit": "675034adb14a790336121e4e0f9d8097b880ec41",
+    "merged_at": "2026-09-08T22:02:01Z",
+    "files": [
+      "benchmarks/benchmarks/benchmark_ismags.py",
+      "networkx/algorithms/isomorphism/ismags.py",
+      "networkx/algorithms/isomorphism/tests/test_common.py",
+      "networkx/algorithms/isomorphism/tests/test_ismags.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest networkx/algorithms/isomorphism/tests/test_common.py networkx/algorithms/isomorphism/tests/test_ismags.py",
+    "source": "test files changed by https://github.com/networkx/networkx/pull/8900 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/networkx/networkx/pull/8900",
+      "note": "description, as matched by the miner: timings: 2.78 s; 0.15 s | benchmark files changed: benchmarks/benchmarks/benchmark_ismags.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

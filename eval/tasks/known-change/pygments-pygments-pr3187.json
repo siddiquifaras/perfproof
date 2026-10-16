@@ -1,0 +1,160 @@
+{
+  "id": "pygments-pygments-pr3187",
+  "repository": "pygments/pygments",
+  "stars": 2214,
+  "pushed_at": "2026-09-27T07:00:56Z",
+  "task_commit": "7c1961504980a2a60a79e7aa84265ce4a2ca5f49",
+  "task_commit_basis": "first parent of https://github.com/pygments/pygments/commit/8cc5e980a06f9b395beba0b5cbe759177f963364; gh api compare 7c1961504980...8cc5e980a06f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pygments/pygments/pull/3187",
+    "title": "Speed up multiline comment matching with [\\s\\S]*?",
+    "commit": "8cc5e980a06f9b395beba0b5cbe759177f963364",
+    "merged_at": "2026-07-07T19:44:25Z",
+    "files": [
+      "pygments/lexers/ampl.py",
+      "pygments/lexers/automation.py",
+      "pygments/lexers/basic.py",
+      "pygments/lexers/berry.py",
+      "pygments/lexers/c_cpp.py",
+      "pygments/lexers/c_like.py",
+      "pygments/lexers/chapel.py",
+      "pygments/lexers/csound.py",
+      "pygments/lexers/d.py",
+      "pygments/lexers/dsls.py",
+      "pygments/lexers/ecl.py",
+      "pygments/lexers/esoteric.py",
+      "pygments/lexers/go.py",
+      "pygments/lexers/graphics.py",
+      "pygments/lexers/graphviz.py",
+      "pygments/lexers/gsql.py",
+      "pygments/lexers/hdl.py",
+      "pygments/lexers/inferno.py",
+      "pygments/lexers/iolang.py",
+      "pygments/lexers/javascript.py",
+      "pygments/lexers/jvm.py",
+      "pygments/lexers/mosel.py",
+      "pygments/lexers/parsers.py",
+      "pygments/lexers/pawn.py",
+      "pygments/lexers/perl.py",
+      "pygments/lexers/prolog.py",
+      "pygments/lexers/qvt.py",
+      "pygments/lexers/rell.py",
+      "pygments/lexers/sas.py",
+      "pygments/lexers/soong.py",
+      "pygments/lexers/spice.py",
+      "pygments/lexers/templates.py",
+      "pygments/lexers/typst.py",
+      "pygments/lexers/x10.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -c \"from pygments.lexers import RellLexer; list(RellLexer().get_tokens('/* ' + 'x\\n' * 200000 + ' */'))\"",
+    "source": "written here from the description of https://github.com/pygments/pygments/pull/3187 (matching a long /* ... */ comment in the Rell lexer, whose comment rule the change rewrites); the pull request quotes no command",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest -q tests",
+    "source": "pygments' full test suite under tests/, with the test dependencies from its tox.ini at the reference commit (pytest-cov and pytest-randomly left out)",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pygments/pygments/pull/3187",
+      "note": "description, as matched by the miner: speedup claims: 4x faster"
+    }
+  ],
+  "audit": null,
+  "status": "builds",
+  "status_reason": "built here, but a workload or oracle run failed. On the first check here the suite had one failure on both trees (tests/examplefiles/fstar/example.fst golden output), and each workload run took under 0.1 s of wall time per tree (single runs; exact times in runs), so it probably does not exercise the change enough; needs a better workload and a look at the fstar failure",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-16T03:22:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install -e . pytest~=8.2 wcag-contrast-ratio",
+      "exit_code": 0,
+      "duration_s": 1.52,
+      "date": "2026-10-16T03:22:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 1.29s\n   Building pygments @ file://eval/mine/work/pygments-pygments-pr3187/task\n      Built pygments @ file://eval/mine/work/pygments-pygments-pr3187/task\nPrepared 1 package in 134ms\nInstalled 6 packages in 14ms\n + iniconfig==2.3.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.20.0 (from file://eval/mine/work/pygments-pygments-pr3187/task)\n + pytest==8.4.2\n + wcag-contrast-ratio==0.9"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q tests",
+      "exit_code": 1,
+      "duration_s": 14.38,
+      "date": "2026-10-16T03:22:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "The tokens produced by the \"fstar\" lexer differ from the expected ones in the file \"tests/examplefiles/fstar/example.fst\".\nRun `tox -- tests/examplefiles --update-goldens` to update it.\n\n  \n  Skipping 279024 identical leading characters in diff, use -v to show\n  - in'       Name\n  + in'       Keyword\n    '\\n      '    Text\n    'let'         Keyword.Declaration\n    ' '           Text...\n  \n  ...Full output truncated (1079 lines hidden), use '-vv' to show\n=========================== short test summary info ============================\nFAILED tests/examplefiles/fstar/example.fst::\n1 failed, 5291 passed, 16 skipped in 13.30s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"from pygments.lexers import RellLexer; list(RellLexer().get_tokens('/* ' + 'x\\n' * 200000 + ' */'))\"",
+      "exit_code": 0,
+      "duration_s": 0.06,
+      "date": "2026-10-16T03:22:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-16T03:22:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install -e . pytest~=8.2 wcag-contrast-ratio",
+      "exit_code": 0,
+      "duration_s": 0.49,
+      "date": "2026-10-16T03:22:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 302ms\n   Building pygments @ file://eval/mine/work/pygments-pygments-pr3187/reference\n      Built pygments @ file://eval/mine/work/pygments-pygments-pr3187/reference\nPrepared 1 package in 99ms\nInstalled 6 packages in 8ms\n + iniconfig==2.3.1\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.20.0 (from file://eval/mine/work/pygments-pygments-pr3187/reference)\n + pytest==8.4.2\n + wcag-contrast-ratio==0.9"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q tests",
+      "exit_code": 1,
+      "duration_s": 14.16,
+      "date": "2026-10-16T03:22:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "The tokens produced by the \"fstar\" lexer differ from the expected ones in the file \"tests/examplefiles/fstar/example.fst\".\nRun `tox -- tests/examplefiles --update-goldens` to update it.\n\n  \n  Skipping 279024 identical leading characters in diff, use -v to show\n  - in'       Name\n  + in'       Keyword\n    '\\n      '    Text\n    'let'         Keyword.Declaration\n    ' '           Text...\n  \n  ...Full output truncated (1079 lines hidden), use '-vv' to show\n=========================== short test summary info ============================\nFAILED tests/examplefiles/fstar/example.fst::\n1 failed, 5291 passed, 16 skipped in 13.10s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"from pygments.lexers import RellLexer; list(RellLexer().get_tokens('/* ' + 'x\\n' * 200000 + ' */'))\"",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-16T03:23:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T02:01:17+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "zlib-ng-zlib-ng-pr2353",
+  "repository": "zlib-ng/zlib-ng",
+  "stars": 2107,
+  "pushed_at": "2026-10-12T22:37:11Z",
+  "task_commit": "f9fcca7c8ed9d590f02d8b191b8b084c6e089264",
+  "task_commit_basis": "first parent of https://github.com/zlib-ng/zlib-ng/commit/5d431fdc21e6c49e661e62aea25988d37d486e34; gh api compare f9fcca7c8ed9...5d431fdc21e6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/zlib-ng/zlib-ng/pull/2353",
+    "title": "Inflate: Read bits with zero refill latency",
+    "commit": "5d431fdc21e6c49e661e62aea25988d37d486e34",
+    "merged_at": "2026-07-14T10:48:02Z",
+    "files": [
+      "infback.c",
+      "inffast_tpl.h",
+      "inflate.c",
+      "inflate_p.h",
+      "zutil.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/zlib-ng/zlib-ng/pull/2353",
+      "note": "description, as matched by the miner: timings: 139 µs; 121 µs; 49 µs; 42 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "python-jsonschema-jsonschema-pr893",
+  "repository": "python-jsonschema/jsonschema",
+  "stars": 4989,
+  "pushed_at": "2026-10-12T19:02:34Z",
+  "task_commit": "c8059bce68579b1a1a66babf067369baa158f07a",
+  "task_commit_basis": "first parent of https://github.com/python-jsonschema/jsonschema/commit/ac7b8389f14e845a966345171eadf3515cc3052f; gh api compare c8059bce6857...ac7b8389f14e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-jsonschema/jsonschema/pull/893",
+    "title": "perf: Undesired fallback to brute force container uniqueness check on certain input types",
+    "commit": "ac7b8389f14e845a966345171eadf3515cc3052f",
+    "merged_at": "2021-12-15T12:37:11Z",
+    "files": [
+      "CHANGELOG.rst",
+      "jsonschema/_utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-jsonschema/jsonschema/pull/893",
+      "note": "description, as matched by the miner: timings: 5.4033913369985385s; 0.12076822199924209s; 27.133657693862915 sec; 26.14994215965271 sec"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

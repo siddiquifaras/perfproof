@@ -1,0 +1,47 @@
+{
+  "id": "karpathy-nanochat-pr383",
+  "repository": "karpathy/nanochat",
+  "stars": 58661,
+  "pushed_at": "2026-09-07T20:06:43Z",
+  "task_commit": "088726aa7d4270db58797228011e368099394215",
+  "task_commit_basis": "first parent of https://github.com/karpathy/nanochat/commit/7a8769a40cca6f9343d33433b3b4a4fca4195d64; gh api compare 088726aa7d42...7a8769a40cca touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/karpathy/nanochat/pull/383",
+    "title": "3x faster rust encode (`batch_encode`) (12 LoC + 2 tests)",
+    "commit": "7a8769a40cca6f9343d33433b3b4a4fca4195d64",
+    "merged_at": "2025-12-28T04:06:58Z",
+    "files": [
+      "rustbpe/src/lib.rs",
+      "tests/test_rustbpe.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_rustbpe.py",
+    "source": "test files changed by https://github.com/karpathy/nanochat/pull/383 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/karpathy/nanochat/pull/383",
+      "note": "description, as matched by the miner: speedup claims: 3x faster; 3.64x | timings: 0.1315s; 0.0361s; 2.48s; 11.95s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

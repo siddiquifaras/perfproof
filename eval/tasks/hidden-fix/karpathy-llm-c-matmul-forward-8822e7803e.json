@@ -1,0 +1,49 @@
+{
+  "id": "karpathy-llm-c-matmul-forward-8822e7803e",
+  "repository": "karpathy/llm.c",
+  "stars": 31160,
+  "pushed_at": "2025-06-26T17:03:40Z",
+  "task_commit": "6396e393e319f899bb61ba53f8b70c22cf3b038b",
+  "task_commit_basis": "first parent of https://github.com/karpathy/llm.c/commit/8822e7803ef91be8f47d35d95d5c6e590fb83ea3 (gh api commits)",
+  "reference_change": {
+    "kind": "commit",
+    "url": "https://github.com/karpathy/llm.c/commit/8822e7803ef91be8f47d35d95d5c6e590fb83ea3",
+    "title": "use cublaslt, which fuses bias, and also use tf32 when your GPU supports it (#98)",
+    "commit": "8822e7803ef91be8f47d35d95d5c6e590fb83ea3",
+    "merged_at": "2024-04-12T22:32:07Z",
+    "files": [
+      "Makefile",
+      "dev/cuda/matmul_forward.cu",
+      "test_gpt2.cu",
+      "train_gpt2.cu"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "kernel-version",
+  "target_class": "gpu",
+  "workload": {
+    "command": "cd dev/cuda && nvcc -O3 --use_fast_math -Xcompiler -fopenmp matmul_forward.cu -o matmul_forward -lcublas -lcublasLt && ./matmul_forward 3",
+    "source": "compile line in the header of dev/cuda/matmul_forward.cu at 8822e7803ef9; the kernel number is the version this commit adds, so a fixed baseline-vs-candidate command still has to be set up",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: no validate_result call found in the file",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/karpathy/llm.c/commit/8822e7803ef91be8f47d35d95d5c6e590fb83ea3",
+      "note": "dev/cuda/matmul_forward.cu dispatches matmul_forward3 after this commit (case N: calling <name><N>); its parent dispatches matmul_forward [1, 2] (matched by the miner)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here: needs an NVIDIA GPU. Repository kept despite the activity threshold (last push 2025-06-26T17:03:40Z) because the plan names its dev/cuda kernels for GPU tasks",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

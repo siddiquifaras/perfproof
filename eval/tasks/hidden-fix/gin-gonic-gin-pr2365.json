@@ -1,0 +1,46 @@
+{
+  "id": "gin-gonic-gin-pr2365",
+  "repository": "gin-gonic/gin",
+  "stars": 89364,
+  "pushed_at": "2026-10-10T04:20:35Z",
+  "task_commit": "82b284fd774d6bf68c934a3f335b816c61edf66f",
+  "task_commit_basis": "first parent of https://github.com/gin-gonic/gin/commit/6f3d96ccff56290fd506dff68af21a56a22d0873 (squash merge); gh api compare 82b284fd774d...6f3d96ccff56 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gin-gonic/gin/pull/2365",
+    "title": "chore: improve render string performance",
+    "commit": "6f3d96ccff56290fd506dff68af21a56a22d0873",
+    "merged_at": "2020-05-09T09:41:01Z",
+    "files": [
+      "render/text.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "go test -bench=. -benchtime=10s",
+    "source": "quoted in the description of https://github.com/gin-gonic/gin/pull/2365",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gin-gonic/gin/pull/2365",
+      "note": "description, as matched by the miner: timings: 10s; 50344 ns; 71542 ns; 4061 ns; 7657 ns; 46740 ns; 65348 ns; 3747 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "django-django-pr20670-landed",
+  "repository": "django/django",
+  "stars": 91331,
+  "pushed_at": "2026-10-15T06:51:05Z",
+  "task_commit": "055d7a682f4923fc5a50d7c1a12fd7f52675f7e8",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/django/django/commit/055d7a682f4923fc5a50d7c1a12fd7f52675f7e8",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/20670",
+    "title": "Optimized SQLite `DatabaseOperations.check_expression_support()`.",
+    "commit": "055d7a682f4923fc5a50d7c1a12fd7f52675f7e8",
+    "merged_at": "2026-02-12T20:27:12Z",
+    "files": [
+      "django/db/backends/sqlite3/operations.py",
+      "tests/backends/sqlite/tests.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/django/django/pull/20670",
+      "note": "description, as matched by the miner: speedup claims: 20% reduction | timings: 809μs; 1μs ± 2μs; 708ns; 55μs; 648μs; 817ns ± 945ns; 583ns; 26μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

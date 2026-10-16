@@ -1,0 +1,55 @@
+{
+  "id": "internlm-lmdeploy-pr4830-landed",
+  "repository": "InternLM/lmdeploy",
+  "stars": 8106,
+  "pushed_at": "2026-10-09T03:58:16Z",
+  "task_commit": "ad242e611a6e8f6191fbd2ce5efb20d1eb724896",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/InternLM/lmdeploy/commit/ad242e611a6e8f6191fbd2ce5efb20d1eb724896",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/InternLM/lmdeploy/pull/4830",
+    "title": "feat(pytorch): add optimized Gluon blocked FP8 GEMM for Hopper",
+    "commit": "ad242e611a6e8f6191fbd2ce5efb20d1eb724896",
+    "merged_at": "2026-08-12T04:14:07Z",
+    "files": [
+      "lmdeploy/pytorch/backends/blockedf8_modules.py",
+      "lmdeploy/pytorch/backends/cuda/blockedf8_modules.py",
+      "lmdeploy/pytorch/backends/cuda/op_backend.py",
+      "lmdeploy/pytorch/check_env/transformers.py",
+      "lmdeploy/pytorch/envs.py",
+      "lmdeploy/pytorch/kernels/cuda/blocked_fp8_gemm_gluon.py",
+      "lmdeploy/pytorch/kernels/cuda/blocked_gemm_fp8.py",
+      "lmdeploy/pytorch/nn/linear/blocked_fp8.py",
+      "lmdeploy/pytorch/tools/audit_dependency_versions.py",
+      "tests/pytorch/kernel/test_blocked_fp8_gemm_gluon.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/pytorch/kernel/test_blocked_fp8_gemm_gluon.py",
+    "source": "test files changed by https://github.com/InternLM/lmdeploy/pull/4830 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/InternLM/lmdeploy/pull/4830",
+      "note": "description, as matched by the miner: speedup claims: 0.55x; 0.57x; 1.13x; 0.56x; 1.16x | timings: 50 ms; 250 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

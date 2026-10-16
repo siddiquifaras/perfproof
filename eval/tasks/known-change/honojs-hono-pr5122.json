@@ -1,0 +1,46 @@
+{
+  "id": "honojs-hono-pr5122",
+  "repository": "honojs/hono",
+  "stars": 32548,
+  "pushed_at": "2026-10-15T12:26:44Z",
+  "task_commit": "b0bf4d2bf6725845cb47b2bd968bfb26ece82c07",
+  "task_commit_basis": "first parent of https://github.com/honojs/hono/commit/a8c61afa60d83bf3fef617b102bfa31a0cd2a517 (squash merge); gh api compare b0bf4d2bf672...a8c61afa60d8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/honojs/hono/pull/5122",
+    "title": "perf(context): skip Headers creation when there are no headers to merge",
+    "commit": "a8c61afa60d83bf3fef617b102bfa31a0cd2a517",
+    "merged_at": "2026-07-22T09:30:39Z",
+    "files": [
+      "src/context.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/honojs/hono/pull/5122",
+      "note": "description, as matched by the miner: speedup claims: 1.01x; 1.02x faster; 1.16x faster; 1.01x faster; 1.04x faster | timings: 290.70 ns; 290.60 ns; 296.60 ns; 290.67 ns; 295.50 ns; 293.41 ns; 298.21 ns; 291.92 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

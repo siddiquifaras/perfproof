@@ -1,0 +1,62 @@
+{
+  "id": "ollama-ollama-pr5898",
+  "repository": "ollama/ollama",
+  "stars": 183318,
+  "pushed_at": "2026-10-15T22:30:46Z",
+  "task_commit": "15c2d8fe149ba2b58aadbab615a6955f8821c7a9",
+  "task_commit_basis": "first parent of https://github.com/ollama/ollama/commit/8aac22438ef34192ff804dbeb1b5e9a7e180eb7c (squash merge); gh api compare 15c2d8fe149b...8aac22438ef3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ollama/ollama/pull/5898",
+    "title": "server: speed up single gguf creates",
+    "commit": "8aac22438ef34192ff804dbeb1b5e9a7e180eb7c",
+    "merged_at": "2024-08-12T16:28:55Z",
+    "files": [
+      "server/model.go",
+      "server/model_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/ollama/ollama/pull/6323",
+    "title": "Revert \"server: speed up single gguf creates\"",
+    "commit": "1dc3ef3aa9d451a63fcb6ea2e1b6ea5289a1a325",
+    "merged_at": "2024-08-12T16:57:51Z",
+    "files": [
+      "server/model.go",
+      "server/model_test.go"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ollama/ollama/pull/5898",
+      "note": "description, as matched by the miner: timings: 5.298126708s; 8.519125ms; 5.283626083s; 4.302020959s"
+    },
+    {
+      "url": "https://github.com/ollama/ollama/pull/6323",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

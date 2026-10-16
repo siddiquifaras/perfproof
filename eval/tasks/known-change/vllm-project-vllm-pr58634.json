@@ -1,0 +1,51 @@
+{
+  "id": "vllm-project-vllm-pr58634",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "fba47397f304993741d2b76d73fb42e5be3e8eac",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/a9eafde59cbd55182dc2265cc398b7186f0a0eaa (squash merge); gh api compare fba47397f304...a9eafde59cbd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/58634",
+    "title": "[Perf][DSv4.1] Fuse small-batch WO-A with inverse RoPE and MXFP8 quant on SM100/SM103",
+    "commit": "a9eafde59cbd55182dc2265cc398b7186f0a0eaa",
+    "merged_at": "2026-09-27T04:16:13Z",
+    "files": [
+      "tests/kernels/test_fused_inv_rope_fp8_quant.py",
+      "vllm/models/deepseek_v41/attention.py",
+      "vllm/models/deepseek_v41/nvidia/flashinfer_sparse.py",
+      "vllm/models/deepseek_v41/nvidia/flashmla.py",
+      "vllm/models/deepseek_v41/nvidia/ops/fused_wo_a.py",
+      "vllm/models/deepseek_v41/nvidia/ops/o_proj.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": "vllm bench serve --backend vllm --dataset-name random --random-input-len 8192 --random-output-len 1024 --random-range-ratio 0 --ignore-eos --max-concurrency <1|4|8|32|64|96>",
+    "source": "quoted in the description of https://github.com/vllm-project/vllm/pull/58634",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/kernels/test_fused_inv_rope_fp8_quant.py",
+    "source": "test files changed by https://github.com/vllm-project/vllm/pull/58634 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/58634",
+      "note": "description, as matched by the miner: speedup claims: 2.079×; 2.074×; 1.915×; 1.602×; 1.619× | timings: 12 µs; 54.11 s; 0.07 ms; 1.61 s; 1.40 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "serde-rs-json-pr110",
+  "repository": "serde-rs/json",
+  "stars": 5650,
+  "pushed_at": "2026-10-11T15:31:49Z",
+  "task_commit": "8cc40d0ee2409d83735fa15dac890c35e7662730",
+  "task_commit_basis": "first parent of https://github.com/serde-rs/json/commit/4cc85e55f61e6220b587854209b0d587f2ba1bab; gh api compare 8cc40d0ee240...4cc85e55f61e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/serde-rs/json/pull/110",
+    "title": "Speed up float parsing",
+    "commit": "4cc85e55f61e6220b587854209b0d587f2ba1bab",
+    "merged_at": "2016-07-11T08:27:37Z",
+    "files": [
+      "json/src/de.rs",
+      "json_tests/tests/test_json.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/serde-rs/json/pull/110",
+      "note": "description, as matched by the miner: speedup claims: 40% improvement"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

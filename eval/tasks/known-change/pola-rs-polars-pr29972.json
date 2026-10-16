@@ -1,0 +1,47 @@
+{
+  "id": "pola-rs-polars-pr29972",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "c5fe453d3a45d5d3887a8178f7a24053b4794cba",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/e8663dd2d141653c8726b4352d34138a99afdaa8; gh api compare c5fe453d3a45...e8663dd2d141 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29972",
+    "title": "perf: Speed up `str.len_chars`",
+    "commit": "e8663dd2d141653c8726b4352d34138a99afdaa8",
+    "merged_at": "2026-10-15T09:18:46Z",
+    "files": [
+      "crates/polars-arrow/src/legacy/kernels/string.rs",
+      "py-polars/tests/unit/operations/namespaces/string/test_string.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29972",
+      "note": "description, as matched by the miner: speedup claims: 2x faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

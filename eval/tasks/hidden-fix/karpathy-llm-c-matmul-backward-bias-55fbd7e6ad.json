@@ -1,0 +1,47 @@
+{
+  "id": "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad",
+  "repository": "karpathy/llm.c",
+  "stars": 31160,
+  "pushed_at": "2025-06-26T17:03:40Z",
+  "task_commit": "6984e83c6e21ccc3129e30a3f65fbe3111dbfd4d",
+  "task_commit_basis": "first parent of https://github.com/karpathy/llm.c/commit/55fbd7e6adb78e3e2c46afe416852f8004e14881 (gh api commits)",
+  "reference_change": {
+    "kind": "commit",
+    "url": "https://github.com/karpathy/llm.c/commit/55fbd7e6adb78e3e2c46afe416852f8004e14881",
+    "title": "add a faster matmul backward bias kernel that uses coalesced reads and shared memory",
+    "commit": "55fbd7e6adb78e3e2c46afe416852f8004e14881",
+    "merged_at": "2024-04-22T15:35:21Z",
+    "files": [
+      "dev/cuda/matmul_backward_bias.cu",
+      "train_gpt2.cu"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "kernel-version",
+  "target_class": "gpu",
+  "workload": {
+    "command": "cd dev/cuda && nvcc -O3 matmul_backward_bias.cu -lineinfo -o matmul_backward_bias && ./matmul_backward_bias 4",
+    "source": "compile line in the header of dev/cuda/matmul_backward_bias.cu at 55fbd7e6adb7; the kernel number is the version this commit adds, so a fixed baseline-vs-candidate command still has to be set up",
+    "verified": false
+  },
+  "oracle": {
+    "command": "cd dev/cuda && nvcc -O3 matmul_backward_bias.cu -lineinfo -o matmul_backward_bias && ./matmul_backward_bias 4",
+    "source": "dev/cuda/matmul_backward_bias.cu compares the GPU result against its CPU reference with validate_result when run",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/karpathy/llm.c/commit/55fbd7e6adb78e3e2c46afe416852f8004e14881",
+      "note": "dev/cuda/matmul_backward_bias.cu dispatches matmul_backward_bias4 after this commit (case N: calling <name><N>); its parent dispatches matmul_backward_bias [1, 2, 3] (matched by the miner)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here: needs an NVIDIA GPU. Repository kept despite the activity threshold (last push 2025-06-26T17:03:40Z) because the plan names its dev/cuda kernels for GPU tasks",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

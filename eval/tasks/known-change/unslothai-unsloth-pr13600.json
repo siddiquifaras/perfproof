@@ -1,0 +1,47 @@
+{
+  "id": "unslothai-unsloth-pr13600",
+  "repository": "unslothai/unsloth",
+  "stars": 78073,
+  "pushed_at": "2026-10-15T22:40:26Z",
+  "task_commit": "a85b5a58c4acceda57ac39b9ee923ed6506e2fbc",
+  "task_commit_basis": "first parent of https://github.com/unslothai/unsloth/commit/133a8076d10aa109f812f85a953636b3488926f6 (squash merge); gh api compare a85b5a58c4ac...133a8076d10a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/unslothai/unsloth/pull/13600",
+    "title": "Studio: emit --moe-cache-mib auto only where the cache measured faster, price the spill micro-batch",
+    "commit": "133a8076d10aa109f812f85a953636b3488926f6",
+    "merged_at": "2026-10-13T15:45:47Z",
+    "files": [
+      "studio/backend/core/inference/llama_cpp.py",
+      "studio/backend/tests/test_llama_cpp_placement.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest studio/backend/tests/test_llama_cpp_placement.py",
+    "source": "test files changed by https://github.com/unslothai/unsloth/pull/13600 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/unslothai/unsloth/pull/13600",
+      "note": "description, as matched by the miner: speedup claims: 1.21x; 1.54x; 0.60x; 0.20x; 0.39x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:58+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

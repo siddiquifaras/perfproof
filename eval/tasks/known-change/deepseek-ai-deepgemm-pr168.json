@@ -1,0 +1,46 @@
+{
+  "id": "deepseek-ai-deepgemm-pr168",
+  "repository": "deepseek-ai/DeepGEMM",
+  "stars": 8973,
+  "pushed_at": "2026-10-14T05:35:55Z",
+  "task_commit": "e38c2e31033dc6880d92eff4977c40f2eb6cff4a",
+  "task_commit_basis": "first parent of https://github.com/deepseek-ai/DeepGEMM/commit/2da871e304b1dad11ded860cf71252da9252c2b5; gh api compare e38c2e31033d...2da871e304b1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/deepseek-ai/DeepGEMM/pull/168",
+    "title": "Fix performance issue of m-grouped contiguous GEMMs.",
+    "commit": "2da871e304b1dad11ded860cf71252da9252c2b5",
+    "merged_at": "2025-08-22T09:35:43Z",
+    "files": [
+      "deep_gemm/include/deep_gemm/common/scheduler.cuh"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/deepseek-ai/DeepGEMM/pull/168",
+      "note": "description, as matched by the miner: timings: 50 us; 13 us; 57 us; 22 us; 80 us; 52 us; 55 us; 51 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "redis-redis-pr15352-landed",
+  "repository": "redis/redis",
+  "stars": 76833,
+  "pushed_at": "2026-10-15T16:28:22Z",
+  "task_commit": "81ac97cbed1c54f8a41ff2c5133a5341eaa16b7a",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/redis/redis/commit/81ac97cbed1c54f8a41ff2c5133a5341eaa16b7a",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/redis/redis/pull/15352",
+    "title": "redis-cli: add configurable latency percentiles to --latency modes",
+    "commit": "81ac97cbed1c54f8a41ff2c5133a5341eaa16b7a",
+    "merged_at": "2026-07-10T06:59:59Z",
+    "files": [
+      "src/redis-cli.c",
+      "tests/integration/redis-cli.tcl"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/redis/redis/pull/15352",
+      "note": "description, as matched by the miner: timings: 1us; 3s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

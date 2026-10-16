@@ -1,0 +1,46 @@
+{
+  "id": "gin-gonic-gin-pr4246-landed",
+  "repository": "gin-gonic/gin",
+  "stars": 89364,
+  "pushed_at": "2026-10-10T04:20:35Z",
+  "task_commit": "2e22e5085960205fbb11c25776f6ea76b8053253",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/gin-gonic/gin/commit/2e22e5085960205fbb11c25776f6ea76b8053253",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gin-gonic/gin/pull/4246",
+    "title": "perf: optimize path parsing using strings.Count",
+    "commit": "2e22e5085960205fbb11c25776f6ea76b8053253",
+    "merged_at": "2025-10-31T14:09:07Z",
+    "files": [
+      "tree.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gin-gonic/gin/pull/4246",
+      "note": "description, as matched by the miner: timings: 12.36 ns; 11.48 ns; 5.353 ns; 4.663 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

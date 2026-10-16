@@ -1,0 +1,46 @@
+{
+  "id": "rails-rails-pr59068",
+  "repository": "rails/rails",
+  "stars": 58839,
+  "pushed_at": "2026-10-15T20:53:55Z",
+  "task_commit": "03058d4fd837fbe1a647cedd6d3e9ee0ad6b7dc1",
+  "task_commit_basis": "first parent of https://github.com/rails/rails/commit/0ccb9d057c6774bfe676c89598cf476cdc5c832f; gh api compare 03058d4fd837...0ccb9d057c67 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rails/rails/pull/59068",
+    "title": "ActiveRecord perf",
+    "commit": "0ccb9d057c6774bfe676c89598cf476cdc5c832f",
+    "merged_at": "2026-10-14T04:44:38Z",
+    "files": [
+      "activerecord/lib/active_record/key.rb"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rails/rails/pull/59068",
+      "note": "description, as matched by the miner: timings: 210ms; 201ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

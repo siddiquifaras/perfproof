@@ -1,0 +1,47 @@
+{
+  "id": "pydantic-pydantic-ai-pr6485",
+  "repository": "pydantic/pydantic-ai",
+  "stars": 20644,
+  "pushed_at": "2026-10-15T22:40:55Z",
+  "task_commit": "e77681bd61cea2b9c10c3a380a5643426eb98636",
+  "task_commit_basis": "first parent of https://github.com/pydantic/pydantic-ai/commit/3f9c104f05a7011c98a56db9e4b91d4998f72a39 (squash merge); gh api compare e77681bd61ce...3f9c104f05a7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydantic/pydantic-ai/pull/6485",
+    "title": "perf(streaming): buffer streamed response strings",
+    "commit": "3f9c104f05a7011c98a56db9e4b91d4998f72a39",
+    "merged_at": "2026-07-29T01:42:31Z",
+    "files": [
+      "pydantic_ai_slim/pydantic_ai/_parts_manager.py",
+      "tests/test_parts_manager.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_parts_manager.py",
+    "source": "test files changed by https://github.com/pydantic/pydantic-ai/pull/6485 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydantic/pydantic-ai/pull/6485",
+      "note": "description, as matched by the miner: speedup claims: 79.32% lower; 4.84x faster | timings: 1211.740 ms; 250.617 ms; 220.749 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "pytorch-ao-pr4310",
+  "repository": "pytorch/ao",
+  "stars": 3005,
+  "pushed_at": "2026-10-15T22:39:17Z",
+  "task_commit": "2c41725b5111bf707a9b1224a625ec620cb30342",
+  "task_commit_basis": "first parent of https://github.com/pytorch/ao/commit/b49d8cb74e4b57d43eea1170f110dad2513f6aab (squash merge); gh api compare 2c41725b5111...b49d8cb74e4b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pytorch/ao/pull/4310",
+    "title": "add gptq benchmark, and speed up by ~3x with compile",
+    "commit": "b49d8cb74e4b57d43eea1170f110dad2513f6aab",
+    "merged_at": "2026-04-23T09:23:04Z",
+    "files": [
+      "benchmarks/benchmark_gptq.py",
+      "test/prototype/gptq/test_gptqv2.py",
+      "torchao/prototype/gptq/api.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/prototype/gptq/test_gptqv2.py",
+    "source": "test files changed by https://github.com/pytorch/ao/pull/4310 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pytorch/ao/pull/4310",
+      "note": "description, as matched by the miner: speedup claims: 2.5x | timings: 172 seconds; 69 seconds | benchmark files changed: benchmarks/benchmark_gptq.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:01+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

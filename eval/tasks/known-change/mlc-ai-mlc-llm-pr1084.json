@@ -1,0 +1,50 @@
+{
+  "id": "mlc-ai-mlc-llm-pr1084",
+  "repository": "mlc-ai/mlc-llm",
+  "stars": 23249,
+  "pushed_at": "2026-10-06T23:36:40Z",
+  "task_commit": "556d9945ceb6bf90dbf1b0963870fc6d1554978f",
+  "task_commit_basis": "first parent of https://github.com/mlc-ai/mlc-llm/commit/34d08bf1b7526a2638f563a70369300aad6c4986; gh api compare 556d9945ceb6...34d08bf1b752 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/mlc-ai/mlc-llm/pull/1084",
+    "title": "[Serving] Engine \"`generate`\" function and latency benchmark",
+    "commit": "34d08bf1b7526a2638f563a70369300aad6c4986",
+    "merged_at": "2023-10-19T15:30:42Z",
+    "files": [
+      "cpp/serve/engine.cc",
+      "python/mlc_chat/serve/data.py",
+      "python/mlc_chat/serve/engine.py",
+      "tests/debug/benchmark_latency.py",
+      "tests/debug/test_serve_engine.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/debug/test_serve_engine.py",
+    "source": "test files changed by https://github.com/mlc-ai/mlc-llm/pull/1084 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/mlc-ai/mlc-llm/pull/1084",
+      "note": "description, as matched by the miner: benchmark files changed: tests/debug/benchmark_latency.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

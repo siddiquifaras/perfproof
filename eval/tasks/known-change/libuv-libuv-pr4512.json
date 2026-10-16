@@ -1,0 +1,60 @@
+{
+  "id": "libuv-libuv-pr4512",
+  "repository": "libuv/libuv",
+  "stars": 27260,
+  "pushed_at": "2026-10-13T02:39:20Z",
+  "task_commit": "76f7fb26b9ac8ede4406fa786acb7480d9b48ff5",
+  "task_commit_basis": "first parent of https://github.com/libuv/libuv/commit/4d45a9a65200b3bca92f05b99af2e6dd1808a275; gh api compare 76f7fb26b9ac...4d45a9a65200 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/libuv/libuv/pull/4512",
+    "title": "win, util: optimize the performance of uv_os_getppid",
+    "commit": "4d45a9a65200b3bca92f05b99af2e6dd1808a275",
+    "merged_at": "2024-08-21T06:29:03Z",
+    "files": [
+      "src/win/util.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/libuv/libuv/pull/4516",
+    "title": "Revert \"win, util: optimize the performance of uv_os_getppid\" (in favor of #4514)",
+    "commit": "073f3d8bc283d76050dad49781309a3759a5ccb7",
+    "merged_at": "2024-09-30T17:25:10Z",
+    "files": [
+      "src/win/util.c"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/libuv/libuv/pull/4512",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/libuv/libuv/pull/4516",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

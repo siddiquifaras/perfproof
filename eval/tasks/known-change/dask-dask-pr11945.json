@@ -1,0 +1,53 @@
+{
+  "id": "dask-dask-pr11945",
+  "repository": "dask/dask",
+  "stars": 13935,
+  "pushed_at": "2026-09-29T10:11:03Z",
+  "task_commit": "c2a73036ca687dc8e19104f3c83e9777e5405cad",
+  "task_commit_basis": "first parent of https://github.com/dask/dask/commit/8f730a3a395ee6b7889647b0a8f626a90dfdcd2f (squash merge); gh api compare c2a73036ca68...8f730a3a395e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dask/dask/pull/11945",
+    "title": "Speed up slicing graph generation",
+    "commit": "8f730a3a395ee6b7889647b0a8f626a90dfdcd2f",
+    "merged_at": "2025-05-13T11:49:12Z",
+    "files": [
+      "dask/_task_spec.py",
+      "dask/array/_shuffle.py",
+      "dask/array/core.py",
+      "dask/array/slicing.py",
+      "dask/array/tests/test_slicing.py",
+      "dask/blockwise.py",
+      "dask/delayed.py",
+      "dask/utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest dask/array/tests/test_slicing.py",
+    "source": "test files changed by https://github.com/dask/dask/pull/11945 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dask/dask/pull/11945",
+      "note": "description, as matched by the miner: timings: 0.01 ms; 146.57 ms; 330.51 ms; 62.01 ms; 33.58 ms; 65.67 ms; 467.75 ms; 636.76 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

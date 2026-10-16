@@ -1,0 +1,55 @@
+{
+  "id": "pandas-dev-pandas-pr64347",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "0014b9c5fac032ef9645e3024174234d9ad051b7",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/d4b5ec2fef36f8a5099d8c38f7867ac9c38c73be (squash merge); gh api compare 0014b9c5fac0...d4b5ec2fef36 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/64347",
+    "title": "PERF: parallelize read_csv",
+    "commit": "d4b5ec2fef36f8a5099d8c38f7867ac9c38c73be",
+    "merged_at": "2026-07-09T13:05:25Z",
+    "files": [
+      "asv_bench/benchmarks/io/csv.py",
+      "doc/source/user_guide/io.rst",
+      "doc/source/whatsnew/v3.1.0.rst",
+      "pandas/_libs/include/pandas/parser/tokenizer.h",
+      "pandas/_libs/parsers.pyi",
+      "pandas/_libs/parsers.pyx",
+      "pandas/_libs/src/parser/tokenizer.c",
+      "pandas/core/config_init.py",
+      "pandas/io/parsers/readers.py",
+      "pandas/tests/io/parser/test_parallel_read.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "asv continuous main HEAD -b ReadCSVParallelLargeFile",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/64347",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest pandas/tests/io/parser/test_parallel_read.py",
+    "source": "test files changed by https://github.com/pandas-dev/pandas/pull/64347 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/64347",
+      "note": "description, as matched by the miner: speedup claims: 3× speedup | timings: 6ms; 37ms; 3ms; 11ms; 19ms; 41ms; 17ms; 18ms | benchmark files changed: asv_bench/benchmarks/io/csv.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

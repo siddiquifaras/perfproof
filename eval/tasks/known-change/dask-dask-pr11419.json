@@ -1,0 +1,47 @@
+{
+  "id": "dask-dask-pr11419",
+  "repository": "dask/dask",
+  "stars": 13935,
+  "pushed_at": "2026-09-29T10:11:03Z",
+  "task_commit": "c0177e3704f6f0447d281f7347148f8266a28c97",
+  "task_commit_basis": "first parent of https://github.com/dask/dask/commit/99dc7b0251c17c4c5455cd3aa736ea92d577a64d; gh api compare c0177e3704f6...99dc7b0251c1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dask/dask/pull/11419",
+    "title": "Ensure numba tokenization does not use slow pickle path",
+    "commit": "99dc7b0251c17c4c5455cd3aa736ea92d577a64d",
+    "merged_at": "2024-10-08T10:17:46Z",
+    "files": [
+      "dask/tests/test_tokenize.py",
+      "dask/tokenize.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit tokenize(inc)",
+    "source": "quoted in the description of https://github.com/dask/dask/pull/11419",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest dask/tests/test_tokenize.py",
+    "source": "test files changed by https://github.com/dask/dask/pull/11419 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dask/dask/pull/11419",
+      "note": "description, as matched by the miner: timings: 150ms; 2.6s; 345 ms ± 9.06 ms; 447 μs ± 4.36 μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

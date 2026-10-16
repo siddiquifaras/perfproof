@@ -1,0 +1,46 @@
+{
+  "id": "karpathy-llm-c-softmax-forward-8386e5393c",
+  "repository": "karpathy/llm.c",
+  "stars": 31160,
+  "pushed_at": "2025-06-26T17:03:40Z",
+  "task_commit": "c29d70a9b34b3e872dcd81a7f99180b41cf4e0f0",
+  "task_commit_basis": "first parent of https://github.com/karpathy/llm.c/commit/8386e5393c61ec2faf706f3040e68127c2f08398 (gh api commits)",
+  "reference_change": {
+    "kind": "commit",
+    "url": "https://github.com/karpathy/llm.c/commit/8386e5393c61ec2faf706f3040e68127c2f08398",
+    "title": "intra-warp reductions and inter-warp shared memory reductions for B,T,C parallelism of softmax kernel nice",
+    "commit": "8386e5393c61ec2faf706f3040e68127c2f08398",
+    "merged_at": "2024-04-09T20:08:11Z",
+    "files": [
+      "dev/cuda/softmax_forward.cu"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "kernel-version",
+  "target_class": "gpu",
+  "workload": {
+    "command": "cd dev/cuda && nvcc -O3 --use_fast_math softmax_forward.cu -o softmax_forward && ./softmax_forward 4",
+    "source": "compile line in the header of dev/cuda/softmax_forward.cu at 8386e5393c61; the kernel number is the version this commit adds, so a fixed baseline-vs-candidate command still has to be set up",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown: no validate_result call found in the file",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/karpathy/llm.c/commit/8386e5393c61ec2faf706f3040e68127c2f08398",
+      "note": "dev/cuda/softmax_forward.cu dispatches softmax_forward3, softmax_forward4 after this commit (case N: calling <name><N>); its parent dispatches softmax_forward [1, 2] (matched by the miner)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here: needs an NVIDIA GPU. Repository kept despite the activity threshold (last push 2025-06-26T17:03:40Z) because the plan names its dev/cuda kernels for GPU tasks",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "pylint-dev-pylint-pr10881",
+  "repository": "pylint-dev/pylint",
+  "stars": 5739,
+  "pushed_at": "2026-10-15T20:27:35Z",
+  "task_commit": "c6ca272c8581416a7eb24beaf3fb3733ec40eb1c",
+  "task_commit_basis": "7 first parents back from https://github.com/pylint-dev/pylint/commit/55a7316b4b1dd7f0b11818586c57e2dd22c9a272: a rebase merge whose commits carry the pull request's commit headlines; gh api compare c6ca272c8581...55a7316b4b1d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pylint-dev/pylint/pull/10881",
+    "title": "Fix quadratic performance and memory issues in duplicate-code checker",
+    "commit": "55a7316b4b1dd7f0b11818586c57e2dd22c9a272",
+    "merged_at": "2026-06-02T09:13:14Z",
+    "files": [
+      "doc/whatsnew/4/4.1/index.rst",
+      "doc/whatsnew/fragments/10881.performance",
+      "pylint/checkers/symilar.py",
+      "tests/checkers/unittest_symilar.py",
+      "tests/primer/test_primer_stdlib.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/primer/test_primer_stdlib.py",
+    "source": "test files changed by https://github.com/pylint-dev/pylint/pull/10881 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pylint-dev/pylint/pull/10881",
+      "note": "description, as matched by the miner: speedup claims: 1.6x; 2.6x; 3.3x; 15.5x; 22.0x | timings: 90s; 4.72s; 2.87s; 6.55s; 2.54s; 26.50s; 8.12s; 6.69s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

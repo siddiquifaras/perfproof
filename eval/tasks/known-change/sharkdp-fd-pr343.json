@@ -1,0 +1,46 @@
+{
+  "id": "sharkdp-fd-pr343",
+  "repository": "sharkdp/fd",
+  "stars": 44754,
+  "pushed_at": "2026-10-14T21:14:21Z",
+  "task_commit": "8543ca645d5d789362d96cd75f9e6d155e1c78dd",
+  "task_commit_basis": "first parent of https://github.com/sharkdp/fd/commit/b98f0783ff176ed8211247ff2ae5332e7e6c9ea7; gh api compare 8543ca645d5d...b98f0783ff17 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sharkdp/fd/pull/343",
+    "title": "Enable link-time optimization in release builds",
+    "commit": "b98f0783ff176ed8211247ff2ae5332e7e6c9ea7",
+    "merged_at": "2018-10-14T16:47:26Z",
+    "files": [
+      "Cargo.toml"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sharkdp/fd/pull/343",
+      "note": "description, as matched by the miner: speedup claims: 8% improvement; 11% improvement"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

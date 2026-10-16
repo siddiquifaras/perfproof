@@ -1,0 +1,52 @@
+{
+  "id": "run-llama-llama-index-pr18289",
+  "repository": "run-llama/llama_index",
+  "stars": 52513,
+  "pushed_at": "2026-10-14T15:29:28Z",
+  "task_commit": "c44d00b1f877573ab484f1fab222bac6d960398b",
+  "task_commit_basis": "first parent of https://github.com/run-llama/llama_index/commit/188d87dc67ebbe16206af19bf22b0a1b8bb2075e (squash merge); gh api compare c44d00b1f877...188d87dc67eb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/run-llama/llama_index/pull/18289",
+    "title": "optimize initial imports",
+    "commit": "188d87dc67ebbe16206af19bf22b0a1b8bb2075e",
+    "merged_at": "2025-03-28T17:25:47Z",
+    "files": [
+      "llama-index-core/llama_index/core/BUILD",
+      "llama-index-core/llama_index/core/node_parser/text/semantic_double_merging_splitter.py",
+      "llama-index-core/llama_index/core/node_parser/text/utils.py",
+      "llama-index-core/llama_index/core/postprocessor/optimizer.py",
+      "llama-index-core/llama_index/core/prompts/__init__.py",
+      "llama-index-core/llama_index/core/utils.py",
+      "llama-index-core/tests/BUILD"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/run-llama/llama_index/pull/18289",
+      "note": "description, as matched by the miner: timings: 30s; 8s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

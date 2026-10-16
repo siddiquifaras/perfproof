@@ -1,0 +1,50 @@
+{
+  "id": "textualize-rich-pr3399",
+  "repository": "Textualize/rich",
+  "stars": 57546,
+  "pushed_at": "2026-06-23T03:10:19Z",
+  "task_commit": "349042fd8912ab5f0714ff9a46a70ef8a4be4700",
+  "task_commit_basis": "first parent of https://github.com/Textualize/rich/commit/577def22dd83b999c5937cb2bf2ed49600943325; gh api compare 349042fd8912...577def22dd83 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Textualize/rich/pull/3399",
+    "title": "feat: speedup import time using sys.platform",
+    "commit": "577def22dd83b999c5937cb2bf2ed49600943325",
+    "merged_at": "2024-07-01T09:37:35Z",
+    "files": [
+      "CONTRIBUTORS.md",
+      "rich/color.py",
+      "rich/console.py",
+      "rich/syntax.py",
+      "rich/traceback.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Textualize/rich/pull/3399",
+      "note": "description, as matched by the miner: speedup claims: 1x; 2x | timings: 230ms; 130ms; 282ms; 380ms; 300ms; 200ms; 75ms; 100ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

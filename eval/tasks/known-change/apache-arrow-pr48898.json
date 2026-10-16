@@ -1,0 +1,47 @@
+{
+  "id": "apache-arrow-pr48898",
+  "repository": "apache/arrow",
+  "stars": 17207,
+  "pushed_at": "2026-10-15T02:09:01Z",
+  "task_commit": "421a475fc592041a62bcb1eb906cf0a65e37f1f1",
+  "task_commit_basis": "first parent of https://github.com/apache/arrow/commit/ed355945d223575649f7e77e65453320d8bb771a; gh api compare 421a475fc592...ed355945d223 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/arrow/pull/48898",
+    "title": "GH-48897: [C++] Benchmark and optimize CountSetBits",
+    "commit": "ed355945d223575649f7e77e65453320d8bb771a",
+    "merged_at": "2026-01-21T10:35:08Z",
+    "files": [
+      "cpp/src/arrow/util/bit_util_benchmark.cc",
+      "cpp/src/arrow/util/bitmap_ops.cc"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/arrow/pull/48898",
+      "note": "description, as matched by the miner: timings: 5.27 ns; 35.1 ns; 3703 ns; 3702 ns; 2.45 ns; 28.9 ns; 3490 ns; 3489 ns | benchmark files changed: cpp/src/arrow/util/bit_util_benchmark.cc"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

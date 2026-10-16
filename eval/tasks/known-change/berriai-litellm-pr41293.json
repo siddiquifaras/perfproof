@@ -1,0 +1,92 @@
+{
+  "id": "berriai-litellm-pr41293",
+  "repository": "BerriAI/litellm",
+  "stars": 61333,
+  "pushed_at": "2026-10-15T22:39:41Z",
+  "task_commit": "6e3b6d6d032b3fc601a354ded51661031db351a7",
+  "task_commit_basis": "first parent of https://github.com/BerriAI/litellm/commit/2e46b10320f6c86d93ccb5ffbe31f03aef827bbf; gh api compare 6e3b6d6d032b...2e46b10320f6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/41293",
+    "title": "perf(proxy): split aggregated usage query into key-free rollups and bounded top-N keys",
+    "commit": "2e46b10320f6c86d93ccb5ffbe31f03aef827bbf",
+    "merged_at": "2026-09-18T20:16:50Z",
+    "files": [
+      "litellm/constants.py",
+      "litellm/proxy/_lazy_openapi_snapshot.json",
+      "litellm/proxy/management_endpoints/common_daily_activity.py",
+      "litellm/types/proxy/management_endpoints/common_daily_activity.py",
+      "tests/test_litellm/proxy/management_endpoints/test_common_daily_activity.py",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/CacheLeakageCard.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/CacheLeakageCard.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/useDailyActivityRange.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/useDailyActivityRange.ts",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/EntityUsage/EntityUsage.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/EntityUsage/EntityUsage.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/UsagePageView.tsx",
+      "ui/litellm-dashboard/src/components/EntityUsageExport/exportBlockedReason.test.ts",
+      "ui/litellm-dashboard/src/components/EntityUsageExport/exportBlockedReason.ts",
+      "ui/litellm-dashboard/src/components/UsagePage/components/KeyActivityPanel.test.tsx",
+      "ui/litellm-dashboard/src/components/UsagePage/components/KeyActivityPanel.tsx",
+      "ui/litellm-dashboard/src/lib/http/schema.d.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/43596",
+    "title": "revert: \"perf(proxy): split aggregated usage query into key-free rollups and bounded top-N keys (#41293)\"",
+    "commit": "84e234c57c145386191e59756002ccdd02be692b",
+    "merged_at": "2026-09-28T21:39:41Z",
+    "files": [
+      "litellm/constants.py",
+      "litellm/proxy/_lazy_openapi_snapshot.json",
+      "litellm/proxy/management_endpoints/common_daily_activity.py",
+      "litellm/types/proxy/management_endpoints/common_daily_activity.py",
+      "tests/test_litellm/proxy/management_endpoints/test_common_daily_activity.py",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/CacheLeakageCard.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/CacheLeakageCard.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/useDailyActivityRange.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/cost-optimization/_components/useDailyActivityRange.ts",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/EntityUsage/EntityUsage.test.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/EntityUsage/EntityUsage.tsx",
+      "ui/litellm-dashboard/src/app/(dashboard)/usage/_components/components/UsagePageView.tsx",
+      "ui/litellm-dashboard/src/components/EntityUsageExport/exportBlockedReason.test.ts",
+      "ui/litellm-dashboard/src/components/EntityUsageExport/exportBlockedReason.ts",
+      "ui/litellm-dashboard/src/components/UsagePage/components/KeyActivityPanel.test.tsx",
+      "ui/litellm-dashboard/src/components/UsagePage/components/KeyActivityPanel.tsx",
+      "ui/litellm-dashboard/src/lib/http/schema.d.ts"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_litellm/proxy/management_endpoints/test_common_daily_activity.py",
+    "source": "test files changed by https://github.com/BerriAI/litellm/pull/41293 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/41293",
+      "note": "description, as matched by the miner: timings: 30 seconds; 4 seconds; 30.054310s; 75 seconds; 180 seconds; 4.043630s; 3.81 s; 1.78s"
+    },
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/43596",
+      "note": "revert; miner classified it as reverted-unknown-reason from: 'tenants load every key again, so the aggregated query gets slower as key count grows ### Low - Stacked on the #41324 revert | and the dashboard truncation notice - Keeps the newer Cache Leakage date picker and other later UI work intact Intentional pro'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

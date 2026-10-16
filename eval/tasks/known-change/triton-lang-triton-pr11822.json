@@ -1,0 +1,47 @@
+{
+  "id": "triton-lang-triton-pr11822",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "67054834aba4497b848949f9062cf7c99ba16de6",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/bde7dafd6cb2abb9ee97439e8e4bf07f0383c16c; gh api compare 67054834aba4...bde7dafd6cb2 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/11822",
+    "title": "[TRITONGPU] Significantly improve BMM perf with small updates",
+    "commit": "bde7dafd6cb2abb9ee97439e8e4bf07f0383c16c",
+    "merged_at": "2026-09-17T01:24:10Z",
+    "files": [
+      "lib/Dialect/TritonGPU/IR/Dialect.cpp",
+      "test/TritonGPU/accelerate-matmul.mlir"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/11822",
+      "note": "description, as matched by the miner: speedup claims: 40x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

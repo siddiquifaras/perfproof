@@ -1,0 +1,46 @@
+{
+  "id": "redis-redis-pr15741",
+  "repository": "redis/redis",
+  "stars": 76833,
+  "pushed_at": "2026-10-15T16:28:22Z",
+  "task_commit": "d340f9c68c2e76ad9265955fcbf4b6f25d4c68d4",
+  "task_commit_basis": "first parent of https://github.com/redis/redis/commit/3d15ede58ad862996f9b23d3500cad2a5c7fb0f4; gh api compare d340f9c68c2e...3d15ede58ad8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/redis/redis/pull/15741",
+    "title": "Align lzf_compress to a cache line to stabilize BGSAVE performance on x86-64",
+    "commit": "3d15ede58ad862996f9b23d3500cad2a5c7fb0f4",
+    "merged_at": "2026-09-07T21:38:32Z",
+    "files": [
+      "src/lzf_c.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/redis/redis/pull/15741",
+      "note": "description, as matched by the miner: speedup claims: 20% less"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

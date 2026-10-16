@@ -1,0 +1,51 @@
+{
+  "id": "triton-lang-triton-pr12085",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "b1c34b00c7f6a6819927577c00a98c0753c1709f",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/1c1604eea99f51d319edda6fc9176b583a19c2af (squash merge); gh api compare b1c34b00c7f6...1c1604eea99f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/12085",
+    "title": "[Analysis] Speed up buffer-view deduplication",
+    "commit": "1c1604eea99f51d319edda6fc9176b583a19c2af",
+    "merged_at": "2026-10-05T21:01:04Z",
+    "files": [
+      "include/triton/Analysis/BufferRegion.h",
+      "lib/Analysis/BufferRegion.cpp",
+      "lib/Dialect/TritonInstrument/IR/Utility.cpp",
+      "test/Analysis/test-membar.mlir",
+      "test/lib/Analysis/TestBufferRegion.cpp",
+      "unittest/Analysis/UtilityTest.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/12085",
+      "note": "description, as matched by the miner: speedup claims: 48.40x; 3.51x; 2.37x; 1.76x; 1.44x | timings: 1.482 s; 10.346 s; 49.578 s; 52.0 ms; 17.5 ms; 366.8 ms; 135.2 ms; 39.9 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "astropy-astropy-pr20107",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "c51546779a3afed0dcbd5ac14b5d7b8fc615d285",
+  "task_commit_basis": "first parent of https://github.com/astropy/astropy/commit/1fdfae1fe1881234e08855ac662dae86e538ed7c; gh api compare c51546779a3a...1fdfae1fe188 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/20107",
+    "title": "PERF: Add cache for some speed-up",
+    "commit": "1fdfae1fe1881234e08855ac662dae86e538ed7c",
+    "merged_at": "2026-08-08T18:18:18Z",
+    "files": [
+      "astropy/units/core.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit u.km.to(u.m, b)",
+    "source": "quoted in the description of https://github.com/astropy/astropy/pull/20107",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/20107",
+      "note": "description, as matched by the miner: timings: 1.24 μs; 760 ns; 4.86 μs; 4.34 μs; 4.45 μs; 4.27 μs; 2.5 μs; 791 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,65 @@
+{
+  "id": "ollama-ollama-pr11863",
+  "repository": "ollama/ollama",
+  "stars": 183318,
+  "pushed_at": "2026-10-15T22:30:46Z",
+  "task_commit": "ead4a9a1d073bdc2f175e429daa85f0e3a66fda7",
+  "task_commit_basis": "first parent of https://github.com/ollama/ollama/commit/517807cdf29d2c8d22bc748a2cfde2b61bd67c98 (squash merge); gh api compare ead4a9a1d073...517807cdf29d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ollama/ollama/pull/11863",
+    "title": "perf: build graph for next batch async to keep GPU busy",
+    "commit": "517807cdf29d2c8d22bc748a2cfde2b61bd67c98",
+    "merged_at": "2025-08-29T21:20:28Z",
+    "files": [
+      "integration/README.md",
+      "integration/api_test.go",
+      "integration/basic_test.go",
+      "integration/concurrency_test.go",
+      "integration/context_test.go",
+      "integration/llm_image_test.go",
+      "integration/llm_test.go",
+      "integration/max_queue_test.go",
+      "integration/utils_test.go",
+      "ml/backend.go",
+      "ml/backend/ggml/ggml.go",
+      "model/model.go",
+      "model/models/gemma3/model.go",
+      "model/models/llama4/model.go",
+      "model/models/mistral3/model.go",
+      "model/models/mllama/model.go",
+      "model/models/qwen25vl/model.go",
+      "runner/ollamarunner/cache.go",
+      "runner/ollamarunner/cache_test.go",
+      "runner/ollamarunner/runner.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ollama/ollama/pull/11863",
+      "note": "description, as matched by the miner: speedup claims: 3% speedup; 7% speedup"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

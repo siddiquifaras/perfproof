@@ -1,0 +1,54 @@
+{
+  "id": "actix-actix-web-pr1394",
+  "repository": "actix/actix-web",
+  "stars": 24862,
+  "pushed_at": "2026-10-15T11:58:35Z",
+  "task_commit": "a7d805aab7321c5421934800d05b4c4c27d30d2c",
+  "task_commit_basis": "first parent of https://github.com/actix/actix-web/commit/10e3e72595f14fd416ab471fff6e23f11661cc4e (squash merge); gh api compare a7d805aab732...10e3e72595f1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/actix/actix-web/pull/1394",
+    "title": "Http2 client configuration to improve performance",
+    "commit": "10e3e72595f14fd416ab471fff6e23f11661cc4e",
+    "merged_at": "2020-03-07T02:09:32Z",
+    "files": [
+      "actix-http/CHANGES.md",
+      "actix-http/src/client/config.rs",
+      "actix-http/src/client/connector.rs",
+      "actix-http/src/client/h2proto.rs",
+      "actix-http/src/client/mod.rs",
+      "actix-http/src/client/pool.rs",
+      "awc/CHANGES.md",
+      "awc/src/builder.rs",
+      "awc/tests/test_connector.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/actix/actix-web/pull/1394",
+      "note": "description, as matched by the miner: timings: 16974ms; 1.5834 s; 1.6329 s; 1.6794 s; 16081ms; 1.5967 s; 1.7657 s; 2.0360 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

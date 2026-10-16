@@ -1,0 +1,46 @@
+{
+  "id": "honojs-hono-pr5118-landed",
+  "repository": "honojs/hono",
+  "stars": 32548,
+  "pushed_at": "2026-10-15T12:26:44Z",
+  "task_commit": "55039ba19aa9a49fe138dce7b3fe7477e484d303",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/honojs/hono/commit/55039ba19aa9a49fe138dce7b3fe7477e484d303",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/honojs/hono/pull/5118",
+    "title": "perf(context): iterate the header record with for..in",
+    "commit": "55039ba19aa9a49fe138dce7b3fe7477e484d303",
+    "merged_at": "2026-07-22T09:21:07Z",
+    "files": [
+      "src/context.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/honojs/hono/pull/5118",
+      "note": "description, as matched by the miner: speedup claims: 1.00x faster; 1.07x faster; 1.04x faster; 1.01x faster; 1.03x faster | timings: 300.11 ns; 295.27 ns; 302.92 ns; 311.90 ns; 288.84 ns; 298.71 ns; 299.84 ns; 315.35 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

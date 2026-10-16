@@ -1,0 +1,46 @@
+{
+  "id": "astropy-astropy-pr18393-landed",
+  "repository": "astropy/astropy",
+  "stars": 5345,
+  "pushed_at": "2026-10-15T20:55:07Z",
+  "task_commit": "0caa6c1483ec575bb8113164e22fca854d830642",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/astropy/astropy/commit/0caa6c1483ec575bb8113164e22fca854d830642",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/astropy/astropy/pull/18393",
+    "title": "Speed up `astropy.stats.histogram_intervals()`",
+    "commit": "0caa6c1483ec575bb8113164e22fca854d830642",
+    "merged_at": "2025-07-07T21:48:54Z",
+    "files": [
+      "astropy/stats/funcs.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit histogram_intervals(3, (0, 0.5, 1), (1, 2))",
+    "source": "quoted in the description of https://github.com/astropy/astropy/pull/18393",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/astropy/astropy/pull/18393",
+      "note": "description, as matched by the miner: timings: 2.56 μs ± 34.4 ns; 15.8 ms ± 48 μs; 1.7 μs ± 3.87 ns; 132 μs ± 2.4 μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

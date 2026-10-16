@@ -1,0 +1,60 @@
+{
+  "id": "huggingface-text-embeddings-inference-pr35",
+  "repository": "huggingface/text-embeddings-inference",
+  "stars": 5079,
+  "pushed_at": "2026-10-13T14:33:07Z",
+  "task_commit": "c54eb2e625b5a1438213710b56258071cf9ac373",
+  "task_commit_basis": "first parent of https://github.com/huggingface/text-embeddings-inference/commit/d123a5a3a3e0d997ab86af12edad59d1e6716c2f (squash merge); gh api compare c54eb2e625b5...d123a5a3a3e0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/text-embeddings-inference/pull/35",
+    "title": "feat: faster CPU image on AMD",
+    "commit": "d123a5a3a3e0d997ab86af12edad59d1e6716c2f",
+    "merged_at": "2023-10-24T16:44:52Z",
+    "files": [
+      "Cargo.lock",
+      "Cargo.toml",
+      "Dockerfile",
+      "backends/Cargo.toml",
+      "backends/candle/Cargo.toml",
+      "backends/candle/src/lib.rs",
+      "backends/candle/src/models.rs",
+      "backends/candle/src/models/bert.rs",
+      "core/Cargo.toml",
+      "core/src/infer.rs",
+      "core/src/queue.rs",
+      "core/src/tokenization.rs",
+      "router/Cargo.toml",
+      "router/src/main.rs",
+      "router/src/server.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/text-embeddings-inference/pull/35",
+      "note": "description, as matched by the miner: speedup claims: 20% faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

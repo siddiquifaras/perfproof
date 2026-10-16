@@ -1,0 +1,50 @@
+{
+  "id": "duckdb-duckdb-pr25547",
+  "repository": "duckdb/duckdb",
+  "stars": 42186,
+  "pushed_at": "2026-10-15T19:24:23Z",
+  "task_commit": "cdc9628ffa6273b5be4ac459935288669b0130b9",
+  "task_commit_basis": "first parent of https://github.com/duckdb/duckdb/commit/1968176af0699a1818340f7c13b0a585b29118d4; gh api compare cdc9628ffa62...1968176af069 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/duckdb/duckdb/pull/25547",
+    "title": "Skip parse/plan/optimize for Connection::BeginTransaction/Commit/Rollback",
+    "commit": "1968176af0699a1818340f7c13b0a585b29118d4",
+    "merged_at": "2026-09-14T21:40:44Z",
+    "files": [
+      "src/execution/operator/helper/physical_transaction.cpp",
+      "src/include/duckdb/main/client_context.hpp",
+      "src/main/client_context.cpp",
+      "src/main/connection.cpp",
+      "test/api/test_api.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/duckdb/duckdb/pull/25547",
+      "note": "description, as matched by the miner: speedup claims: 10× | timings: 0.72 s; 0.11 s; 3.65 s; 0.59 s; 14.16 s; 2.04 s; 0.48 s; 0.06 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

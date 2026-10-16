@@ -1,0 +1,66 @@
+{
+  "id": "pola-rs-polars-pr29573",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "cc489c97064fc8eaaf89f46e02aa44e11f0ba025",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/3908bad5513f7c01f3639bbdade33d24f29ef6a9; gh api compare cc489c97064f...3908bad5513f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29573",
+    "title": "perf: Update few-group sums, means and counts in lanes",
+    "commit": "3908bad5513f7c01f3639bbdade33d24f29ef6a9",
+    "merged_at": "2026-09-27T18:20:56Z",
+    "files": [
+      "crates/polars-expr/src/reduce/count.rs",
+      "crates/polars-expr/src/reduce/mean.rs",
+      "crates/polars-expr/src/reduce/mod.rs",
+      "crates/polars-expr/src/reduce/sum.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/29589",
+    "title": "Revert \"perf: Update few-group sums, means and counts in lanes\"",
+    "commit": "b56114c1dcb7d3cb75d228fdc2f2eeff9a200f3c",
+    "merged_at": "2026-09-28T11:26:50Z",
+    "files": [
+      "crates/polars-expr/src/reduce/count.rs",
+      "crates/polars-expr/src/reduce/mean.rs",
+      "crates/polars-expr/src/reduce/mod.rs",
+      "crates/polars-expr/src/reduce/sum.rs"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29573",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/pola-rs/polars/pull/29589",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

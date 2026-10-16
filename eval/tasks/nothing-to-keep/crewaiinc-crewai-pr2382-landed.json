@@ -1,0 +1,46 @@
+{
+  "id": "crewaiinc-crewai-pr2382-landed",
+  "repository": "crewAIInc/crewAI",
+  "stars": 59744,
+  "pushed_at": "2026-10-15T21:33:41Z",
+  "task_commit": "d3a09c3180e86fc1d73492660627f0a39e6d4b2c",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/crewAIInc/crewAI/commit/d3a09c3180e86fc1d73492660627f0a39e6d4b2c",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/crewAIInc/crewAI/pull/2382",
+    "title": "⚡️ Speed up method `CrewAgentParser._clean_action` by 4275x",
+    "commit": "d3a09c3180e86fc1d73492660627f0a39e6d4b2c",
+    "merged_at": "2025-03-21T17:51:14Z",
+    "files": [
+      "src/crewai/agents/parser.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/crewAIInc/crewAI/pull/2382",
+      "note": "description, as matched by the miner: speedup claims: 275.65x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

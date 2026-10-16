@@ -1,0 +1,47 @@
+{
+  "id": "tokio-rs-axum-pr1123",
+  "repository": "tokio-rs/axum",
+  "stars": 27487,
+  "pushed_at": "2026-10-15T12:08:49Z",
+  "task_commit": "523c7fed88afa3a17bc78a43225659a840c9f361",
+  "task_commit_basis": "first parent of https://github.com/tokio-rs/axum/commit/cb207472f49bcf80568f619cb559f8f689d7b91b (squash merge); gh api compare 523c7fed88af...cb207472f49b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/tokio-rs/axum/pull/1123",
+    "title": "Make `Router` faster to clone",
+    "commit": "cb207472f49bcf80568f619cb559f8f689d7b91b",
+    "merged_at": "2022-06-27T09:00:20Z",
+    "files": [
+      "axum/CHANGELOG.md",
+      "axum/src/routing/mod.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/tokio-rs/axum/pull/1123",
+      "note": "description, as matched by the miner: timings: 176.916µs; 92.698µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,53 @@
+{
+  "id": "sympy-sympy-pr29112-landed",
+  "repository": "sympy/sympy",
+  "stars": 15016,
+  "pushed_at": "2026-10-15T08:51:08Z",
+  "task_commit": "27c204a61fe5a507552afa2b495e27e83a62b413",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/sympy/sympy/commit/27c204a61fe5a507552afa2b495e27e83a62b413",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sympy/sympy/pull/29112",
+    "title": "Group operations optimization",
+    "commit": "27c204a61fe5a507552afa2b495e27e83a62b413",
+    "merged_at": "2026-02-08T01:04:21Z",
+    "files": [
+      "sympy/combinatorics/fp_groups.py",
+      "sympy/combinatorics/free_groups.py",
+      "sympy/combinatorics/homomorphisms.py",
+      "sympy/combinatorics/pc_groups.py",
+      "sympy/combinatorics/perm_groups.py",
+      "sympy/combinatorics/permutations.py",
+      "sympy/combinatorics/tests/test_free_groups.py",
+      "sympy/combinatorics/tests/test_permutations.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest sympy/combinatorics/tests/test_free_groups.py sympy/combinatorics/tests/test_permutations.py",
+    "source": "test files changed by https://github.com/sympy/sympy/pull/29112 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sympy/sympy/pull/29112",
+      "note": "description, as matched by the miner: speedup claims: 19.73x; 4.66x; 3.93x; 1.53x; 20x faster | timings: 64.422 ms; 3.266 ms; 69.311 ms; 14.877 ms; 208.694 ms; 53.048 ms; 469.886 ms; 307.221 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "mem0ai-mem0-pr1268",
+  "repository": "mem0ai/mem0",
+  "stars": 67238,
+  "pushed_at": "2026-10-14T15:40:09Z",
+  "task_commit": "9544c69c55618b9ff0e3d413b9a246647a0338c3",
+  "task_commit_basis": "first parent of https://github.com/mem0ai/mem0/commit/1354747ca8ba8eaec41924f297c902863abb2a7f; gh api compare 9544c69c5561...1354747ca8ba touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/mem0ai/mem0/pull/1268",
+    "title": "⚡️ Speed up `get_word_count()` by 6% in `embedchain/chunkers/base_chunker.py`",
+    "commit": "1354747ca8ba8eaec41924f297c902863abb2a7f",
+    "merged_at": "2024-06-05T17:36:00Z",
+    "files": [
+      "embedchain/chunkers/base_chunker.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/mem0ai/mem0/pull/1268",
+      "note": "description, as matched by the miner: timings: 1014.51μs; 955.61μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

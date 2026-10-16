@@ -1,0 +1,47 @@
+{
+  "id": "openai-codex-pr18370",
+  "repository": "openai/codex",
+  "stars": 129391,
+  "pushed_at": "2026-10-15T22:32:40Z",
+  "task_commit": "92cf90277d4f3bcdee8457047c710db58d9fc715",
+  "task_commit_basis": "first parent of https://github.com/openai/codex/commit/48f117d0a2d2b75911029de152819846dae40d76; gh api compare 92cf90277d4f...48f117d0a2d2 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/openai/codex/pull/18370",
+    "title": "perf(tui): defer startup skills refresh",
+    "commit": "48f117d0a2d2b75911029de152819846dae40d76",
+    "merged_at": "2026-04-17T19:55:01Z",
+    "files": [
+      "codex-rs/tui/src/app.rs",
+      "codex-rs/tui/src/app_event.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/openai/codex/pull/18370",
+      "note": "description, as matched by the miner: timings: 307.5 ms; 191.0 ms; 524.0 ms; 348.0 ms; 494.0 ms; 256.0 ms; 509.0 ms; 512.0 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

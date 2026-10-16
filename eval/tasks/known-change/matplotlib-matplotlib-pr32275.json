@@ -1,0 +1,47 @@
+{
+  "id": "matplotlib-matplotlib-pr32275",
+  "repository": "matplotlib/matplotlib",
+  "stars": 23373,
+  "pushed_at": "2026-10-15T20:08:53Z",
+  "task_commit": "374b2da71ccbfeb9edc955a2420180fed58364d3",
+  "task_commit_basis": "first parent of https://github.com/matplotlib/matplotlib/commit/c79b59e7c19eaf709d40c672b587e38c15995ae2; gh api compare 374b2da71ccb...c79b59e7c19e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/matplotlib/matplotlib/pull/32275",
+    "title": "Speed up RGBA-stage image resampling",
+    "commit": "c79b59e7c19eaf709d40c672b587e38c15995ae2",
+    "merged_at": "2026-09-03T16:54:26Z",
+    "files": [
+      "lib/matplotlib/image.py",
+      "lib/matplotlib/tests/test_image.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest lib/matplotlib/tests/test_image.py",
+    "source": "test files changed by https://github.com/matplotlib/matplotlib/pull/32275 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/matplotlib/matplotlib/pull/32275",
+      "note": "description, as matched by the miner: speedup claims: 2x; 2.8x | timings: 16 ms; 16.3 ms; 8.3 ms; 2.8 ms; 13.4 ms; 4.6 ms; 0.6 ms; 26.9 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

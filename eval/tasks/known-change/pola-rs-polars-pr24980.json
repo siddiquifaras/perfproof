@@ -1,0 +1,60 @@
+{
+  "id": "pola-rs-polars-pr24980",
+  "repository": "pola-rs/polars",
+  "stars": 40093,
+  "pushed_at": "2026-10-15T17:56:35Z",
+  "task_commit": "2f8badc26a3110db9e02ba03a3772129602b926f",
+  "task_commit_basis": "first parent of https://github.com/pola-rs/polars/commit/5f71d158b833223dc622f59eb7ef7aef15a34c61; gh api compare 2f8badc26a31...5f71d158b833 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/24980",
+    "title": "perf: Better parallelize `take{_slice,}_unchecked`",
+    "commit": "5f71d158b833223dc622f59eb7ef7aef15a34c61",
+    "merged_at": "2025-10-22T14:34:43Z",
+    "files": [
+      "crates/polars-core/src/frame/mod.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/pola-rs/polars/pull/25664",
+    "title": "Revert \"perf: Better parallelize `take{_slice,}_unchecked`\"",
+    "commit": "4e50feaf9c744927c4a5bc5aa00b310bc85883af",
+    "merged_at": "2025-12-08T08:03:48Z",
+    "files": [
+      "crates/polars-core/src/frame/mod.rs"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pola-rs/polars/pull/24980",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/pola-rs/polars/pull/25664",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

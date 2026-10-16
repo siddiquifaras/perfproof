@@ -1,0 +1,57 @@
+{
+  "id": "triton-lang-triton-pr11565",
+  "repository": "triton-lang/triton",
+  "stars": 20381,
+  "pushed_at": "2026-10-15T22:24:07Z",
+  "task_commit": "1298a6b13aabbda7442ca73a83442cf7db2f608d",
+  "task_commit_basis": "first parent of https://github.com/triton-lang/triton/commit/5198bceaf9939c6e1d266d0bc0dc47cface0d2c3 (squash merge); gh api compare 1298a6b13aab...5198bceaf993 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/triton-lang/triton/pull/11565",
+    "title": "[KERNELS] Accelerate Blackwell and Hopper layout conversions",
+    "commit": "5198bceaf9939c6e1d266d0bc0dc47cface0d2c3",
+    "merged_at": "2026-09-04T18:56:54Z",
+    "files": [
+      "python/triton/_compile_warmup.py",
+      "python/triton/_compile_warmup_state.py",
+      "python/triton/_internal_testing.py",
+      "python/triton_kernels/tests/test_tensor.py",
+      "python/triton_kernels/tests/test_tensor_details/test_layout_blackwell.py",
+      "python/triton_kernels/tests/test_tensor_details/test_layout_hopper.py",
+      "python/triton_kernels/triton_kernels/tensor_details/layout_details/blackwell_scale.py",
+      "python/triton_kernels/triton_kernels/tensor_details/layout_details/blackwell_value.py",
+      "python/triton_kernels/triton_kernels/tensor_details/layout_details/blackwell_value_shuffled.py",
+      "python/triton_kernels/triton_kernels/tensor_details/layout_details/hopper_scale.py",
+      "python/triton_kernels/triton_kernels/tensor_details/layout_details/scale.py",
+      "python/triton_kernels/triton_kernels/testing.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/triton-lang/triton/pull/11565",
+      "note": "description, as matched by the miner: speedup claims: 2.27×; 1.00×; 10.76×; 8.66×; 12.31×"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

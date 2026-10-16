@@ -1,0 +1,48 @@
+{
+  "id": "pydata-xarray-pr11691",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "a3daba590553c0369629c70cf50fc11a316c1e49",
+  "task_commit_basis": "first parent of https://github.com/pydata/xarray/commit/50c85059c3e1a9b42dd1a15214e7f7136db8f59b (squash merge); gh api compare a3daba590553...50c85059c3e1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/11691",
+    "title": "Speed up the repr of objects with many coordinates",
+    "commit": "50c85059c3e1a9b42dd1a15214e7f7136db8f59b",
+    "merged_at": "2026-10-08T05:21:57Z",
+    "files": [
+      "doc/whats-new.rst",
+      "xarray/core/formatting.py",
+      "xarray/core/formatting_html.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydata/xarray/pull/11691",
+      "note": "description, as matched by the miner: timings: 5.9 ms; 12.7 ms; 14.0 ms; 5.3 ms; 77 ms; 64 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

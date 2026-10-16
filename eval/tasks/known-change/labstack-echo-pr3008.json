@@ -1,0 +1,57 @@
+{
+  "id": "labstack-echo-pr3008",
+  "repository": "labstack/echo",
+  "stars": 32769,
+  "pushed_at": "2026-10-12T15:06:45Z",
+  "task_commit": "a9ede66a5a7196411131beb1ee801e75bbaf7ac6",
+  "task_commit_basis": "first parent of https://github.com/labstack/echo/commit/b1d65e40fef366f2e1a70ca7c172f5057df7024b (squash merge); gh api compare a9ede66a5a71...b1d65e40fef3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/labstack/echo/pull/3008",
+    "title": "perf: optimize core hot paths (chain, context, binding, responses)",
+    "commit": "b1d65e40fef366f2e1a70ca7c172f5057df7024b",
+    "merged_at": "2026-06-14T13:08:08Z",
+    "files": [
+      "bind.go",
+      "bind_cache_test.go",
+      "context.go",
+      "dispatch_pool_test.go",
+      "echo.go",
+      "middleware/randomstring_bench_test.go",
+      "middleware/randomstring_concurrent_test.go",
+      "middleware/secure.go",
+      "middleware/util.go",
+      "perf_bench_test.go",
+      "query_fastpath_test.go",
+      "server_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/labstack/echo/pull/3008",
+      "note": "description, as matched by the miner: speedup claims: 48% faster | timings: 101 ns; 34 ns; 199 ns; 41 ns; 191 ns; 188 ns; 347 ns; 350 ns | benchmark files changed: middleware/randomstring_bench_test.go, perf_bench_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

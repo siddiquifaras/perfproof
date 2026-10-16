@@ -1,0 +1,49 @@
+{
+  "id": "pandas-dev-pandas-pr54341",
+  "repository": "pandas-dev/pandas",
+  "stars": 50055,
+  "pushed_at": "2026-10-15T22:31:53Z",
+  "task_commit": "582a1be48dcba788f3c6d9e1c96d7971cdc79cc5",
+  "task_commit_basis": "first parent of https://github.com/pandas-dev/pandas/commit/19c8a4a26b466098c000883ad8de3f8c5e6db439 (squash merge); gh api compare 582a1be48dcb...19c8a4a26b46 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pandas-dev/pandas/pull/54341",
+    "title": "PERF: axis=1 reductions with EA dtypes",
+    "commit": "19c8a4a26b466098c000883ad8de3f8c5e6db439",
+    "merged_at": "2023-08-13T12:47:37Z",
+    "files": [
+      "doc/source/whatsnew/v2.1.0.rst",
+      "pandas/core/frame.py",
+      "pandas/core/groupby/groupby.py",
+      "pandas/tests/frame/test_reductions.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit df.sum(axis=1)",
+    "source": "quoted in the description of https://github.com/pandas-dev/pandas/pull/54341",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest pandas/tests/frame/test_reductions.py",
+    "source": "test files changed by https://github.com/pandas-dev/pandas/pull/54341 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pandas-dev/pandas/pull/54341",
+      "note": "description, as matched by the miner: timings: 3.79 s ± 137 ms; 1.35 s ± 40.1 ms; 250 ms ± 53 ms; 5.42 ms ± 306 µs; 1.85 s ± 44.8 ms; 1.2 s ± 58.5 ms; 16.4 ms ± 745 µs; 5.15 ms ± 286 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "pydata-xarray-pr11306",
+  "repository": "pydata/xarray",
+  "stars": 4209,
+  "pushed_at": "2026-10-15T22:14:05Z",
+  "task_commit": "f7e47a19726321e56d74bca896eb55c6f330506b",
+  "task_commit_basis": "first parent of https://github.com/pydata/xarray/commit/b8bfeca3275045ca82adc3401c38444b1ed12c4a (squash merge); gh api compare f7e47a197263...b8bfeca32750 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pydata/xarray/pull/11306",
+    "title": "Fix performance regression in Coordinates.to_index",
+    "commit": "b8bfeca3275045ca82adc3401c38444b1ed12c4a",
+    "merged_at": "2026-04-22T16:23:19Z",
+    "files": [
+      "doc/whats-new.rst",
+      "xarray/core/coordinates.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pydata/xarray/pull/11306",
+      "note": "description, as matched by the miner: speedup claims: 40× | timings: 10.33s; 0.26s; 10s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

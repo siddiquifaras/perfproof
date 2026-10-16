@@ -1,0 +1,48 @@
+{
+  "id": "berriai-litellm-pr46412",
+  "repository": "BerriAI/litellm",
+  "stars": 61333,
+  "pushed_at": "2026-10-15T22:39:41Z",
+  "task_commit": "058c84476afb37c813c2ecb40e2c180eae6f640e",
+  "task_commit_basis": "first parent of https://github.com/BerriAI/litellm/commit/461cbea6e6f6263f5b35f8c3cb6711b6e129c291; gh api compare 058c84476afb...461cbea6e6f6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/46412",
+    "title": "perf(scim): batch group member identity lookups into one query per push",
+    "commit": "461cbea6e6f6263f5b35f8c3cb6711b6e129c291",
+    "merged_at": "2026-10-14T21:54:20Z",
+    "files": [
+      "litellm/constants.py",
+      "litellm/proxy/management_endpoints/scim/scim_v2.py",
+      "tests/unit/proxy/management_endpoints/scim/test_scim_v2_endpoints.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/unit/proxy/management_endpoints/scim/test_scim_v2_endpoints.py",
+    "source": "test files changed by https://github.com/BerriAI/litellm/pull/46412 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/46412",
+      "note": "description, as matched by the miner: timings: 11s; 11 seconds; 0.2 seconds; 0.1 seconds; 11.044293s; 10.805307s; 10.823000s; 0.254013s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

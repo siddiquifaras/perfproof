@@ -1,0 +1,76 @@
+{
+  "id": "vllm-project-vllm-pr52606",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "d53b1c2efc0ca7161c3844f51ca9acbcdb7129d5",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/463aa5e30fe0b51a5d6ef22897962fc1be97cb85 (squash merge); gh api compare d53b1c2efc0c...463aa5e30fe0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/52606",
+    "title": "[ROCm][Perf] Kimi-K3 Fused kernels for KDA prefill",
+    "commit": "463aa5e30fe0b51a5d6ef22897962fc1be97cb85",
+    "merged_at": "2026-08-21T16:07:14Z",
+    "files": [
+      "CMakeLists.txt",
+      "csrc/libtorch_stable/kimi_k3/fused_kda_chunk_kernel_rocm.cu",
+      "csrc/libtorch_stable/ops.h",
+      "csrc/libtorch_stable/torch_bindings.cpp",
+      "tests/models/kimi_k3/test_amd_kda_chunk.py",
+      "vllm/engine/arg_utils.py",
+      "vllm/models/kimi_k3/amd/kda.py",
+      "vllm/models/kimi_k3/amd/ops/kda_chunk.py",
+      "vllm/models/kimi_k3/amd/ops/kda_prefill.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/53294",
+    "title": "Revert \"[ROCm][Perf] Kimi-K3 Fused kernels for KDA prefill\"",
+    "commit": "592e06f2ae115cbb0f7e2e1e776c255a3fe6c3c1",
+    "merged_at": "2026-08-21T20:34:13Z",
+    "files": [
+      "CMakeLists.txt",
+      "csrc/libtorch_stable/kimi_k3/fused_kda_chunk_kernel_rocm.cu",
+      "csrc/libtorch_stable/ops.h",
+      "csrc/libtorch_stable/torch_bindings.cpp",
+      "tests/models/kimi_k3/test_amd_kda_chunk.py",
+      "vllm/engine/arg_utils.py",
+      "vllm/models/kimi_k3/amd/kda.py",
+      "vllm/models/kimi_k3/amd/ops/kda_chunk.py",
+      "vllm/models/kimi_k3/amd/ops/kda_prefill.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "serving",
+  "workload": {
+    "command": "vllm bench serve --model moonshotai/Kimi-K3 --backend vllm --trust-remote-code --dataset-name random --random-input-len 8192 --random-output-len 1024 --max-concurrency \"$CONC\" --num-prompts $((CONC * 4)) --temperature 0 --ignore-eos",
+    "source": "quoted in the description of https://github.com/vllm-project/vllm/pull/52606",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/models/kimi_k3/test_amd_kda_chunk.py",
+    "source": "test files changed by https://github.com/vllm-project/vllm/pull/52606 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/52606",
+      "note": "description, as matched by the miner: speedup claims: 2x faster; 1.93×; 1.76×; 2.65×; 2.31× | timings: 117.4 µs; 60.7 µs; 139.2 µs; 79.1 µs; 301.1 µs; 113.7 µs; 330.5 µs; 143.0 µs"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/53294",
+      "note": "revert; miner classified it as reverted-unknown-reason from: 'Revert ## Why This because it deterministically breaks the AMD CI image build on every architecture set that includes gfx90a: ``` csrc/l'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

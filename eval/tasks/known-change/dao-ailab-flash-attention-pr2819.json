@@ -1,0 +1,46 @@
+{
+  "id": "dao-ailab-flash-attention-pr2819",
+  "repository": "Dao-AILab/flash-attention",
+  "stars": 25140,
+  "pushed_at": "2026-10-15T18:25:14Z",
+  "task_commit": "0251105a2fb19d2957484b7f023cd8c115286ced",
+  "task_commit_basis": "first parent of https://github.com/Dao-AILab/flash-attention/commit/ce088ab9ce0fc0434dcd8afa0a791da9fcc3a820; gh api compare 0251105a2fb1...ce088ab9ce0f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Dao-AILab/flash-attention/pull/2819",
+    "title": "[CuTe] Speed up scalar SM100 mask compilation",
+    "commit": "ce088ab9ce0fc0434dcd8afa0a791da9fcc3a820",
+    "merged_at": "2026-08-28T00:43:23Z",
+    "files": [
+      "flash_attn/cute/mask.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "gpu",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Dao-AILab/flash-attention/pull/2819",
+      "note": "description, as matched by the miner: timings: 11.02 s; 7.58 s; 15.23 us; 15.17 us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

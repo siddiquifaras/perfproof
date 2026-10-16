@@ -1,0 +1,60 @@
+{
+  "id": "ggml-org-llama-cpp-pr16522",
+  "repository": "ggml-org/llama.cpp",
+  "stars": 131304,
+  "pushed_at": "2026-10-15T22:31:14Z",
+  "task_commit": "d8eaa26e4d9228df3aa46a930db60c8eaab67c1b",
+  "task_commit_basis": "first parent of https://github.com/ggml-org/llama.cpp/commit/19a5a3edfd306516cc419679d69d6435943b6816 (squash merge); gh api compare d8eaa26e4d92...19a5a3edfd30 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/16522",
+    "title": "Leverage the existing GGML_F32_VEC helpers to vectorize ggml_vec_set_f32 for faster fills",
+    "commit": "19a5a3edfd306516cc419679d69d6435943b6816",
+    "merged_at": "2025-10-22T10:14:14Z",
+    "files": [
+      "ggml/src/ggml-cpu/vec.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/ggml-org/llama.cpp/pull/16723",
+    "title": "Revert \"Leverage the existing GGML_F32_VEC helpers to vectorize ggml_vec_set_f32 for faster fills\"",
+    "commit": "a2e0088d9242bd9e57f8b852b05a6e47843b5a45",
+    "merged_at": "2025-10-22T18:20:55Z",
+    "files": [
+      "ggml/src/ggml-cpu/vec.h"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-unknown-reason",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/16522",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/pull/16723",
+      "note": "revert; miner classified it as reverted-unknown-reason (no reason text)"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

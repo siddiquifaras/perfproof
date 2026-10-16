@@ -1,0 +1,46 @@
+{
+  "id": "rails-rails-pr59030",
+  "repository": "rails/rails",
+  "stars": 58839,
+  "pushed_at": "2026-10-15T20:53:55Z",
+  "task_commit": "bbaec1c668407502e6fd220e28275f914dda379c",
+  "task_commit_basis": "first parent of https://github.com/rails/rails/commit/d05a45b41edf679d2dfba4e40366af80628626ff; gh api compare bbaec1c66840...d05a45b41edf touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rails/rails/pull/59030",
+    "title": "Speed up `String#blank?` further by avoiding repeated `bytesize` calls",
+    "commit": "d05a45b41edf679d2dfba4e40366af80628626ff",
+    "merged_at": "2026-10-11T18:20:41Z",
+    "files": [
+      "activesupport/lib/active_support/core_ext/object/blank.rb"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rails/rails/pull/59030",
+      "note": "description, as matched by the miner: speedup claims: 1.10x; 1.29x; 1.23x; 1.16x; 1.46x | timings: 100ms; 47.46 ns; 5.089023s; 47.94 ns; 5.034041s; 108.78 ns; 5.004132s; 108.10 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

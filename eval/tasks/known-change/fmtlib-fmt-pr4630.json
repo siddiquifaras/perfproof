@@ -1,0 +1,46 @@
+{
+  "id": "fmtlib-fmt-pr4630",
+  "repository": "fmtlib/fmt",
+  "stars": 25882,
+  "pushed_at": "2026-10-11T22:29:11Z",
+  "task_commit": "91d1aced0a846161135310249664506b4a56e196",
+  "task_commit_basis": "first parent of https://github.com/fmtlib/fmt/commit/7ad8004d575a7eb5aed7b5911c1ae298f7258052 (squash merge); gh api compare 91d1aced0a84...7ad8004d575a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fmtlib/fmt/pull/4630",
+    "title": "Speed up do_format_decimal",
+    "commit": "7ad8004d575a7eb5aed7b5911c1ae298f7258052",
+    "merged_at": "2025-12-25T16:21:20Z",
+    "files": [
+      "include/fmt/format.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fmtlib/fmt/pull/4630",
+      "note": "description, as matched by the miner: timings: 13785856 ns; 13748336 ns; 13560583 ns; 13522664 ns; 13448662 ns; 13411962 ns; 13132046 ns; 13090029 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

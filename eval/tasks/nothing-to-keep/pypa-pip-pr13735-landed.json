@@ -1,0 +1,50 @@
+{
+  "id": "pypa-pip-pr13735-landed",
+  "repository": "pypa/pip",
+  "stars": 10293,
+  "pushed_at": "2026-10-14T22:10:06Z",
+  "task_commit": "a5718f516817c1cedcc9f753d6b79a61e63c666d",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/pypa/pip/commit/a5718f516817c1cedcc9f753d6b79a61e63c666d",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pypa/pip/pull/13735",
+    "title": "perf: Avoid importing build_env and`metadata modules during autocompletion",
+    "commit": "a5718f516817c1cedcc9f753d6b79a61e63c666d",
+    "merged_at": "2026-06-13T21:11:58Z",
+    "files": [
+      "news/4768.feature.rst",
+      "src/pip/_internal/build_env.py",
+      "src/pip/_internal/cli/autocompletion.py",
+      "src/pip/_internal/cli/main_parser.py",
+      "src/pip/_internal/utils/misc.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pypa/pip/pull/13735",
+      "note": "description, as matched by the miner: timings: 4ms; 113.6 ms; 10.6 ms; 91.1 ms; 21.3 ms; 96.2 ms; 127.3 ms; 133.2 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

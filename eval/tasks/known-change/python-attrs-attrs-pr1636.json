@@ -1,0 +1,47 @@
+{
+  "id": "python-attrs-attrs-pr1636",
+  "repository": "python-attrs/attrs",
+  "stars": 5852,
+  "pushed_at": "2026-10-13T13:57:52Z",
+  "task_commit": "0a08cee06960e415f735dec4cf2fb91d669e2433",
+  "task_commit_basis": "first parent of https://github.com/python-attrs/attrs/commit/8f76a5262b3b426bfb6a1127f12d49430d168c8b (squash merge); gh api compare 0a08cee06960...8f76a5262b3b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-attrs/attrs/pull/1636",
+    "title": "Improve astuple performance for nested atomic sequences",
+    "commit": "8f76a5262b3b426bfb6a1127f12d49430d168c8b",
+    "merged_at": "2026-10-13T13:56:18Z",
+    "files": [
+      "changelog.d/1636.change.md",
+      "src/attr/_funcs.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-attrs/attrs/pull/1636",
+      "note": "description, as matched by the miner: speedup claims: 1.76×; 2.95×; 3.33× | timings: 0.914 µs; 0.519 µs; 5.704 µs; 1.931 µs; 53.373 µs; 16.037 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

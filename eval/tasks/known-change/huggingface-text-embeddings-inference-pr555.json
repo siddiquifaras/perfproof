@@ -1,0 +1,47 @@
+{
+  "id": "huggingface-text-embeddings-inference-pr555",
+  "repository": "huggingface/text-embeddings-inference",
+  "stars": 5079,
+  "pushed_at": "2026-10-13T14:33:07Z",
+  "task_commit": "8eb7a844e477fac3dd329ba83ee5791d0d844408",
+  "task_commit_basis": "first parent of https://github.com/huggingface/text-embeddings-inference/commit/b06b752b13ec42e8aeb9151d34df1107d2fabf88 (squash merge); gh api compare 8eb7a844e477...b06b752b13ec touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/text-embeddings-inference/pull/555",
+    "title": "Optimize the performance of FlashBert on HPU by using fast mode softmax",
+    "commit": "b06b752b13ec42e8aeb9151d34df1107d2fabf88",
+    "merged_at": "2025-04-03T15:07:28Z",
+    "files": [
+      "backends/python/server/text_embeddings_server/models/flash_bert.py",
+      "backends/python/server/text_embeddings_server/utils/flash_attn.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/text-embeddings-inference/pull/555",
+      "note": "description, as matched by the miner: speedup claims: 1.06x throughput"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

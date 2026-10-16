@@ -1,0 +1,67 @@
+{
+  "note": "Hand-picked repositories to search, one target class each. Popularity and activity are not assumed: `mine.py repos` checks each with `gh repo view` and keeps only those passing the thresholds in mine.py.",
+  "repos": {
+    "python": [
+      "pandas-dev/pandas", "networkx/networkx", "Textualize/rich",
+      "pydantic/pydantic", "python-attrs/attrs", "sympy/sympy",
+      "scikit-learn/scikit-learn", "psf/black", "pallets/jinja",
+      "executablebooks/markdown-it-py", "pypa/pip", "python/mypy",
+      "pylint-dev/pylint", "pytest-dev/pytest",
+      "more-itertools/more-itertools", "encode/httpx",
+      "astropy/astropy", "matplotlib/matplotlib", "PyCQA/isort",
+      "Python-Markdown/markdown", "python-poetry/poetry",
+      "tqdm/tqdm", "pallets/click", "pydata/xarray", "dask/dask",
+      "HypothesisWorks/hypothesis", "PyCQA/flake8", "tox-dev/tox",
+      "sphinx-doc/sphinx", "pygments/pygments", "PyCQA/pyflakes",
+      "python-jsonschema/jsonschema", "marshmallow-code/marshmallow"
+    ],
+    "native": [
+      "numpy/numpy", "astral-sh/ruff", "astral-sh/uv",
+      "BurntSushi/ripgrep", "simdjson/simdjson", "ggml-org/llama.cpp",
+      "facebook/zstd", "redis/redis", "fmtlib/fmt", "nlohmann/json",
+      "rust-lang/regex", "tokio-rs/tokio", "serde-rs/json",
+      "duckdb/duckdb", "lz4/lz4", "pola-rs/polars",
+      "pydantic/pydantic-core", "ijl/orjson", "jqlang/jq",
+      "sharkdp/fd", "valkey-io/valkey", "zlib-ng/zlib-ng",
+      "libuv/libuv", "microsoft/mimalloc", "scipy/scipy",
+      "pyca/cryptography", "apache/arrow"
+    ],
+    "web": [
+      "netbox-community/netbox", "encode/django-rest-framework",
+      "fastapi/fastapi", "encode/starlette", "pallets/flask",
+      "pallets/werkzeug", "saleor/saleor", "wagtail/wagtail",
+      "django/django", "expressjs/express", "fastify/fastify",
+      "honojs/hono", "gin-gonic/gin", "labstack/echo",
+      "actix/actix-web", "tokio-rs/axum", "encode/uvicorn",
+      "litestar-org/litestar", "sanic-org/sanic", "aio-libs/aiohttp",
+      "strawberry-graphql/strawberry", "nestjs/nest", "rails/rails"
+    ],
+    "serving": [
+      "vllm-project/vllm", "sgl-project/sglang",
+      "huggingface/text-generation-inference", "InternLM/lmdeploy",
+      "ollama/ollama", "BerriAI/litellm", "mlc-ai/mlc-llm",
+      "bentoml/BentoML", "huggingface/text-embeddings-inference",
+      "triton-inference-server/server"
+    ],
+    "gpu": [
+      "karpathy/llm.c", "karpathy/nanoGPT", "Dao-AILab/flash-attention",
+      "triton-lang/triton", "pytorch-labs/gpt-fast",
+      "unslothai/unsloth", "pytorch/ao", "flashinfer-ai/flashinfer",
+      "linkedin/Liger-Kernel", "KellerJordan/modded-nanogpt",
+      "karpathy/nanochat", "huggingface/diffusers",
+      "deepseek-ai/DeepGEMM", "tile-ai/tilelang"
+    ],
+    "agentic": [
+      "langchain-ai/langchain", "langchain-ai/langgraph",
+      "run-llama/llama_index", "assafelovic/gpt-researcher",
+      "crewAIInc/crewAI", "microsoft/autogen",
+      "openai/openai-agents-python", "Aider-AI/aider",
+      "All-Hands-AI/OpenHands", "huggingface/smolagents",
+      "pydantic/pydantic-ai", "mem0ai/mem0", "stanfordnlp/dspy",
+      "browser-use/browser-use", "deepset-ai/haystack",
+      "microsoft/semantic-kernel", "letta-ai/letta", "agno-agi/agno",
+      "google/adk-python", "cline/cline", "continuedev/continue",
+      "openai/codex"
+    ]
+  }
+}

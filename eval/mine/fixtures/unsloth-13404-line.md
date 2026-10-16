@@ -1,0 +1,1 @@
+- Packed gated-delta scope, measured in the Zoo PR through `generation_mode`, last-row logits bitwise equal: Qwen3.5-4B-8bit prefill 1997 to 2121 tok/s (1.062x) on an M5 Pro, and at most a couple of percent on an M3 Max.

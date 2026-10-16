@@ -1,0 +1,46 @@
+{
+  "id": "django-django-pr20699",
+  "repository": "django/django",
+  "stars": 91331,
+  "pushed_at": "2026-10-15T06:51:05Z",
+  "task_commit": "6c95af5c9d294a20d09f080d7c144e3b7362d65f",
+  "task_commit_basis": "first parent of https://github.com/django/django/commit/e779bc7d78cbcadd395d48e5b6b00acea07ce503; gh api compare 6c95af5c9d29...e779bc7d78cb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/django/django/pull/20699",
+    "title": "Fixed #36927 -- Optimized Field.deconstruct().",
+    "commit": "e779bc7d78cbcadd395d48e5b6b00acea07ce503",
+    "merged_at": "2026-03-13T20:29:10Z",
+    "files": [
+      "django/db/models/fields/__init__.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/django/django/pull/20699",
+      "note": "description, as matched by the miner: speedup claims: 30% speedup | timings: 79ms; 6μs ± 1μs; 5μs; 52μs; 55ms; 4μs ± 2μs; 3μs; 41μs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

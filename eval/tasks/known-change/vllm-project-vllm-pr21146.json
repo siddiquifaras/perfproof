@@ -1,0 +1,51 @@
+{
+  "id": "vllm-project-vllm-pr21146",
+  "repository": "vllm-project/vllm",
+  "stars": 93868,
+  "pushed_at": "2026-10-15T22:29:14Z",
+  "task_commit": "82ec66f514c99546779c47e0da4eae28bd6353dc",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/vllm/commit/f3137cdd81cae3a48282c22130fbcadcfc64ea95 (squash merge); gh api compare 82ec66f514c9...f3137cdd81ca touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/vllm/pull/21146",
+    "title": "[Core] Freeze gc during cuda graph capture to speed up init",
+    "commit": "f3137cdd81cae3a48282c22130fbcadcfc64ea95",
+    "merged_at": "2025-07-24T00:20:14Z",
+    "files": [
+      "vllm/envs.py",
+      "vllm/v1/worker/gpu_model_runner.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "regression",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/21146",
+      "note": "description, as matched by the miner: timings: 35s; 2s"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/24128",
+      "note": "regression fix naming this change as the cause: '## Summary We identified a regression in throughput caused by #21146 in some tests (most noticeably when using small input & out'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

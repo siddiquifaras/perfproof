@@ -1,0 +1,47 @@
+{
+  "id": "run-llama-llama-index-pr21755",
+  "repository": "run-llama/llama_index",
+  "stars": 52513,
+  "pushed_at": "2026-10-14T15:29:28Z",
+  "task_commit": "9a66f6da95f061daaa22cd38ffe7ec15f6ed2ec5",
+  "task_commit_basis": "first parent of https://github.com/run-llama/llama_index/commit/9aa5ee5cd2a1ecff6ffa2a8cd6af46b87af674b9 (squash merge); gh api compare 9a66f6da95f0...9aa5ee5cd2a1 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/run-llama/llama_index/pull/21755",
+    "title": "perf: use a set instead of a list for within-batch dedup in Ingestion…",
+    "commit": "9aa5ee5cd2a1ecff6ffa2a8cd6af46b87af674b9",
+    "merged_at": "2026-05-29T21:52:59Z",
+    "files": [
+      "llama-index-core/llama_index/core/ingestion/pipeline.py",
+      "llama-index-core/tests/ingestion/test_pipeline.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest llama-index-core/tests/ingestion/test_pipeline.py",
+    "source": "test files changed by https://github.com/run-llama/llama_index/pull/21755 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/run-llama/llama_index/pull/21755",
+      "note": "description, as matched by the miner: speedup claims: 24×; 76×; 51× | timings: 8.1 ms; 0.3 ms; 175 ms; 2.3 ms; 1.92 s; 38 ms; 1.9 seconds"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

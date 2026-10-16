@@ -1,0 +1,46 @@
+{
+  "id": "dask-dask-pr11946",
+  "repository": "dask/dask",
+  "stars": 13935,
+  "pushed_at": "2026-09-29T10:11:03Z",
+  "task_commit": "c8ef947bd38e2b739ad3eccdbcce42e08d8c3f4a",
+  "task_commit_basis": "first parent of https://github.com/dask/dask/commit/fe4abb9bac7ea53cb3a1d6cfe96f14a6f165d9e4 (squash merge); gh api compare c8ef947bd38e...fe4abb9bac7e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dask/dask/pull/11946",
+    "title": "Optimize slicing graph generation",
+    "commit": "fe4abb9bac7ea53cb3a1d6cfe96f14a6f165d9e4",
+    "merged_at": "2025-05-15T09:17:42Z",
+    "files": [
+      "dask/array/slicing.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dask/dask/pull/11946",
+      "note": "description, as matched by the miner: timings: 1000ms; 1300ms; 750ms; 2086.02 ms; 2503.59 ms; 4553.73 ms; 5283.48 ms; 2486.43 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

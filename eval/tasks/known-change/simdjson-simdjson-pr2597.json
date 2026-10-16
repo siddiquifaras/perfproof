@@ -1,0 +1,46 @@
+{
+  "id": "simdjson-simdjson-pr2597",
+  "repository": "simdjson/simdjson",
+  "stars": 24424,
+  "pushed_at": "2026-10-14T23:54:39Z",
+  "task_commit": "e532d61e161972b9eeb55f5c8feedea66543aa44",
+  "task_commit_basis": "first parent of https://github.com/simdjson/simdjson/commit/cda98064b874c8a4ae17b6637491f52386f99d3f; gh api compare e532d61e1619...cda98064b874 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/simdjson/simdjson/pull/2597",
+    "title": "faster amalgamation script",
+    "commit": "cda98064b874c8a4ae17b6637491f52386f99d3f",
+    "merged_at": "2026-01-27T16:35:59Z",
+    "files": [
+      "singleheader/amalgamate.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/simdjson/simdjson/pull/2597",
+      "note": "description, as matched by the miner: speedup claims: 40% reduction | timings: 53s; 06s; 30s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

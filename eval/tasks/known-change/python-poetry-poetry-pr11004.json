@@ -1,0 +1,54 @@
+{
+  "id": "python-poetry-poetry-pr11004",
+  "repository": "python-poetry/poetry",
+  "stars": 34307,
+  "pushed_at": "2026-10-12T22:24:45Z",
+  "task_commit": "b0b33381d96f6d7b43652a0fac57169cf6a9a8fd",
+  "task_commit_basis": "first parent of https://github.com/python-poetry/poetry/commit/92b74dcfe348d0e01e14d40d6c1fa47a4ee04a54 (squash merge); gh api compare b0b33381d96f...92b74dcfe348 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-poetry/poetry/pull/11004",
+    "title": "perf: defer the requests imports in poetry.utils.helpers",
+    "commit": "92b74dcfe348d0e01e14d40d6c1fa47a4ee04a54",
+    "merged_at": "2026-08-02T11:51:08Z",
+    "files": [
+      "src/poetry/installation/executor.py",
+      "src/poetry/packages/direct_origin.py",
+      "src/poetry/repositories/http_repository.py",
+      "src/poetry/utils/download.py",
+      "src/poetry/utils/helpers.py",
+      "tests/console/test_application.py",
+      "tests/repositories/test_http_repository.py",
+      "tests/utils/test_download.py",
+      "tests/utils/test_helpers.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/console/test_application.py tests/repositories/test_http_repository.py tests/utils/test_download.py tests/utils/test_helpers.py",
+    "source": "test files changed by https://github.com/python-poetry/poetry/pull/11004 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-poetry/poetry/pull/11004",
+      "note": "description, as matched by the miner: timings: 156.8 ms; 82.3 ms; 104 ms; 36 ms; 317 ms; 117 ms; 217 ms; 116 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

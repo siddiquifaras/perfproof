@@ -1,0 +1,51 @@
+{
+  "id": "berriai-litellm-pr45228-landed",
+  "repository": "BerriAI/litellm",
+  "stars": 61333,
+  "pushed_at": "2026-10-15T22:39:41Z",
+  "task_commit": "b970e412d9449fdf25887772e65de3b759f5e430",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/BerriAI/litellm/commit/b970e412d9449fdf25887772e65de3b759f5e430",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/BerriAI/litellm/pull/45228",
+    "title": "perf(lens): faster trace opens and list pages at scale",
+    "commit": "b970e412d9449fdf25887772e65de3b759f5e430",
+    "merged_at": "2026-10-08T01:44:20Z",
+    "files": [
+      "litellm-rust/crates/lens/Cargo.toml",
+      "litellm-rust/crates/lens/src/lib.rs",
+      "litellm-rust/crates/traces-clickhouse/query/list_traces.sql",
+      "litellm-rust/crates/traces-clickhouse/src/span_batches.rs",
+      "litellm-rust/crates/traces-clickhouse/tests/queries/support.rs",
+      "litellm-rust/crates/traces-clickhouse/tests/reads.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/BerriAI/litellm/pull/45228",
+      "note": "description, as matched by the miner: timings: 1.12s; 0.18s; 35.3s; 2.4s; 220ms; 140ms; 10s; 3.63s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

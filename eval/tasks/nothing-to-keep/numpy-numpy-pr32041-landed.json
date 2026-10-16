@@ -1,0 +1,51 @@
+{
+  "id": "numpy-numpy-pr32041-landed",
+  "repository": "numpy/numpy",
+  "stars": 33018,
+  "pushed_at": "2026-10-15T16:29:00Z",
+  "task_commit": "50768307ea34877147453d97c4c6cde137d07768",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/numpy/numpy/commit/50768307ea34877147453d97c4c6cde137d07768",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/numpy/numpy/pull/32041",
+    "title": "PERF: Exact NDArray reduction fast path",
+    "commit": "50768307ea34877147453d97c4c6cde137d07768",
+    "merged_at": "2026-07-27T15:58:56Z",
+    "files": [
+      "doc/release/upcoming_changes/32041.performance.rst",
+      "numpy/_core/fromnumeric.py",
+      "numpy/_core/overrides.py",
+      "numpy/_core/overrides.pyi",
+      "numpy/_core/src/multiarray/arrayfunction_override.c",
+      "numpy/_core/tests/test_overrides.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest numpy/_core/tests/test_overrides.py",
+    "source": "test files changed by https://github.com/numpy/numpy/pull/32041 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/numpy/numpy/pull/32041",
+      "note": "description, as matched by the miner: timings: 40ns; 30ns; 7ns; 10ns; 20ns; 60ns; 6ns; 9ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

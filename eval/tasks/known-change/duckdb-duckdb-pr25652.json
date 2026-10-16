@@ -1,0 +1,47 @@
+{
+  "id": "duckdb-duckdb-pr25652",
+  "repository": "duckdb/duckdb",
+  "stars": 42186,
+  "pushed_at": "2026-10-15T19:24:23Z",
+  "task_commit": "63da6e56475153da3d923c27e9a0610f93242033",
+  "task_commit_basis": "first parent of https://github.com/duckdb/duckdb/commit/f26190781c2a9dbf08bb4d1fa0e522f92e203b0e; gh api compare 63da6e564751...f26190781c2a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/duckdb/duckdb/pull/25652",
+    "title": "Optimize conflict manager rowid insertion",
+    "commit": "f26190781c2a9dbf08bb4d1fa0e522f92e203b0e",
+    "merged_at": "2026-09-18T18:21:01Z",
+    "files": [
+      "src/common/types/conflict_manager.cpp",
+      "src/include/duckdb/common/types/conflict_manager.hpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/duckdb/duckdb/pull/25652",
+      "note": "description, as matched by the miner: timings: 1.896 s; 1.510 s; 1.872 s; 1.493 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

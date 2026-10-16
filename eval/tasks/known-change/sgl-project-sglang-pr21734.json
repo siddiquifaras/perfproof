@@ -1,0 +1,62 @@
+{
+  "id": "sgl-project-sglang-pr21734",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "3cb3f7c01814c90f3f4aacde83f6f2cfcd20ed35",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/6da3aba6a5d62f9b9b976553c46b5d45b88b3b13 (squash merge); gh api compare 3cb3f7c01814...6da3aba6a5d6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/21734",
+    "title": "perf: optimize PCG inductor path for FP8 models",
+    "commit": "6da3aba6a5d62f9b9b976553c46b5d45b88b3b13",
+    "merged_at": "2026-04-14T09:51:27Z",
+    "files": [
+      "python/sglang/srt/layers/quantization/fp8_utils.py",
+      "python/sglang/srt/models/utils.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/23159",
+    "title": "Revert \"perf: optimize PCG inductor path for FP8 models (#21734)\"",
+    "commit": "ab936ce6946df053239f370d41e973100a980a4b",
+    "merged_at": "2026-04-20T06:32:51Z",
+    "files": [
+      "python/sglang/srt/layers/quantization/fp8_utils.py",
+      "python/sglang/srt/models/utils.py"
+    ],
+    "files_truncated": false
+  },
+  "family": "known-change",
+  "change_kind": "reverted-breaking",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/21734",
+      "note": "description, as matched by the miner: timings: 9.8ms; 7.8ms"
+    },
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/23159",
+      "note": "revert; miner classified it as reverted-breaking from: 'ions/runs/24262716047/job/70897227241), Apr 11) was already failing with `Memory access fault ... addr 0x7f28244bf000`. This is'"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

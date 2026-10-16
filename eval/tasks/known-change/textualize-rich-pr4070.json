@@ -1,0 +1,58 @@
+{
+  "id": "textualize-rich-pr4070",
+  "repository": "Textualize/rich",
+  "stars": 57546,
+  "pushed_at": "2026-06-23T03:10:19Z",
+  "task_commit": "fc41075a3206d2a5fd846c6f41c4d2becab814fa",
+  "task_commit_basis": "first parent of https://github.com/Textualize/rich/commit/7f40063da781f4990d21423f23f7ccb3165ce0bd; gh api compare fc41075a3206...7f40063da781 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Textualize/rich/pull/4070",
+    "title": "perf: reduce Console and RichHandler import time by deferring unused imports",
+    "commit": "7f40063da781f4990d21423f23f7ccb3165ce0bd",
+    "merged_at": "2026-04-11T02:38:58Z",
+    "files": [
+      "CHANGELOG.md",
+      "CONTRIBUTORS.md",
+      "rich/_emoji_replace.py",
+      "rich/console.py",
+      "rich/emoji.py",
+      "rich/logging.py",
+      "rich/protocol.py",
+      "rich/repr.py",
+      "rich/segment.py",
+      "rich/syntax.py",
+      "rich/theme.py",
+      "tests/test_console.py",
+      "tests/test_syntax.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_console.py tests/test_syntax.py",
+    "source": "test files changed by https://github.com/Textualize/rich/pull/4070 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Textualize/rich/pull/4070",
+      "note": "description, as matched by the miner: speedup claims: 1.50x; 1.75x | timings: 78.1ms; 52.2ms; 99.4ms; 56.9ms; 18.2ms; 18.3ms; 20ms; 6ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

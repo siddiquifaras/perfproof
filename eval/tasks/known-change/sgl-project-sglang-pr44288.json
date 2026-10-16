@@ -1,0 +1,47 @@
+{
+  "id": "sgl-project-sglang-pr44288",
+  "repository": "sgl-project/sglang",
+  "stars": 37178,
+  "pushed_at": "2026-10-15T22:41:24Z",
+  "task_commit": "d3dc14eb3869adcf2291b40c6903a40a77fc6f76",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/427381477133c7da86c69fa0e180a7013a71ed1d (squash merge); gh api compare d3dc14eb3869...427381477133 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/44288",
+    "title": "[Perf] detokenizer: Group return IPC sends by tokenizer worker",
+    "commit": "427381477133c7da86c69fa0e180a7013a71ed1d",
+    "merged_at": "2026-10-14T21:26:52Z",
+    "files": [
+      "python/sglang/srt/managers/multi_tokenizer_mixin.py",
+      "test/registered/unit/managers/test_multi_tokenizer_mixin.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "serving",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/registered/unit/managers/test_multi_tokenizer_mixin.py",
+    "source": "test files changed by https://github.com/sgl-project/sglang/pull/44288 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/44288",
+      "note": "description, as matched by the miner: timings: 1875.86 s; 1844.48 s; 37.33 s; 52.53 s; 89.93 s; 105.31 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

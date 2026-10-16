@@ -1,0 +1,46 @@
+{
+  "id": "agno-agi-agno-pr3013",
+  "repository": "agno-agi/agno",
+  "stars": 42757,
+  "pushed_at": "2026-10-15T22:41:47Z",
+  "task_commit": "67e3ffc747ea13fe166e86fc55176ea6cdd94a48",
+  "task_commit_basis": "first parent of https://github.com/agno-agi/agno/commit/b83d73adbca8f0fd7b0dcc85a67e1d976080f01e (squash merge); gh api compare 67e3ffc747ea...b83d73adbca8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/agno-agi/agno/pull/3013",
+    "title": "⚡️ Speed up method `WebsiteReader._extract_main_content` by 72%",
+    "commit": "b83d73adbca8f0fd7b0dcc85a67e1d976080f01e",
+    "merged_at": "2025-05-20T17:58:33Z",
+    "files": [
+      "libs/agno/agno/document/reader/website_reader.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "agentic",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/agno-agi/agno/pull/3013",
+      "note": "description, as matched by the miner: speedup claims: 0.72x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:04:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

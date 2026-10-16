@@ -1,0 +1,46 @@
+{
+  "id": "scipy-scipy-pr26368",
+  "repository": "scipy/scipy",
+  "stars": 15114,
+  "pushed_at": "2026-10-15T16:49:39Z",
+  "task_commit": "49ddcdcccf20f45f9f962c4c234e16737b2e0499",
+  "task_commit_basis": "first parent of https://github.com/scipy/scipy/commit/806c8bd732aa4d8b172b7ed7849a1a5f391215a9; gh api compare 49ddcdcccf20...806c8bd732aa touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scipy/scipy/pull/26368",
+    "title": "ENH: interpolate: speed up the bounds check of `BSpline.design_matrix`",
+    "commit": "806c8bd732aa4d8b172b7ed7849a1a5f391215a9",
+    "merged_at": "2026-10-08T17:48:20Z",
+    "files": [
+      "scipy/interpolate/_bsplines.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "%timeit min(x) + max(x)  # ~50ms",
+    "source": "quoted in the description of https://github.com/scipy/scipy/pull/26368",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scipy/scipy/pull/26368",
+      "note": "description, as matched by the miner: timings: 7.1 ms; 0.03 ms; 7.9 ms; 50ms; 0.5ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:55+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "psf-black-pr2896-landed",
+  "repository": "psf/black",
+  "stars": 41930,
+  "pushed_at": "2026-10-12T22:11:17Z",
+  "task_commit": "7af3abd38392588ac737bae09f6b15d80fe344b1",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/psf/black/commit/7af3abd38392588ac737bae09f6b15d80fe344b1",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/psf/black/pull/2896",
+    "title": "Move test for g:load_black to improve plugin performance",
+    "commit": "7af3abd38392588ac737bae09f6b15d80fe344b1",
+    "merged_at": "2022-03-05T00:15:39Z",
+    "files": [
+      "CHANGES.md",
+      "plugin/black.vim"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "python",
+  "workload": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/psf/black/pull/2896",
+      "note": "description, as matched by the miner: timings: 45 ms; 35ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-16T07:03:54+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}
