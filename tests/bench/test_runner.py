@@ -1,0 +1,902 @@
+import gc
+import json
+import math
+import os
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import threading
+import time
+from collections.abc import Mapping
+from contextlib import suppress
+from pathlib import Path
+from types import FrameType
+
+import pytest
+
+from perfproof.bench import runner as runner_module
+from perfproof.bench.lock import procedure_gate, resolve_executable
+from perfproof.bench.runner import (
+    MAX_TIMEOUT_SECONDS,
+    ExecutionError,
+    MetricUnavailableError,
+    Runner,
+    RunnerError,
+    counter_unavailable_reason,
+    round_orders,
+)
+from perfproof.bench.spec import normalize_launch_path
+from perfproof.schema import (
+    Arm,
+    BenchmarkSpec,
+    Budget,
+    CorrectnessSpec,
+    GateResult,
+    LookSchedule,
+    MetricKind,
+    MetricSpec,
+    Sample,
+)
+
+PY = sys.executable
+MIB = 1024 * 1024
+
+
+def make_spec(
+    code: str = "pass",
+    *,
+    command: tuple[str, ...] | None = None,
+    kind: MetricKind = "wall",
+    event: str | None = None,
+    env: Mapping[str, str] | None = None,
+    cwd: str = ".",
+    warmup: int = 0,
+    timeout: float = 30.0,
+) -> BenchmarkSpec:
+    unit = {"wall": "s", "cpu": "s", "reported": "ms", "counter": "count"}
+    return BenchmarkSpec(
+        name="bench",
+        command=command or (PY, "-c", code),
+        cwd=cwd,
+        env=dict(env or {}),
+        metric=MetricSpec(
+            kind=kind,
+            direction="lower_is_better",
+            unit=unit[kind],
+            event=event,
+        ),
+        correctness=CorrectnessSpec(command=("true",), timeout_seconds=10.0),
+        warmup=warmup,
+        budget=Budget(max_rounds=20, max_seconds=600.0),
+        looks=LookSchedule(n0=10, k=5, max_looks=3),
+        timeout_seconds=timeout,
+        harness=("bench.py",),
+    )
+
+
+@pytest.fixture
+def trees(tmp_path: Path) -> dict[Arm, Path]:
+    out: dict[Arm, Path] = {}
+    for arm in ("baseline", "candidate"):
+        path = tmp_path / arm
+        path.mkdir()
+        out[arm] = path
+    return out
+
+
+def make_runner(
+    spec: BenchmarkSpec,
+    trees: Mapping[Arm, Path],
+    tmp_path: Path,
+    *,
+    seed: int = 7,
+    base_env: Mapping[str, str] | None = None,
+) -> Runner:
+    return Runner(
+        spec,
+        trees,
+        tmp_path / "logs",
+        order_seed=seed,
+        base_env=base_env,
+    )
+
+
+def write_tool(path: Path, body: str) -> None:
+    path.write_text(f"#!/bin/sh\n{body}\n")
+    path.chmod(path.stat().st_mode | stat.S_IXUSR)
+
+
+def test_wall_times_the_whole_child(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    spec = make_spec("import time; time.sleep(0.3)")
+    rnd = make_runner(spec, trees, tmp_path).run_round(0)
+    for sample in rnd.samples:
+        assert 0.3 <= sample.wall_seconds < 1.3
+        assert sample.value == sample.wall_seconds
+        assert sample.exit_code == 0
+
+
+def test_cpu_counts_busy_time_not_sleep(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    busy = make_spec(
+        "import time\nwhile time.process_time() < 0.3: pass", kind="cpu"
+    )
+    for sample in make_runner(busy, trees, tmp_path).run_round(0).samples:
+        assert sample.cpu_seconds is not None
+        assert sample.cpu_seconds >= 0.3
+        assert sample.value == sample.cpu_seconds
+        assert sample.cpu_seconds <= sample.wall_seconds + 0.05
+    idle = make_spec("import time; time.sleep(0.3)", kind="cpu")
+    runner = Runner(idle, trees, tmp_path / "idle", order_seed=1)
+    for sample in runner.run_round(0).samples:
+        assert sample.cpu_seconds is not None
+        assert sample.cpu_seconds < 0.2
+        assert sample.wall_seconds >= 0.3
+
+
+def test_cpu_includes_reaped_grandchildren(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    grandchild = "import time\nwhile time.process_time() < 0.3: pass"
+    code = (
+        "import subprocess, sys\n"
+        f"subprocess.run([sys.executable, '-c', {grandchild!r}], "
+        "check=True, timeout=30)"
+    )
+    spec = make_spec(code, kind="cpu")
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert sample.cpu_seconds is not None
+        assert sample.cpu_seconds >= 0.3
+
+
+def own_peak_rss_bytes() -> int:
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak * 1024 if sys.platform == "linux" else peak
+
+
+def test_max_rss_is_in_bytes(trees: dict[Arm, Path], tmp_path: Path) -> None:
+    size = max(256 * MIB, own_peak_rss_bytes() + 128 * MIB)
+    code = (
+        f"b = bytearray({size})\n"
+        "b[::4096] = b'x' * len(range(0, len(b), 4096))"
+    )
+    big = make_spec(code)
+    rnd = make_runner(big, trees, tmp_path).run_round(0)
+    for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
+        assert sample.max_rss_bytes is not None
+        assert size <= sample.max_rss_bytes < size + 1024 * MIB
+        assert ex.max_rss_bytes == sample.max_rss_bytes
+        assert ex.max_rss_missing is None
+
+
+@pytest.mark.skipif(
+    sys.platform == "linux", reason="Linux floors ru_maxrss at the parent"
+)
+def test_small_max_rss_is_measured_off_linux(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    for sample in (
+        make_runner(make_spec(), trees, tmp_path).run_round(0).samples
+    ):
+        assert sample.max_rss_bytes is not None
+        assert MIB <= sample.max_rss_bytes < 128 * MIB
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="the ru_maxrss floor is Linux-only"
+)
+def test_small_max_rss_is_unknown_on_linux(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    if own_peak_rss_bytes() < 64 * MIB:
+        pytest.skip("this process is too small to floor the child's RSS")
+    rnd = make_runner(make_spec(), trees, tmp_path).run_round(0)
+    for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
+        assert sample.max_rss_bytes is None
+        assert ex.max_rss_missing is not None
+        assert "launching process" in ex.max_rss_missing
+
+
+def test_reported_value_with_wall_alongside(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = (
+        "import sys, time\n"
+        "print('warming up')\n"
+        "print('noise', file=sys.stderr)\n"
+        "time.sleep(0.1)\n"
+        "print('PERFPROOF {\"value\": 2.5}')\n"
+        "print('done')"
+    )
+    spec = make_spec(code, kind="reported")
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert sample.value == 2.5
+        assert sample.wall_seconds >= 0.1
+
+
+def test_reported_integer_value_becomes_float(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    spec = make_spec("print('PERFPROOF {\"value\": 3}')", kind="reported")
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert sample.value == 3.0
+        assert type(sample.value) is float
+
+
+@pytest.mark.parametrize(
+    ("stdout", "match"),
+    [
+        ("no value here\n", "no PERFPROOF line"),
+        ('PERFPROOF {"value": 1}\nPERFPROOF {"value": 2}\n', "2 PERFPROOF"),
+        ('PERFPROOF {"value": 0}\n', "positive"),
+        ('PERFPROOF {"value": -1.5}\n', "positive"),
+        ('PERFPROOF {"value": NaN}\n', "not valid JSON"),
+        ('PERFPROOF {"value": Infinity}\n', "not valid JSON"),
+        ('PERFPROOF {"value": 1e400}\n', "finite"),
+        ('PERFPROOF {"value": "1.5"}\n', "a number"),
+        ('PERFPROOF {"value": true}\n', "a number"),
+        ('PERFPROOF {"value": 1, "unit": "ms"}\n', "exactly one key"),
+        ("PERFPROOF [1]\n", "exactly one key"),
+        ("PERFPROOF value=1\n", "not valid JSON"),
+        ('PERFPROOF {"value": 1, "value": 2}\n', "repeats a key"),
+    ],
+)
+def test_reported_refuses_bad_output(
+    trees: dict[Arm, Path], tmp_path: Path, stdout: str, match: str
+) -> None:
+    code = f"import sys; sys.stdout.write({stdout!r})"
+    spec = make_spec(code, kind="reported")
+    with pytest.raises(ExecutionError, match=match) as info:
+        make_runner(spec, trees, tmp_path).run_round(0)
+    assert info.value.stdout.read_text() == stdout
+
+
+def test_reported_streams_past_huge_lines(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = (
+        "import sys\n"
+        "sys.stdout.write('y' * (8 * 1024 * 1024))\n"
+        "sys.stdout.write('\\nPERFPROOF {\"value\": 4.0}\\n')"
+    )
+    spec = make_spec(code, kind="reported")
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert sample.value == 4.0
+
+
+def test_reported_refuses_overlong_perfproof_line(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = (
+        "import sys\n"
+        'sys.stdout.write(\'PERFPROOF {"value": 1.0}\' + " " * 100000)'
+    )
+    spec = make_spec(code, kind="reported")
+    with pytest.raises(ExecutionError, match="longer than"):
+        make_runner(spec, trees, tmp_path).run_round(0)
+
+
+def test_output_goes_to_files(trees: dict[Arm, Path], tmp_path: Path) -> None:
+    code = "import sys; print('to-out'); print('to-err', file=sys.stderr)"
+    rnd = make_runner(make_spec(code), trees, tmp_path).run_round(3)
+    for ex in rnd.executions:
+        assert ex.stdout.read_text() == "to-out\n"
+        assert ex.stderr.read_text() == "to-err\n"
+        assert ex.stdout.parent == tmp_path / "logs"
+        assert ex.stdout.name == f"round-3.{ex.arm}.stdout"
+        assert ex.metric_output is None
+
+
+def test_env_cwd_and_base_env(trees: dict[Arm, Path], tmp_path: Path) -> None:
+    for tree in trees.values():
+        (tree / "sub").mkdir()
+    code = (
+        "import json, os\n"
+        "print(json.dumps([os.getcwd(), os.environ.get('PP_DECL'), "
+        "os.environ.get('PP_BASE'), os.environ.get('PP_BOTH')]))"
+    )
+    spec = make_spec(
+        code, env={"PP_DECL": "d", "PP_BOTH": "declared"}, cwd="sub"
+    )
+    base = {"PATH": os.environ["PATH"], "PP_BASE": "b", "PP_BOTH": "base"}
+    rnd = make_runner(spec, trees, tmp_path, base_env=base).run_round(0)
+    for ex in rnd.executions:
+        cwd, decl, from_base, both = json.loads(ex.stdout.read_text())
+        assert Path(cwd) == trees[ex.arm].resolve() / "sub"
+        assert (decl, from_base, both) == ("d", "b", "declared")
+        assert ex.launch.cwd == str(trees[ex.arm].resolve() / "sub")
+        assert ex.launch.env == {"PP_DECL": "d", "PP_BOTH": "declared"}
+
+
+def test_resolves_relative_executable_in_tree(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    for tree in trees.values():
+        write_tool(tree / "tool.sh", 'echo "$0"')
+    spec = make_spec(command=("./tool.sh", "arg"))
+    rnd = make_runner(spec, trees, tmp_path).run_round(0)
+    hashes: set[str] = set()
+    for ex in rnd.executions:
+        exe = str(trees[ex.arm].resolve() / "tool.sh")
+        assert ex.launch.executable == exe
+        assert ex.launch.hashed_executable == "tool.sh"
+        assert ex.launch.argv == ("./tool.sh", "arg")
+        assert ex.stdout.read_text() == f"{exe}\n"
+        hashes.add(ex.launch.command_hash)
+    assert len(hashes) == 1
+    for sample, ex in zip(rnd.samples, rnd.executions, strict=True):
+        assert sample.command_hash == ex.launch.command_hash
+        assert sample.version == ex.arm
+
+
+def test_argv0_is_kept_as_written(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "shalias").symlink_to("/bin/sh")
+    script = "ps -o args= -p $$; true"
+    spec = make_spec(
+        command=("shalias", "-c", script),
+        env={"PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"},
+    )
+    for ex in make_runner(spec, trees, tmp_path).run_round(0).executions:
+        assert ex.stdout.read_text().split()[0] == "shalias"
+        assert ex.launch.argv == ("shalias", "-c", script)
+        assert ex.launch.executable == str(bindir.resolve() / "shalias")
+        assert ex.launch.hashed_executable == ex.launch.executable
+
+
+def test_resolves_bare_name_on_declared_path(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    write_tool(bindir / "pptool", "echo ran")
+    spec = make_spec(command=("pptool",), env={"PATH": str(bindir)})
+    for ex in make_runner(spec, trees, tmp_path).run_round(0).executions:
+        assert ex.launch.executable == str(bindir.resolve() / "pptool")
+        assert ex.stdout.read_text() == "ran\n"
+
+
+def test_missing_executable_is_a_launch_failure(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    spec = make_spec(command=("no-such-perfproof-tool",))
+    runner = make_runner(spec, trees, tmp_path)
+    with pytest.raises(ExecutionError, match="no-such-perfproof-tool") as info:
+        runner.run_round(0)
+    assert (info.value.cause, info.value.arm) == ("launch", runner.orders[0])
+
+
+def test_candidate_missing_its_program_fails_the_candidate(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    write_tool(trees["baseline"] / "tool.sh", "true")
+    runner = make_runner(make_spec(command=("./tool.sh",)), trees, tmp_path)
+    with pytest.raises(ExecutionError, match=r"tool\.sh") as info:
+        runner.run_round(runner.orders.index("baseline"))
+    err = info.value
+    assert (err.arm, err.cause, err.exit_code, err.wall_seconds) == (
+        "candidate",
+        "launch",
+        None,
+        None,
+    )
+    assert err.stdout.is_file()
+    assert err.stderr.is_file()
+
+
+def test_candidate_missing_its_cwd_fails_the_candidate(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    (trees["baseline"] / "sub").mkdir()
+    runner = make_runner(make_spec(cwd="sub"), trees, tmp_path)
+    with pytest.raises(ExecutionError, match="'sub' does not exist") as info:
+        runner.run_round(runner.orders.index("baseline"))
+    err = info.value
+    assert (err.arm, err.cause, err.exit_code, err.wall_seconds) == (
+        "candidate",
+        "launch",
+        None,
+        None,
+    )
+
+
+def gate_procedure(
+    spec: BenchmarkSpec, trees: Mapping[Arm, Path], samples: list[Sample]
+) -> GateResult:
+    executables: dict[Arm, str] = {}
+    for arm, root in trees.items():
+        found = resolve_executable(spec, root.resolve(), os.environ)
+        assert found is not None
+        executables[arm] = normalize_launch_path(found, root.resolve())
+    return procedure_gate(
+        spec,
+        samples,
+        spec_hashes={"baseline": spec.spec_hash, "candidate": spec.spec_hash},
+        perfproof_versions={"baseline": "0.1.0", "candidate": "0.1.0"},
+        executables=executables,
+    )
+
+
+def test_runner_samples_pass_the_procedure_gate(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    for tree in trees.values():
+        (tree / "bin").mkdir()
+        write_tool(tree / "bin" / "tool", 'echo "$@"')
+    command = ("tool", "--n", "1")
+    spec = make_spec(command=command, env={"PATH": "bin"})
+    runner = make_runner(spec, trees, tmp_path)
+    samples = [s for r in runner.rounds(0, 3) for s in r.samples]
+    result = gate_procedure(spec, trees, samples)
+    assert (result.status, result.differences) == ("passed", ())
+    other = make_spec(command=("tool", "--n", "2"), env={"PATH": "bin"})
+    stray = Runner(other, trees, tmp_path / "other", order_seed=7)
+    swapped = [s for s in samples if s.round != 1]
+    swapped += stray.run_round(1).samples
+    result = gate_procedure(spec, trees, swapped)
+    assert result.status == "failed"
+    assert [d.item for d in result.differences] == ["round 1 command_hash"]
+
+
+def test_command_hash_tracks_declared_env(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    def one_hash(spec: BenchmarkSpec, logs: str) -> set[str]:
+        runner = Runner(spec, trees, tmp_path / logs, order_seed=0)
+        return {e.launch.command_hash for e in runner.run_round(0).executions}
+
+    plain = one_hash(make_spec(), "a")
+    again = one_hash(make_spec(), "b")
+    other = one_hash(make_spec(env={"PP_X": "1"}), "c")
+    assert len(plain) == 1
+    assert plain == again
+    assert plain != other
+
+
+def test_round_orders_are_reproducible() -> None:
+    first = round_orders(123, 200)
+    assert first == round_orders(123, 200)
+    assert first[:50] == round_orders(123, 50)
+    assert first != round_orders(124, 200)
+    assert set(first) == {"baseline", "candidate"}
+    assert 60 < first.count("baseline") < 140
+    with pytest.raises(ValueError, match="seed"):
+        round_orders(-1, 5)
+
+
+def test_rounds_follow_seeded_order(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = "import time; print(time.monotonic_ns())"
+    spec = make_spec(code)
+    runner = make_runner(spec, trees, tmp_path, seed=99)
+    expected = round_orders(99, spec.budget.max_rounds)
+    rounds = list(runner.rounds(0, 12))
+    assert [r.index for r in rounds] == list(range(12))
+    assert {r.samples[0].version for r in rounds} == {
+        "baseline",
+        "candidate",
+    }
+    for rnd in rounds:
+        first, second = rnd.samples
+        assert first.version == expected[rnd.index]
+        assert {first.version, second.version} == {"baseline", "candidate"}
+        assert (first.round, first.position) == (rnd.index, 0)
+        assert (second.round, second.position) == (rnd.index, 1)
+        started = [int(e.stdout.read_text()) for e in rnd.executions]
+        assert started[0] < started[1]
+
+
+def test_resumed_rounds_keep_their_order(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec(), trees, tmp_path, seed=5)
+    resumed = list(runner.rounds(start=15))
+    expected = round_orders(5, 20)
+    assert [r.index for r in resumed] == [15, 16, 17, 18, 19]
+    assert [r.samples[0].version for r in resumed] == list(expected[15:])
+
+
+def test_warmup_alternates_and_makes_no_samples(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec(warmup=2), trees, tmp_path)
+    runs = runner.warmup()
+    assert [e.arm for e in runs] == [
+        "baseline",
+        "candidate",
+        "baseline",
+        "candidate",
+    ]
+    assert [e.stdout.name for e in runs] == [
+        "warmup-0.baseline.stdout",
+        "warmup-0.candidate.stdout",
+        "warmup-1.baseline.stdout",
+        "warmup-1.candidate.stdout",
+    ]
+    assert not list((tmp_path / "logs").glob("round-*"))
+
+
+@pytest.mark.parametrize(
+    ("code", "kind", "cause", "exit_code", "match"),
+    [
+        ("import sys; sys.exit(3)", "wall", "exit", 3, "status 3"),
+        ("import no_such_module_pp", "wall", "exit", 1, "status 1"),
+        (
+            "import os, signal; os.kill(os.getpid(), signal.SIGTERM)",
+            "wall",
+            "signal",
+            -signal.SIGTERM,
+            "SIGTERM",
+        ),
+        ("import os; os.abort()", "cpu", "signal", -signal.SIGABRT, "SIGABRT"),
+        (
+            "print('PERFPROOF {\"value\": 1.0}'); raise SystemExit(2)",
+            "reported",
+            "exit",
+            2,
+            "status 2",
+        ),
+    ],
+)
+def test_failed_execution_gives_no_sample(
+    trees: dict[Arm, Path],
+    tmp_path: Path,
+    code: str,
+    kind: MetricKind,
+    cause: str,
+    exit_code: int,
+    match: str,
+) -> None:
+    for tree in trees.values():
+        (tree / "fail").touch()
+    guarded = f"import os\nif os.path.exists('fail'):\n    exec({code!r})"
+    if kind == "reported":
+        guarded += "\nprint('PERFPROOF {\"value\": 1.0}')"
+    spec = make_spec(guarded, kind=kind)
+    runner = make_runner(spec, trees, tmp_path)
+    with pytest.raises(ExecutionError, match=match) as info:
+        runner.run_round(4)
+    err = info.value
+    assert (err.cause, err.exit_code) == (cause, exit_code)
+    assert (err.arm, err.round, err.label) == (
+        runner.orders[4],
+        4,
+        "round-4",
+    )
+    assert err.stdout.is_file()
+    assert err.stderr.is_file()
+    assert str(err.stderr) in str(err)
+
+
+def test_candidate_failure_names_the_candidate(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    (trees["candidate"] / "fail").touch()
+    code = (
+        "import os, sys\n"
+        "if os.path.exists('fail'):\n"
+        "    sys.exit('candidate broke')"
+    )
+    runner = make_runner(make_spec(code), trees, tmp_path, seed=3)
+    index = runner.orders.index("baseline")
+    with pytest.raises(ExecutionError) as info:
+        runner.run_round(index)
+    assert (info.value.arm, info.value.cause) == ("candidate", "exit")
+    assert info.value.stderr.read_text() == "candidate broke\n"
+
+
+def test_failed_warmup_gives_no_execution(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    (trees["baseline"] / "fail").touch()
+    code = "import os, sys\nif os.path.exists('fail'): sys.exit(5)"
+    runner = make_runner(make_spec(code, warmup=1), trees, tmp_path)
+    with pytest.raises(ExecutionError, match="status 5") as info:
+        runner.warmup()
+    err = info.value
+    assert (err.arm, err.round, err.label) == ("baseline", None, "warmup-0")
+    assert err.exit_code == 5
+
+
+def test_timeout_kills_the_process_group(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    pid_file = tmp_path / "grandchild.pid"
+    code = (
+        "import subprocess, sys, time\n"
+        "p = subprocess.Popen(['sleep', '60'])\n"
+        f"open({str(pid_file)!r}, 'w').write(str(p.pid))\n"
+        "time.sleep(60)"
+    )
+    spec = make_spec(code, timeout=1.0)
+    start = time.monotonic()
+    with pytest.raises(ExecutionError, match="timed out") as info:
+        make_runner(spec, trees, tmp_path).run_round(0)
+    assert time.monotonic() - start < 10
+    assert info.value.exit_code == -signal.SIGKILL
+    assert info.value.cause == "timeout"
+    grandchild = int(pid_file.read_text())
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        try:
+            os.kill(grandchild, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.05)
+    else:
+        pytest.fail(f"grandchild {grandchild} outlived the timeout")
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="the SIGCHLD fallback is Linux-only"
+)
+def test_sigchld_fallback_without_pidfd(
+    trees: dict[Arm, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "perfproof.bench.runner._pidfd_available", lambda: False
+    )
+    handler = signal.getsignal(signal.SIGCHLD)
+    spec = make_spec("import time; time.sleep(0.2)")
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert 0.2 <= sample.wall_seconds < 1.2
+    slow = make_spec("import time; time.sleep(30)", timeout=0.5)
+    start = time.monotonic()
+    with pytest.raises(ExecutionError) as info:
+        Runner(slow, trees, tmp_path / "slow", order_seed=0).run_round(0)
+    assert info.value.cause == "timeout"
+    assert time.monotonic() - start < 10
+    assert signal.getsignal(signal.SIGCHLD) == handler
+    assert signal.set_wakeup_fd(-1) == -1
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="the SIGCHLD fallback is Linux-only"
+)
+def test_sigchld_fallback_forwards_the_callers_sigchld(
+    trees: dict[Arm, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "perfproof.bench.runner._pidfd_available", lambda: False
+    )
+    calls: list[int] = []
+
+    def caller_handler(signum: int, frame: FrameType | None) -> None:
+        calls.append(signum)
+
+    previous = signal.signal(signal.SIGCHLD, caller_handler)
+    try:
+        own_child = subprocess.Popen(["sleep", "0.1"])
+        spec = make_spec("import time; time.sleep(0.6)")
+        make_runner(spec, trees, tmp_path).run_round(0)
+        assert own_child.wait(timeout=10) == 0
+    finally:
+        signal.signal(signal.SIGCHLD, previous)
+    assert calls
+    assert calls[0] == signal.SIGCHLD
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="the SIGCHLD fallback is Linux-only"
+)
+def test_sigchld_fallback_refuses_a_handler_it_cannot_restore(
+    trees: dict[Arm, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "perfproof.bench.runner._pidfd_available", lambda: False
+    )
+
+    def no_python_handler(signum: int) -> None:
+        return None
+
+    monkeypatch.setattr(signal, "getsignal", no_python_handler)
+    with pytest.raises(RunnerError, match="outside Python"):
+        make_runner(make_spec(), trees, tmp_path).run_round(0)
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="the SIGCHLD fallback is Linux-only"
+)
+def test_sigchld_fallback_works_above_fd_1024(
+    trees: dict[Arm, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "perfproof.bench.runner._pidfd_available", lambda: False
+    )
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    want = 1200
+    if hard != resource.RLIM_INFINITY and hard < want:
+        pytest.skip(f"RLIMIT_NOFILE hard limit {hard} is below {want}")
+    resource.setrlimit(resource.RLIMIT_NOFILE, (max(soft, want), hard))
+    fillers: list[int] = []
+    try:
+        while not fillers or fillers[-1] < 1100:
+            fillers.append(os.open(os.devnull, os.O_RDONLY))
+        spec = make_spec("import time; time.sleep(0.1)")
+        for s in make_runner(spec, trees, tmp_path).run_round(0).samples:
+            assert s.wall_seconds >= 0.1
+    finally:
+        for fd in fillers:
+            os.close(fd)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (soft, hard))
+
+
+def test_a_child_reaped_by_a_caller_handler_is_unknown(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    if sys.platform == "linux" and not runner_module._pidfd_available():  # pyright: ignore[reportPrivateUsage]
+        pytest.skip("the SIGCHLD fallback replaces the caller's handler")
+
+    def reap_everything(signum: int, frame: FrameType | None) -> None:
+        with suppress(ChildProcessError):
+            while os.waitpid(-1, os.WNOHANG)[0]:
+                pass
+
+    previous = signal.signal(signal.SIGCHLD, reap_everything)
+    try:
+        spec = make_spec("import time; time.sleep(0.3)")
+        with pytest.raises(RunnerError, match="reaped") as info:
+            make_runner(spec, trees, tmp_path).run_round(0)
+    finally:
+        signal.signal(signal.SIGCHLD, previous)
+    assert type(info.value) is RunnerError
+    assert "perfproof's own process" in str(info.value)
+
+
+def test_an_oversized_environment_blames_neither_arm(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    base = {**os.environ, "BIG": "x" * (4 << 20)}
+    runner = make_runner(make_spec(), trees, tmp_path, base_env=base)
+    for index in range(4):
+        with pytest.raises(
+            RunnerError, match="Argument list too long"
+        ) as info:
+            runner.run_round(index)
+        assert type(info.value) is RunnerError
+        assert "perfproof's own process" in str(info.value)
+
+
+def test_running_out_of_fds_blames_neither_arm(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec(), trees, tmp_path)
+    runner.run_round(0)
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (min(soft, 256), hard))
+    fillers: list[int] = []
+    try:
+        with suppress(OSError):
+            while True:
+                fillers.append(os.open(os.devnull, os.O_RDONLY))
+        for _ in range(2):
+            os.close(fillers.pop())
+        with pytest.raises(RunnerError, match="Too many open files") as info:
+            runner.run_round(1)
+    finally:
+        for fd in fillers:
+            os.close(fd)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (soft, hard))
+    assert type(info.value) is RunnerError
+    assert "perfproof's own process" in str(info.value)
+
+
+def test_a_candidate_that_cannot_start_fails_the_candidate(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    write_tool(trees["baseline"] / "tool.sh", "true")
+    bad = trees["candidate"] / "tool.sh"
+    bad.write_text("#!/no/such/interpreter\n")
+    bad.chmod(bad.stat().st_mode | stat.S_IXUSR)
+    runner = make_runner(make_spec(command=("./tool.sh",)), trees, tmp_path)
+    with pytest.raises(ExecutionError, match="could not start") as info:
+        runner.run_round(runner.orders.index("baseline"))
+    err = info.value
+    assert (err.arm, err.cause, err.exit_code, err.wall_seconds) == (
+        "candidate",
+        "launch",
+        None,
+        None,
+    )
+
+
+def test_timeouts_the_waits_cannot_represent_are_refused(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    huge = make_spec(timeout=MAX_TIMEOUT_SECONDS * 2)
+    with pytest.raises(ValueError, match="at most"):
+        make_runner(huge, trees, tmp_path)
+    endless = make_spec().model_copy(update={"timeout_seconds": math.inf})
+    with pytest.raises(ValueError, match="finite"):
+        make_runner(endless, trees, tmp_path)
+    longest = make_spec(timeout=MAX_TIMEOUT_SECONDS)
+    for s in make_runner(longest, trees, tmp_path / "ok").run_round(0).samples:
+        assert s.exit_code == 0
+
+
+def test_logs_are_never_overwritten(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec(), trees, tmp_path)
+    runner.run_round(0)
+    with pytest.raises(RunnerError, match="exists"):
+        runner.run_round(0)
+
+
+def test_runner_leaves_no_threads_and_restores_gc(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    threads = threading.active_count()
+    assert gc.isenabled()
+    runner = make_runner(make_spec(warmup=1), trees, tmp_path)
+    runner.warmup()
+    list(runner.rounds(0, 3))
+    assert threading.active_count() == threads
+    assert gc.isenabled()
+
+
+def test_rejects_bad_arguments(trees: dict[Arm, Path], tmp_path: Path) -> None:
+    spec = make_spec()
+    with pytest.raises(ValueError, match="candidate"):
+        Runner(spec, {"baseline": trees["baseline"]}, tmp_path, order_seed=0)
+    with pytest.raises(ValueError, match="seed"):
+        Runner(spec, trees, tmp_path, order_seed=-1)
+    missing: dict[Arm, Path] = {**trees, "candidate": tmp_path / "nope"}
+    with pytest.raises(ValueError, match="not a directory"):
+        Runner(spec, missing, tmp_path, order_seed=0)
+    runner = make_runner(spec, trees, tmp_path)
+    with pytest.raises(ValueError, match="round"):
+        runner.run_round(20)
+    with pytest.raises(ValueError, match="round"):
+        runner.run_round(-1)
+
+
+@pytest.mark.skipif(
+    sys.platform == "linux", reason="checks the non-Linux refusal"
+)
+def test_counter_is_unavailable_off_linux(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    reason = counter_unavailable_reason("instructions")
+    assert reason is not None
+    assert "Linux" in reason
+    spec = make_spec(kind="counter", event="instructions")
+    with pytest.raises(MetricUnavailableError, match="Linux") as info:
+        make_runner(spec, trees, tmp_path)
+    assert info.value.reason == reason
+
+
+@pytest.mark.integration
+def test_counter_counts_instructions_with_perf(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    reason = counter_unavailable_reason("instructions")
+    if reason is not None:
+        pytest.skip(f"perf stat unavailable: {reason}")
+    small = make_spec("pass", kind="counter", event="instructions")
+    loop = make_spec(
+        "x = 0\nfor i in range(3_000_000): x += i",
+        kind="counter",
+        event="instructions",
+    )
+    low = make_runner(small, trees, tmp_path).run_round(0)
+    high = Runner(loop, trees, tmp_path / "loop", order_seed=0).run_round(0)
+    for rnd in (low, high):
+        for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
+            assert ex.metric_output is not None
+            assert ex.metric_output.exists()
+            assert sample.value >= 1
+            assert sample.value == int(sample.value)
+            assert sample.wall_seconds > 0
+            assert ex.launch.argv[1:3] == ("stat", "-x,")
+    assert min(s.value for s in high.samples) > max(
+        s.value for s in low.samples
+    )
