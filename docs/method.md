@@ -75,6 +75,18 @@ broken: the comparison stops with no verdict and reports the error.
 So does a fault in perfproof's own process, such as running out of
 file descriptors or processes: it is blamed on neither version.
 
+**Test results.** perfproof judges tests one by one where the runner
+reports them: it asks pytest for a JUnit XML report and points other
+runners at the same path through `PERFPROOF_JUNIT_XML`. Where no
+report is written, the command's exit status is the only result.
+
+**Pre-existing failures.** A test that fails in every baseline run is
+a known failure: it is listed in the report and not used to judge the
+candidate, and lines only it reaches count as unverified for the
+coverage gate. Only a test command that can't run at all on the
+baseline (it times out, is killed, or can't start) stops the
+comparison as a broken baseline.
+
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
 give the same result every time is flaky: it is quarantined, listed in
