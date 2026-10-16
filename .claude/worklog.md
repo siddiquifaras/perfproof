@@ -116,6 +116,14 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 Next once #9 merges: T2.4, T2.6, T2.13, T2.16. After #5 and #4: T2.17 CLI.
 
+### Known gaps
+
+- `.claude/hooks/lint_python.py` is listed in pyright's `include` but is
+  never type-checked: pyright auto-excludes dot directories even with
+  an explicit `exclude` (44 of the 45 tracked files are analysed; naming
+  the file directly finds no source files). Ruff still lints it. Fix by
+  moving the hook out of the dot directory or checking it separately.
+
 ### Blockers
 
 None yet.
