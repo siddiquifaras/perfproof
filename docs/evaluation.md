@@ -40,8 +40,11 @@ score.
    to pick and flag tasks (it found reference patches pass in every
    replay for 39 of 102 GSO, 11 of 140 SWE-Perf and 411 of 498
    SWE-fficiency tasks), not as a source of labels.
-3. **Hidden-fix tasks.** A known merged optimization is reverted, and
-   the agent gets only the repository and "make this workload faster".
+3. **Hidden-fix tasks.** The code as it was just before a known merged
+   optimization: the change's base commit, exported without later
+   history, or a later commit with the change reverted where the base
+   no longer builds. The agent gets only the repository and "make this
+   workload faster".
    No issue text, no pull request, no hint of where. This is the test
    of discovery.
 4. **Nothing to keep.** Code after its optimization landed, or code
@@ -115,6 +118,26 @@ disagreement is reported as run-to-run variance of the agent.
   release candidate, scored by the rules above.
 
 A task used for development never moves to the held-out set.
+
+**How the held-out set is chosen.** The mined manifests are a
+candidate pool. The selection rule is fixed here before any task is
+built for it:
+
+1. Candidates are ordered by `sha256(salt + task id)`, with the salt
+   `perfproof-heldout-2026-10-16`.
+2. Per target class, the held-out set takes, in that order, the first
+   candidates that build and run here (or on the class's GPU host): two
+   known-change tasks, one hidden-fix task, one nothing-to-keep task and
+   one published-benchmark task, five in all. Where a class has no
+   candidate of a family, the next known-change task takes its place.
+3. Whether a candidate builds is the only thing looked at. No
+   perfproof run, agent run or label of a held-out candidate is seen
+   before the list is committed.
+4. Every candidate passed over is recorded with the reason it didn't
+   build, so the selection can be re-derived.
+
+The development set is drawn from the rest of the pool the same way,
+with its own salt.
 
 ## What we publish
 
