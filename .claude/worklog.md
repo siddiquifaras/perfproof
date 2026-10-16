@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `d4dcc9c` | T2.3 runner merged (PR #4), squash, at `a5a60c1` after six review rounds (failed executions as samples, duplicate keys, SIGCHLD fallback, harness faults blamed on an arm, missing program/cwd, exec errno split); reviewer PASS on that commit, Linux Docker check exit 0 |
 | `ee2a149` | T2.12 safety schema merged (PR #9), squash, at `2a33595`; reviewer PASS and stats-auditor PASS on that commit (gate sweep 5.6M decisions, 7.7M permutations, defaults sweep 40,320 records, 123/123 mutants red), Linux Docker check exit 0. Example specs bumped to schema 2 right after (examples suite 43 passed) |
 | `fa8bc71` | T2.7 examples and decoys merged (PR #12), squash, at `9402fff`; reviewer PASS on that commit (decoys re-probed at 150 rounds: rolling slight 1.0078 (1.0016-1.0140), membership 1.0140 (1.0098-1.0181); group-kill timeout proven by mutation), CI 4/4 on that head |
 | `bfc5f2c` | T2.2 spec, lock, procedure and snapshot merged (PR #5), squash, at `27e6811` after six review rounds on the runtime gate; reviewer PASS on that commit, CI 4/4 on that head. Stated limits: interpreters started by an identified program (including `python -m runpy tox`), dlopen, renamed launchers, untracked in-tree native builds, host-arch slice only |
@@ -108,7 +109,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #4 | T2.3 | Launch-failure fixes at `5c51f88`; worker merging main (schema 2); then reviewer |
 | #10 | T1.2 | Reviewer PASS at `4ac774b`; stats-auditor finishing (also judging whether BCa is worth keeping) |
 | #11 | T1.1 | Reviewer PASS at `0678568`; stats-auditor running; worker reworking `test_intervals.py` for schema 2 (second to merge after #9); then a delta review |
 | #13 | spec | Third stats audit at `a2c43f7` |

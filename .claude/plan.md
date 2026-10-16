@@ -582,7 +582,7 @@ Mac and on Linux CI, with decoys that must be refused.
     matches the snapshot commit.
   - Effort: high
 
-- [ ] **T2.3 Runner**
+- [x] **T2.3 Runner**
   - Owns: `src/perfproof/bench/runner.py`, `tests/bench/test_runner.py`
   - Needs: T0.3
   - Do: run a spec's argv in a given tree with env, cwd and timeout.
@@ -651,7 +651,13 @@ Mac and on Linux CI, with decoys that must be refused.
     effects" in `docs/method.md`), passed as the runner's `base_env`
     and to the side-effect gate, and the reset runs before every
     execution. A harness `RunnerError` stops the comparison with no
-    verdict; an `ExecutionError` follows "Failed executions".
+    verdict; an `ExecutionError` follows "Failed executions". When the
+    candidate fails, run the baseline once more on the same round
+    before blaming it: if the baseline fails too, the failure is shared
+    (a noexec mount, a program missing on the host, a race on a shared
+    binary) and the comparison stops as a broken baseline. From the
+    T2.3 review: blaming `launch` only when the program sits inside the
+    arm's tree would also remove the shared cases at the runner.
   - Do: the thin path first, then deepened as gates land. Until the M1
     exit, the outcome is INCONCLUSIVE with the diagnostic
     `procedure_uncalibrated`, whatever the interval; a gate not built
