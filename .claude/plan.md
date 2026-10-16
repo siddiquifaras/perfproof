@@ -697,7 +697,7 @@ Mac and on Linux CI, with decoys that must be refused.
     `metric_disagreement`.
   - Effort: high
 
-- [ ] **T2.6 Report**
+- [x] **T2.6 Report**
   - Owns: `src/perfproof/report/`, `tests/report/`
   - Needs: T0.3
   - Do: write `record.json` and render `report.md` from a `RunRecord`:
