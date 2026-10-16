@@ -15,8 +15,11 @@
   anything destructive.
 - The lead session in the main checkout merges reviewed PRs and pushes
   plan, docs and work-log updates to `main` without asking. A PR merges
-  when CI is green on its head, the `reviewer` (and `stats-auditor` for
-  statistics) passed on that same head, and its Done-when is shown.
+  when the `reviewer` (and `stats-auditor` for statistics) passed on its
+  head, the checks are green on that same head, and its Done-when is
+  shown. While GitHub Actions is manual-only (minutes nearly spent),
+  "the checks" means `/verify` on this Mac plus its Linux Docker step,
+  and CI runs once before release.
   Record each merge in `.claude/worklog.md`.
 - Give subagents bounded units (one module, one command) and check the
   evidence they return before accepting it.
