@@ -1,11 +1,10 @@
-# The merge gate: every PR and every push to main runs the same checks
-# as the local `verify` skill on both supported OSes and Pythons.
+# The same checks as the local `verify` skill on both supported OSes and
+# Pythons. Manual only while the account's Actions minutes are nearly
+# spent (macOS runners bill at ten times Linux); run it before release.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

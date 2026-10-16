@@ -1,15 +1,10 @@
 # Monte Carlo calibration of the statistical procedures. Too slow for
-# every PR, so it runs nightly on main. A PR that edits this file runs
-# it too, so a change to the job is exercised before it merges.
+# every PR. Manual only while the account's Actions minutes are nearly
+# spent; run it before release.
 name: Calibration
 
 on:
-  schedule:
-    - cron: "17 3 * * *"
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/calibration.yml
 
 permissions:
   contents: read
