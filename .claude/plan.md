@@ -794,7 +794,7 @@ Mac and on Linux CI, with decoys that must be refused.
     profilers; parse time and peak memory on a large capture in the PR.
   - Effort: medium
 
-- [ ] **T2.10 `perfproof profile` with py-spy**
+- [x] **T2.10 `perfproof profile` with py-spy** (siddiquifaras/perfproof#23, `d8f36c8`)
   - Owns: `src/perfproof/profilers/run.py`,
     `tests/profilers/test_run.py`, `tests/fixtures/py-spy/`, the
     `profile` command
@@ -810,6 +810,11 @@ Mac and on Linux CI, with decoys that must be refused.
     runs py-spy on each Python example and finds its known bottleneck
     in the top 3; parse time and peak memory on the largest fixture in
     the PR.
+  - Follow-ups from the review (T5.1 or the next profile change): the
+    text says CPU is summed over "all threads and processes", but
+    `wait4` counts only waited-for processes; "at least N%" rounds to
+    nearest instead of down; a CPU-bound run reads "waiting for at least
+    0%". py-spy on native Linux hardware is unverified.
   - Effort: medium
 
 - [ ] **T2.11 Real noise traces, CPU**

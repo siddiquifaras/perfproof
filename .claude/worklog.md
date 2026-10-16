@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `d8f36c8` | T2.10 `perfproof profile` merged (PR #23), squash, after two review rounds (`{output}` required so benchmark stdout is never read as a profile; CPU time read as summed over threads, BLAS spin); reviewer PASS at `055eca4`, lead merged main (plan/worklog-only delta) into `1b3e285` and ran /verify (3425 passed) and the Linux check (3422 passed) on it. Done-when: parser tests on captured py-spy and pyinstrument fixtures; py-spy and pyinstrument find the known bottleneck at rank 1 on rolling and membership (Linux Docker, emulated x86_64); parse time 5.0 ms and 0.48 MiB peak on the largest fixture, in the PR |
 | `6fe693c` | T1.5 sequential looks merged (PR #20), squash, after four review rounds and three stats audits; reviewer PASS and stats-auditor PASS at `67f6838`, lead merged main and ran /verify (3347 passed) and the Linux check (3344 passed) on the merge. T1.5 stays open in the plan until its per-target schedule defaults are written into docs/method.md |
 | `6e225cd` | T2.16 side-effect guard merged (PR #16), squash, after six review rounds (libpq/WHATWG URL parsing, service files, inline config keys, argv NAME=value, http(s), linear scans, everyday-file false refusals, multi-line lists); reviewer PASS at `fe188b9`, lead merged main and ran /verify (3161 passed) and the Linux check (3158 passed) on the merge. Benchmarks now get a base environment plus the spec's env (`benchmark_environment`), not wired into the runner yet (T2.5) |
 | `b86989e` | T2.17 CLI skeleton merged (PR #18), squash, at `af0f454` after four review rounds (internal_error contract, --json help, OSError mapping, non-UTF-8 paths, closed stdout/stderr); reviewer PASS on that commit, head contains main, worker's /verify (2890 passed) and Linux check (2887 passed) on it |
@@ -119,8 +120,9 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 | #19 | T2.13 | Round 7: guard suspended on the first execution of a recorded tree module, retry removed; then regression-only review |
 | #21 | T2.18 | Draft; merges last, after #19 and #23; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
 | #22 | T4.2 | Development draw (web 5, agentic 5, native +2) and the GSO workload fix in the miner |
-| #23 | T2.10 | Fixes at `055eca4` (main with T1.5 merged in); `/verify` green, linux.sh green on rerun; regression review running |
-| #24 | T2.5 | Opened at `463161b` (contains main `92d7e25`); `/verify` and linux.sh green per the worker; reviewer running |
+| #24 | T2.5 | Review BLOCK at `463161b`: K>1 look wiring untested (budget between looks crashes), unstartable baseline recorded as candidate REJECT; worker fixing, plus env-leak test and second fingerprint |
+| T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
+| T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
 
 Next after #24: T2.19 (runner: balanced order pairs, reset hook, single execution) and T2.20 (examples declare objective and guardrails, after T2.18).
 
