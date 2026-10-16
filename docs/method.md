@@ -71,7 +71,10 @@ non-executable program) produces no sample; its time never enters the
 statistics. If the
 candidate fails this way, the candidate fails the `correctness` gate:
 REJECT with reason `correctness`, the exit status and the tail of its
-output in the record. If the baseline fails, the experiment itself is
+output in the record. A candidate whose program or interpreter can't
+be found at all is caught earlier, before anything runs, by the
+`runtime` gate: REJECT with reason `integrity`. If the baseline fails,
+or its program or interpreter can't be found, the experiment itself is
 broken: the comparison stops with no verdict and reports the error.
 So does a fault in perfproof's own process, such as running out of
 file descriptors or processes: it is blamed on neither version.
