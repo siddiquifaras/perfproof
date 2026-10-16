@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `e0c70cd` | Method spec changes merged (PR #13), squash, at `8f4077b` after six stats audits: balanced order pairs, per-value resolution widening and the resolution stop, per-look confidence `1 - alpha/(2K)` (and `1 - alpha/(2KG)` for guardrails), float64 ratios as the observations, one-version skew stated as an uncalibrated limit, a table of measured power costs; final audit PASS on that commit |
 | `f1b99d3` | T4.1 evaluation task pool and miner merged (PR #14), squash, after four review rounds; reviewer PASS at `5d7c54a`, lead merged main into the branch (`e83e81b`, eval-only diff) and ran the Linux check on the merge (2632 passed). T4.1 stays open: building the selected tasks runs with T4.2 |
 | `c3fcdcf` | T1.2 bootstrap merged (PR #10), squash, at `4ac774b`; reviewer PASS and stats-auditor PASS on that commit (0 violations in ~160k exact-arithmetic rows; BCa kept as a free comparison only, weaker than percentile everywhere measured). The head didn't contain T2.12, so 30 bootstrap tests failed on main until the next commit fixed the `calibrated` argument; merge rule now requires the head to contain main |
 | `ba00c0a` | T1.1 interval procedures merged (PR #11), squash, at `2ab900a`; reviewer PASS and stats-auditor PASS on that commit (bit-identical to the audited numerics on macOS and Linux, 0 false KEEP/REJECT in the exact-arithmetic sweeps, chunking mutants red, memory within bound on 78 shapes), Linux check exit 0; stats tests on merged main 1507 passed |
@@ -112,7 +113,6 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #13 | spec | Fourth stats audit running at `c355293` |
 | #15 | T2.6 | Reviewer running at `5b68263` |
 | #16 | T2.16 | Reviewer running at `c004683` |
 | #17 | T2.4 | Reviewer running at `2293224` |
