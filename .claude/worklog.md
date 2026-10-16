@@ -10,6 +10,9 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `fa8bc71` | T2.7 examples and decoys merged (PR #12), squash, at `9402fff`; reviewer PASS on that commit (decoys re-probed at 150 rounds: rolling slight 1.0078 (1.0016-1.0140), membership 1.0140 (1.0098-1.0181); group-kill timeout proven by mutation), CI 4/4 on that head |
+| `bfc5f2c` | T2.2 spec, lock, procedure and snapshot merged (PR #5), squash, at `27e6811` after six review rounds on the runtime gate; reviewer PASS on that commit, CI 4/4 on that head. Stated limits: interpreters started by an identified program (including `python -m runpy tox`), dlopen, renamed launchers, untracked in-tree native builds, host-arch slice only |
+| `876cf40` | CI made manual-only: Actions minutes nearly spent. Merge gate is now `/verify` plus a Linux x86_64 Docker run on the exact head (`b5a4530`); CI runs once before release |
 | `879bbb7` | T1.4 noise simulator merged (PR #6), squash, at `49fe296`; reviewer PASS and stats-auditor PASS on that commit (19/19 mutants killed, chunk bound measured), CI 4/4. Earlier audit blocked on a normal-noise RNG test gap, fixed |
 | `e80e399` | T2.1 machine fingerprint merged (PR #7), squash, at reviewed head `a376647`; reviewer PASS on that commit after two blocked rounds (Linux `host_id` collision fixed with boot_id; real cpuinfo captured), CI 4/4 |
 | `a141718` | Spec: a test that fails only on the candidate is re-run five more times on each tree before the candidate is blamed (three baseline runs catch a 50%-flaky test only 75% of the time; found by the T2.7 worker) |
@@ -90,11 +93,9 @@ As of ~05:30 PKT, usage limit reached; resume 06:52. Resume point if the usage l
 
 | PR | Task | State |
 |---|---|---|
-| #5 | T2.2 | Bounded reviewer running at `27e6811`; merge if PASS |
-| #9 | T2.12 | Final audit at `cf5bed7` BLOCK on F3 (objective exemption by name; wall metric can name peak_memory as objective); sent to worker. F2 fixed in method.md `5070307`. Next: reviewer + stats-auditor on the new head |
+| #9 | T2.12 | F3 fixed at `57f7b0e`; reviewer and stats-auditor running on it; merge if both PASS |
 | #10 | T1.2 | Worker fixing BCa near-tie false KEEPs, clip to NaN, refuse longdouble; then reviewer + stats-auditor |
 | #11 | T1.1 | HL normal-branch memory fix sent to worker (crit per chunk); stats-auditor running at `8ba7af9`. Next: reviewer + auditor on the new head. Whichever of #9/#11 merges second reworks `record()` in test_intervals.py |
-| #12 | T2.7 | Fixes at `9402fff` (width 3000, rolling slight 1.0180 (1.0109-1.0252) at 150 rounds; median-of-3 RSS; timeout kills group), CI 4/4; reviewer running; merge if PASS |
 | #13 | spec | Method changes from the T1.1 audit; stats-auditor running |
 | #4 | T2.3 | Waits for #5; then rebase on `command_hash`, add `procedure_gate` test, balanced pairs and resolution once #13 merges |
 | — | T4.1 | Worker still building the evaluation task set |

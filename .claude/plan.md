@@ -549,7 +549,7 @@ Mac and on Linux CI, with decoys that must be refused.
     as such.
   - Effort: medium
 
-- [ ] **T2.2 Spec, lock, procedure and snapshot**
+- [x] **T2.2 Spec, lock, procedure and snapshot**
   - Owns: `src/perfproof/bench/spec.py`, `src/perfproof/bench/lock.py`,
     `src/perfproof/bench/snapshot.py`, `tests/bench/test_spec.py`,
     `tests/bench/test_lock.py`, `tests/bench/test_snapshot.py`
@@ -655,7 +655,7 @@ Mac and on Linux CI, with decoys that must be refused.
     fixed.
   - Effort: medium
 
-- [ ] **T2.7 Examples and decoys**
+- [x] **T2.7 Examples and decoys**
   - Owns: `examples/`
   - Needs: none
   - Do: small Python programs, each with a benchmark command, a
