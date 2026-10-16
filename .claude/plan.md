@@ -732,6 +732,14 @@ Mac and on Linux CI, with decoys that must be refused.
     `docs/method.md`. Decides through T1.3's function and builds
     cross-host evidence by T1.3's rules. Uses the procedure fixed by
     T1.6 and T1.7.
+  - Thin path merged (siddiquifaras/perfproof#24, `7bb5731`). Still to
+    wire: the differential checks (T2.13) and coverage gate (T2.14);
+    the spec's declared `metric.resolution` (compare uses printed
+    digits), the differential `rtol`/`atol` and `capture_limit`; the
+    resolution stop recorded as rule 1 with `coarse_resolution` (schema
+    3) instead of rule 5 plus a warning; guardrail widening in the
+    record; the second fingerprint once the schema has a place for it;
+    reset and balanced order (T2.19); detach, status, cancel, resume.
   - Done when: before the M1 exit, `perfproof compare` runs end to end
     on an example and never returns KEEP or a performance REJECT; after
     it, an end-to-end test on a temporary repo with a sleep-based
@@ -1226,6 +1234,14 @@ Starts now, in parallel with M1 and M2. Implements
     `docs/evaluation.md`) build and run here, with the held-out list
     committed before any held-out run. Building the selected tasks
     runs with T4.2; the pool alone doesn't close this task.
+  - Status (siddiquifaras/perfproof#22, `e8c91e2`): 30 held-out tasks
+    committed in f595745 before any held-out run; the 20 CPU ones and 20
+    development tasks build and run here. Open: the 10 serving and GPU
+    held-out tasks need a GPU host (paid, waits for Faras), then the
+    serving and GPU development draw. Follow-ups: `classify([])`
+    returns `runs` for a manifest with no runs (an unknown becoming a
+    value); `draw.py`'s docstring still describes the reference-side
+    outcome as only a failed oracle or workload.
   - Effort: high
 
 - [ ] **T4.2 Independent ground truth**

@@ -136,13 +136,17 @@ built for it:
    one published-benchmark task, five in all. Where a class has no
    candidate of a family, the next known-change task takes its place.
 4. Apart from step 1, whether a candidate builds is the only thing
-   looked at. No perfproof run, agent run or label of a held-out
+   looked at, and it is judged on the task tree alone: its setup, its
+   workload and its required oracle at the task's starting commit.
+   What the reference change does there (fails to build, hangs, fails
+   its tests) is a result, recorded for labelling, and never decides
+   selection. No perfproof run, agent run or label of a held-out
    candidate is seen before the list is committed.
 5. Every candidate passed over is recorded with the reason it didn't
    build, so the selection can be re-derived.
 
 The development set is drawn from the rest of the pool the same way,
-with its own salt.
+with the salt `perfproof-development-2026-10-16`.
 
 ## What we publish
 
