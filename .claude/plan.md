@@ -646,6 +646,12 @@ Mac and on Linux CI, with decoys that must be refused.
     `tests/bench/test_compare.py`
   - Needs: T2.17, T2.1, T2.2, T2.3, T2.4, T1.3; each gate as its task
     lands (T2.13, T2.14, T2.15, T2.16); M1 exit for real verdicts
+  - Every command runs with `side_effects.benchmark_environment(spec,
+    os.environ)` (the base allowlist plus the spec's `env`, per "Side
+    effects" in `docs/method.md`), passed as the runner's `base_env`
+    and to the side-effect gate, and the reset runs before every
+    execution. A harness `RunnerError` stops the comparison with no
+    verdict; an `ExecutionError` follows "Failed executions".
   - Do: the thin path first, then deepened as gates land. Until the M1
     exit, the outcome is INCONCLUSIVE with the diagnostic
     `procedure_uncalibrated`, whatever the interval; a gate not built
