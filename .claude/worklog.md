@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `76d2f3c` | T2.13 differential checks merged (PR #19), squash, after nine review rounds: guard on library and recorded-module first runs (LazyLoader, duplicate registration), per-thread suspension so overlapping imports cannot leave the guard off, atomic first-run claim; reviewer PASS at `962a302` (narrow B1 re-review on Sonnet), worker /verify (3462 passed) and Linux check (3459 passed) on that head, which contains main `381d3b0`. Done-when: a one-in-fifty bug caught by replayed real calls (100 captured, 100 replayed, 2 mismatches), an unpicklable argument skipped with its reason, no capture code in measured rounds (agent module absent in six runner executions) |
 | `d8f36c8` | T2.10 `perfproof profile` merged (PR #23), squash, after two review rounds (`{output}` required so benchmark stdout is never read as a profile; CPU time read as summed over threads, BLAS spin); reviewer PASS at `055eca4`, lead merged main (plan/worklog-only delta) into `1b3e285` and ran /verify (3425 passed) and the Linux check (3422 passed) on it. Done-when: parser tests on captured py-spy and pyinstrument fixtures; py-spy and pyinstrument find the known bottleneck at rank 1 on rolling and membership (Linux Docker, emulated x86_64); parse time 5.0 ms and 0.48 MiB peak on the largest fixture, in the PR |
 | `6fe693c` | T1.5 sequential looks merged (PR #20), squash, after four review rounds and three stats audits; reviewer PASS and stats-auditor PASS at `67f6838`, lead merged main and ran /verify (3347 passed) and the Linux check (3344 passed) on the merge. T1.5 stays open in the plan until its per-target schedule defaults are written into docs/method.md |
 | `6e225cd` | T2.16 side-effect guard merged (PR #16), squash, after six review rounds (libpq/WHATWG URL parsing, service files, inline config keys, argv NAME=value, http(s), linear scans, everyday-file false refusals, multi-line lists); reviewer PASS at `fe188b9`, lead merged main and ran /verify (3161 passed) and the Linux check (3158 passed) on the merge. Benchmarks now get a base environment plus the spec's env (`benchmark_environment`), not wired into the runner yet (T2.5) |
@@ -117,10 +118,9 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 | PR | Task | State |
 |---|---|---|
-| #19 | T2.13 | Round 7: guard suspended on the first execution of a recorded tree module, retry removed; then regression-only review |
-| #21 | T2.18 | Draft; merges last, after #19 and #23; then the worker merges main, fixes tests under schema 3, un-drafts; then review |
-| #22 | T4.2 | Development draw (web 5, agentic 5, native +2) and the GSO workload fix in the miner |
-| #24 | T2.5 | Review BLOCK at `463161b`: K>1 look wiring untested (budget between looks crashes), unstartable baseline recorded as candidate REJECT; worker fixing, plus env-leak test and second fingerprint |
+| #21 | T2.18 | Draft; #19 and #23 are merged; resumes after #24 merges (compare writes the schema); then the worker merges main, fixes tests under schema 3, un-drafts; then review |
+| #24 | T2.5 | Reviewer PASS at `09cfb5a` (round 3, narrow on Sonnet); worker /verify green; needs main `76d2f3c` merged and the checks rerun |
+| #22 | T4.2 | Phase 1 done at `2cf238e`: 30 held-out (20 CPU at runs), 20 development at runs; full review running |
 | T3.10 | hand-runs | Sessions running: frames2py and picolm; NetBox |
 | T3.11 | PR study | Session running: 10 perf PRs, unaided Claude Code and Codex runs |
 
@@ -139,6 +139,10 @@ Next after #24: T2.19 (runner: balanced order pairs, reset hook, single executio
   container running): the baseline's empty script overran its 0.5 s
   timeout and raised `BaselineBrokenError`. Passed on a rerun alone.
   Load-sensitive timeout margin in T2.4's tests; not yet fixed.
+
+- `tests/bench/test_side_effects.py::test_minified_json_scales_linearly`
+  failed once in /verify on PR #24 at load ~26 and passed alone: a
+  timing-ratio test, load-sensitive like the two above.
 
 ### Blockers
 

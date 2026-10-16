@@ -861,7 +861,7 @@ Mac and on Linux CI, with decoys that must be refused.
     the JSON Schema drift test passes; all existing tests still pass.
   - Effort: high
 
-- [ ] **T2.13 Differential checks**
+- [x] **T2.13 Differential checks** (siddiquifaras/perfproof#19, `76d2f3c`)
   - Owns: `src/perfproof/bench/differential.py`,
     `tests/bench/test_differential.py`
   - Needs: T2.12, T2.3
