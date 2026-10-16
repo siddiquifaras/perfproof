@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from perfproof.bench import compare as compare_module
 from perfproof.bench.compare import (
@@ -727,10 +728,9 @@ def test_harness_fault_stops_with_no_verdict(
             },
             "unsupported_spec",
         ),
-        ({"looks": {"n0": 11, "k": 2, "max_looks": 1}}, "unsupported_spec"),
         ({"objective": None, "guardrails": []}, "undeclared_guardrails"),
     ],
-    ids=["reset", "odd-n0", "no-guardrails"],
+    ids=["reset", "no-guardrails"],
 )
 def test_specs_the_thin_path_cannot_run_are_refused_first(
     project: Project, changes: dict[str, Any], code: str
@@ -742,6 +742,15 @@ def test_specs_the_thin_path_cannot_run_are_refused_first(
         project.run(candidate, spec)
     assert stopped.value.code == code
     nothing_ran(project, project.root, candidate)
+
+
+def test_an_odd_one_host_schedule_never_reaches_compare() -> None:
+    # Schema 3 refuses an odd n0 on one host when the spec is built, so
+    # compare's own look-schedule refusal can't be reached this way.
+    budget = {"max_rounds": 12, "max_seconds": 300.0}
+    odd = {"n0": 11, "k": 2, "max_looks": 1}
+    with pytest.raises(ValidationError, match="order pairs"):
+        BenchmarkSpec.model_validate(spec_fields(budget=budget, looks=odd))
 
 
 def test_an_undeclared_guardrail_still_lets_a_gate_reject(

@@ -84,12 +84,13 @@ Each value's step ``q`` (``docs/method.md``, "Resolution"):
 - ``counter``: one count.
 - ``reported``: the place of the last digit printed in the
   ``PERFPROOF`` line (``9`` has 1, ``9.40`` has 0.01, ``1.5e-3`` has
-  1e-4), with the continuity check, since the schema has no declared
-  resolution yet (T2.18).
+  1e-4), with the continuity check. The schema now has a declared
+  ``MetricSpec.resolution``, but compare doesn't read it yet (T2.5).
 
 The resolution stop is recorded as rule 5 INCONCLUSIVE
-(``insufficient_evidence``) with a ``coarse_resolution`` warning: the
-schema has no ``coarse_resolution`` diagnostic yet (T2.18).
+(``insufficient_evidence``) with a ``coarse_resolution`` warning. The
+schema now has the ``coarse_resolution`` diagnostic and its rule 1
+INCONCLUSIVE, but compare doesn't use them yet (T2.5).
 
 What the thin path does not do yet
 ----------------------------------
@@ -1094,8 +1095,10 @@ def _unprobed(
         version=arm,
         env_names=tuple(env),
         missing={
+            "runtime_kind": reason,
             "runtime_executable": reason,
             "runtime_version": reason,
+            "linked_libraries": reason,
             "dependency_locks": reason,
         },
     )

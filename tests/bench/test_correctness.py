@@ -129,7 +129,7 @@ def make_spec(**correctness: Any) -> BenchmarkSpec:
         "correctness": correctness,
         "warmup": 0,
         "budget": {"max_rounds": 20, "max_seconds": 600.0},
-        "looks": {"n0": 10, "k": 5, "max_looks": 3},
+        "looks": {"n0": 10, "k": 10, "max_looks": 3},
         "timeout_seconds": 30.0,
         "harness": ("bench.py",),
     }

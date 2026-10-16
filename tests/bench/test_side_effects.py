@@ -1335,8 +1335,10 @@ def test_failed_reset_goes_into_the_record(tmp_path: Path) -> None:
         if name not in ("captured_at", "missing")
     }
     env_fields = (
+        "runtime_kind",
         "runtime_executable",
         "runtime_version",
+        "linked_libraries",
         "env_names",
         "dependency_locks",
     )

@@ -32,6 +32,7 @@ A document that passes the JSON Schema can still be refused here.
 import hashlib
 import itertools
 import json
+import re
 import sys
 from collections.abc import Iterator, Mapping
 from types import MappingProxyType
@@ -81,6 +82,7 @@ __all__ = [
     "GuardrailStatus",
     "Hotspot",
     "Interval",
+    "LinkedLibrary",
     "LockManifest",
     "LockRole",
     "LockedFile",
@@ -94,9 +96,11 @@ __all__ = [
     "QuarantinedTest",
     "Reason",
     "ResetSpec",
+    "ResolutionSource",
     "Rule",
     "RunRecord",
     "RunWarning",
+    "RuntimeKind",
     "Sample",
     "SkippedCalls",
     "TargetClass",
@@ -107,8 +111,18 @@ __all__ = [
     "json_schema_text",
 ]
 
-SCHEMA_VERSION: Final = 2
+SCHEMA_VERSION: Final = 3
 """Version of the on-disk format; bumped on any incompatible change.
+
+Version 3 follows the method changes: a one-host look schedule needs
+even ``n0`` and ``k``; values carry a resolution, and a verdict the
+resolution stop, its widening and the calibration conditions it rests
+on; a tree's runtime has a kind and its native build's outside-tree
+libraries; a record names its repository and candidate commit;
+differential checks declare a numeric tolerance and record their
+capture limit. Every version 2 document is refused, whatever its
+content, and none is migrated: a stored spec, manifest or record must
+be written again under version 3.
 
 Version 2 added the safety checks: the `side_effects` and `coverage`
 gates, guardrails, the `guardrail` reason, the reset command, the
@@ -147,7 +161,7 @@ Rule = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_exact_int)]
 
 Rule 4 (continue) never ends a comparison, so no verdict carries it.
 """
-SchemaVersion = Annotated[Literal[2], BeforeValidator(_exact_int)]
+SchemaVersion = Annotated[Literal[3], BeforeValidator(_exact_int)]
 GateName = Literal[
     "side_effects",
     "lock",
@@ -182,6 +196,15 @@ TargetClass = Literal[
 ]
 """The six release target classes of ``docs/targets.md``."""
 CalibrationStatus = Literal["calibrated", "uncalibrated"]
+ResolutionSource = Literal["clock", "count", "declared", "printed"]
+"""Where a value's resolution came from, per "Resolution" in
+``docs/method.md``: the clock's step, measured once per run (`wall`,
+`cpu`); one count (`counter`); the spec's declared resolution, or the
+place of the last digit printed (`reported`)."""
+RuntimeKind = Literal["interpreter", "native_build"]
+"""What a tree's benchmark runs as: an interpreter with a version, or a
+native executable built in the tree. An unknown runtime has no kind: it
+is ``None`` with its reason in ``missing``."""
 
 GATE_REASON: Final[Mapping[GateName, Reason]] = MappingProxyType(
     {
@@ -202,7 +225,13 @@ _WAIVABLE_GATES: Final = frozenset(
 )
 _ABSENT: Final = object()
 _RULE_OUTCOMES: Final[Mapping[int, frozenset[tuple[Outcome, Reason]]]] = {
-    1: frozenset({("REJECT", "correctness"), ("REJECT", "integrity")}),
+    1: frozenset(
+        {
+            ("REJECT", "correctness"),
+            ("REJECT", "integrity"),
+            ("INCONCLUSIVE", "insufficient_evidence"),
+        }
+    ),
     2: frozenset(
         {
             ("KEEP", "performance"),
@@ -213,6 +242,16 @@ _RULE_OUTCOMES: Final[Mapping[int, frozenset[tuple[Outcome, Reason]]]] = {
     3: frozenset({("REJECT", "performance")}),
     5: frozenset({("INCONCLUSIVE", "insufficient_evidence")}),
 }
+_NOT_APPLICABLE: Final[Mapping[RuntimeKind | None, frozenset[str]]] = (
+    MappingProxyType(
+        {
+            "interpreter": frozenset({"linked_libraries"}),
+            "native_build": frozenset({"runtime_version"}),
+            None: frozenset(),
+        }
+    )
+)
+"""`TreeEnvironment` fields that don't apply to each runtime kind."""
 _UNSHOWN: Final = frozenset({"not_established", "unmeasurable"})
 _MEASURED: Final = frozenset({"passed", "breached", "not_established"})
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
@@ -342,13 +381,19 @@ class _FrozenMap(Mapping[str, str]):
         return f"{type(self).__name__}({self._data!r})"
 
 
-def _check_reasons(model: BaseModel, missing: Mapping[str, str]) -> None:
+def _check_reasons(
+    model: BaseModel,
+    missing: Mapping[str, str],
+    not_applicable: frozenset[str] = frozenset(),
+) -> None:
     """Require a reason in ``missing`` for exactly the ``None`` fields.
 
     A probe that fails leaves ``None`` and says why, so an unknown value
-    is never mistaken for an absent one or filled with a default.
+    is never mistaken for an absent one or filled with a default. Fields
+    in ``not_applicable`` are ``None`` because they don't apply, which
+    is known, so they take no reason.
     """
-    fields = set(type(model).model_fields) - {"missing"}
+    fields = set(type(model).model_fields) - {"missing"} - not_applicable
     unset = {f for f in fields if getattr(model, f) is None}
     if unset != set(missing):
         msg = (
@@ -412,6 +457,53 @@ ValueMap = Annotated[
 ]
 
 
+_URL_USERINFO: Final = re.compile(
+    r"^(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*)://(?P<user>[^/?#]*)@"
+)
+_SCP_USER: Final = re.compile(r"^(?P<user>[^/@]+)@[^/:]+:")
+_LOGIN_NAME: Final = re.compile(r"^[a-z_][a-z0-9_.-]{0,31}$")
+_SSH_SCHEMES: Final = frozenset({"ssh", "git+ssh"})
+
+
+def _check_repository(value: str) -> str:
+    """Refuse a repository location that may write a credential to disk.
+
+    It fails closed. A URL of any scheme but ``ssh`` and ``git+ssh``
+    (``https``, ``git+https``, ``http`` and the rest) has no user part
+    at all, since a repository URL has no need of one there and it is
+    where a token goes (``https://<token>@host``). An ``ssh`` or
+    ``git+ssh`` URL, or scp-like syntax (``u@host:path``), keeps its
+    user part only when it is a plain login name such as ``git``:
+    lowercase letters, digits, ``_``, ``.`` and ``-``, starting with a
+    letter or ``_``, at most 32 characters, with no ``:password``.
+    The user part is what comes before ``@`` within the authority,
+    which ends at the first ``/``. A stated limit: an SSH user that
+    happens to look like a short lowercase token
+    (``ghp_x@host:o/r``) is kept.
+    """
+    url = _URL_USERINFO.match(value)
+    if url is not None:
+        ssh = url["scheme"].lower() in _SSH_SCHEMES
+        allowed = ssh and _LOGIN_NAME.match(url["user"]) is not None
+    else:
+        scp = _SCP_USER.match(value)
+        allowed = scp is None or _LOGIN_NAME.match(scp["user"]) is not None
+    if not allowed:
+        msg = (
+            "the repository location has a user part that may be a "
+            "credential; record it without"
+        )
+        raise ValueError(msg)
+    return value
+
+
+Repository = Annotated[
+    str,
+    StringConstraints(strict=True, min_length=1),
+    AfterValidator(_check_repository),
+]
+
+
 def _sha256_json(payload: object) -> str:
     """Hash ``payload`` in a canonical JSON form.
 
@@ -449,8 +541,9 @@ class MetricSpec(_Model):
     Raises
     ------
     pydantic.ValidationError
-        If the direction or unit contradicts the kind, or ``event`` is
-        set for anything but a ``counter`` metric or missing for one.
+        If the direction or unit contradicts the kind, ``event`` is set
+        for anything but a ``counter`` metric or missing for one, or
+        ``resolution`` is set for anything but a ``reported`` metric.
     """
 
     kind: MetricKind
@@ -464,6 +557,13 @@ class MetricSpec(_Model):
     event: Text | None = None
     """``perf`` event name for a `counter` metric, such as
     ``"instructions"``; ``None`` for every other kind."""
+    resolution: Positive | None = None
+    """For a `reported` metric, the step ``q`` its values are known to,
+    in ``unit``, when the benchmark knows it: the timer it reads, or the
+    unit it rounds or truncates to. ``None`` leaves each value's step to
+    the place of its last printed digit, with the continuity check of
+    ``docs/method.md``. Never set for other kinds, whose step is the
+    clock's (`wall`, `cpu`) or one count (`counter`)."""
 
     @model_validator(mode="after")
     def _check_kind(self) -> Self:
@@ -475,6 +575,12 @@ class MetricSpec(_Model):
             raise ValueError(msg)
         if (self.kind == "counter") != (self.event is not None):
             msg = "event is required for counter metrics and only for them"
+            raise ValueError(msg)
+        if self.resolution is not None and self.kind != "reported":
+            msg = (
+                f"a {self.kind} metric's resolution is measured, not "
+                "declared; only a reported metric declares one"
+            )
             raise ValueError(msg)
         return self
 
@@ -534,6 +640,15 @@ class CorrectnessSpec(_Model):
     """Time limit for ``command``, in seconds."""
     outputs: tuple[OutputCheck, ...] = ()
     """Declared outputs compared between the two trees."""
+    differential_rtol: NonNegative = 0.0
+    """Relative tolerance for floating-point values the differential
+    checks compare (captured, replayed and generated calls),
+    dimensionless, relative to the baseline's value. ``0.0`` with
+    ``differential_atol`` ``0.0`` compares exactly, so reordered float
+    arithmetic mismatches."""
+    differential_atol: NonNegative = 0.0
+    """Absolute tolerance for those floating-point values, in their own
+    units."""
 
     @model_validator(mode="after")
     def _check_has_checks(self) -> Self:
@@ -564,17 +679,22 @@ class LookSchedule(_Model):
     """When the sequential procedure looks at the data.
 
     The first look comes after ``n0`` rounds, then one every ``k``
-    rounds, for at most ``max_looks`` looks.
+    rounds, for at most ``max_looks`` looks. On one host rounds come in
+    order pairs, so ``n0`` and ``k`` are even and every scheduled look
+    falls on complete pairs; `BenchmarkSpec` refuses an odd one unless
+    the spec opts in to the cross-host design, whose observations are
+    session pairs.
     """
 
     n0: Annotated[int, Strict(), Field(ge=10)]
     """Rounds before the first look; at least 10, because t intervals on
-    fewer rounds are too fragile under heavy tails."""
+    fewer rounds are too fragile under heavy tails. Even on one host."""
     k: PositiveInt
-    """Rounds between looks."""
+    """Rounds between looks. Even on one host."""
     max_looks: PositiveInt
-    """Most looks, ``K`` in ``docs/method.md``. Each look's confidence
-    is ``1 - alpha / max_looks``."""
+    """Most looks, ``K`` in ``docs/method.md``. Each look's two-sided
+    interval is at confidence ``1 - alpha / (2 K)``: a Bonferroni split
+    over the looks designed to halve the error ``alpha`` allows."""
 
 
 class ResetSpec(_Model):
@@ -690,7 +810,8 @@ class BenchmarkSpec(_Model):
     Raises
     ------
     pydantic.ValidationError
-        If ``n0`` exceeds ``max_rounds``, a path is declared twice
+        If ``n0`` exceeds ``max_rounds``, ``n0`` or ``k`` is odd without
+        the cross-host opt-in, a path is declared twice
         across the locked groups, a guardrail metric is declared twice
         or is the primary objective, guardrails are declared without an
         objective, the metric kind cannot measure the objective or its
@@ -724,7 +845,8 @@ class BenchmarkSpec(_Model):
     min_effect: NonNegative = 0.03
     """Smallest speedup worth keeping; the bar is ``1 + min_effect``."""
     alpha: Level = 0.05
-    """Total error budget, split across looks."""
+    """Error the promise allows; each look's interval is at confidence
+    ``1 - alpha / (2 K)`` for ``K`` looks."""
     timeout_seconds: Seconds
     """Time limit for one benchmark execution, in seconds."""
     harness: Annotated[tuple[RelPath, ...], Field(min_length=1)]
@@ -824,6 +946,17 @@ class BenchmarkSpec(_Model):
                 f"{self.budget.max_rounds}"
             )
             raise ValueError(msg)
+        odd = [
+            f"{name} = {value}"
+            for name, value in (("n0", self.looks.n0), ("k", self.looks.k))
+            if value % 2
+        ]
+        if odd and not self.allow_cross_host:
+            msg = (
+                f"on one host rounds come in order pairs, so n0 and k are "
+                f"even, not {', '.join(odd)}"
+            )
+            raise ValueError(msg)
         paths = [*self.harness, *self.oracle, *self.inputs, *self.config]
         if len(set(paths)) != len(paths):
             msg = f"a locked path is declared more than once: {paths}"
@@ -902,6 +1035,12 @@ class Sample(_Model):
     """One measured execution of one version.
 
     Warmup executions are discarded and never become samples.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``resolution`` and ``resolution_source`` are not set
+        together.
     """
 
     version: Arm
@@ -916,6 +1055,14 @@ class Sample(_Model):
     value: Ratio
     """Metric value in `MetricSpec.unit`; positive, since ratios are
     taken."""
+    resolution: Positive | None = None
+    """The step ``q`` that ``value`` is known to within, in
+    `MetricSpec.unit`; it widens the interval as ``docs/method.md``
+    sets out under "Resolution". ``None`` when not recorded, which
+    leaves the widening unknown."""
+    resolution_source: ResolutionSource | None = None
+    """Where ``resolution`` came from: ``clock``, ``count``,
+    ``declared`` or ``printed``; set with it."""
     wall_seconds: NonNegative
     """Wall-clock time of the whole command, in seconds, recorded for
     every metric."""
@@ -930,6 +1077,13 @@ class Sample(_Model):
     command_hash: Sha256Hex
     """SHA-256 of the executed argv, declared environment, working
     directory and resolved executable, as launched."""
+
+    @model_validator(mode="after")
+    def _check_resolution(self) -> Self:
+        if (self.resolution is None) != (self.resolution_source is None):
+            msg = "resolution and resolution_source are set together"
+            raise ValueError(msg)
+        return self
 
 
 class Difference(_Model):
@@ -1014,14 +1168,21 @@ class DifferentialCheck(_Model):
     pydantic.ValidationError
         If the replay-stage skips do not account for exactly the
         captured calls that were not replayed, a stage and reason
-        repeat, more calls mismatched than were run, or mismatches and
-        ``differences`` are not present together.
+        repeat, more calls mismatched than were run, mismatches and
+        ``differences`` are not present together, or more calls were
+        captured than ``capture_limit`` allows.
     """
 
     function: Text
     """The changed function, as ``module:qualified.name``."""
     captured: Count
-    """Real calls captured during the baseline benchmark."""
+    """Real calls captured during the baseline benchmark. When it
+    equals ``capture_limit`` it is the cap, not a count of every
+    call."""
+    capture_limit: PositiveInt | None = None
+    """Most real calls captured for this function; ``None`` when no
+    limit applied. Calls past it are not captured, so a report labels
+    ``captured`` at the limit as a bound."""
     replayed: Count
     """Captured calls replayed against the candidate."""
     generated: Count = 0
@@ -1056,6 +1217,14 @@ class DifferentialCheck(_Model):
             raise ValueError(msg)
         if (self.mismatches > 0) != bool(self.differences):
             msg = "mismatches and their first differences go together"
+            raise ValueError(msg)
+        if self.capture_limit is not None and self.captured > (
+            self.capture_limit
+        ):
+            msg = (
+                f"{self.captured} calls captured past the capture limit of "
+                f"{self.capture_limit}"
+            )
             raise ValueError(msg)
         return self
 
@@ -1246,6 +1415,17 @@ class Diagnostics(_Model):
     """Coefficient of variation of the candidate's values."""
     sd_log_ratio: NonNegative | None = None
     """Standard deviation of the per-round log ratios."""
+    coarse_resolution: Flag | None = None
+    """Whether the resolution stop of ``docs/method.md`` ended the
+    comparison: a value no larger than its own step, or a `reported`
+    metric with no declared resolution that failed the continuity
+    check. ``True`` only on a rule 1 verdict: the INCONCLUSIVE the stop
+    gives, or a gate REJECT decided after it."""
+    resolution_widening: NonNegative | None = None
+    """How far the resolution moved both bounds of the deciding look's
+    interval outward, on the log scale: the mean ``w`` over its rounds
+    of ``e_i = -log(1 - q_b / b_i) - log(1 - q_c / c_i)``, so ``L`` was
+    multiplied by ``exp(-w)`` and ``U`` by ``exp(w)``. Dimensionless."""
 
     @model_validator(mode="after")
     def _check_disagreement(self) -> Self:
@@ -1261,7 +1441,11 @@ class Verdict(_Model):
     ``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the
     decision rule in ``docs/method.md``. Gates run before timing, so a
     correctness or integrity verdict carries no speedup estimate,
-    interval, wall-clock interval or regression flag. Rule 2 (the
+    interval, wall-clock interval or regression flag. The resolution
+    stop, checked after the gates of rule 1 and before rules 2 and 3,
+    is the rule 1 INCONCLUSIVE: it names no gate, comes at a look, has
+    the ``coarse_resolution`` diagnostic, and like a gate verdict
+    carries no estimate, interval or wall-clock interval. Rule 2 (the
     interval clears the bar) gives KEEP, a guardrail REJECT, which
     keeps its estimate and interval to show what the speed cost, or
     INCONCLUSIVE when compliance couldn't be established.
@@ -1272,9 +1456,10 @@ class Verdict(_Model):
         If the fields contradict each other as described above, a rule
         2 or 3 verdict lacks its estimate or interval, an interval
         comes without a look on at least 2 rounds, a calibrated verdict
-        names no target class, or a verdict under an uncalibrated
-        procedure is anything but a gate REJECT or a rule 5
-        INCONCLUSIVE.
+        names no target class or no calibration conditions, an
+        uncalibrated one names conditions, or a verdict under an
+        uncalibrated procedure is anything but a rule 1 verdict or a
+        rule 5 INCONCLUSIVE.
     """
 
     outcome: Outcome
@@ -1311,6 +1496,12 @@ class Verdict(_Model):
     every default guardrail of `DEFAULT_GUARDRAILS` must be declared."""
     calibration: CalibrationStatus
     """Whether the procedure is calibrated for ``target_class``."""
+    calibration_conditions: tuple[Text, ...] = ()
+    """The conditions ``target_class`` was calibrated under, as the
+    calibration results in ``docs/method.md`` name them (noise
+    scenarios, host modes, trace sets), so the report can say the
+    verdict rests on those and not on calibration in general. Not
+    empty exactly when ``calibration`` is ``calibrated``."""
     diagnostics: Diagnostics
     """Diagnostics such as ``procedure_uncalibrated``; required, since
     it holds whether the procedure was calibrated."""
@@ -1324,10 +1515,18 @@ class Verdict(_Model):
                 f"{self.outcome} {self.reason}"
             )
             raise ValueError(msg)
-        if self.rule == 1:
+        if self.rule == 1 and self.outcome == "INCONCLUSIVE":
+            self._check_resolution_stop()
+        elif self.rule == 1:
             self._check_gate_verdict()
         elif self.gate is not None:
             msg = f"only rule 1 names a gate, rule {self.rule} has {self.gate}"
+            raise ValueError(msg)
+        if self.diagnostics.coarse_resolution and self.rule != 1:
+            msg = (
+                "coarse_resolution ends the comparison under rule 1, so a "
+                f"rule {self.rule} verdict cannot have it"
+            )
             raise ValueError(msg)
         if self.rule in (2, 3) and (
             self.estimate is None or self.interval is None
@@ -1336,7 +1535,7 @@ class Verdict(_Model):
             raise ValueError(msg)
         if self.diagnostics.procedure_uncalibrated and self.rule not in (1, 5):
             msg = (
-                "under an uncalibrated procedure only a gate REJECT or a "
+                "under an uncalibrated procedure only a rule 1 verdict or a "
                 f"rule 5 INCONCLUSIVE is given, not rule {self.rule}"
             )
             raise ValueError(msg)
@@ -1365,7 +1564,51 @@ class Verdict(_Model):
         if self.calibration == "calibrated" and self.target_class is None:
             msg = "a calibrated verdict must name its target class"
             raise ValueError(msg)
+        if (self.calibration == "calibrated") != bool(
+            self.calibration_conditions
+        ):
+            msg = (
+                "a calibrated verdict names the conditions it was "
+                "calibrated under, and only a calibrated one does"
+            )
+            raise ValueError(msg)
         return self
+
+    def _check_resolution_stop(self) -> None:
+        """Check a rule 1 INCONCLUSIVE is the resolution stop.
+
+        It is decided at a look, by a value's resolution rather than by
+        a gate, so it names no gate and has ``coarse_resolution``. The
+        measurement can't resolve the change, so like a gate verdict it
+        carries no speedup estimate, interval or wall-clock interval.
+        """
+        if self.gate is not None:
+            msg = (
+                "a rule 1 INCONCLUSIVE is the resolution stop, which names "
+                f"no gate, not {self.gate}"
+            )
+            raise ValueError(msg)
+        if not self.diagnostics.coarse_resolution:
+            msg = (
+                "a rule 1 INCONCLUSIVE needs the coarse_resolution diagnostic"
+            )
+            raise ValueError(msg)
+        if self.looks < 1:
+            msg = (
+                "the resolution stop is decided at a look, but none was taken"
+            )
+            raise ValueError(msg)
+        for name, value in (
+            ("estimate", self.estimate),
+            ("interval", self.interval),
+            ("wall_interval", self.diagnostics.wall_interval),
+        ):
+            if value is not None:
+                msg = (
+                    "the resolution stop carries no speedup claim, so no "
+                    f"{name}"
+                )
+                raise ValueError(msg)
 
     def _check_gate_verdict(self) -> None:
         """Check that a gate verdict makes no claim about speed."""
@@ -1413,7 +1656,7 @@ class GuardrailResult(_Model):
     regression within its allowance is visible."""
     worsening: Interval | None = None
     """Interval on the worsening ratio, at confidence
-    ``1 - alpha / (K G)``; checked against ``1 + allowance``."""
+    ``1 - alpha / (2 K G)``; checked against ``1 + allowance``."""
     candidate: Interval | None = None
     """Interval on the candidate's own value, in the guardrail's unit,
     at the same confidence; checked against the absolute limits."""
@@ -1596,22 +1839,75 @@ class DependencyLock(_Model):
     """SHA-256 of the file's bytes."""
 
 
-class TreeEnvironment(_Model):
-    """What one version's tree ran with, recorded for the reader.
+class LinkedLibrary(_Model):
+    """A library from outside the tree that a native build loads.
 
-    Nothing here is a gate by itself. The `runtime` gate compares
-    ``runtime_executable`` and ``runtime_version`` between the arms
-    unless the spec allows runtime changes, and the `procedure` gate
-    covers only the spec's declared environment. Every other difference
-    between the arms is recorded and reported as a warning.
+    A native executable built in the tree is a build of the code under
+    test, but the libraries it links from outside the tree are part of
+    the runtime, which the `runtime` gate compares between the arms.
 
     Raises
     ------
     pydantic.ValidationError
-        If a ``None`` field has no reason in ``missing`` or ``missing``
-        names a field that has a value; if ``env_values`` names a
-        variable not in ``env_names``; or if a name or lockfile path
-        repeats.
+        If ``path`` and ``sha256`` do not match ``source``: a ``file``
+        has both, a ``dyld_shared_cache`` library only a path, and a
+        ``weak_absent`` one neither.
+    """
+
+    name: Text
+    """The library as the executable names it: its install name or
+    soname."""
+    source: Literal["file", "dyld_shared_cache", "weak_absent"]
+    """``file``: a file on disk, hashed. ``dyld_shared_cache``: a macOS
+    system library that exists only in the dyld shared cache, so there
+    is no file to hash. ``weak_absent``: a weak link the loader found
+    no library for."""
+    path: Text | None = None
+    """Resolved path, with symlinks followed; ``None`` for
+    ``weak_absent``."""
+    sha256: Sha256Hex | None = None
+    """SHA-256 of the file's bytes; ``None`` unless ``source`` is
+    ``file``."""
+
+    @model_validator(mode="after")
+    def _check_source(self) -> Self:
+        has_path = self.source != "weak_absent"
+        has_hash = self.source == "file"
+        for field, wanted in (("path", has_path), ("sha256", has_hash)):
+            if (getattr(self, field) is not None) != wanted:
+                need = "needs a" if wanted else "takes no"
+                msg = f"a {self.source} library {need} {field}"
+                raise ValueError(msg)
+        return self
+
+
+class TreeEnvironment(_Model):
+    """What one version's tree ran with, recorded for the reader.
+
+    Nothing here is a gate by itself. The `runtime` gate compares the
+    runtime between the arms unless the spec allows runtime changes: an
+    interpreter by ``runtime_executable`` and ``runtime_version``, a
+    native build by the libraries it links outside the tree. The
+    `procedure` gate covers only the spec's declared environment. Every
+    other difference between the arms is recorded and reported as a
+    warning.
+
+    ``runtime_kind`` says which fields apply. An interpreter has an
+    executable and a version, and no linked libraries. A native build
+    has an executable and no version, since it has no interpreter. An
+    unknown runtime (``runtime_kind`` ``None``) has its reason in
+    ``missing`` and no version. A field that doesn't apply is ``None``
+    and takes no reason in ``missing``.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``None`` field that applies has no reason in ``missing``,
+        ``missing`` names a field that has a value or doesn't apply, a
+        field is set that doesn't apply to ``runtime_kind``, a known
+        runtime has no executable or an interpreter no version; if
+        ``env_values`` names a variable not in ``env_names``; or if a
+        name, library or lockfile path repeats.
     """
 
     version: Arm
@@ -1619,11 +1915,20 @@ class TreeEnvironment(_Model):
     session: Count = 0
     """Index into `RunRecord.machines` of the session this was probed
     in; always 0 on one machine."""
+    runtime_kind: RuntimeKind | None = None
+    """``interpreter`` or ``native_build``, as the probe identified the
+    runtime behind the benchmark's launchers; ``None`` when it could not
+    be identified, with the reason in ``missing``. Only this field says
+    a runtime is a native build."""
     runtime_executable: Text | None = None
-    """Resolved interpreter or runtime that ran the benchmark, such as
-    the absolute path of the tree's Python."""
+    """Resolved interpreter or native executable that ran the
+    benchmark, such as the absolute path of the tree's Python."""
     runtime_version: Text | None = None
-    """Version that runtime reports."""
+    """Version the interpreter reports; an interpreter only."""
+    linked_libraries: tuple[LinkedLibrary, ...] | None = None
+    """For a native build, the libraries from outside the tree that it
+    loads, sorted by name; empty when it loads none. Doesn't apply to an
+    interpreter."""
     env_names: tuple[Text, ...] | None = None
     """Names of every environment variable the benchmark ran with,
     sorted."""
@@ -1649,6 +1954,19 @@ class TreeEnvironment(_Model):
             raise ValueError(msg)
         return tuple(sorted(names))
 
+    @field_validator("linked_libraries", mode="after")
+    @classmethod
+    def _sort_libraries(
+        cls, libraries: tuple[LinkedLibrary, ...] | None
+    ) -> tuple[LinkedLibrary, ...] | None:
+        if libraries is None:
+            return None
+        names = [library.name for library in libraries]
+        if len(set(names)) != len(names):
+            msg = f"linked library names repeat: {names}"
+            raise ValueError(msg)
+        return tuple(sorted(libraries, key=lambda library: library.name))
+
     @field_validator("dependency_locks", mode="after")
     @classmethod
     def _sort_locks(
@@ -1664,7 +1982,25 @@ class TreeEnvironment(_Model):
 
     @model_validator(mode="after")
     def _check_fields(self) -> Self:
-        _check_reasons(self, self.missing)
+        kind = self.runtime_kind
+        not_applicable = _NOT_APPLICABLE[kind]
+        for field in sorted(not_applicable):
+            if getattr(self, field) is not None:
+                msg = f"{field} does not apply to a {kind} runtime"
+                raise ValueError(msg)
+        if kind is None and self.runtime_version is not None:
+            msg = "a runtime with a version is an interpreter, so say so"
+            raise ValueError(msg)
+        if kind is None and self.linked_libraries is not None:
+            msg = "linked_libraries are recorded for a native build only"
+            raise ValueError(msg)
+        if kind is not None and self.runtime_executable is None:
+            msg = f"a {kind} runtime was identified, so it has an executable"
+            raise ValueError(msg)
+        if kind == "interpreter" and self.runtime_version is None:
+            msg = "an interpreter is identified with its version"
+            raise ValueError(msg)
+        _check_reasons(self, self.missing, not_applicable)
         unlisted = set(self.env_values) - set(self.env_names or ())
         if unlisted:
             msg = f"env_values for variables not in env_names: {unlisted}"
@@ -1780,19 +2116,21 @@ class RunRecord(_Model):
         path, rounds or looks exceed the spec's budget, the interval
         contradicts the verdict against the bar ``1 + min_effect``, a
         cross-host verdict claims more session pairs than ``machines``
-        holds sessions for, or has fewer than ``n0`` pairs and is not
-        INCONCLUSIVE or a gate REJECT, a ``wall_interval`` appears for
-        a metric other than ``reported``, or ``finished_at`` precedes
-        ``started_at``. Also if the guardrail results do not match the
-        spec's guardrails one to one (none for a gate verdict), the
-        spec of any other verdict omits a default guardrail of
-        ``docs/method.md`` (peak memory, and the target class's own)
-        that is not the objective, a status disagrees with its
-        intervals, allowance and limits, a
-        KEEP has a gate `not_available` or a guardrail other than
-        `passed` or `not_applicable`, a guardrail REJECT has no
-        `breached` guardrail, or a rule 2 INCONCLUSIVE has a breach or
-        nothing that blocked the KEEP.
+        holds sessions for, or has fewer than ``n0`` pairs and is a
+        rule 2 or 3 verdict or the resolution stop, a ``wall_interval``
+        appears for a metric other than ``reported``, ``finished_at``
+        precedes ``started_at``, or ``candidate_commit`` and
+        ``candidate_dirty`` are not set together. Also if the
+        guardrail results do not match the spec's guardrails one to one
+        (none for a gate verdict), the spec of any other verdict omits
+        a default guardrail of ``docs/method.md`` (peak memory, and the
+        target class's own) that is not the objective, a status
+        disagrees with its intervals, allowance and limits, a KEEP has
+        a gate `not_available` or a guardrail other than `passed` or
+        `not_applicable`, a guardrail REJECT has no `breached`
+        guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing
+        that blocked the KEEP. The resolution stop is not a gate
+        verdict: it lists every gate and every guardrail result.
     """
 
     schema_version: SchemaVersion = SCHEMA_VERSION
@@ -1807,8 +2145,22 @@ class RunRecord(_Model):
     """When it finished, with time zone."""
     spec: BenchmarkSpec
     """The spec compared under."""
+    repository: Repository | None = None
+    """The repository compared in, so a claim names what it is about:
+    its remote URL, without credentials, or the path of its root when
+    it has no remote. ``None`` when not recorded, which the report says.
+    A user part that may be a credential is refused, as
+    `_check_repository` sets out, so no token is written to the
+    record."""
     baseline_commit: GitSha
     """Git commit of the baseline."""
+    candidate_commit: GitSha | None = None
+    """Git commit the candidate tree was at; ``None`` when not
+    recorded."""
+    candidate_dirty: Flag | None = None
+    """Whether the candidate tree had changes not in
+    ``candidate_commit``, so that commit alone does not reproduce what
+    was measured; set exactly when ``candidate_commit`` is."""
     order_seed: Count
     """Seed for the in-round order of the two versions."""
     verdict: Verdict
@@ -1838,6 +2190,9 @@ class RunRecord(_Model):
         if self.finished_at < self.started_at:
             msg = "finished_at precedes started_at"
             raise ValueError(msg)
+        if (self.candidate_commit is None) != (self.candidate_dirty is None):
+            msg = "candidate_commit and candidate_dirty are set together"
+            raise ValueError(msg)
         names = [g.gate for g in self.gates]
         if len(set(names)) != len(names):
             msg = f"a gate is listed more than once: {names}"
@@ -1851,7 +2206,7 @@ class RunRecord(_Model):
         if v.gate is not None and v.gate not in failed:
             msg = f"verdict names gate {v.gate}, which did not fail"
             raise ValueError(msg)
-        if v.rule != 1 and frozenset(status) != _ALL_GATES:
+        if v.gate is None and frozenset(status) != _ALL_GATES:
             msg = (
                 f"a rule {v.rule} verdict needs all {len(_ALL_GATES)} gates "
                 f"listed, got {status}"
@@ -1899,7 +2254,7 @@ class RunRecord(_Model):
         if len(set(metrics)) != len(metrics):
             msg = f"a guardrail result is listed more than once: {metrics}"
             raise ValueError(msg)
-        if self.verdict.rule == 1:
+        if self.verdict.gate is not None:
             if results:
                 msg = "a gate verdict carries no guardrail results"
                 raise ValueError(msg)
@@ -1970,9 +2325,11 @@ class RunRecord(_Model):
         sessions. A comparison with fewer than ``n0`` session pairs is
         INCONCLUSIVE whatever its interval shows, so it may not be KEEP
         or a performance REJECT, and its INCONCLUSIVE is exempt from the
-        straddle check. From ``n0`` pairs on, the usual rules apply. A
-        verdict under an uncalibrated procedure is exempt from the
-        straddle check in the same way, for the same reason.
+        straddle check. Nor may it end at the resolution stop, which
+        comes only at a look on ``n0`` pairs or more. From ``n0`` pairs
+        on, the usual rules apply. A verdict under an uncalibrated
+        procedure is exempt from the straddle check in the same way, for
+        the same reason.
         """
         v = self.verdict
         n0 = self.spec.looks.n0
@@ -1986,10 +2343,12 @@ class RunRecord(_Model):
             )
             raise ValueError(msg)
         too_few_pairs = v.session_pairs is not None and v.session_pairs < n0
-        if too_few_pairs and v.rule in (2, 3):
+        resolution_stop = v.rule == 1 and v.gate is None
+        if too_few_pairs and (v.rule in (2, 3) or resolution_stop):
             msg = (
                 f"a cross-host comparison with {v.session_pairs} session "
-                f"pairs, fewer than n0 = {n0}, is INCONCLUSIVE"
+                f"pairs, fewer than n0 = {n0}, has taken no look, so it is "
+                "a rule 5 INCONCLUSIVE or a gate REJECT"
             )
             raise ValueError(msg)
         if v.interval is None:
@@ -2076,6 +2435,7 @@ MODELS: Final[tuple[type[BaseModel], ...]] = (
     MachineFingerprint,
     RunWarning,
     DependencyLock,
+    LinkedLibrary,
     TreeEnvironment,
     RunRecord,
 )

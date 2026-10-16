@@ -256,7 +256,17 @@ def _headline(v: Verdict) -> str:
 def _meaning(record: RunRecord) -> str:
     """Say what the verdict means, chosen by recorded fields only."""
     v = record.verdict
-    if v.rule == 1:
+    if v.rule == 1 and v.gate is None:
+        return (
+            "The resolution stop ended the comparison at a look: a value "
+            "was no larger than its own resolution, or a `reported` metric "
+            "with no declared resolution failed the continuity check "
+            "(`coarse_resolution`). Neither a speedup above the bar nor its "
+            "absence is shown. Nothing is kept. More printed digits, a "
+            "declared resolution or more work per execution can resolve "
+            "it."
+        )
+    if v.gate is not None:
         if v.reason == "integrity":
             first = (
                 f"The experiment itself is not valid: the `{v.gate}` gate "
@@ -436,7 +446,7 @@ def _claim(record: RunRecord) -> str:
     if spec.objective is not None:
         scope += f", objective `{spec.objective}`"
     scope += f"; min_effect = {_num(spec.min_effect)} as stored."
-    if v.rule == 1:
+    if v.gate is not None:
         claim = (
             f"The `{v.gate}` gate failed. No claim about speed."
             if v.reason == "integrity"
@@ -472,29 +482,43 @@ def _claim(record: RunRecord) -> str:
     if v.outcome != "INCONCLUSIVE" and _labels(record):
         claim += " The labels under Verdict qualify it."
     return "\n".join(
-        [
-            "## Claim",
-            "",
-            claim,
-            "",
-            scope,
-            "",
-            "Not recorded: the repository and the candidate's commit.",
-        ]
+        ["## Claim", "", claim, "", scope, "", _provenance(record)]
     )
+
+
+def _provenance(record: RunRecord) -> str:
+    """Name the repository and candidate commit, or say neither is."""
+    unrecorded: list[str] = []
+    parts: list[str] = []
+    if record.repository is None:
+        unrecorded.append("the repository")
+    else:
+        parts.append(f"Repository {_code(record.repository)}.")
+    if record.candidate_commit is None:
+        unrecorded.append("the candidate's commit")
+    else:
+        dirty = (
+            ", with changes not in that commit"
+            if record.candidate_dirty
+            else ", with no changes beyond it"
+        )
+        parts.append(f"Candidate commit `{record.candidate_commit}`{dirty}.")
+    if unrecorded:
+        parts.append(f"Not recorded: {' and '.join(unrecorded)}.")
+    return " ".join(parts)
 
 
 def _measured(record: RunRecord) -> str:
     v, spec = record.verdict, record.spec
     lines = ["## Measured", ""]
-    if v.rule == 1:
+    if v.gate is not None:
         lines += [
             "Not measured: gates run before any timing, so this verdict "
             "carries no speedup estimate or interval.",
             "",
         ]
     items: list[str] = []
-    if v.rule != 1:
+    if v.gate is None:
         items.append(
             "Speedup estimate: "
             + (
@@ -533,12 +557,19 @@ def _measured(record: RunRecord) -> str:
             if d.wall_interval is None
             else _interval(d.wall_interval)
         ),
+        "coarse_resolution: "
+        + (
+            "not computed"
+            if d.coarse_resolution is None
+            else _flag(d.coarse_resolution)
+        ),
     ]
     for name, value in (
         ("lag1_autocorrelation", d.lag1_autocorrelation),
         ("cv_baseline", d.cv_baseline),
         ("cv_candidate", d.cv_candidate),
         ("sd_log_ratio", d.sd_log_ratio),
+        ("resolution_widening", d.resolution_widening),
     ):
         shown = "not computed" if value is None else _num(value)
         diagnostics.append(f"{name}: {shown}")
@@ -547,10 +578,15 @@ def _measured(record: RunRecord) -> str:
 
 
 def _differential(check: DifferentialCheck) -> list[str]:
+    capped = (
+        " (the capture limit, so a bound: any later calls were not captured)"
+        if check.captured == check.capture_limit
+        else ""
+    )
     lines = _bullets(
         [
             f"Differential check {_code(check.function)}: "
-            f"{check.captured} captured, {check.replayed} replayed, "
+            f"{check.captured} captured{capped}, {check.replayed} replayed, "
             f"{check.generated} generated, {check.mismatches} mismatched"
         ],
         2,
@@ -711,7 +747,7 @@ def _guardrail_lines(
 
 def _guardrails(record: RunRecord) -> str:
     lines = ["## Guardrails", ""]
-    if record.verdict.rule == 1:
+    if record.verdict.gate is not None:
         lines.append(
             "None evaluated: a gate REJECT carries no guardrail results. "
             "The spec's guardrails are under Settings."
@@ -742,8 +778,8 @@ def _calibration(record: RunRecord) -> str:
     ]
     if v.calibration == "calibrated":
         items.append(
-            "The conditions the target class was calibrated under are not "
-            "in this record."
+            "Calibrated under these conditions only, not in general: "
+            + "; ".join(_text(c) for c in v.calibration_conditions)
         )
     else:
         items.append("Not calibrated for this target class.")
@@ -770,7 +806,11 @@ def _model_fields(
         if name in omitted:
             continue
         value: object = getattr(model, name)
-        if value is None:
+        if value is None and name not in missing:
+            # The schema lets a field that doesn't apply, such as an
+            # interpreter's linked libraries, be None with no reason.
+            items.append(f"{name}: not applicable")
+        elif value is None:
             items.append(f"{name}: unknown ({_text(missing[name])})")
         else:
             items.append(f"{name}: {_scalar(value)}")
@@ -799,8 +839,32 @@ def _environments(record: RunRecord) -> str:
         items = _model_fields(
             env,
             env.missing,
-            ("version", "session", "env_values", "dependency_locks"),
+            (
+                "version",
+                "session",
+                "env_values",
+                "dependency_locks",
+                "linked_libraries",
+            ),
         )
+        why = env.missing.get("linked_libraries")
+        if env.linked_libraries is None:
+            items.append(
+                "linked_libraries: "
+                + (
+                    "not applicable"
+                    if why is None
+                    else f"unknown ({_text(why)})"
+                )
+            )
+        elif not env.linked_libraries:
+            items.append("linked_libraries: none")
+        items += [
+            f"linked_library {_code(lib.name)}: `{lib.source}`"
+            + ("" if lib.path is None else f", {_code(lib.path)}")
+            + ("" if lib.sha256 is None else f", `{lib.sha256}`")
+            for lib in env.linked_libraries or ()
+        ]
         items += [
             f"env_values {_code(name)}: {_code(env.env_values[name])}"
             for name in sorted(env.env_values)

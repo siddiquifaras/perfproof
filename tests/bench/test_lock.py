@@ -81,7 +81,7 @@ def make_spec(**overrides: Any) -> BenchmarkSpec:
         },
         "warmup": 1,
         "budget": {"max_rounds": 20, "max_seconds": 600.0},
-        "looks": {"n0": 10, "k": 5, "max_looks": 3},
+        "looks": {"n0": 10, "k": 10, "max_looks": 3},
         "timeout_seconds": 30.0,
         "harness": ("bench.py",),
         "oracle": ("tests",),
@@ -601,6 +601,7 @@ def test_probe_records_the_interpreter_of_the_tree(
     env = probe("baseline", baseline, OMP_NUM_THREADS="4", FOO="secret")
 
     assert env.version == "baseline"
+    assert env.runtime_kind == "interpreter"
     assert env.runtime_executable == str(Path(sys.executable).resolve())
     assert env.runtime_version == sys.version
     assert env.env_names == ("FOO", "HOME", "OMP_NUM_THREADS", "PATH")
@@ -627,8 +628,10 @@ def test_probe_leaves_an_unresolvable_executable_unknown(
 ) -> None:
     env = probe("baseline", baseline)
 
+    assert env.runtime_kind is None
     assert env.runtime_executable is None
     assert env.runtime_version is None
+    assert "runtime_kind" in env.missing
     assert "runtime_executable" in env.missing
     assert "runtime_version" in env.missing
 
@@ -644,9 +647,11 @@ def test_probe_resolves_bare_commands_on_path(baseline: Path) -> None:
     assert exe is not None
     assert exe.name == "git"
     assert env.runtime_executable == str(exe.resolve())
+    assert env.runtime_kind is None
     assert env.runtime_version is None
-    assert "native" in env.missing["runtime_version"]
-    assert "outside the tree" in env.missing["runtime_version"]
+    assert "native" in env.missing["runtime_kind"]
+    assert "outside the tree" in env.missing["runtime_kind"]
+    assert env.missing["runtime_version"] == env.missing["runtime_kind"]
 
 
 def test_resolved_executables_give_matching_launch_hashes(
@@ -1021,8 +1026,11 @@ def test_untracked_native_build_with_the_same_libraries_passes(
     env = probe("candidate", repo, spec)
     result = check_runtime(spec, baseline, repo)
 
+    assert env.runtime_kind == "native_build"
     assert env.runtime_version is None
-    assert "built in the tree" in env.missing["runtime_version"]
+    assert "runtime_version" not in env.missing
+    assert env.linked_libraries is None
+    assert "runtime gate" in env.missing["linked_libraries"]
     assert result.status == "passed"
     assert result.detail.startswith(
         f"build/bench is a native executable built in each tree "
@@ -1375,6 +1383,67 @@ def test_unrecorded_environment_fails_native_builds_closed(
     assert "variable names were not recorded" in result.detail
 
 
+def test_native_build_is_read_from_the_runtime_kind(
+    baseline: Path, repo: Path
+) -> None:
+    # Schema version 2 recorded a native build as fixed text in
+    # missing["runtime_version"]. That text, without the kind, is an
+    # unknown runtime now: only runtime_kind makes a native build.
+    spec = make_spec(command=NATIVE_SPEC_COMMAND)
+    for tree in (baseline, repo):
+        copy_native(tree)
+    recorded = probe("candidate", repo, spec)
+    marker = "a native executable built in the tree; it has no interpreter"
+    unmarked = TreeEnvironment.model_validate(
+        {
+            **recorded.model_dump(mode="json"),
+            "runtime_kind": None,
+            "missing": {
+                **recorded.missing,
+                "runtime_kind": marker,
+                "runtime_version": marker,
+            },
+        }
+    )
+
+    result = runtime_gate(
+        spec,
+        probe("baseline", baseline, spec),
+        unmarked,
+        baseline_root=baseline,
+        candidate_root=repo,
+    )
+
+    assert recorded.runtime_kind == "native_build"
+    assert result.status == "failed"
+    assert marker in result.detail
+
+
+def test_native_build_kind_outside_the_tree_fails_closed(
+    baseline: Path, repo: Path
+) -> None:
+    spec = make_spec(command=NATIVE_SPEC_COMMAND)
+    for tree in (baseline, repo):
+        copy_native(tree)
+    true = shutil.which("true")
+    assert true is not None
+    recorded = probe("candidate", repo, spec)
+    outside = recorded.model_copy(
+        update={"runtime_executable": str(Path(true).resolve())}
+    )
+
+    result = runtime_gate(
+        spec,
+        probe("baseline", baseline, spec),
+        TreeEnvironment.model_validate(outside.model_dump(mode="json")),
+        baseline_root=baseline,
+        candidate_root=repo,
+    )
+
+    assert result.status == "failed"
+    assert "recorded as a native build, but" in result.detail
+
+
 @pytest.mark.skipif(
     sys.platform == "darwin", reason="relative RPATH is an ELF behaviour"
 )
@@ -1724,8 +1793,10 @@ def test_dependency_lock_difference_is_a_warning(
 
 def test_unrecorded_names_are_warned_as_unknown() -> None:
     unprobed = {
+        "runtime_kind": "not probed",
         "runtime_executable": "not probed",
         "runtime_version": "not probed",
+        "linked_libraries": "not probed",
     }
     known = TreeEnvironment(
         version="baseline",

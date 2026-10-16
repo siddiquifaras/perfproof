@@ -15,7 +15,7 @@ Labels:
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `71b53044231a1438cd68c11c3138bcfd0d619a8ec17fc8be91aa78fee85f8fb0`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `70e5c2f53a377033c095397144e8ab542b798263ba1d0024daf42bd90cbf36f8`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -35,10 +35,12 @@ Not recorded: the repository and the candidate's commit.
 - procedure_uncalibrated: no
 - metric_disagreement: not computed
 - wall_interval: not computed
+- coarse_resolution: not computed
 - lag1_autocorrelation: 0.05
 - cv_baseline: 0.02
 - cv_candidate: 0.03
 - sd_log_ratio: 0.01
+- resolution_widening: not computed
 
 ## Gates
 
@@ -173,33 +175,41 @@ Not recorded: the repository and the candidate's commit.
 
 ### `baseline`, session 0
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/baseline/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
 ### `candidate`, session 1
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/candidate/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
 ### `baseline`, session 2
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/baseline/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
 ### `candidate`, session 3
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/candidate/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
@@ -208,8 +218,8 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `71b53044231a1438cd68c11c3138bcfd0d619a8ec17fc8be91aa78fee85f8fb0`
-- schema_version: 2
+- spec_hash: `70e5c2f53a377033c095397144e8ab542b798263ba1d0024daf42bd90cbf36f8`
+- schema_version: 3
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -253,7 +263,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 2
+- schema_version: 3
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

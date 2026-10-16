@@ -54,6 +54,7 @@ from perfproof.schema import (
     LockedFile,
     LockManifest,
     LockRole,
+    RuntimeKind,
     RunWarning,
     Sample,
     TreeEnvironment,
@@ -157,12 +158,11 @@ _KERNEL_DSO: Final = re.compile(r"linux-(?:vdso|gate)[0-9]*\.so\.[0-9]+")
 """The kernel-provided vDSO, which ``ldd`` lists without a path."""
 _PT_DYNAMIC: Final = 2
 _PT_INTERP: Final = 3
-_NATIVE_BUILD: Final = (
-    "a native executable built in the tree; it has no interpreter"
+_LIBRARIES_AT_GATE: Final = (
+    "not listed by the probe; the runtime gate lists them from both "
+    "trees when it compares them"
 )
-"""The exact ``missing["runtime_version"]`` text that records a native
-build. `TreeEnvironment` has no field for the kind of runtime, so this
-is how the probe hands it to the gate; any other text is unknown."""
+"""Why a native build's `TreeEnvironment.linked_libraries` is unset."""
 _LAUNCHER_NAMES: Final = frozenset(
     {
         "bun",
@@ -681,10 +681,10 @@ def _arm_runtime(
 ) -> tuple[str | None, str | None, str | None, bool]:
     """Classify one arm's recorded runtime for the gate.
 
-    Only the probe's explicit record decides the kind: a version means
-    an interpreter, and exactly `_NATIVE_BUILD` in ``missing`` means a
-    native build, which must also still be a native file inside the
-    tree. Anything else is unknown, whatever the path looks like.
+    Only the probe's explicit record decides the kind:
+    `TreeEnvironment.runtime_kind`. A native build must also still be a
+    native file inside the tree. Anything else is unknown, whatever the
+    path looks like.
 
     Returns
     -------
@@ -700,10 +700,10 @@ def _arm_runtime(
     path = Path(exe)
     tree = root.resolve()
     spelled = normalize_launch_path(path, tree) if path.is_absolute() else exe
-    if env.runtime_version is not None:
+    if env.runtime_kind == "interpreter":
         return spelled, env.runtime_version, None, False
-    reason = env.missing.get("runtime_version", "not recorded")
-    if reason != _NATIVE_BUILD:
+    if env.runtime_kind is None:
+        reason = env.missing.get("runtime_kind", "not recorded")
         return spelled, None, reason, False
     if not (
         path.is_absolute()
@@ -1651,7 +1651,9 @@ def probe_environment(
     arguments; ``uv run`` by running ``uv run <same options> python -I
     -c ...`` in the tree, which may let uv create or sync the tree's
     environment exactly as the benchmark's own first run would. A
-    native executable has no version; anything else is unknown.
+    native executable built in the tree is a ``native_build``, with no
+    version; its outside-tree libraries are left to the runtime gate,
+    which lists them from both trees. Anything else is unknown.
 
     Parameters
     ----------
@@ -1682,14 +1684,23 @@ def probe_environment(
         spec.command, launch_env
     )
     missing: dict[str, str] = {}
-    if runtime.kind == "native_build":
-        reason = _NATIVE_BUILD
+    kind: RuntimeKind | None = None
+    if runtime.kind == "native_build" and runtime.executable is not None:
+        kind = "native_build"
+        missing["linked_libraries"] = _LIBRARIES_AT_GATE
+    elif (
+        runtime.kind == "interpreter"
+        and runtime.executable is not None
+        and runtime.version is not None
+    ):
+        kind = "interpreter"
     else:
         reason = runtime.reason or "not identified"
-    if runtime.executable is None:
-        missing["runtime_executable"] = reason
-    if runtime.kind != "interpreter" or runtime.version is None:
+        missing["runtime_kind"] = reason
+        missing["linked_libraries"] = reason
         missing["runtime_version"] = reason
+        if runtime.executable is None:
+            missing["runtime_executable"] = reason
     locks: tuple[DependencyLock, ...] | None
     try:
         locks = tuple(
@@ -1702,10 +1713,11 @@ def probe_environment(
         missing["dependency_locks"] = f"a lockfile cannot be read: {exc}"
     return TreeEnvironment(
         version=version,
+        runtime_kind=kind,
         runtime_executable=(
             None if runtime.executable is None else str(runtime.executable)
         ),
-        runtime_version=runtime.version,
+        runtime_version=runtime.version if kind == "interpreter" else None,
         env_names=tuple(launch_env),
         env_values={
             k: v for k, v in launch_env.items() if k in PERFORMANCE_ENV_VARS

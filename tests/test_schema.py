@@ -31,6 +31,7 @@ from perfproof.schema import (
     GuardrailSpec,
     Hotspot,
     Interval,
+    LinkedLibrary,
     LockedFile,
     LockManifest,
     LookSchedule,
@@ -54,9 +55,12 @@ T0 = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 HASH_A = "a" * 64
 HASH_B = "b" * 64
 # Version 1 pinned c96961a7... for this spec's content without an
-# objective or guardrails. Version 2 adds both to the fixture.
+# objective or guardrails. Version 2 added both to the fixture and
+# pinned 98398968.... Version 3 changes schema_version and adds the
+# metric's resolution and the differential tolerances, at their
+# defaults, to the canonical form.
 PINNED_SPEC_HASH = (
-    "9839896897117503a868ac556da451a0b30fda2ede31d228d010db4627272c26"
+    "18b92a8e3582909ea75028680ca1b408f945c55f134d3aae4a8dae0f00373a19"
 )
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
@@ -299,6 +303,7 @@ def gpu_no_clocks() -> GpuInfo:
 def environment(version: Arm = "baseline") -> TreeEnvironment:
     return TreeEnvironment(
         version=version,
+        runtime_kind="interpreter",
         runtime_executable=f"/work/{version}/.venv/bin/python",
         runtime_version="3.12.12",
         env_names=("PATH", "OMP_NUM_THREADS", "HOME"),
@@ -331,7 +336,7 @@ def record(**update: Any) -> RunRecord:
         "profile_paths": ("profiles/baseline.speedscope.json",),
     }
     fields.update(update)
-    if "guardrails" not in update and fields["verdict"].rule != 1:
+    if "guardrails" not in update and fields["verdict"].gate is None:
         # spec() declares peak memory, not applicable, so every other
         # verdict carries its result; a gate verdict carries none.
         fields["guardrails"] = (memory_not_applicable_result(),)
@@ -548,6 +553,87 @@ def thin_path_gates() -> tuple[GateResult, ...]:
     return gates
 
 
+# Method follow-ups: resolution, runtime kind, repository, calibration
+# conditions, capture limit. Every value is a hand-picked test value.
+
+CONDITIONS = ("log-normal, CV 5%, one host", "AR(1), rho 0.5, one host")
+REPOSITORY = "https://github.com/example/sum-loop.git"
+
+
+def library_file() -> LinkedLibrary:
+    return LinkedLibrary(
+        name="libfoo.so.1",
+        source="file",
+        path="/usr/lib/libfoo.so.1.2",
+        sha256=HASH_A,
+    )
+
+
+def library_cache() -> LinkedLibrary:
+    return LinkedLibrary(
+        name="/usr/lib/libSystem.B.dylib",
+        source="dyld_shared_cache",
+        path="/usr/lib/libSystem.B.dylib",
+    )
+
+
+def library_weak() -> LinkedLibrary:
+    return LinkedLibrary(name="libopt.dylib", source="weak_absent")
+
+
+def native_environment(version: Arm = "baseline") -> TreeEnvironment:
+    return TreeEnvironment(
+        version=version,
+        runtime_kind="native_build",
+        runtime_executable=f"/work/{version}/build/bench",
+        linked_libraries=(library_file(), library_cache(), library_weak()),
+        env_names=("PATH",),
+        dependency_locks=(),
+    )
+
+
+def resolved_sample() -> Sample:
+    return Sample.model_validate(
+        {
+            **as_json(sample()),
+            "resolution": 0.001,
+            "resolution_source": "printed",
+        }
+    )
+
+
+def resolution_stop() -> Verdict:
+    """The rule 1 INCONCLUSIVE of the resolution stop, at a look."""
+    return Verdict(
+        outcome="INCONCLUSIVE",
+        reason="insufficient_evidence",
+        rule=1,
+        rounds=10,
+        looks=1,
+        procedure="t_log_ratio",
+        target_class="python_cpu",
+        calibration="uncalibrated",
+        diagnostics=calibrated(
+            coarse_resolution=True, resolution_widening=0.2
+        ),
+    )
+
+
+def calibrated_keep() -> Verdict:
+    return Verdict.model_validate(
+        {
+            **as_json(keep()),
+            "calibration": "calibrated",
+            "calibration_conditions": list(CONDITIONS),
+            "diagnostics": {
+                "procedure_uncalibrated": False,
+                "coarse_resolution": False,
+                "resolution_widening": 0.0004,
+            },
+        }
+    )
+
+
 EXAMPLES: dict[str, BaseModel] = {
     "metric": metric(),
     "metric_counter": MetricSpec(
@@ -607,8 +693,10 @@ EXAMPLES: dict[str, BaseModel] = {
     "environment_unknown": TreeEnvironment(
         version="candidate",
         missing={
+            "runtime_kind": "interpreter not found on PATH",
             "runtime_executable": "interpreter not found on PATH",
             "runtime_version": "interpreter not found on PATH",
+            "linked_libraries": "interpreter not found on PATH",
             "env_names": "environment not captured",
             "dependency_locks": "tree unreadable",
         },
@@ -679,6 +767,46 @@ EXAMPLES: dict[str, BaseModel] = {
         guardrails=(),
         samples_path=None,
     ),
+    "metric_reported_resolution": MetricSpec(
+        kind="reported",
+        direction="lower_is_better",
+        unit="ms",
+        resolution=0.001,
+    ),
+    "correctness_tolerance": CorrectnessSpec.model_validate(
+        {
+            **as_json(correctness()),
+            "differential_rtol": 1e-12,
+            "differential_atol": 1e-15,
+        }
+    ),
+    "sample_resolved": resolved_sample(),
+    "differential_capped": DifferentialCheck.model_validate(
+        {**as_json(differential()), "capture_limit": 50}
+    ),
+    "diagnostics_coarse": resolution_stop().diagnostics,
+    "verdict_resolution_stop": resolution_stop(),
+    "verdict_calibrated": calibrated_keep(),
+    "library_file": library_file(),
+    "library_cache": library_cache(),
+    "library_weak": library_weak(),
+    "environment_native": native_environment(),
+    "environment_native_unlisted": TreeEnvironment(
+        version="candidate",
+        runtime_kind="native_build",
+        runtime_executable="/work/candidate/build/bench",
+        env_names=(),
+        dependency_locks=(),
+        missing={"linked_libraries": "listed by the runtime gate"},
+    ),
+    "record_named": record(
+        repository=REPOSITORY,
+        candidate_commit="f" * 40,
+        candidate_dirty=False,
+        verdict=calibrated_keep(),
+        environments=(native_environment(), native_environment("candidate")),
+    ),
+    "record_resolution_stop": record(verdict=resolution_stop()),
 }
 
 
@@ -766,7 +894,7 @@ def test_mapping_fields_are_read_only(mapping: Any) -> None:
 def test_root_documents_carry_schema_version() -> None:
     for model in (spec(), EXAMPLES["lock_manifest"], record()):
         assert as_json(model)["schema_version"] == schema.SCHEMA_VERSION
-    for version in (1, 3):
+    for version in (1, 2, 4):
         data = with_value(as_json(record()), "schema_version", version)
         with pytest.raises(ValidationError):
             RunRecord.model_validate(data)
@@ -825,7 +953,7 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("verdict_keep", "rule", 2.0),
     ("verdict_keep", "rule", True),
     ("spec", "schema_version", True),
-    ("record", "schema_version", 2.0),
+    ("record", "schema_version", 3.0),
     # malformed identifiers and paths
     ("sample", "command_hash", "ABC"),
     ("record", "baseline_commit", "main"),
@@ -892,6 +1020,33 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("command_output", "exit_code", 1.0),
     ("command_output", "timed_out", 0),
     ("diagnostics_uncalibrated", "procedure_uncalibrated", "true"),
+    # method follow-ups: one bad value each
+    ("metric_reported_resolution", "resolution", 0.0),
+    ("metric_reported_resolution", "resolution", -0.001),
+    ("metric_reported_resolution", "resolution", math.inf),
+    ("metric_reported_resolution", "resolution", "0.001"),
+    ("correctness_tolerance", "differential_rtol", -1e-9),
+    ("correctness_tolerance", "differential_atol", math.inf),
+    ("correctness_tolerance", "differential_rtol", "0"),
+    ("sample_resolved", "resolution", 0.0),
+    ("sample_resolved", "resolution", math.nan),
+    ("sample_resolved", "resolution_source", "guessed"),
+    ("differential_capped", "capture_limit", 0),
+    ("differential_capped", "capture_limit", 50.0),
+    ("diagnostics_coarse", "coarse_resolution", "true"),
+    ("diagnostics_coarse", "resolution_widening", -0.1),
+    ("diagnostics_coarse", "resolution_widening", math.inf),
+    ("verdict_calibrated", "calibration_conditions.0", ""),
+    ("library_file", "name", ""),
+    ("library_file", "source", "rom"),
+    ("library_file", "sha256", "ABC"),
+    ("library_file", "path", ""),
+    ("environment_native", "runtime_kind", "jit"),
+    ("environment_native", "runtime_kind", "unknown"),
+    ("environment_native", "linked_libraries.0.source", "rom"),
+    ("record_named", "repository", ""),
+    ("record_named", "candidate_commit", "HEAD"),
+    ("record_named", "candidate_dirty", "false"),
     # unknown fields are refused, not dropped
     ("verdict_keep", "speedup", 1.08),
     ("sample", "note", "x"),
@@ -978,7 +1133,14 @@ INCONSISTENT: list[tuple[str, dict[str, Any]]] = [
     ("verdict_correctness", {"gate": "lock"}),
     ("verdict_integrity", {"rule": 3}),
     ("verdict_integrity", {"outcome": "INCONCLUSIVE"}),
-    ("verdict_keep", {"target_class": None, "calibration": "calibrated"}),
+    (
+        "verdict_keep",
+        {
+            "target_class": None,
+            "calibration": "calibrated",
+            "calibration_conditions": ["log-normal, CV 5%, one host"],
+        },
+    ),
     (
         "verdict_inconclusive",
         {"diagnostics": {"metric_disagreement": True}},
@@ -1013,8 +1175,55 @@ INCONSISTENT: list[tuple[str, dict[str, Any]]] = [
     ),
     (
         "verdict_uncalibrated",
-        {"calibration": "calibrated", "target_class": "python_cpu"},
+        {
+            "calibration": "calibrated",
+            "target_class": "python_cpu",
+            "calibration_conditions": ["log-normal, CV 5%, one host"],
+        },
     ),
+    # The resolution stop is rule 1 INCONCLUSIVE, at a look, with no
+    # gate and with coarse_resolution; nothing else has that flag set.
+    ("verdict_resolution_stop", {"gate": "lock"}),
+    ("verdict_resolution_stop", {"looks": 0}),
+    ("verdict_resolution_stop", {"reason": "performance"}),
+    (
+        "verdict_resolution_stop",
+        {"diagnostics": {"procedure_uncalibrated": False}},
+    ),
+    (
+        "verdict_resolution_stop",
+        {
+            "diagnostics": {
+                "procedure_uncalibrated": False,
+                "coarse_resolution": False,
+            }
+        },
+    ),
+    *(
+        (
+            name,
+            {
+                "diagnostics": {
+                    "procedure_uncalibrated": False,
+                    "coarse_resolution": True,
+                }
+            },
+        )
+        for name in (
+            "verdict_keep",
+            "verdict_regression",
+            "verdict_inconclusive",
+            "verdict_guardrail",
+            "verdict_blocked",
+        )
+    ),
+    (
+        "verdict_integrity",
+        {"outcome": "INCONCLUSIVE", "reason": "insufficient_evidence"},
+    ),
+    # Calibration conditions go with a calibrated verdict, and only it.
+    ("verdict_calibrated", {"calibration_conditions": []}),
+    ("verdict_keep", {"calibration_conditions": list(CONDITIONS)}),
 ]
 
 
@@ -1190,6 +1399,95 @@ def test_inconclusive_without_interval_is_allowed() -> None:
             "guardrail_breached",
             {"estimate": None, "worsening": None, "candidate": None},
         ),
+        # only a reported metric declares its resolution
+        ("metric", {"resolution": 0.001}),
+        ("metric_counter", {"resolution": 1.0}),
+        (
+            "metric",
+            {"kind": "cpu", "resolution": 1e-6},
+        ),
+        # a sample's resolution and its source go together
+        ("sample_resolved", {"resolution": None}),
+        ("sample_resolved", {"resolution_source": None}),
+        ("sample", {"resolution": 0.001}),
+        # captured calls never exceed the capture limit
+        ("differential_capped", {"capture_limit": 49}),
+        # a linked library's path and hash follow its source
+        ("library_file", {"sha256": None}),
+        ("library_file", {"path": None}),
+        ("library_cache", {"sha256": HASH_A}),
+        ("library_cache", {"path": None}),
+        ("library_weak", {"path": "/usr/lib/libopt.dylib"}),
+        ("library_weak", {"sha256": HASH_A}),
+        # the runtime kind decides which fields apply
+        (
+            "environment",
+            {
+                "runtime_kind": None,
+                "missing": {
+                    "runtime_kind": "not probed",
+                    "linked_libraries": "not probed",
+                },
+            },
+        ),
+        (
+            "environment",
+            {
+                "runtime_kind": "native_build",
+                "missing": {"linked_libraries": "not probed"},
+            },
+        ),
+        ("environment", {"linked_libraries": []}),
+        ("environment", {"missing": {"linked_libraries": "not probed"}}),
+        ("environment_native", {"runtime_version": "3.12.12"}),
+        (
+            "environment_native",
+            {
+                "missing": {
+                    "runtime_version": (
+                        "a native executable built in the tree; it has no "
+                        "interpreter"
+                    )
+                }
+            },
+        ),
+        (
+            "environment_native",
+            {
+                "runtime_executable": None,
+                "missing": {"runtime_executable": "not found"},
+            },
+        ),
+        (
+            "environment_native",
+            {"linked_libraries": [as_json(library_file())] * 2},
+        ),
+        ("environment_native_unlisted", {"missing": {}}),
+        (
+            "environment_unknown",
+            {
+                "linked_libraries": [],
+                "missing": {
+                    k: v
+                    for k, v in EXAMPLES["environment_unknown"]
+                    .model_dump()["missing"]
+                    .items()
+                    if k != "linked_libraries"
+                },
+            },
+        ),
+        (
+            "environment_unknown",
+            {
+                "missing": {
+                    k: v
+                    for k, v in EXAMPLES["environment_unknown"]
+                    .model_dump()["missing"]
+                    .items()
+                    if k != "runtime_kind"
+                },
+            },
+        ),
     ],
 )
 def test_rejects_inconsistent_fields(
@@ -1308,6 +1606,18 @@ def cross(
             for gate in ("side_effects", "runtime", "same_host", "coverage")
         ),
         {"started_at": T0.replace(tzinfo=None)},
+        # the candidate commit and whether the tree had more go together
+        {"candidate_commit": "f" * 40},
+        {"candidate_dirty": True},
+        # the resolution stop is no gate verdict: every gate is listed,
+        # none failed, every guardrail has a result, and rounds ran
+        {
+            "verdict": resolution_stop(),
+            "gates": without_gate(gates_passed(), "coverage"),
+        },
+        {"verdict": resolution_stop(), "gates": (lock_failed(),)},
+        {"verdict": resolution_stop(), "guardrails": ()},
+        {"verdict": resolution_stop(), "samples_path": None},
     ],
 )
 def test_rejects_inconsistent_record(update: dict[str, Any]) -> None:
@@ -2377,6 +2687,332 @@ def test_not_established_needs_an_interval() -> None:
         }
     )
     safety_record(verdict=v, guardrails=(none, latency_result()))
+
+
+# Method follow-ups (schema version 3)
+
+
+@pytest.mark.parametrize(("n0", "k"), [(11, 10), (10, 5), (11, 5)])
+def test_one_host_look_schedule_needs_even_n0_and_k(n0: int, k: int) -> None:
+    data = with_value(
+        as_json(spec()), "looks", {"n0": n0, "k": k, "max_looks": 3}
+    )
+    with pytest.raises(ValidationError, match="order pairs"):
+        BenchmarkSpec.model_validate(data)
+    # Cross host, the observations are session pairs, so odd is fine.
+    data["allow_cross_host"] = True
+    assert BenchmarkSpec.model_validate(data).looks.n0 == n0
+
+
+def test_look_schedule_documents_its_per_look_confidence() -> None:
+    defs = json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))["$defs"]
+    max_looks = defs["LookSchedule"]["properties"]["max_looks"]
+    assert "``1 - alpha / (2 K)``" in max_looks["description"]
+    assert "alpha / max_looks" not in max_looks["description"]
+    worsening = defs["GuardrailResult"]["properties"]["worsening"]
+    assert "``1 - alpha / (2 K G)``" in worsening["description"]
+
+
+def test_reported_resolution_is_declared_in_the_spec() -> None:
+    reported = as_json(EXAMPLES["metric_reported_resolution"])
+    data = {**as_json(spec()), "metric": reported, "objective": None}
+    data["guardrails"] = []
+    s = BenchmarkSpec.model_validate(data)
+    assert s.metric.resolution == 0.001
+    other = {**data, "metric": {**reported, "resolution": 0.01}}
+    assert BenchmarkSpec.model_validate(other).spec_hash != s.spec_hash
+    with pytest.raises(ValidationError, match="measured, not declared"):
+        MetricSpec(
+            kind="wall", direction="lower_is_better", unit="s", resolution=1e-9
+        )
+
+
+@pytest.mark.parametrize("source", ["clock", "count", "declared", "printed"])
+def test_sample_records_its_resolution_and_source(source: str) -> None:
+    data = {
+        **as_json(sample()),
+        "resolution": 1e-9,
+        "resolution_source": source,
+    }
+    s = Sample.model_validate(data)
+    assert (s.resolution, s.resolution_source) == (1e-9, source)
+    with pytest.raises(ValidationError, match="set together"):
+        Sample.model_validate({**data, "resolution_source": None})
+
+
+def test_resolution_stop_is_a_rule_1_inconclusive_at_a_look() -> None:
+    v = resolution_stop()
+    assert v.diagnostics.coarse_resolution is True
+    assert v.diagnostics.resolution_widening == 0.2
+    r = record(verdict=v)
+    assert r.guardrails == (memory_not_applicable_result(),)
+    with pytest.raises(ValidationError, match="names no gate"):
+        Verdict.model_validate({**as_json(v), "gate": "lock"})
+    with pytest.raises(ValidationError, match="coarse_resolution diagnostic"):
+        Verdict.model_validate(
+            {**as_json(v), "diagnostics": {"procedure_uncalibrated": False}}
+        )
+    with pytest.raises(ValidationError, match="decided at a look"):
+        Verdict.model_validate({**as_json(v), "looks": 0})
+    with pytest.raises(ValidationError, match="ends the comparison under"):
+        Verdict.model_validate(
+            {
+                **as_json(keep()),
+                "diagnostics": {
+                    "procedure_uncalibrated": False,
+                    "coarse_resolution": True,
+                },
+            }
+        )
+
+
+def test_resolution_stop_applies_before_calibration_too() -> None:
+    data = as_json(resolution_stop())
+    data["diagnostics"]["procedure_uncalibrated"] = True
+    v = Verdict.model_validate(data)
+    assert record(verdict=v).verdict.rule == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "name"),
+    [
+        ("estimate", 1.08, "estimate"),
+        (
+            "interval",
+            {"lower": 1.05, "upper": 1.1, "confidence": 0.99},
+            "interval",
+        ),
+        (
+            "diagnostics.wall_interval",
+            {"lower": 1.05, "upper": 1.1, "confidence": 0.99},
+            "wall_interval",
+        ),
+    ],
+)
+def test_resolution_stop_carries_no_speedup_claim(
+    path: str, value: Any, name: str
+) -> None:
+    # A coarse clock can read a small change as a whole step, so the
+    # stop must not keep the estimate or interval it would mislead with.
+    data = with_value(as_json(resolution_stop()), path, value)
+    with pytest.raises(ValidationError, match=f"speedup claim, so no {name}"):
+        Verdict.model_validate(data)
+
+
+def test_gate_reject_may_follow_a_resolution_stop() -> None:
+    # Gates are re-checked on the finished samples, and a gate failure
+    # decides first even after the resolution stop ended the rounds.
+    data = {
+        **as_json(integrity()),
+        "rounds": 10,
+        "looks": 1,
+        "diagnostics": {
+            "procedure_uncalibrated": False,
+            "coarse_resolution": True,
+        },
+    }
+    assert Verdict.model_validate(data).gate == "lock"
+
+
+def test_cross_host_resolution_stop_needs_n0_session_pairs() -> None:
+    data = {
+        **as_json(resolution_stop()),
+        "cross_host": True,
+        "session_pairs": 9,
+    }
+    with pytest.raises(ValidationError, match="has taken no look"):
+        cross_record(Verdict.model_validate(data))
+    data["session_pairs"] = 10
+    assert cross_record(Verdict.model_validate(data)).verdict.rule == 1
+
+
+def test_calibrated_verdict_names_its_conditions() -> None:
+    v = calibrated_keep()
+    assert v.calibration_conditions == CONDITIONS
+    assert record(verdict=v).verdict.calibration == "calibrated"
+    with pytest.raises(ValidationError, match="conditions"):
+        Verdict.model_validate({**as_json(v), "calibration_conditions": []})
+    with pytest.raises(ValidationError, match="conditions"):
+        Verdict.model_validate(
+            {**as_json(keep()), "calibration_conditions": list(CONDITIONS)}
+        )
+
+
+def test_native_build_is_its_own_runtime_kind() -> None:
+    env = native_environment()
+    assert env.runtime_kind == "native_build"
+    assert env.runtime_version is None
+    assert dict(env.missing) == {}
+    assert [lib.name for lib in env.linked_libraries or ()] == [
+        "/usr/lib/libSystem.B.dylib",
+        "libfoo.so.1",
+        "libopt.dylib",
+    ]
+    marker = "a native executable built in the tree; it has no interpreter"
+    with pytest.raises(ValidationError, match="missing"):
+        TreeEnvironment.model_validate(
+            {**as_json(env), "missing": {"runtime_version": marker}}
+        )
+    with pytest.raises(ValidationError, match="does not apply"):
+        TreeEnvironment.model_validate(
+            {**as_json(env), "runtime_version": "3.12.12"}
+        )
+
+
+def test_unknown_runtime_has_a_reason_and_no_kind() -> None:
+    env = EXAMPLES["environment_unknown"]
+    assert isinstance(env, TreeEnvironment)
+    assert env.runtime_kind is None
+    assert env.missing["runtime_kind"] == "interpreter not found on PATH"
+    with pytest.raises(ValidationError, match="version is an interpreter"):
+        TreeEnvironment.model_validate(
+            {
+                **as_json(env),
+                "runtime_version": "3.12.12",
+                "missing": {
+                    k: v
+                    for k, v in env.missing.items()
+                    if k != "runtime_version"
+                },
+            }
+        )
+    with pytest.raises(ValidationError, match="native build only"):
+        TreeEnvironment.model_validate(
+            {
+                **as_json(env),
+                "linked_libraries": [],
+                "missing": {
+                    k: v
+                    for k, v in env.missing.items()
+                    if k != "linked_libraries"
+                },
+            }
+        )
+
+
+def test_interpreter_has_an_executable_and_version() -> None:
+    data = as_json(environment())
+    with pytest.raises(ValidationError, match="identified with its version"):
+        TreeEnvironment.model_validate(
+            {
+                **data,
+                "runtime_version": None,
+                "missing": {"runtime_version": "x"},
+            }
+        )
+    with pytest.raises(ValidationError, match="has an executable"):
+        TreeEnvironment.model_validate(
+            {
+                **data,
+                "runtime_executable": None,
+                "missing": {"runtime_executable": "x"},
+            }
+        )
+    with pytest.raises(ValidationError, match="does not apply"):
+        TreeEnvironment.model_validate({**data, "linked_libraries": []})
+
+
+@pytest.mark.parametrize(
+    "factory", [library_file, library_cache, library_weak]
+)
+def test_linked_library_fields_follow_its_source(factory: Any) -> None:
+    lib = factory()
+    for field, value in (("path", "/x/lib.so"), ("sha256", HASH_B)):
+        if getattr(lib, field) is None:
+            with pytest.raises(ValidationError, match=f"takes no {field}"):
+                LinkedLibrary.model_validate({**as_json(lib), field: value})
+
+
+def test_record_names_its_repository_and_candidate() -> None:
+    r = EXAMPLES["record_named"]
+    assert isinstance(r, RunRecord)
+    assert (r.repository, r.candidate_commit, r.candidate_dirty) == (
+        REPOSITORY,
+        "f" * 40,
+        False,
+    )
+    # Not recorded stays not recorded; nothing is filled in.
+    plain = record()
+    assert (plain.repository, plain.candidate_commit) == (None, None)
+    assert plain.candidate_dirty is None
+    with pytest.raises(ValidationError, match="set together"):
+        record(candidate_commit="f" * 40)
+
+
+@pytest.mark.parametrize(
+    "repository",
+    [
+        # Every value here is a made-up placeholder, not a credential.
+        "https://PLACEHOLDER-TOKEN@github.com/example/sum-loop.git",
+        "git+https://Placeholder0Token@github.com/example/sum-loop.git",
+        "http://user:placeholder@git.example.test/sum-loop.git",
+        "ssh://git:placeholder@github.com/example/sum-loop.git",
+        "ssh://PLACEHOLDER@github.com/example/sum-loop.git",
+        "user:placeholder@github.com:example/sum-loop.git",
+        "a" * 33 + "@github.com:example/sum-loop.git",
+        # On web schemes any user part is refused, however plain.
+        "git+https://ghp_x@h/example/sum-loop.git",
+        "https://user@h/example/sum-loop.git",
+        "HTTP://git@h/example/sum-loop.git",
+        "git+http://git@h/example/sum-loop.git",
+    ],
+)
+def test_repository_user_that_may_be_a_credential_is_refused(
+    repository: str,
+) -> None:
+    with pytest.raises(ValidationError, match="may be a credential"):
+        record(repository=repository)
+
+
+@pytest.mark.parametrize(
+    "repository",
+    [
+        REPOSITORY,
+        "ssh://git@github.com/example/sum-loop.git",
+        "git+ssh://git@github.com/example/sum-loop.git",
+        "git@github.com:example/sum-loop.git",
+        "/Users/someone/code/sum-loop",
+        "/Users/some@one/code/sum-loop",
+        # The authority ends at the first "/", so this has no user part.
+        "https://u:p/ss@h",
+        # The stated SSH limit: a short lowercase token looks like a
+        # login name, so it is kept.
+        "ghp_x@h:o/r",
+    ],
+)
+def test_repository_with_a_plain_login_or_no_user_is_kept(
+    repository: str,
+) -> None:
+    assert record(repository=repository).repository == repository
+
+
+def test_differential_capture_limit_marks_a_capped_count() -> None:
+    capped = DifferentialCheck.model_validate(
+        {**as_json(differential()), "capture_limit": 50}
+    )
+    assert capped.captured == capped.capture_limit
+    assert differential().capture_limit is None
+    with pytest.raises(ValidationError, match="past the capture limit"):
+        DifferentialCheck.model_validate(
+            {**as_json(differential()), "capture_limit": 49}
+        )
+
+
+def test_differential_tolerance_is_declared_in_the_spec() -> None:
+    assert (
+        correctness().differential_rtol,
+        correctness().differential_atol,
+    ) == (
+        0.0,
+        0.0,
+    )
+    data = as_json(spec())
+    data["correctness"]["differential_rtol"] = 1e-12
+    tolerant = BenchmarkSpec.model_validate(data)
+    assert tolerant.correctness.differential_rtol == 1e-12
+    assert tolerant.spec_hash != spec().spec_hash
+    data["correctness"]["differential_atol"] = 1e-15
+    assert BenchmarkSpec.model_validate(data).spec_hash != tolerant.spec_hash
 
 
 # Spec hash

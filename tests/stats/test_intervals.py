@@ -421,6 +421,7 @@ def record(
         regression=d.regression,
         target_class="python_cpu",
         calibration="calibrated",
+        calibration_conditions=("the full-path cases of this test",),
         diagnostics=Diagnostics(
             procedure_uncalibrated=d.procedure_uncalibrated
         ),

@@ -112,6 +112,9 @@ def spec(**update: Any) -> Data:
     return data
 
 
+CONDITIONS = ("log-normal, CV 5%, one host", "AR(1), rho 0.5, one host")
+
+
 def diagnostics(**update: Any) -> Data:
     data: Data = {
         "procedure_uncalibrated": False,
@@ -139,6 +142,8 @@ def keep_verdict(**update: Any) -> Data:
         "diagnostics": diagnostics(),
     }
     data.update(update)
+    if data["calibration"] == "calibrated":
+        data.setdefault("calibration_conditions", list(CONDITIONS))
     return data
 
 
@@ -156,6 +161,7 @@ def gate_verdict(gate: GateName) -> Data:
         "procedure": "t_log_ratio",
         "target_class": "python_cpu",
         "calibration": "calibrated",
+        "calibration_conditions": list(CONDITIONS),
         "diagnostics": {"procedure_uncalibrated": False},
     }
 
@@ -199,6 +205,7 @@ def environment(version: str, session: int = 0) -> Data:
     return {
         "version": version,
         "session": session,
+        "runtime_kind": "interpreter",
         "runtime_executable": f"/work/{version}/.venv/bin/python",
         "runtime_version": "3.12.12",
         "env_names": ["PATH", "OMP_NUM_THREADS", "HOME"],
@@ -468,6 +475,7 @@ def reject_correctness() -> RunRecord:
                 {
                     "function": "app.core:slow_sum",
                     "captured": 50,
+                    "capture_limit": 50,
                     "replayed": 48,
                     "generated": 100,
                     "skipped": [
@@ -685,6 +693,56 @@ def cross_host() -> RunRecord:
     )
 
 
+def inconclusive_resolution_stop() -> RunRecord:
+    """Rule 1 with no gate: the resolution stop at the first look."""
+    return record(
+        verdict=keep_verdict(
+            outcome="INCONCLUSIVE",
+            reason="insufficient_evidence",
+            rule=1,
+            estimate=None,
+            interval=None,
+            rounds=10,
+            looks=1,
+            calibration="uncalibrated",
+            diagnostics=diagnostics(
+                coarse_resolution=True, resolution_widening=0.2
+            ),
+        ),
+    )
+
+
+def keep_native_build() -> RunRecord:
+    """A native build: its runtime_version doesn't apply."""
+    libraries = [
+        {
+            "name": "libfoo.so.1",
+            "source": "file",
+            "path": "/usr/lib/libfoo.so.1.2",
+            "sha256": HASH_A,
+        },
+        {
+            "name": "/usr/lib/libSystem.B.dylib",
+            "source": "dyld_shared_cache",
+            "path": "/usr/lib/libSystem.B.dylib",
+        },
+        {"name": "libopt.dylib", "source": "weak_absent"},
+    ]
+    environments: list[Data] = []
+    for version in ("baseline", "candidate"):
+        env = environment(version)
+        del env["runtime_version"]
+        env["runtime_kind"] = "native_build"
+        env["runtime_executable"] = f"/work/{version}/build/bench"
+        env["linked_libraries"] = libraries
+        environments.append(env)
+    environments[1]["linked_libraries"] = None
+    environments[1]["missing"] = {
+        "linked_libraries": "listed by the runtime gate, not the probe"
+    }
+    return record(environments=environments)
+
+
 CASES: dict[str, Callable[[], RunRecord]] = {
     f.__name__: f
     for f in (
@@ -705,6 +763,8 @@ CASES: dict[str, Callable[[], RunRecord]] = {
         inconclusive_guardrail,
         procedure_uncalibrated,
         cross_host,
+        inconclusive_resolution_stop,
+        keep_native_build,
     )
 }
 
@@ -781,6 +841,54 @@ def test_gate_verdict_makes_no_speed_claim() -> None:
         assert "Speedup estimate" not in text
         assert "No claim about speed." in text
         assert f"decided by rule 1, gate `{gate}`." in text
+
+
+def test_resolution_stop_is_not_rendered_as_a_gate() -> None:
+    text = render(inconclusive_resolution_stop())
+    assert "The resolution stop ended the comparison" in text
+    assert "`None`" not in text
+    assert "gate failed" not in text
+    assert "a gate REJECT carries no guardrail results" not in text
+    assert "- coarse_resolution: yes" in text
+    assert "- resolution_widening: 0.2" in text
+
+
+def test_fields_that_do_not_apply_render_as_not_applicable() -> None:
+    text = render(keep_native_build())
+    assert "- runtime_version: not applicable" in text
+    assert text.count("- linked_library ") == 3
+    assert "linked_libraries: unknown (listed by the runtime gate" in text
+    assert "- linked_libraries: not applicable" in render(keep())
+
+
+def test_calibrated_verdict_names_its_conditions() -> None:
+    text = render(keep())
+    assert "; ".join(CONDITIONS) in text
+    assert "are not in this record" not in text
+
+
+def test_a_count_at_the_capture_limit_is_labelled_a_bound() -> None:
+    text = render(reject_correctness())
+    assert "50 captured (the capture limit, so a bound:" in text
+    record = reject_correctness().model_dump(mode="json")
+    check = record["gates"][-1]["differential"][0]
+    assert check["function"] == "app.core:slow_sum"
+    check["capture_limit"] = 51
+    below = render(RunRecord.model_validate(record))
+    assert "50 captured, 48 replayed" in below
+
+
+def test_recorded_repository_and_candidate_commit_are_named() -> None:
+    text = render(
+        record(
+            repository="https://github.com/example/sum-loop.git",
+            candidate_commit="f" * 40,
+            candidate_dirty=True,
+        )
+    )
+    assert "Repository `https://github.com/example/sum-loop.git`." in text
+    assert f"Candidate commit `{'f' * 40}`, with changes not in" in text
+    assert "Not recorded" not in text
 
 
 def test_labels() -> None:

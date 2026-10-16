@@ -233,7 +233,7 @@ def make_spec(
         correctness=CorrectnessSpec(command=("true",), timeout_seconds=10.0),
         warmup=0,
         budget=Budget(max_rounds=20, max_seconds=600.0),
-        looks=LookSchedule(n0=10, k=5, max_looks=3),
+        looks=LookSchedule(n0=10, k=10, max_looks=3),
         timeout_seconds=timeout,
         harness=("bench.py",),
     )

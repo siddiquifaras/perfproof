@@ -26,11 +26,11 @@
     },
     "BenchmarkSpec": {
       "additionalProperties": false,
-      "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, a path is declared twice\n    across the locked groups, a guardrail metric is declared twice\n    or is the primary objective, guardrails are declared without an\n    objective, the metric kind cannot measure the objective or its\n    direction is not the objective's, or a supplied ``spec_hash``\n    does not match the content.",
+      "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, ``n0`` or ``k`` is odd without\n    the cross-host opt-in, a path is declared twice\n    across the locked groups, a guardrail metric is declared twice\n    or is the primary objective, guardrails are declared without an\n    objective, the metric kind cannot measure the objective or its\n    direction is not the objective's, or a supplied ``spec_hash``\n    does not match the content.",
       "properties": {
         "schema_version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -98,7 +98,7 @@
         },
         "alpha": {
           "default": 0.05,
-          "description": "Total error budget, split across looks.",
+          "description": "Error the promise allows; each look's interval is at confidence\n``1 - alpha / (2 K)`` for ``K`` looks.",
           "exclusiveMaximum": 1,
           "exclusiveMinimum": 0,
           "title": "Alpha",
@@ -352,6 +352,20 @@
           },
           "title": "Outputs",
           "type": "array"
+        },
+        "differential_rtol": {
+          "default": 0.0,
+          "description": "Relative tolerance for floating-point values the differential\nchecks compare (captured, replayed and generated calls),\ndimensionless, relative to the baseline's value. ``0.0`` with\n``differential_atol`` ``0.0`` compares exactly, so reordered float\narithmetic mismatches.",
+          "minimum": 0,
+          "title": "Differential Rtol",
+          "type": "number"
+        },
+        "differential_atol": {
+          "default": 0.0,
+          "description": "Absolute tolerance for those floating-point values, in their own\nunits.",
+          "minimum": 0,
+          "title": "Differential Atol",
+          "type": "number"
         }
       },
       "title": "CorrectnessSpec",
@@ -470,6 +484,33 @@
           "default": null,
           "description": "Standard deviation of the per-round log ratios.",
           "title": "Sd Log Ratio"
+        },
+        "coarse_resolution": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the resolution stop of ``docs/method.md`` ended the\ncomparison: a value no larger than its own step, or a `reported`\nmetric with no declared resolution that failed the continuity\ncheck. ``True`` only on a rule 1 verdict: the INCONCLUSIVE the stop\ngives, or a gate REJECT decided after it.",
+          "title": "Coarse Resolution"
+        },
+        "resolution_widening": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How far the resolution moved both bounds of the deciding look's\ninterval outward, on the log scale: the mean ``w`` over its rounds\nof ``e_i = -log(1 - q_b / b_i) - log(1 - q_c / c_i)``, so ``L`` was\nmultiplied by ``exp(-w)`` and ``U`` by ``exp(w)``. Dimensionless.",
+          "title": "Resolution Widening"
         }
       },
       "required": [
@@ -523,7 +564,7 @@
     },
     "DifferentialCheck": {
       "additionalProperties": false,
-      "description": "Old and new versions of one changed function on the same inputs.\n\nReal calls are captured while the baseline benchmark runs and\nreplayed against the candidate in a separate process; generated\ninputs are run through both versions where type hints allow. Every\ncall that was seen but not replayed is accounted for in\n``skipped``.\n\nRaises\n------\npydantic.ValidationError\n    If the replay-stage skips do not account for exactly the\n    captured calls that were not replayed, a stage and reason\n    repeat, more calls mismatched than were run, or mismatches and\n    ``differences`` are not present together.",
+      "description": "Old and new versions of one changed function on the same inputs.\n\nReal calls are captured while the baseline benchmark runs and\nreplayed against the candidate in a separate process; generated\ninputs are run through both versions where type hints allow. Every\ncall that was seen but not replayed is accounted for in\n``skipped``.\n\nRaises\n------\npydantic.ValidationError\n    If the replay-stage skips do not account for exactly the\n    captured calls that were not replayed, a stage and reason\n    repeat, more calls mismatched than were run, mismatches and\n    ``differences`` are not present together, or more calls were\n    captured than ``capture_limit`` allows.",
       "properties": {
         "function": {
           "description": "The changed function, as ``module:qualified.name``.",
@@ -532,10 +573,24 @@
           "type": "string"
         },
         "captured": {
-          "description": "Real calls captured during the baseline benchmark.",
+          "description": "Real calls captured during the baseline benchmark. When it\nequals ``capture_limit`` it is the cap, not a count of every\ncall.",
           "minimum": 0,
           "title": "Captured",
           "type": "integer"
+        },
+        "capture_limit": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Most real calls captured for this function; ``None`` when no\nlimit applied. Calls past it are not captured, so a report labels\n``captured`` at the limit as a bound.",
+          "title": "Capture Limit"
         },
         "replayed": {
           "description": "Captured calls replayed against the candidate.",
@@ -788,7 +843,7 @@
             }
           ],
           "default": null,
-          "description": "Interval on the worsening ratio, at confidence\n``1 - alpha / (K G)``; checked against ``1 + allowance``."
+          "description": "Interval on the worsening ratio, at confidence\n``1 - alpha / (2 K G)``; checked against ``1 + allowance``."
         },
         "candidate": {
           "anyOf": [
@@ -1020,13 +1075,69 @@
       "title": "Interval",
       "type": "object"
     },
+    "LinkedLibrary": {
+      "additionalProperties": false,
+      "description": "A library from outside the tree that a native build loads.\n\nA native executable built in the tree is a build of the code under\ntest, but the libraries it links from outside the tree are part of\nthe runtime, which the `runtime` gate compares between the arms.\n\nRaises\n------\npydantic.ValidationError\n    If ``path`` and ``sha256`` do not match ``source``: a ``file``\n    has both, a ``dyld_shared_cache`` library only a path, and a\n    ``weak_absent`` one neither.",
+      "properties": {
+        "name": {
+          "description": "The library as the executable names it: its install name or\nsoname.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "description": "``file``: a file on disk, hashed. ``dyld_shared_cache``: a macOS\nsystem library that exists only in the dyld shared cache, so there\nis no file to hash. ``weak_absent``: a weak link the loader found\nno library for.",
+          "enum": [
+            "file",
+            "dyld_shared_cache",
+            "weak_absent"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resolved path, with symlinks followed; ``None`` for\n``weak_absent``.",
+          "title": "Path"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SHA-256 of the file's bytes; ``None`` unless ``source`` is\n``file``.",
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ],
+      "title": "LinkedLibrary",
+      "type": "object"
+    },
     "LockManifest": {
       "additionalProperties": false,
       "description": "Hashes of every locked file of one spec, sorted by path.\n\nRaises\n------\npydantic.ValidationError\n    If a path appears twice.",
       "properties": {
         "schema_version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -1097,22 +1208,22 @@
     },
     "LookSchedule": {
       "additionalProperties": false,
-      "description": "When the sequential procedure looks at the data.\n\nThe first look comes after ``n0`` rounds, then one every ``k``\nrounds, for at most ``max_looks`` looks.",
+      "description": "When the sequential procedure looks at the data.\n\nThe first look comes after ``n0`` rounds, then one every ``k``\nrounds, for at most ``max_looks`` looks. On one host rounds come in\norder pairs, so ``n0`` and ``k`` are even and every scheduled look\nfalls on complete pairs; `BenchmarkSpec` refuses an odd one unless\nthe spec opts in to the cross-host design, whose observations are\nsession pairs.",
       "properties": {
         "n0": {
-          "description": "Rounds before the first look; at least 10, because t intervals on\nfewer rounds are too fragile under heavy tails.",
+          "description": "Rounds before the first look; at least 10, because t intervals on\nfewer rounds are too fragile under heavy tails. Even on one host.",
           "minimum": 10,
           "title": "N0",
           "type": "integer"
         },
         "k": {
-          "description": "Rounds between looks.",
+          "description": "Rounds between looks. Even on one host.",
           "minimum": 1,
           "title": "K",
           "type": "integer"
         },
         "max_looks": {
-          "description": "Most looks, ``K`` in ``docs/method.md``. Each look's confidence\nis ``1 - alpha / max_looks``.",
+          "description": "Most looks, ``K`` in ``docs/method.md``. Each look's two-sided\ninterval is at confidence ``1 - alpha / (2 K)``: a Bonferroni split\nover the looks designed to halve the error ``alpha`` allows.",
           "minimum": 1,
           "title": "Max Looks",
           "type": "integer"
@@ -1400,7 +1511,7 @@
     },
     "MetricSpec": {
       "additionalProperties": false,
-      "description": "The one metric a benchmark is judged on.\n\n``wall`` and ``cpu`` are times in seconds and ``counter`` is an\nevent count, so all three are lower-is-better. Only ``reported``\nmetrics choose a direction.\n\nRaises\n------\npydantic.ValidationError\n    If the direction or unit contradicts the kind, or ``event`` is\n    set for anything but a ``counter`` metric or missing for one.",
+      "description": "The one metric a benchmark is judged on.\n\n``wall`` and ``cpu`` are times in seconds and ``counter`` is an\nevent count, so all three are lower-is-better. Only ``reported``\nmetrics choose a direction.\n\nRaises\n------\npydantic.ValidationError\n    If the direction or unit contradicts the kind, ``event`` is set\n    for anything but a ``counter`` metric or missing for one, or\n    ``resolution`` is set for anything but a ``reported`` metric.",
       "properties": {
         "kind": {
           "description": "`wall`, `cpu`, `reported` (``PERFPROOF {\"value\": ...}`` line on\nstdout) or `counter` (``perf stat``, Linux).",
@@ -1441,6 +1552,20 @@
           "default": null,
           "description": "``perf`` event name for a `counter` metric, such as\n``\"instructions\"``; ``None`` for every other kind.",
           "title": "Event"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For a `reported` metric, the step ``q`` its values are known to,\nin ``unit``, when the benchmark knows it: the timer it reads, or the\nunit it rounds or truncates to. ``None`` leaves each value's step to\nthe place of its last printed digit, with the continuity check of\n``docs/method.md``. Never set for other kinds, whose step is the\nclock's (`wall`, `cpu`) or one count (`counter`).",
+          "title": "Resolution"
         }
       },
       "required": [
@@ -1562,11 +1687,11 @@
     },
     "RunRecord": {
       "additionalProperties": false,
-      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is not\n    INCONCLUSIVE or a gate REJECT, a ``wall_interval`` appears for\n    a metric other than ``reported``, or ``finished_at`` precedes\n    ``started_at``. Also if the guardrail results do not match the\n    spec's guardrails one to one (none for a gate verdict), the\n    spec of any other verdict omits a default guardrail of\n    ``docs/method.md`` (peak memory, and the target class's own)\n    that is not the objective, a status disagrees with its\n    intervals, allowance and limits, a\n    KEEP has a gate `not_available` or a guardrail other than\n    `passed` or `not_applicable`, a guardrail REJECT has no\n    `breached` guardrail, or a rule 2 INCONCLUSIVE has a breach or\n    nothing that blocked the KEEP.",
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is a\n    rule 2 or 3 verdict or the resolution stop, a ``wall_interval``\n    appears for a metric other than ``reported``, ``finished_at``\n    precedes ``started_at``, or ``candidate_commit`` and\n    ``candidate_dirty`` are not set together. Also if the\n    guardrail results do not match the spec's guardrails one to one\n    (none for a gate verdict), the spec of any other verdict omits\n    a default guardrail of ``docs/method.md`` (peak memory, and the\n    target class's own) that is not the objective, a status\n    disagrees with its intervals, allowance and limits, a KEEP has\n    a gate `not_available` or a guardrail other than `passed` or\n    `not_applicable`, a guardrail REJECT has no `breached`\n    guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing\n    that blocked the KEEP. The resolution stop is not a gate\n    verdict: it lists every gate and every guardrail result.",
       "properties": {
         "schema_version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -1599,11 +1724,52 @@
           "$ref": "#/$defs/BenchmarkSpec",
           "description": "The spec compared under."
         },
+        "repository": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The repository compared in, so a claim names what it is about:\nits remote URL, without credentials, or the path of its root when\nit has no remote. ``None`` when not recorded, which the report says.\nA user part that may be a credential is refused, as\n`_check_repository` sets out, so no token is written to the\nrecord.",
+          "title": "Repository"
+        },
         "baseline_commit": {
           "description": "Git commit of the baseline.",
           "pattern": "^[0-9a-f]{40}(?:[0-9a-f]{24})?$",
           "title": "Baseline Commit",
           "type": "string"
+        },
+        "candidate_commit": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}(?:[0-9a-f]{24})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Git commit the candidate tree was at; ``None`` when not\nrecorded.",
+          "title": "Candidate Commit"
+        },
+        "candidate_dirty": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the candidate tree had changes not in\n``candidate_commit``, so that commit alone does not reproduce what\nwas measured; set exactly when ``candidate_commit`` is.",
+          "title": "Candidate Dirty"
         },
         "order_seed": {
           "description": "Seed for the in-round order of the two versions.",
@@ -1724,7 +1890,7 @@
     },
     "Sample": {
       "additionalProperties": false,
-      "description": "One measured execution of one version.\n\nWarmup executions are discarded and never become samples.",
+      "description": "One measured execution of one version.\n\nWarmup executions are discarded and never become samples.\n\nRaises\n------\npydantic.ValidationError\n    If ``resolution`` and ``resolution_source`` are not set\n    together.",
       "properties": {
         "version": {
           "description": "Which tree ran.",
@@ -1760,6 +1926,39 @@
           "exclusiveMinimum": 0,
           "title": "Value",
           "type": "number"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The step ``q`` that ``value`` is known to within, in\n`MetricSpec.unit`; it widens the interval as ``docs/method.md``\nsets out under \"Resolution\". ``None`` when not recorded, which\nleaves the widening unknown.",
+          "title": "Resolution"
+        },
+        "resolution_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "clock",
+                "count",
+                "declared",
+                "printed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where ``resolution`` came from: ``clock``, ``count``,\n``declared`` or ``printed``; set with it.",
+          "title": "Resolution Source"
         },
         "wall_seconds": {
           "description": "Wall-clock time of the whole command, in seconds, recorded for\nevery metric.",
@@ -1855,7 +2054,7 @@
     },
     "TreeEnvironment": {
       "additionalProperties": false,
-      "description": "What one version's tree ran with, recorded for the reader.\n\nNothing here is a gate by itself. The `runtime` gate compares\n``runtime_executable`` and ``runtime_version`` between the arms\nunless the spec allows runtime changes, and the `procedure` gate\ncovers only the spec's declared environment. Every other difference\nbetween the arms is recorded and reported as a warning.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field has no reason in ``missing`` or ``missing``\n    names a field that has a value; if ``env_values`` names a\n    variable not in ``env_names``; or if a name or lockfile path\n    repeats.",
+      "description": "What one version's tree ran with, recorded for the reader.\n\nNothing here is a gate by itself. The `runtime` gate compares the\nruntime between the arms unless the spec allows runtime changes: an\ninterpreter by ``runtime_executable`` and ``runtime_version``, a\nnative build by the libraries it links outside the tree. The\n`procedure` gate covers only the spec's declared environment. Every\nother difference between the arms is recorded and reported as a\nwarning.\n\n``runtime_kind`` says which fields apply. An interpreter has an\nexecutable and a version, and no linked libraries. A native build\nhas an executable and no version, since it has no interpreter. An\nunknown runtime (``runtime_kind`` ``None``) has its reason in\n``missing`` and no version. A field that doesn't apply is ``None``\nand takes no reason in ``missing``.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field that applies has no reason in ``missing``,\n    ``missing`` names a field that has a value or doesn't apply, a\n    field is set that doesn't apply to ``runtime_kind``, a known\n    runtime has no executable or an interpreter no version; if\n    ``env_values`` names a variable not in ``env_names``; or if a\n    name, library or lockfile path repeats.",
       "properties": {
         "version": {
           "description": "Which tree.",
@@ -1873,6 +2072,23 @@
           "title": "Session",
           "type": "integer"
         },
+        "runtime_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "interpreter",
+                "native_build"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``interpreter`` or ``native_build``, as the probe identified the\nruntime behind the benchmark's launchers; ``None`` when it could not\nbe identified, with the reason in ``missing``. Only this field says\na runtime is a native build.",
+          "title": "Runtime Kind"
+        },
         "runtime_executable": {
           "anyOf": [
             {
@@ -1884,7 +2100,7 @@
             }
           ],
           "default": null,
-          "description": "Resolved interpreter or runtime that ran the benchmark, such as\nthe absolute path of the tree's Python.",
+          "description": "Resolved interpreter or native executable that ran the\nbenchmark, such as the absolute path of the tree's Python.",
           "title": "Runtime Executable"
         },
         "runtime_version": {
@@ -1898,8 +2114,24 @@
             }
           ],
           "default": null,
-          "description": "Version that runtime reports.",
+          "description": "Version the interpreter reports; an interpreter only.",
           "title": "Runtime Version"
+        },
+        "linked_libraries": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LinkedLibrary"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For a native build, the libraries from outside the tree that it\nloads, sorted by name; empty when it loads none. Doesn't apply to an\ninterpreter.",
+          "title": "Linked Libraries"
         },
         "env_names": {
           "anyOf": [
@@ -1990,7 +2222,7 @@
     },
     "Verdict": {
       "additionalProperties": false,
-      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag. Rule 2 (the\ninterval clears the bar) gives KEEP, a guardrail REJECT, which\nkeeps its estimate and interval to show what the speed cost, or\nINCONCLUSIVE when compliance couldn't be established.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a rule\n    2 or 3 verdict lacks its estimate or interval, an interval\n    comes without a look on at least 2 rounds, a calibrated verdict\n    names no target class, or a verdict under an uncalibrated\n    procedure is anything but a gate REJECT or a rule 5\n    INCONCLUSIVE.",
+      "description": "The answer to one comparison.\n\n``rule``, ``outcome``, ``reason`` and ``gate`` must agree with the\ndecision rule in ``docs/method.md``. Gates run before timing, so a\ncorrectness or integrity verdict carries no speedup estimate,\ninterval, wall-clock interval or regression flag. The resolution\nstop, checked after the gates of rule 1 and before rules 2 and 3,\nis the rule 1 INCONCLUSIVE: it names no gate, comes at a look, has\nthe ``coarse_resolution`` diagnostic, and like a gate verdict\ncarries no estimate, interval or wall-clock interval. Rule 2 (the\ninterval clears the bar) gives KEEP, a guardrail REJECT, which\nkeeps its estimate and interval to show what the speed cost, or\nINCONCLUSIVE when compliance couldn't be established.\n\nRaises\n------\npydantic.ValidationError\n    If the fields contradict each other as described above, a rule\n    2 or 3 verdict lacks its estimate or interval, an interval\n    comes without a look on at least 2 rounds, a calibrated verdict\n    names no target class or no calibration conditions, an\n    uncalibrated one names conditions, or a verdict under an\n    uncalibrated procedure is anything but a rule 1 verdict or a\n    rule 5 INCONCLUSIVE.",
       "properties": {
         "outcome": {
           "description": "KEEP, REJECT or INCONCLUSIVE.",
@@ -2152,6 +2384,16 @@
           "title": "Calibration",
           "type": "string"
         },
+        "calibration_conditions": {
+          "default": [],
+          "description": "The conditions ``target_class`` was calibrated under, as the\ncalibration results in ``docs/method.md`` name them (noise\nscenarios, host modes, trace sets), so the report can say the\nverdict rests on those and not on calibration in general. Not\nempty exactly when ``calibration`` is ``calibrated``.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Calibration Conditions",
+          "type": "array"
+        },
         "diagnostics": {
           "$ref": "#/$defs/Diagnostics",
           "description": "Diagnostics such as ``procedure_uncalibrated``; required, since\nit holds whether the procedure was calibrated."
@@ -2171,5 +2413,5 @@
       "type": "object"
     }
   },
-  "title": "perfproof schema version 2"
+  "title": "perfproof schema version 3"
 }

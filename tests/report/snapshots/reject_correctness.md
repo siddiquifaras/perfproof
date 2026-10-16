@@ -10,7 +10,7 @@ The candidate failed the `correctness` gate: it gave different results from the 
 
 The candidate failed the `correctness` gate. No claim about speed.
 
-Benchmark `sum-loop` at spec hash `28ec7dace3a00649c062abdee26de8b00a028a276a954ae16a430b2ad5aef260`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `3161a99a0edca6144e31ffa036a85b881579498185c158241c1ec30d8e57bc65`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -29,10 +29,12 @@ Not measured: gates run before any timing, so this verdict carries no speedup es
 - procedure_uncalibrated: no
 - metric_disagreement: not computed
 - wall_interval: not computed
+- coarse_resolution: not computed
 - lag1_autocorrelation: not computed
 - cv_baseline: not computed
 - cv_candidate: not computed
 - sd_log_ratio: not computed
+- resolution_widening: not computed
 
 ## Gates
 
@@ -44,7 +46,7 @@ Not measured: gates run before any timing, so this verdict carries no speedup es
 - `correctness`: failed
   - Detail: replayed calls differ
   - Quarantined flaky test `tests/test_core.py::test_timing`, left out of the judgement; baseline results `passed`, `failed`, `passed`
-  - Differential check `app.core:slow_sum`: 50 captured, 48 replayed, 100 generated, 1 mismatched
+  - Differential check `app.core:slow_sum`: 50 captured (the capture limit, so a bound: any later calls were not captured), 48 replayed, 100 generated, 1 mismatched
     - Skipped at capture: 3 calls, argument 0 is an open file
     - Skipped at replay: 2 calls, result is a generator
     - Difference `call 17 return value`: baseline `3`, candidate `4`
@@ -60,7 +62,7 @@ None evaluated: a gate REJECT carries no guardrail results. The spec's guardrail
 - Procedure uncalibrated when this verdict was given: no
 - Target class: `python_cpu`
 - Calibration for the target class: `calibrated`
-- The conditions the target class was calibrated under are not in this record.
+- Calibrated under these conditions only, not in general: log-normal, CV 5%, one host; AR(1), rho 0.5, one host
 
 ## Warnings
 
@@ -92,17 +94,21 @@ None recorded.
 
 ### `baseline`, session 0
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/baseline/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
 ### `candidate`, session 0
 
+- runtime_kind: `interpreter`
 - runtime_executable: `/work/candidate/.venv/bin/python`
 - runtime_version: `3.12.12`
 - env_names: `HOME`, `OMP_NUM_THREADS`, `PATH`
+- linked_libraries: not applicable
 - env_values `OMP_NUM_THREADS`: `1`
 - dependency_lock `uv.lock`: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
 
@@ -111,8 +117,8 @@ None recorded.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `28ec7dace3a00649c062abdee26de8b00a028a276a954ae16a430b2ad5aef260`
-- schema_version: 2
+- spec_hash: `3161a99a0edca6144e31ffa036a85b881579498185c158241c1ec30d8e57bc65`
+- schema_version: 3
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -156,7 +162,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 2
+- schema_version: 3
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`
