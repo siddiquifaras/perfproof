@@ -280,7 +280,7 @@ M6  release bar, README, release
 Every task here follows `src/perfproof/stats/AGENTS.md` and is reviewed
 by `stats-auditor` before its PR opens.
 
-- [ ] **T1.1 Paired intervals**
+- [x] **T1.1 Paired intervals**
   - Owns: `src/perfproof/stats/intervals.py`,
     `tests/stats/test_intervals.py`
   - Needs: none
