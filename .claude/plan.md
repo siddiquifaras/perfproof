@@ -1211,30 +1211,32 @@ claim is checked for speed, correctness and regressions elsewhere
 - [ ] **T3.14 Depth tiers: `/perfproof light`, `medium`, `full`**
   - Owns: the tier presets in `skills/perfproof/`, the `--depth` option
     of `compare` and `measure`, `docs/cli.md` "Depth"
-  - Needs: T3.8, T3.15
+  - Needs: T3.8, T3.13, T3.15, T3.17
   - Why: people are on different plans; a $20 plan runs out fast. The
     tier sets how much perfproof explores and how long it measures. It
     never touches the verdict rule: a lighter tier gets more
     INCONCLUSIVE, never a looser KEEP.
-  - Do: three presets, chosen by the user's word after `/perfproof`
-    (default `medium`):
-    - `light`: no project model beyond what the request names; one
-      workload, one profile, the top one or two hypotheses, one
-      attempt; a short measuring budget; the brief report. Proving an
-      existing diff or PR is `light` by default.
-    - `medium`: the project model, the top three to five hypotheses
-      across the angles, a few attempts; the class's default schedule.
-    - `full`: every angle in `docs/discovery.md`, every profiler the
-      class playbook names, as many attempts as the budget allows, the
-      longest schedule, guardrails and a confirmation run.
-    Each preset is one declared table (hypothesis cap, attempt cap,
-    profilers, schedule, report form) in one place; the skill and the
-    CLI read it, never restate it.
-  - Done when: T3.13's harness records agent tokens, wall time and
-    verdicts per tier on the examples; `light` costs measurably fewer
-    tokens than `full` (numbers in the PR); no tier gives a wrong KEEP;
+  - Do: the boundaries are measured, not chosen. With T3.13's harness
+    on the development tasks, vary the hypothesis cap, attempt cap and
+    round budget, and plot real speedups kept (independent labels,
+    T4.2) against agent tokens and wall time. Put `light`, `medium` and
+    `full` where the curve flattens. Ideas are tried in order of their
+    Amdahl or roofline bound (`docs/discovery.md`), so a cap cuts the
+    least promising first. Proving an existing diff is `light` by
+    default. Each preset is one declared table in one place; the skill
+    and the CLI read it, never restate it.
+  - Cost unit: the share of a 5-hour usage window each tier uses on
+    Faras's $100 Team premium seat (`get_usage` before and after),
+    measured in a window where nothing else runs, plus tokens and wall
+    time. The $20 Pro allowance stays unknown until measured on a real
+    Pro account; it is never scaled from the Team seat.
+  - Done when: the cost curves and the chosen boundaries are in
+    `docs/cli.md` with their data; on the held-out tasks each tier keeps
+    real speedups with no wrong KEEP and costs less per kept speedup
+    than the T3.11 unaided-agent baseline; a `light` and a `medium`
+    session each fit in one 5-hour window on the Team seat (measured);
     each tier's message snapshots are tested.
-  - Effort: medium
+  - Effort: high
 
 - [ ] **T3.15 Token-thrift output**
   - Owns: the `--brief` form of every command's output, the summaries
@@ -1251,8 +1253,10 @@ claim is checked for speed, correctness and regressions elsewhere
     agent opens only on request. The skill tells the agent to use a
     semantic code search (mgrep, zg, grepai or similar) when one is
     installed, and plain grep otherwise; perfproof depends on none.
+  - Do first: cut what T3.17 shows costs most, largest first.
   - Done when: each brief output has a byte cap and a test; T3.13
-    reports tokens per session before and after on the examples.
+    reports tokens per session before and after on the examples, and
+    the saving on T3.17's top cost items is measured, not assumed.
   - Effort: medium
 
 - [ ] **T3.16 Install and first run**
@@ -1272,6 +1276,44 @@ claim is checked for speed, correctness and regressions elsewhere
     timed from install to first verdict, client versions recorded; a
     first run leaves `git status` clean apart from `.perfproof/`.
   - Effort: low
+
+- [ ] **T3.17 Where the tokens go**
+  - Owns: `studies/tokens/`
+  - Needs: nothing (uses data already on disk)
+  - Do: from the raw session logs (Claude Code's JSONL under
+    `~/.claude/projects/` for the T3.10 and T3.11 sessions and their
+    subagents, and any `codex exec` logs), attribute every token to its
+    cause: reading test output, profiles, perfproof output, code
+    search and file reads, diffs, the agent's own reasoning and
+    messages. Count with the real tokenizer (Anthropic's
+    `count_tokens`) on a sample to calibrate any cheaper estimate, and
+    say which numbers are exact and which estimated.
+  - Done when: a table and chart, largest cost first, per session and
+    pooled, with the method; the top five items each name the change
+    that would cut them (feeds T3.15 and T3.14).
+  - Effort: medium
+
+- [ ] **T3.18 What agents leave slow: a catalogue from real diffs**
+  - Owns: `studies/agent-inefficiencies/`, the angle checklist's
+    evidence column in `docs/discovery.md` (as a proposal for the lead)
+  - Needs: nothing (uses the T4.1 pool and the T3.11 study)
+  - Do: classify the actual code changes in the merged and reverted
+    performance PRs of the T4.1 pool (the diffs, not the titles), with
+    tree-sitter or GumTree where a syntax-level diff helps, by the kind
+    of inefficiency removed (quadratic loop, row-by-row dataframe work,
+    unbatched queries, repeated I/O, missing cache, blocking call in
+    async code, needless copies, and whatever else the data shows).
+    Do the same for the agent-written code in T3.11's runs and the
+    agent-authored PRs. For each kind, name the cheap measurement that
+    would confirm or rule it out (queries per request, allocations per
+    call, time growth with input size, achieved bandwidth against
+    peak). Held-out tasks are excluded: only development and pool
+    candidates are read.
+  - Done when: a table of kinds with counts, landed versus reverted,
+    agent-written versus human, each with its measurement and the
+    diffs it came from; the angle checklist gains an evidence column
+    proposed from it.
+  - Effort: medium
 
 M3 is right when, beyond T3.13: three developers who haven't seen the
 docs each get an understood, correct result on their own repo without
