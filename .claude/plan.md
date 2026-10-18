@@ -685,7 +685,7 @@ Mac and on Linux CI, with decoys that must be refused.
     compare runs a spec with `reset` end to end.
   - Effort: medium
 
-- [ ] **T2.20 Examples declare objective and guardrails**
+- [x] **T2.20 Examples declare objective and guardrails** (siddiquifaras/perfproof#35, `d9adde6`)
   - Owns: `examples/*/spec*.json`, `examples/*/test_*.py` where a
     spec's contents are checked
   - Needs: T2.18 (schema 3 for the specs), T2.5
