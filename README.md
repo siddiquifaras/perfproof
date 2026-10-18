@@ -115,12 +115,45 @@ perfproof turns those lessons into defaults: look for the mechanism, run
 both versions on one machine, record what that machine was, and report
 the interval instead of a single number.
 
-## Status
+## Pick how deep it goes
 
-Early development. Nothing is released yet, and there is no install
-command until there is something worth installing. The proving engine
-comes first, because finding opportunities is only worth something once
-the verdicts on them can be trusted.
+People are on different plans, and a thorough session can use a lot of
+an agent's budget. So `/perfproof` takes one word:
+
+| Command | What it does |
+|---|---|
+| `/perfproof light` | One workload, the top idea or two, one attempt, a short measurement. Proving a change you already have is light by default. |
+| `/perfproof` (medium) | Learns the project, tries the best three to five ideas across the angles above. |
+| `/perfproof full` | Every angle, every profiler for your kind of code, as many attempts as the budget allows, the longest measurement. |
+
+A lighter run explores less and measures for less time. It never
+lowers the bar: a light run says INCONCLUSIVE more often, but it can't
+keep a change a full run would reject. perfproof's own output is kept
+short, so the agent spends its budget on your code, not on reading
+logs.
+
+## What works today
+
+Early development. Nothing is released and there's no install command
+yet. This is what runs now, as `perfproof <command>`:
+
+| Part | State |
+|---|---|
+| `doctor`: is this machine fit to measure on | Works |
+| `bench`: define and lock a benchmark | Works |
+| `profile`: where the time goes, with wall versus CPU time | Works (py-spy on Linux, pyinstrument on macOS) |
+| `compare`: old against new, with the safety checks | Runs end to end. Until calibration finishes it answers INCONCLUSIVE or a REJECT from a failed check, never KEEP |
+| Differential checks (old and new code on the same real inputs) | Built, not yet wired into `compare` |
+| Coverage check (every changed line must run) | In review |
+| Calibration (the evidence that KEEP can be trusted) | In progress |
+| Discovery: the project model, the angles, hypotheses, memory of past attempts | Not built yet |
+| The `/perfproof` skill, depth tiers, install | Not built yet |
+| Target classes beyond Python | Not built yet. Native, web, LLM serving, GPU and agentic apps are planned |
+
+Discovery matters as much as proof. Coding agents write code that
+works, not code that's fast, so the speedups have to be looked for
+deliberately. The proving engine was built first only because an idea
+is worth nothing until a verdict on it can be trusted.
 
 ## Docs
 

@@ -1208,6 +1208,71 @@ claim is checked for speed, correctness and regressions elsewhere
     saved run records.
   - Effort: high
 
+- [ ] **T3.14 Depth tiers: `/perfproof light`, `medium`, `full`**
+  - Owns: the tier presets in `skills/perfproof/`, the `--depth` option
+    of `compare` and `measure`, `docs/cli.md` "Depth"
+  - Needs: T3.8, T3.15
+  - Why: people are on different plans; a $20 plan runs out fast. The
+    tier sets how much perfproof explores and how long it measures. It
+    never touches the verdict rule: a lighter tier gets more
+    INCONCLUSIVE, never a looser KEEP.
+  - Do: three presets, chosen by the user's word after `/perfproof`
+    (default `medium`):
+    - `light`: no project model beyond what the request names; one
+      workload, one profile, the top one or two hypotheses, one
+      attempt; a short measuring budget; the brief report. Proving an
+      existing diff or PR is `light` by default.
+    - `medium`: the project model, the top three to five hypotheses
+      across the angles, a few attempts; the class's default schedule.
+    - `full`: every angle in `docs/discovery.md`, every profiler the
+      class playbook names, as many attempts as the budget allows, the
+      longest schedule, guardrails and a confirmation run.
+    Each preset is one declared table (hypothesis cap, attempt cap,
+    profilers, schedule, report form) in one place; the skill and the
+    CLI read it, never restate it.
+  - Done when: T3.13's harness records agent tokens, wall time and
+    verdicts per tier on the examples; `light` costs measurably fewer
+    tokens than `full` (numbers in the PR); no tier gives a wrong KEEP;
+    each tier's message snapshots are tested.
+  - Effort: medium
+
+- [ ] **T3.15 Token-thrift output**
+  - Owns: the `--brief` form of every command's output, the summaries
+    of test and profiler output, `docs/cli.md` "Output"
+  - Needs: T3.8
+  - Why: most of a session's tokens go to the agent reading output (test
+    logs, profiles, diffs). The CLI must do the reading and hand the
+    agent only what decides the next step.
+  - Do: every command has a brief form, the default for the skill:
+    verdict, reason, the numbers that back it, and the next step, in a
+    fixed small size. Test output is summarized by the CLI (counts,
+    the failing ids that differ between trees, a capped tail);
+    profiles to the top N with wall versus CPU; raw logs are files the
+    agent opens only on request. The skill tells the agent to use a
+    semantic code search (mgrep, zg, grepai or similar) when one is
+    installed, and plain grep otherwise; perfproof depends on none.
+  - Done when: each brief output has a byte cap and a test; T3.13
+    reports tokens per session before and after on the examples.
+  - Effort: medium
+
+- [ ] **T3.16 Install and first run**
+  - Owns: `docs/install.md`, the Claude Code plugin marketplace entry,
+    the Codex skill install
+  - Needs: T3.8
+  - Why: people are comfortable with their setup and there are many
+    tools. perfproof has to fit in without asking them to change
+    anything.
+  - Do: one install line per agent (a Claude Code plugin marketplace
+    entry; the Codex equivalent); the CLI runs through `uvx` so nothing
+    is added to the project's dependencies; the only file perfproof
+    writes is `.perfproof/`, ignored by git; `/perfproof` with no
+    arguments works on a repository it has never seen, asking only what
+    it can't find out.
+  - Done when: on a fresh machine, each documented step was run and
+    timed from install to first verdict, client versions recorded; a
+    first run leaves `git status` clean apart from `.perfproof/`.
+  - Effort: low
+
 M3 is right when, beyond T3.13: three developers who haven't seen the
 docs each get an understood, correct result on their own repo without
 help (Faras recruits them); and, as the final bar, a perfproof report is
@@ -1307,6 +1372,22 @@ validated, each refused for the right reason. It ends in a verified
 improvement or a written account of what was tried and why nothing was
 kept. It is evidence for that repository, not proof for the class, and
 the write-up says so. Paid steps go through the `gpu-run` skill.
+
+Each playbook distils methods from primary sources (papers, official
+guides, the creators' repositories) and links them; it never copies
+their text. Starting points, read before writing a playbook: the GPU
+and serving playbooks draw on
+[wafer-ai/gpu-perf-engineering-resources](https://github.com/wafer-ai/gpu-perf-engineering-resources)
+(roofline, coalescing and occupancy, tensor cores, FlashAttention,
+Nsight Compute sections, the CUTLASS GEMM measurement methodology,
+continuous batching, KV cache, speculative decoding, serving
+benchmarks); the web playbook may point to load tools (k6, Locust) and
+borrow ideas, with credit, from
+[QAInsights/perf-skills](https://github.com/QAInsights/perf-skills)
+(MIT), a load-testing knowledge base with no measurement or proof of
+its own. A playbook turns a source into a checklist of angles with the
+measurement that would show each one, so the agent finds speedups it
+would not write on its own.
 
 - [ ] **T5.0 Fixture projects and the integration job**
   - Owns: `tests/fixtures/projects/`, `tests/integration/`, the
