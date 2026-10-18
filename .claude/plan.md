@@ -1015,7 +1015,7 @@ entirely and is the fast path; find always ends in prove, so every
 claim is checked for speed, correctness and regressions elsewhere
 (guardrails), and perfproof's own time to a verdict is measured.
 
-- [ ] **T3.10 Hand-run study**
+- [x] **T3.10 Hand-run study** (siddiquifaras/perfproof#25, #27)
   - Owns: `studies/hand-runs/`
   - Needs: nothing beyond the current CLI
   - Do: hand-run the whole `/perfproof` conversation, playing the skill
@@ -1032,7 +1032,7 @@ claim is checked for speed, correctness and regressions elsewhere
     affects.
   - Effort: high
 
-- [ ] **T3.11 Perf PR and unaided-agent study**
+- [x] **T3.11 Perf PR and unaided-agent study** (siddiquifaras/perfproof#28)
   - Owns: `studies/pr-study/`
   - Needs: nothing
   - Do: collect 10 real merged or rejected performance pull requests
@@ -1303,7 +1303,7 @@ claim is checked for speed, correctness and regressions elsewhere
     that would cut them (feeds T3.15 and T3.14).
   - Effort: medium
 
-- [ ] **T3.18 What agents leave slow: a catalogue from real diffs**
+- [x] **T3.18 What agents leave slow: a catalogue from real diffs** (siddiquifaras/perfproof#30, `bba5521`)
   - Owns: `studies/agent-inefficiencies/`, the angle checklist's
     evidence column in `docs/discovery.md` (as a proposal for the lead)
   - Needs: nothing (uses the T4.1 pool and the T3.11 study)
