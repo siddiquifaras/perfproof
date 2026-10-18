@@ -10,6 +10,8 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `39d10d7` | T3.10 hand-runs on frames2py and picolm merged (PR #27), squash. Reviews found every number traced to logs and records; three wording rounds removed verdict language from uncalibrated INCONCLUSIVE results; the lead made the last wording fixes and merged main. Docs only, under `studies/hand-runs/` |
+| `8edc142` | T3.10 hand-runs on NetBox merged (PR #25), squash. Same pattern: every number traced; overclaiming removed over three rounds; lead fixed the last items (estimates labelled, query counts instead of timings, `~` paths) and merged main. Docs only |
 | `6c5e4aa` | T2.18 schema 3 merged (PR #21), squash, after three review rounds (resolution stop carries no estimate or interval; a capped differential count labelled a bound; repository URLs refuse any user part on web schemes, plain login names only for ssh and scp); reviewer PASS at `b4f9cfc` (rounds 2-3 narrow, Sonnet), worker /verify (3669 passed) and Linux check (3666 passed) on that head, which contains main `d115c42`. Done-when: 22 refusals and fields each caught by a test (mutation probe), schema.json regenerated, the runtime gate reads `runtime_kind` |
 | `e8c91e2` | T4.2 phase 1 (T4.1 build and run) merged (PR #22), squash, after three review rounds (buildability judged on the task tree alone: a reference-only failure, hang, launch failure or broken build is `reference-fails` and drawn; README plan counts; salts pinned; Docker runs bounded and torn down; held-out reference workload times no longer recorded; home path scrubbed; Rails tzdata image); reviewer PASS at `8534ed8` (narrow, Sonnet), worker /verify (3530 passed, eval/mine 101) and Linux check (3527 passed) on that head, which contains main `cb975d1`. Done-when (T4.1 part): 30 held-out committed in f595745 before any held-out run, 20 CPU held-out and 20 development at `runs`; serving and GPU held-out unbuilt pending a GPU host |
 | `7bb5731` | T2.5 compare, thin path, merged (PR #24), squash, after three review rounds (K>1 look wiring and one confidence source, broken_baseline for an unstartable baseline or a missing interpreter, env-leak test, internal_fault instead of tracebacks); reviewer PASS at `09cfb5a` (round 3 narrow, Sonnet); head `5374ea0` is that commit plus main `e01e6b1` with the PR files unchanged; worker /verify 3503 passed, lead Linux check 3500 passed on `5374ea0`. Done-when (before M1 exit): rolling fix INCONCLUSIVE `procedure_uncalibrated`, wrong-output REJECT correctness, bench-edit REJECT lock, remote-db spec REJECT side_effects; never KEEP or a performance REJECT. T2.5 stays open for real verdicts, differential and coverage wiring, reset (T2.19), detach |
@@ -119,7 +121,7 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-**Resumed 2026-10-19** after the pause. Every subagent, reviewer and side
+**Resumed 2026-10-19** after the pause. Release target about 2026-11-02 (Faras); review rounds capped at two per PR, then the lead decides. Every subagent, reviewer and side
 session now runs on Sonnet 5.5 (Faras); the lead stays on Opus 5.5.
 Stopped agents were restarted as fresh Sonnet agents in their own
 worktrees. New plan tasks from Faras: T3.14 depth tiers, T3.15
@@ -133,8 +135,6 @@ playbooks (M5 intro).
 | T4.2 labeller | `task/t4.2-labeller`, `.claude/worktrees/agent-ae559ea2ecf238552` (a0d94a1; main merged uncommitted?) | README total-hours estimate for the CCX13, Linux check, push, PR | Review; then tell Faras to create the Hetzner CCX13 (approved, $5 cap) |
 | T1.6 calibration | `task/t1.6-calibration`, `.claude/worktrees/agent-ad272fa48b82d2ed9` (staged, uncommitted: montecarlo.py, run_calibration.py, two result CSVs, bootstrap.py) | The CI-subset test file; N1 decision; results table in method.md; merge main (schema 3) | reviewer + stats-auditor, merge |
 | T3.11 PR study | session local_4c51bae0 (`t3.11-pr-study` worktree; 63ef61b, 3c505fc local, not pushed) | findings.md, summary table in agents.md, push, PR | Review, merge |
-| PR #25 T3.10 NetBox hand-runs | head 7ef0b00 | Lead review was running (fabrication, overclaiming, secrets, scope); not finished | Rerun review, merge |
-| PR #27 T3.10 frames2py/picolm | head 70e8259 | Lead review was running; had confirmed 17 run dirs | Rerun review, merge |
 | T1.3 session | local_b4ab9cc0 (PR #3 merged 2026-10-15) | Waiting on a prompt only Faras can answer; its work is merged | Faras answers or archives it |
 
 Main is `27b65e2`. Merged this stretch: #23 profile, #19 differential, #24 compare, #22 eval tasks, #21 schema 3.
