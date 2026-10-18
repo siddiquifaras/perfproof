@@ -173,7 +173,7 @@ Next after the above: T2.20 examples (needs schema 3, done), compare wiring (dif
   $0.07/hour, billed hourly until deleted) as the second labelling
   machine for T4.2, about 20 hours, capped at $5. Faras creates and
   deletes it. Labeller merged 2026-10-19 (`554ccd2`); pilot estimate about
-  40 hours, about $2.80, inside the $5 cap. Spent so far: $0.
+  40 hours, about $2.80, inside the $5 cap. On hold at Faras's request (2026-10-19); held-out labelling waits. Spent so far: $0.
 
 ### Blockers
 
