@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `ec2275e` | T3.17 where the tokens go merged (PR #31), squash: 173 sessions; cache reads 54.2% of cost pooled, 70.6% in the T3.10 hand-runs; CLI output 3.2% there. Review blocked numbers the script did not produce and an understated hand-run share; one fix round; lead reran the script with the same `--until` (headline identical; one in-progress transcript differs because files written after the cutoff are skipped, a known reproducibility gap) |
 | `daaf539` | Lead: discovery angle checklist gains a "Seen in classified diffs (counts, not rates)" column, a Skippable work angle (16 changes) and a thin Bandwidth against peak angle (4), from T3.18; existing Evidence text kept unchanged |
 | `bba5521` | T3.18 agent-inefficiency catalogue merged (PR #30), squash: 126 classified changes (55 random draw, 38 reverted and regression, 18 targeted, 15 agent and T3.11), held-out excluded. Review: 11 of 11 random classifications agreed, every count recomputed; one fix round (counts not rates, four rows reclassified, thin Bandwidth, X3 figures); lead recomputed the draw counts and merged main. Docs only |
 | `2840ebe` | Ruff: `studies/**/*.md` excluded, so study transcripts keep quoted code verbatim (main's format check had failed on two quotes from #25 and #27) |

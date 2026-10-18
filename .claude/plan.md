@@ -1271,7 +1271,7 @@ claim is checked for speed, correctness and regressions elsewhere
     agent opens only on request. The skill tells the agent to use a
     semantic code search (mgrep, zg, grepai or similar) when one is
     installed, and plain grep otherwise; perfproof depends on none.
-  - Do first, from T3.17 (PR #31, under review; 172 sessions, mostly
+  - Do first, from T3.17 (PR #31; 172 sessions, mostly
     perfproof's own development, so its pooled mix is not a user's).
     The closest subset to real use, the two T3.10 hand-runs: cache
     re-reads of a growing context 70.6% of cost, the fixed prefix
@@ -1306,7 +1306,7 @@ claim is checked for speed, correctness and regressions elsewhere
     first run leaves `git status` clean apart from `.perfproof/`.
   - Effort: low
 
-- [ ] **T3.17 Where the tokens go**
+- [x] **T3.17 Where the tokens go** (siddiquifaras/perfproof#31; `count_tokens` not run, no API key: ratios fitted to usage growth)
   - Owns: `studies/tokens/`
   - Needs: nothing (uses data already on disk)
   - Do: from the raw session logs (Claude Code's JSONL under
