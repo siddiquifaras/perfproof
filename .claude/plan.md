@@ -668,7 +668,7 @@ Mac and on Linux CI, with decoys that must be refused.
     and its tests pass unchanged in behaviour.
   - Effort: medium
 
-- [ ] **T2.19 Runner follow-ups from compare**
+- [x] **T2.19 Runner follow-ups from compare** (siddiquifaras/perfproof#34, `b9db3b2`; follow-ups: a reset that fails only on the baseline arm should stop as a broken experiment, which needs a method.md change first; `run_reset` reads an ECHILD status as success when SIGCHLD is ignored)
   - Owns: `src/perfproof/bench/runner.py`, `tests/bench/test_runner.py`,
     and the matching refusals in `src/perfproof/bench/compare.py`
   - Needs: T2.5 merged
