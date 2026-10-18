@@ -2,9 +2,25 @@
 
 A `Runner` executes one `perfproof.schema.BenchmarkSpec` in the
 baseline and candidate trees: the spec's warmup executions first, then
-rounds of one baseline and one candidate execution each, in an order
-drawn from a recorded seed. Every execution is one child process
+rounds of one baseline and one candidate execution each, in balanced
+order pairs drawn from a recorded seed (see `round_orders`).
+`Runner.run_single` runs one execution of one arm on its own, such as
+a recheck of the baseline. Every execution is one child process
 launched from an argv list, never through a shell.
+
+Reset
+-----
+When the spec declares a ``reset``, it runs before every execution,
+warmup, round and single alike, through
+`perfproof.bench.side_effects.run_reset`: in the tree the execution
+runs in, with ``benchmark_environment(spec, base_env)``, outside the
+timed region. That is the environment the children get when
+``base_env`` is already the benchmark environment, as compare passes
+it. A reset that fails raises `ResetFailedError`, never
+`ExecutionError`: the execution never starts, so there is no sample,
+and neither version is blamed. Its ``gate`` is the failed
+`side_effects` gate that "Side effects" in ``docs/method.md`` asks
+for, with the reset's output.
 
 What is measured
 ----------------
@@ -93,8 +109,9 @@ handler once it is restored.
 What is not done
 ----------------
 Nothing runs between rounds except parsing the finished execution's
-output and building its `Sample`; there are no threads and no
-polling. Garbage collection is disabled for the timed region of each
+output, building its `Sample`, and the spec's own reset when it
+declares one; there are no threads and no polling of the measured
+child. Garbage collection is disabled for the timed region of each
 execution, so a collection in this process never lands inside a
 measurement. Progress reporting belongs to the caller, which gets
 control after each completed round from `Runner.rounds`, outside any
@@ -111,6 +128,7 @@ import gc
 import json
 import math
 import os
+import re
 import resource
 import select
 import shutil
@@ -134,8 +152,9 @@ from typing import BinaryIO, Final, Literal, NoReturn, cast
 import numpy as np
 
 from perfproof.bench.lock import resolve_executable
+from perfproof.bench.side_effects import ResetError, run_reset
 from perfproof.bench.spec import command_hash, normalize_launch_path
-from perfproof.schema import Arm, BenchmarkSpec, Sample
+from perfproof.schema import Arm, BenchmarkSpec, GateResult, Sample
 
 __all__ = [
     "MAX_TIMEOUT_SECONDS",
@@ -144,6 +163,7 @@ __all__ = [
     "FailureCause",
     "Launch",
     "MetricUnavailableError",
+    "ResetFailedError",
     "Round",
     "Runner",
     "RunnerError",
@@ -156,6 +176,8 @@ _PREFIX: Final = b"PERFPROOF "
 _MAX_LINE: Final = 4096
 _SKIP_CHUNK: Final = 1 << 16
 _PROBE_TIMEOUT_SECONDS: Final = 30.0
+_LABEL: Final = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+_SCHEDULED_LABEL: Final = re.compile(r"(?:warmup|round)-[0-9]+")
 _PROGRAM_ERRNOS: Final = frozenset(
     {
         errno.ENOENT,
@@ -204,6 +226,45 @@ class MetricUnavailableError(RunnerError):
         super().__init__(reason)
         self.reason = reason
         """Why the metric is unavailable."""
+
+
+class ResetFailedError(RunnerError):
+    """The spec's reset failed before an execution, which never ran.
+
+    Not an `ExecutionError`: no version is blamed and no sample exists.
+    Per "Side effects" in ``docs/method.md`` a failed reset fails the
+    `side_effects` gate, and the run stops.
+
+    Parameters
+    ----------
+    gate : perfproof.schema.GateResult
+        The failed `side_effects` gate, with the reset's argv, exit
+        status and output tails; its detail names the execution.
+    arm : {"baseline", "candidate"}
+        The tree the reset ran in, before that tree's execution.
+    label : str
+        The label of the execution that was to follow.
+    round : int or None
+        Round index; ``None`` for a warmup or single execution.
+    """
+
+    def __init__(
+        self,
+        gate: GateResult,
+        *,
+        arm: Arm,
+        label: str,
+        round: int | None,  # noqa: A002
+    ) -> None:
+        super().__init__(gate.detail)
+        self.gate = gate
+        """The failed `side_effects` gate, ready for the record."""
+        self.arm: Arm = arm
+        """The tree the reset ran in."""
+        self.label = label
+        """The label of the execution that was to follow."""
+        self.round = round
+        """Round index; ``None`` for a warmup or single execution."""
 
 
 FailureCause = Literal["launch", "exit", "signal", "timeout", "output"]
@@ -415,10 +476,18 @@ class _Exit:
 def round_orders(seed: int, rounds: int) -> tuple[Arm, ...]:
     """Return which version runs first in each round.
 
+    Rounds come in order pairs, per "Order is balanced" in
+    ``docs/method.md``: rounds ``2j`` and ``2j + 1`` run in opposite
+    orders, and draw ``j`` from the seed picks which version runs first
+    in round ``2j``. So any even number of rounds from round 0 splits
+    evenly between the two orders. With an odd count the last round is
+    unpaired and still gets a draw of its own, the one its pair would
+    use.
+
     Round ``i`` runs ``round_orders(seed, n)[i]`` first, for any
-    ``n > i``, so a resumed run repeats the order of the rounds it
-    already has. The bits are the top bit of each raw PCG64 output,
-    which NumPy keeps stable across versions for a given seed.
+    ``n > i``, so a resumed run repeats the same pairs. Draw ``j`` is
+    the top bit of the ``j``-th raw PCG64 output, which NumPy keeps
+    stable across versions for a given seed.
 
     Parameters
     ----------
@@ -444,9 +513,9 @@ def round_orders(seed: int, rounds: int) -> tuple[Arm, ...]:
     if type(rounds) is not int or rounds < 0:
         msg = f"rounds must be a non-negative int, not {rounds!r}"
         raise ValueError(msg)
-    raw = np.random.PCG64(seed).random_raw(rounds)
+    raw = np.random.PCG64(seed).random_raw((rounds + 1) // 2)
     bits = cast("list[int]", (raw >> np.uint64(63)).tolist())
-    return tuple(_ARMS[bit] for bit in bits)
+    return tuple(_ARMS[bits[i // 2] ^ (i % 2)] for i in range(rounds))
 
 
 def counter_unavailable_reason(
@@ -518,7 +587,7 @@ class Runner:
         Directory for each execution's stdout, stderr and ``perf``
         output; created if missing.
     order_seed : int
-        Seed for the in-round order; non-negative.
+        Seed for the balanced in-round order; non-negative.
     base_env : Mapping of str to str, optional
         Environment every child inherits before the spec's declared
         variables are applied on top. Defaults to a copy of this
@@ -597,7 +666,10 @@ class Runner:
 
     @property
     def orders(self) -> tuple[Arm, ...]:
-        """First version of each round, one per round in the budget."""
+        """First version of each round, one per round in the budget.
+
+        In balanced order pairs; see `round_orders`.
+        """
         return self._orders
 
     def warmup(self) -> tuple[Execution, ...]:
@@ -620,6 +692,9 @@ class Runner:
             program, such as ENOENT, ENOEXEC or EACCES), exits
             non-zero, is killed by a signal, times out or gives no
             valid value.
+        ResetFailedError
+            If the spec's reset fails before an execution; that
+            execution never starts.
         RunnerError
             With no arm, when the fault is not the tree's: a fault in
             perfproof's own process or the host, such as running out
@@ -633,6 +708,66 @@ class Runner:
             for i in range(self._spec.warmup)
             for arm in _ARMS
         )
+
+    def run_single(self, arm: Arm, label: str) -> Execution:
+        """Run one execution of ``arm`` on its own, after its reset.
+
+        For a check that needs one execution of one version, such as
+        running the baseline again before a candidate failure is
+        blamed. The execution is checked like any other but never
+        becomes a sample.
+
+        Parameters
+        ----------
+        arm : {"baseline", "candidate"}
+            Which tree runs.
+        label : str
+            Names the execution and its log files,
+            ``<label>.<arm>.stdout`` and ``.stderr``: letters, digits,
+            ``.``, ``_`` and ``-``, starting with a letter or digit,
+            and not a warmup or round label such as ``"round-3"``.
+
+        Returns
+        -------
+        Execution
+            The execution.
+
+        Raises
+        ------
+        ValueError
+            If ``arm`` is not a version or ``label`` is not allowed.
+        ExecutionError
+            If the execution can't be started from its tree
+            (``launch``: its working directory or program is missing
+            there, or ``exec`` fails with an error that points at the
+            program, such as ENOENT, ENOEXEC or EACCES), exits
+            non-zero, is killed by a signal, times out or gives no
+            valid value.
+        ResetFailedError
+            If the spec's reset fails; the execution never starts.
+        RunnerError
+            With no arm, when the fault is not the tree's: a fault in
+            perfproof's own process or the host, such as running out
+            of file descriptors or processes; an ``exec`` error that
+            does not point at the program, such as E2BIG from an
+            oversized environment; the SIGCHLD fallback refusing to
+            run; a child reaped by someone else in this process; or a
+            log file of ``label`` that already exists.
+        """
+        if arm not in _ARMS:
+            msg = f"arm must be one of {_ARMS}, not {arm!r}"
+            raise ValueError(msg)
+        if (
+            _LABEL.fullmatch(label) is None
+            or _SCHEDULED_LABEL.fullmatch(label) is not None
+        ):
+            msg = (
+                f"label {label!r} must be letters, digits, '.', '_' and "
+                "'-', start with a letter or digit, and not be a warmup "
+                "or round label"
+            )
+            raise ValueError(msg)
+        return self._execute(arm, label, None)
 
     def run_round(self, index: int) -> Round:
         """Run round ``index`` in its seeded order.
@@ -659,6 +794,9 @@ class Runner:
             non-zero, is killed by a signal, times out or gives no
             valid value. The round then has
             no samples, even if its other execution succeeded.
+        ResetFailedError
+            If the spec's reset fails before either execution; the
+            round then has no samples either.
         RunnerError
             With no arm, when the fault is not the tree's: a fault in
             perfproof's own process or the host, such as running out
@@ -727,6 +865,9 @@ class Runner:
             program, such as ENOENT, ENOEXEC or EACCES), exits
             non-zero, is killed by a signal, times out or gives no
             valid value.
+        ResetFailedError
+            If the spec's reset fails before an execution; that
+            execution never starts.
         RunnerError
             With no arm, when the fault is not the tree's: a fault in
             perfproof's own process or the host, such as running out
@@ -747,10 +888,12 @@ class Runner:
     def _execute(
         self, arm: Arm, label: str, round_index: int | None
     ) -> Execution:
-        """Launch, time and parse one execution of ``arm``.
+        """Reset, then launch, time and parse one execution of ``arm``.
 
         Every failure is checked before the value is read, so a value
-        printed before a non-zero exit is never used.
+        printed before a non-zero exit is never used. The reset runs
+        before the program is resolved, so the launch sees the state
+        the reset left.
         """
         spec = self._spec
         stdout = self._log_dir / f"{label}.{arm}.stdout"
@@ -785,6 +928,7 @@ class Runner:
         program = ""
         try:
             with _new_log(stdout) as out, _new_log(stderr) as err:
+                self._reset(arm, label, round_index)
                 launch = self._prepare(arm, metric_output, fail)
                 program = (
                     self._wrapper[0] if self._wrapper else launch.executable
@@ -860,6 +1004,24 @@ class Runner:
             stderr=stderr,
             metric_output=metric_output,
         )
+
+    def _reset(self, arm: Arm, label: str, round_index: int | None) -> None:
+        """Run the spec's reset in ``arm``'s tree, if it declares one.
+
+        An ``OSError`` from perfproof's own process while starting it
+        (a temporary file it can't create) is left to the caller's
+        harness-fault handling.
+        """
+        if self._spec.reset is None:
+            return
+        try:
+            run_reset(self._spec, self._trees[arm], self._env)
+        except ResetError as exc:
+            detail = f"before {label} {arm}: {exc.gate.detail}"
+            gate = exc.gate.model_copy(update={"detail": detail})
+            raise ResetFailedError(
+                gate, arm=arm, label=label, round=round_index
+            ) from exc
 
     def _prepare(
         self,

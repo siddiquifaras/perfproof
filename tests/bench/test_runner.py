@@ -13,7 +13,9 @@ from collections.abc import Mapping
 from contextlib import suppress
 from pathlib import Path
 from types import FrameType
+from typing import cast
 
+import numpy as np
 import pytest
 
 from perfproof.bench import runner as runner_module
@@ -22,6 +24,7 @@ from perfproof.bench.runner import (
     MAX_TIMEOUT_SECONDS,
     ExecutionError,
     MetricUnavailableError,
+    ResetFailedError,
     Runner,
     RunnerError,
     counter_unavailable_reason,
@@ -37,8 +40,10 @@ from perfproof.schema import (
     LookSchedule,
     MetricKind,
     MetricSpec,
+    ResetSpec,
     Sample,
 )
+from perfproof.stats.sequential import plan_looks
 
 PY = sys.executable
 MIB = 1024 * 1024
@@ -505,6 +510,235 @@ def test_resumed_rounds_keep_their_order(
     expected = round_orders(5, 20)
     assert [r.index for r in resumed] == [15, 16, 17, 18, 19]
     assert [r.samples[0].version for r in resumed] == list(expected[15:])
+
+
+def test_round_orders_come_in_balanced_pairs() -> None:
+    longest = 41
+    firsts_of_pairs: set[Arm] = set()
+    for seed in range(200):
+        full = round_orders(seed, longest)
+        raw = np.random.PCG64(seed).random_raw((longest + 1) // 2)
+        draws = [int(bit) for bit in (raw >> np.uint64(63)).tolist()]
+        # Draw j picks round 2j's first version, and round 2j + 1 is
+        # the other order; an odd last round keeps its own draw.
+        assert full == tuple(
+            ("baseline", "candidate")[draws[i // 2] ^ (i % 2)]
+            for i in range(longest)
+        )
+        for n in range(longest + 1):
+            orders = round_orders(seed, n)
+            assert orders == full[:n]
+            if n % 2 == 0:
+                assert orders.count("baseline") == n // 2
+        for j in range(longest // 2):
+            assert full[2 * j] != full[2 * j + 1]
+        firsts_of_pairs.update(full[0::2])
+        assert len(set(full[0::2])) == 2
+    assert firsts_of_pairs == {"baseline", "candidate"}
+
+
+def test_every_look_splits_its_rounds_between_the_orders(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    # An odd budget, so the budget's own final look is cut to the
+    # complete pairs; any round can also be where the time runs out.
+    budget = Budget(max_rounds=21, max_seconds=600.0)
+    looks = LookSchedule(n0=10, k=4, max_looks=4)
+    spec = make_spec().model_copy(update={"budget": budget, "looks": looks})
+    runner = make_runner(spec, trees, tmp_path, seed=11)
+    firsts = [r.samples[0].version for r in runner.rounds()]
+    collected = np.arange(1, 22, dtype=np.int64)
+    sizes: set[int] = set()
+    for exhausted in (collected == 21, np.ones(21, dtype=np.bool_)):
+        plan = plan_looks(looks, collected, exhausted, mode="one_host")
+        sizes.update(int(n) for n in plan.rounds[plan.rounds > 0])
+    assert sizes == {10, 12, 14, 16, 18, 20}
+    for n in sizes:
+        assert firsts[:n].count("baseline") == n // 2
+        assert firsts[:n].count("candidate") == n // 2
+
+
+# Reset
+
+RESET_LOG = (
+    "import os, sys\n"
+    "with open(sys.argv[1], 'a') as f:\n"
+    "    f.write(f'{sys.argv[2]} {os.getcwd()}\\n')\n"
+)
+
+
+def logging_spec(
+    events: Path, *, reset_code: str = "", warmup: int = 0
+) -> BenchmarkSpec:
+    reset = ResetSpec(
+        command=(PY, "-c", reset_code + RESET_LOG, str(events), "reset"),
+        timeout_seconds=30.0,
+    )
+    spec = make_spec(
+        command=(PY, "-c", RESET_LOG, str(events), "run"), warmup=warmup
+    )
+    return spec.model_copy(update={"reset": reset})
+
+
+def test_reset_runs_once_before_every_execution(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    events = tmp_path / "events.txt"
+    runner = make_runner(logging_spec(events, warmup=2), trees, tmp_path)
+    executions = list(runner.warmup())
+    for rnd in runner.rounds(0, 4):
+        executions.extend(rnd.executions)
+    executions.append(runner.run_single("baseline", "recheck"))
+    assert len(executions) == 2 * 2 + 4 * 2 + 1
+    lines = events.read_text().splitlines()
+    resets = [line for line in lines if line.startswith("reset ")]
+    assert len(resets) == len(executions)
+    expected: list[str] = []
+    for ex in executions:
+        where = trees[ex.arm].resolve()
+        expected += [f"reset {where}", f"run {where}"]
+    assert lines == expected
+
+
+def test_reset_runs_outside_the_timed_region(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    events = tmp_path / "events.txt"
+    slow = "import time\ntime.sleep(0.3)\n"
+    spec = logging_spec(events, reset_code=slow)
+    for sample in make_runner(spec, trees, tmp_path).run_round(0).samples:
+        assert sample.wall_seconds < 0.3
+    lines = events.read_text().splitlines()
+    assert [line.split()[0] for line in lines] == ["reset", "run"] * 2
+
+
+def test_reset_gets_the_benchmark_environment(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    dump = tmp_path / "reset-env.json"
+    code = (
+        "import json, os, sys\n"
+        "json.dump(dict(os.environ), open(sys.argv[1], 'w'))"
+    )
+    reset = ResetSpec(
+        command=(PY, "-c", code, str(dump)), timeout_seconds=30.0
+    )
+    spec = make_spec(env={"PP_DECL": "d"}).model_copy(update={"reset": reset})
+    base = {
+        "PATH": os.environ["PATH"] + os.pathsep + str(tmp_path),
+        "PP_AGENT_TOKEN": "x",
+    }
+    make_runner(spec, trees, tmp_path, base_env=base).run_single(
+        "candidate", "single"
+    )
+    seen = json.loads(dump.read_text())
+    assert seen["PATH"] == base["PATH"]
+    assert seen["PP_DECL"] == "d"
+    assert "PP_AGENT_TOKEN" not in seen
+
+
+def test_failed_reset_is_no_execution_and_blames_neither(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    events = tmp_path / "events.txt"
+    (trees["candidate"] / "reset-fails").touch()
+    fails = (
+        "import os, sys\n"
+        "if os.path.exists('reset-fails'):\n"
+        "    sys.exit('reset broke')\n"
+    )
+    runner = make_runner(
+        logging_spec(events, reset_code=fails), trees, tmp_path, seed=3
+    )
+    index = runner.orders.index("baseline")
+    with pytest.raises(ResetFailedError) as info:
+        runner.run_round(index)
+    err = info.value
+    assert not isinstance(err, ExecutionError)
+    assert (err.arm, err.label, err.round) == (
+        "candidate",
+        f"round-{index}",
+        index,
+    )
+    gate = err.gate
+    assert (gate.gate, gate.status) == ("side_effects", "failed")
+    assert gate.detail.startswith(f"before round-{index} candidate: ")
+    assert gate.output is not None
+    assert gate.output.exit_code == 1
+    assert "reset broke" in gate.output.stderr
+    # The baseline ran after its reset; the candidate never ran.
+    baseline = trees["baseline"].resolve()
+    assert events.read_text().splitlines() == [
+        f"reset {baseline}",
+        f"run {baseline}",
+    ]
+
+
+def test_spec_without_reset_runs_none(
+    trees: dict[Arm, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def no_reset(*args: object) -> None:
+        msg = "run_reset called for a spec without a reset"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(runner_module, "run_reset", no_reset)
+    make_runner(make_spec(warmup=1), trees, tmp_path).warmup()
+
+
+# Single execution
+
+
+def test_run_single_runs_one_execution_of_one_arm(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    events = tmp_path / "events.txt"
+    runner = make_runner(logging_spec(events), trees, tmp_path)
+    ex = runner.run_single("baseline", "recheck")
+    assert (ex.arm, ex.label) == ("baseline", "recheck")
+    assert ex.value == ex.wall_seconds > 0
+    assert ex.launch.cwd == str(trees["baseline"].resolve())
+    assert sorted(p.name for p in (tmp_path / "logs").iterdir()) == [
+        "recheck.baseline.stderr",
+        "recheck.baseline.stdout",
+    ]
+    baseline = trees["baseline"].resolve()
+    assert events.read_text().splitlines() == [
+        f"reset {baseline}",
+        f"run {baseline}",
+    ]
+
+
+def test_failed_single_execution_has_no_round(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec("raise SystemExit(4)"), trees, tmp_path)
+    with pytest.raises(ExecutionError) as info:
+        runner.run_single("candidate", "check")
+    err = info.value
+    assert (err.arm, err.label, err.round) == ("candidate", "check", None)
+    assert (err.cause, err.exit_code) == ("exit", 4)
+
+
+@pytest.mark.parametrize(
+    "label", ["", "round-3", "warmup-0", "../up", "a/b", ".hidden", "-x"]
+)
+def test_run_single_refuses_unsafe_labels(
+    trees: dict[Arm, Path], tmp_path: Path, label: str
+) -> None:
+    runner = make_runner(make_spec(), trees, tmp_path)
+    with pytest.raises(ValueError, match="label"):
+        runner.run_single("baseline", label)
+    assert not (tmp_path / "logs").exists() or not list(
+        (tmp_path / "logs").iterdir()
+    )
+
+
+def test_run_single_refuses_an_unknown_arm(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    runner = make_runner(make_spec(), trees, tmp_path)
+    with pytest.raises(ValueError, match="arm"):
+        runner.run_single(cast("Arm", "other"), "check")
 
 
 def test_warmup_alternates_and_makes_no_samples(

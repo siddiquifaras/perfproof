@@ -15,8 +15,8 @@ have passed:
 2. `perfproof.bench.side_effects.side_effects_gate` on both trees,
    with `perfproof.bench.side_effects.benchmark_environment`, which is
    also the environment of every command that runs later (benchmark,
-   correctness check, runtime probe). A failure refuses the run before
-   anything executes.
+   reset, correctness check, runtime probe). A failure refuses the run
+   before anything executes.
 3. The `lock` gate against the manifest frozen with the spec.
 4. Specs the thin path cannot run are refused with `CompareStoppedError`
    (see below), still before anything executes.
@@ -46,18 +46,26 @@ Per "Failed executions" in ``docs/method.md``: a candidate execution
 that exits non-zero, is signalled, times out, gives no valid value or
 can't be started from its tree fails the `correctness` gate, with its
 exit status and the tail of its output. Before the candidate is
-blamed, the baseline runs once more: the runner runs executions in
-pairs, so this recheck is one warmup pair with the baseline tree in
-both slots. If the baseline fails too, the failure is shared (a
-program missing on the host, a noexec mount) and the comparison stops
-as a broken baseline. A baseline failure (including a benchmark
-program the baseline tree can't resolve, checked before the runtime
-gate so it is never blamed on the candidate), a
+blamed, the baseline runs once more, one execution through
+`perfproof.bench.runner.Runner.run_single`. If the baseline fails
+too, the failure is shared (a program missing on the host, a noexec
+mount) and the comparison stops as a broken baseline. A baseline
+failure (including a benchmark program the baseline tree can't
+resolve, checked before the runtime gate so it is never blamed on the
+candidate), a
 `perfproof.bench.correctness.BaselineBrokenError`, and a fault in
 perfproof's own process (a `perfproof.bench.runner.RunnerError` with
 no arm, or an `OSError` from the correctness command) stop the
 comparison with no verdict: `CompareStoppedError` is raised and no
 record is written. Logs stay in the run directory.
+
+Reset
+-----
+The runner runs the spec's ``reset`` before every execution: the
+output-producing pair, warmup, rounds and the baseline recheck. A
+reset that fails fails the `side_effects` gate with its output, per
+"Side effects" in ``docs/method.md``, and the run stops there with
+that gate REJECT; the execution it preceded never runs.
 
 Before calibration
 ------------------
@@ -96,13 +104,6 @@ What the thin path does not do yet
 ----------------------------------
 - Guardrails (T2.15): every applicable guardrail is ``unmeasurable``,
   with that reason; one marked not applicable keeps the spec's reason.
-- Balanced order: the runner draws a fair coin per round
-  (`perfproof.bench.runner.round_orders`), not the balanced order
-  pairs of "Observations" in ``docs/method.md``; a warning reports an
-  imbalance in the rounds a look used.
-- A reset command (``spec.reset``): the runner runs executions in
-  pairs and offers no hook between them, so a reset cannot run before
-  every execution. Such a spec is refused.
 - Cross-host comparisons (``allow_cross_host``) are refused.
 """
 
@@ -140,6 +141,7 @@ from perfproof.bench.lock import (
 from perfproof.bench.runner import (
     Execution,
     ExecutionError,
+    ResetFailedError,
     Round,
     Runner,
     RunnerError,
@@ -398,6 +400,9 @@ class _Run:
         except _CandidateFailedError as failed:
             self.gates["correctness"] = failed.gate
             return self._finish_gate()
+        except ResetFailedError as failed:
+            self.gates["side_effects"] = failed.gate
+            return self._finish_gate()
 
     def _execute(self) -> CompareResult:
         spec, trees = self.spec, self.trees
@@ -469,13 +474,6 @@ class _Run:
     def _refuse_unsupported(self) -> None:
         """Refuse a spec the thin path can't run, before it executes."""
         spec = self.spec
-        if spec.reset is not None:
-            msg = (
-                "the spec declares a reset command, which must run before "
-                "every execution; the runner runs executions in pairs with "
-                "no hook between them, so compare can't run it yet"
-            )
-            raise self.stop("unsupported_spec", msg)
         if spec.allow_cross_host:
             msg = "cross-host comparisons are not built yet"
             raise self.stop("unsupported_spec", msg)
@@ -628,6 +626,8 @@ class _Run:
             )
             gate = _execution_gate(exc, self.spec.command, what)
             raise _CandidateFailedError(gate) from exc
+        except ResetFailedError:
+            raise
         except RunnerError as exc:
             msg = f"{what} stopped on a fault blamed on neither tree: {exc}"
             raise self.stop("harness_fault", msg) from exc
@@ -638,14 +638,9 @@ class _Run:
         ``why`` says what would be blamed on the candidate; the stop
         message quotes it.
         """
-        baseline = self.trees["baseline"]
-        checker = self._runner(
-            self.spec.model_copy(update={"warmup": 1}),
-            {"baseline": baseline, "candidate": baseline},
-            f"recheck-{label}",
-        )
+        checker = self._runner(self.spec, self.trees, f"recheck-{label}")
         try:
-            checker.warmup()
+            checker.run_single("baseline", "recheck")
         except ExecutionError as exc:
             msg = (
                 f"{why}; the baseline failed when run ({exc.reason}), so "
@@ -653,6 +648,8 @@ class _Run:
                 f"candidate's. Logs: {exc.stdout.parent}"
             )
             raise self.stop("broken_baseline", msg) from exc
+        except ResetFailedError:
+            raise
         except RunnerError as exc:
             msg = f"the baseline recheck stopped on a harness fault: {exc}"
             raise self.stop("harness_fault", msg) from exc
@@ -844,7 +841,6 @@ class _Run:
             [m.round.samples[0].version == "candidate" for m in self.measured]
         )[:n]
         lag1 = float(lag1_autocorrelation(d, first))
-        self._order_warning(first)
         self._shape_warnings(d, lag1)
         confidence = ended.confidence
         interval: Interval | None = None
@@ -915,22 +911,6 @@ class _Run:
             wall.lower > 1 and primary.upper <= 1
         )
         return wall, disagree
-
-    def _order_warning(self, candidate_first: NDArray[np.bool_]) -> None:
-        firsts = int(np.count_nonzero(candidate_first))
-        others = int(candidate_first.size) - firsts
-        if firsts != others:
-            self.warnings.append(
-                RunWarning(
-                    code="order_not_balanced",
-                    message=(
-                        f"the candidate ran first in {firsts} of the "
-                        f"{candidate_first.size} rounds used; the runner "
-                        "draws a fair coin per round, not balanced order "
-                        "pairs"
-                    ),
-                )
-            )
 
     def _shape_warnings(self, d: NDArray[np.float64], lag1: float) -> None:
         """Warn on lag-1 autocorrelation above 0.3 and skew beyond 2."""

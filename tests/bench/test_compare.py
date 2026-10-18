@@ -327,6 +327,8 @@ def test_samples_are_saved_with_their_printed_resolution(
         assert data["round"].tolist() == [i // 2 for i in range(20)]
         assert data["position"].tolist() == [0, 1] * 10
         assert int(data["candidate"].sum()) == 10
+        # Balanced order: the candidate ran first in half the rounds.
+        assert int(data["candidate"][data["position"] == 0].sum()) == 5
         assert np.all(data["value"] > 0)
         assert np.all(data["wall_seconds"] > data["value"])
         assert len(set(data["command_hash"].tolist())) == 1
@@ -441,13 +443,11 @@ def test_failed_candidate_execution_is_a_correctness_reject(
     assert gate.output.exit_code == 1
     assert "candidate broke: exit 3" in gate.output.stderr
     assert gate.output.command == ("python", "bench.py")
-    # The baseline ran again, in both slots of one pair, before blame.
+    # The baseline ran again, one execution, before blame.
     recheck = result.run_dir / "logs" / "recheck-warmup-0"
     assert sorted(p.name for p in recheck.iterdir()) == [
-        "warmup-0.baseline.stderr",
-        "warmup-0.baseline.stdout",
-        "warmup-0.candidate.stderr",
-        "warmup-0.candidate.stdout",
+        "recheck.baseline.stderr",
+        "recheck.baseline.stdout",
     ]
 
 
@@ -602,6 +602,82 @@ def test_time_budget_after_n0_re_decides_the_last_look_as_final(
     assert_decided_at(v.interval, decided, look_confidence(0.05, 3))
 
 
+# Reset
+
+EVENTS_BENCH = (
+    "with open('events.txt', 'a') as f:\n    f.write('bench\\n')\n" + BENCH
+)
+RESET_LOG = (
+    "import os, sys\n"
+    "if os.path.exists('reset-fails'):\n"
+    "    sys.exit('reset broke')\n"
+    "with open('events.txt', 'a') as f:\n"
+    "    f.write('reset\\n')\n"
+)
+RESET = {"command": ["python", "-c", RESET_LOG], "timeout_seconds": 30.0}
+
+
+def events(tree: Path) -> list[str]:
+    path = tree / "events.txt"
+    return path.read_text().splitlines() if path.exists() else []
+
+
+def test_reset_runs_before_every_execution_end_to_end(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path, bench=EVENTS_BENCH)
+    candidate = project.candidate("fast", {"work.py": work(0.005)})
+    spec = BenchmarkSpec.model_validate(spec_fields(reset=RESET))
+    result = project.run(candidate, spec)
+    v = result.record.verdict
+    assert (v.outcome, v.rule, v.rounds) == ("INCONCLUSIVE", 5, 10)
+    assert v.interval is not None
+    assert set(gates(result.record).values()) <= {"passed", "not_available"}
+    # Per tree: the output-producing execution, one warmup, ten rounds.
+    for tree in (project.root, candidate):
+        assert events(tree) == ["reset", "bench"] * 12
+
+
+def test_recheck_runs_one_baseline_execution_after_its_reset(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path, bench=EVENTS_BENCH)
+    broken = project.candidate("broken", {"work.py": FAILS})
+    spec = BenchmarkSpec.model_validate(spec_fields(reset=RESET))
+    result = project.run(broken, spec)
+    v = result.record.verdict
+    assert (v.outcome, v.gate) == ("REJECT", "correctness")
+    # The output-producing execution, then the recheck: one execution.
+    assert events(project.root) == ["reset", "bench"] * 2
+    assert events(broken) == ["reset", "bench"]
+
+
+def test_failed_reset_fails_the_side_effects_gate(tmp_path: Path) -> None:
+    project = make_project(tmp_path, bench=EVENTS_BENCH)
+    candidate = project.candidate("same", {})
+    (candidate / "reset-fails").touch()
+    spec = BenchmarkSpec.model_validate(spec_fields(reset=RESET))
+    result = project.run(candidate, spec)
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule, v.gate) == (
+        "REJECT",
+        "integrity",
+        1,
+        "side_effects",
+    )
+    assert (v.rounds, v.estimate, v.interval) == (0, None, None)
+    assert gates(result.record)["side_effects"] == "failed"
+    assert "correctness" not in gates(result.record)
+    failed = result.record.gates[0]
+    assert failed.detail.startswith("before warmup-0 candidate: ")
+    assert failed.output is not None
+    assert failed.output.exit_code == 1
+    assert "reset broke" in failed.output.stderr
+    # The candidate's execution never ran; the baseline's did.
+    assert events(project.root) == ["reset", "bench"]
+    assert events(candidate) == []
+
+
 # The benchmark's environment
 
 
@@ -718,19 +794,8 @@ def test_harness_fault_stops_with_no_verdict(
 
 @pytest.mark.parametrize(
     ("changes", "code"),
-    [
-        (
-            {
-                "reset": {
-                    "command": ["python", "-c", "pass"],
-                    "timeout_seconds": 10.0,
-                }
-            },
-            "unsupported_spec",
-        ),
-        ({"objective": None, "guardrails": []}, "undeclared_guardrails"),
-    ],
-    ids=["reset", "no-guardrails"],
+    [({"objective": None, "guardrails": []}, "undeclared_guardrails")],
+    ids=["no-guardrails"],
 )
 def test_specs_the_thin_path_cannot_run_are_refused_first(
     project: Project, changes: dict[str, Any], code: str
