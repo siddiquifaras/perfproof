@@ -157,6 +157,8 @@ is worth nothing until a verdict on it can be trusted.
 
 ## Docs
 
+- [Who it is for](docs/product.md): one command for beginners and
+  experts, on any plan
 - [The CLI and a session](docs/cli.md): what using it looks like
 - [Understand and discover](docs/discovery.md): how perfproof builds its
   picture of a project and finds what to try

@@ -1194,6 +1194,9 @@ claim is checked for speed, correctness and regressions elsewhere
     falsifiable predictions, cheap tests before code) and the angle
     checklist; class detail lives in the class playbooks. `install-skills`
     puts the skill and playbooks in place for Claude Code or Codex.
+  - Serves the users in `docs/product.md` (beginner to expert, free plan
+    to $200): progressive disclosure, `/perfproof try <idea>` for an
+    expert's own idea, one suggestion at every stop.
   - Built to `docs/skill.md` (T3.12) on the CLI's `--json`, for Claude
     Code and Codex, with snapshot tests of every message the user sees.
   - Done when: session tests cover undo, resume after a kill, every stop
@@ -1224,7 +1227,8 @@ claim is checked for speed, correctness and regressions elsewhere
     verdict.
   - Done when: both agents reach the same correct verdict on tasks with
     known answers, with no wrong KEEP; scores are reproducible from the
-    saved run records.
+    saved run records; proving a change through the CLI alone, with no
+    agent, gives the same verdict as through the skill.
   - Effort: high
 
 - [ ] **T3.14 Depth tiers: `/perfproof light`, `medium`, `full`**
@@ -1253,7 +1257,10 @@ claim is checked for speed, correctness and regressions elsewhere
   - Done when: the cost curves and the chosen boundaries are in
     `docs/cli.md` with their data; no tier gives a wrong KEEP; a
     `light` and a `medium` session each fit in one 5-hour window on the
-    Team seat (measured); each tier's message snapshots are tested.
+    Team seat (measured); each tier's message snapshots are tested;
+    the first costlier-than-light run states its rough cost and offers
+    light, and the choice is remembered in `.perfproof/`
+    (`docs/product.md`).
   - Effort: high
 
 - [ ] **T3.15 Token-thrift output**
