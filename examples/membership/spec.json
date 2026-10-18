@@ -5,6 +5,30 @@
   "cwd": ".",
   "env": {},
   "metric": {"kind": "reported", "direction": "lower_is_better", "unit": "s"},
+  "objective": "wall_time",
+  "guardrails": [
+    {
+      "metric": "peak_memory",
+      "direction": "lower_is_better",
+      "unit": "bytes",
+      "allowance": 0.1,
+      "allowance_source": "default"
+    },
+    {
+      "metric": "peak_gpu_memory",
+      "direction": "lower_is_better",
+      "unit": "bytes",
+      "applicable": false,
+      "reason": "a CPU-only benchmark; no GPU is used"
+    },
+    {
+      "metric": "p99_latency",
+      "direction": "lower_is_better",
+      "unit": "s",
+      "applicable": false,
+      "reason": "serves no requests; the benchmark is one batch run"
+    }
+  ],
   "correctness": {
     "command": ["python", "-m", "pytest", "-q"],
     "cwd": ".",

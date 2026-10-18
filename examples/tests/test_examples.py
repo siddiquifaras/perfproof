@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 import numpy as np
 import pytest
-from perfproof.schema import BenchmarkSpec
+from perfproof.schema import DEFAULT_GUARDRAILS, BenchmarkSpec
 
 from materialize import EXAMPLES, candidates, changed_files, materialize
 
@@ -206,6 +206,29 @@ def test_only_the_bench_edit_touches_locked_files(example: str) -> None:
 
     assert touched.pop("bench-edit") == set(spec.harness)
     assert all(not paths for paths in touched.values())
+
+
+@pytest.mark.parametrize(
+    "path",
+    [p for e in PYTHON_EXAMPLES for p in spec_paths(e)],
+    ids=lambda p: f"{p.parent.name}/{p.name}",
+)
+def test_specs_declare_objective_and_every_default_guardrail(
+    path: Path,
+) -> None:
+    spec = BenchmarkSpec.model_validate_json(path.read_text())
+
+    assert spec.schema_version == 3
+    assert spec.objective == "wall_time"
+    by_metric = {g.metric: g for g in spec.guardrails}
+    assert set(by_metric) == set(DEFAULT_GUARDRAILS[None])
+    memory = by_metric["peak_memory"]
+    assert memory.applicable
+    assert memory.allowance == 0.1
+    assert memory.allowance_source == "default"
+    for name in ("peak_gpu_memory", "p99_latency"):
+        assert not by_metric[name].applicable
+        assert by_metric[name].reason
 
 
 @pytest.mark.parametrize(
