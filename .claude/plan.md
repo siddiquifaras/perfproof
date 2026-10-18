@@ -1077,7 +1077,7 @@ claim is checked for speed, correctness and regressions elsewhere
   - Done when: each row cites the transcript or PR that motivated it.
   - Effort: medium
 
-- [ ] **T3.1 Schema for the project model and hypotheses**
+- [x] **T3.1 Schema for the project model and hypotheses** (siddiquifaras/perfproof#36, `9e117d8`; for T3.2: which statuses `created`/`edited` history lines may carry, when an entry version bumps, cross-entry status consistency, naming the default bar)
   - Owns: `src/perfproof/schema.py`, `src/perfproof/schema.json`,
     `tests/test_schema.py`
   - Needs: T2.12
