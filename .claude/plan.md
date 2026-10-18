@@ -1228,8 +1228,9 @@ claim is checked for speed, correctness and regressions elsewhere
   - Cost unit: the share of a 5-hour usage window each tier uses on
     Faras's $100 Team premium seat (`get_usage` before and after),
     measured in a window where nothing else runs, plus tokens and wall
-    time. The $20 Pro allowance stays unknown until measured on a real
-    Pro account; it is never scaled from the Team seat.
+    time. Faras's call: one 5-hour window on that seat is the gauge for
+    how a tier will work on a Pro seat; every measurement names the seat
+    it was taken on.
   - Done when: the cost curves and the chosen boundaries are in
     `docs/cli.md` with their data; on the held-out tasks each tier keeps
     real speedups with no wrong KEEP and costs less per kept speedup
