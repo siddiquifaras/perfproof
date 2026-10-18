@@ -1252,17 +1252,18 @@ claim is checked for speed, correctness and regressions elsewhere
     agent opens only on request. The skill tells the agent to use a
     semantic code search (mgrep, zg, grepai or similar) when one is
     installed, and plain grep otherwise; perfproof depends on none.
-  - Do first, from T3.17 (PR #31; 172 sessions, mostly perfproof's own
-    development, so a proxy for real use): test, profiler and
-    perfproof output were under 1% each in the hand-runs, while cache
-    re-reads of a growing context were 54% of cost. The levers, largest
-    first: fewer agent turns per session (every turn re-reads the whole
-    context); targeted file reads instead of whole files and re-reads
-    (file reads and search were 24%; a semantic search tool helps
-    here); CLI commands for the steps agents otherwise script by hand
-    (heredoc and `python -c` scripts were 65% of shell-command text); a
-    small fixed skill prompt; brief CLI output stays, but it is not the
-    main lever.
+  - Do first, from T3.17 (PR #31, under review; 172 sessions, mostly
+    perfproof's own development, so its pooled mix is not a user's).
+    The closest subset to real use, the two T3.10 hand-runs: cache
+    re-reads of a growing context 70.6% of cost, the fixed prefix
+    15.3%, file reads and search about 23%, perfproof CLI output about
+    3%. So the levers, largest first: fewer agent turns per session
+    (every turn re-reads the whole context); a small fixed skill
+    prompt; targeted file reads instead of whole files and re-reads (a
+    semantic search tool helps here); CLI commands for steps agents
+    otherwise script by hand; brief CLI output stays, but it is not the
+    main lever. These shares are estimates with about 10% error; T3.14
+    and T3.15 measure real `/perfproof` sessions against them.
   - Done when: each brief output has a byte cap and a test; T3.13
     reports tokens per session before and after on the examples, and
     the saving on T3.17's top cost items is measured, not assumed.
