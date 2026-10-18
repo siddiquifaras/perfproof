@@ -119,12 +119,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-**PAUSED 2026-10-17 03:45 PKT on Faras's instruction.** Both weekly limits
-(all models, Fable) are spent; they reset 2026-10-22 13:00 PKT. Nothing
-is running: no agents, no checks, load 1.8. The PR study's two local
-containers (`prstudy-pg`, `prstudy-redis`) are stopped, not removed.
-Resume by sending each stopped agent a message, or starting a fresh
-agent in the same worktree.
+**Resumed 2026-10-19** after the pause. Every subagent, reviewer and side
+session now runs on Sonnet 5.5 (Faras); the lead stays on Opus 5.5.
+Stopped agents were restarted as fresh Sonnet agents in their own
+worktrees. New plan tasks from Faras: T3.14 depth tiers, T3.15
+token-thrift output, T3.16 install and first run, and research-backed
+playbooks (M5 intro).
 
 | Piece | Branch / worktree | Where it stopped | Next |
 |---|---|---|---|
