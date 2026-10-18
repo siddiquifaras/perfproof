@@ -13,41 +13,71 @@ from perfproof import schema
 from perfproof.schema import (
     DEFAULT_GUARDRAILS,
     GATE_REASON,
+    HYPOTHESIS_EVENT,
     MODELS,
     AbsoluteLimit,
+    Anchors,
     Arm,
     BenchmarkSpec,
     Budget,
+    Cap,
+    CodeAnchor,
     CommandOutput,
+    Confirmation,
+    ConstraintEntry,
     CorrectnessSpec,
     DependencyLock,
     Diagnostics,
     Difference,
     DifferentialCheck,
+    EntryRef,
+    EvidenceRef,
+    FalsificationEvent,
+    FileHash,
     GateName,
     GateResult,
+    GoalBar,
+    GoalEntry,
     GpuInfo,
     GuardrailResult,
     GuardrailSpec,
     Hotspot,
+    HowToRunEntry,
+    ImplementationEvent,
     Interval,
+    Invalidation,
     LinkedLibrary,
     LockedFile,
     LockManifest,
     LookSchedule,
     MachineFingerprint,
+    MeasuredSpeedup,
+    MechanismEvent,
     MetricSpec,
+    ObservationEvent,
+    OutcomeEvent,
     OutputCheck,
+    PredictionEvent,
+    ProjectHistoryRecord,
+    ProjectModel,
+    Provenance,
     QuarantinedTest,
+    ReorderedEvent,
     ResetSpec,
+    RevalidatedEvent,
     RunRecord,
     RunWarning,
     Sample,
+    ServiceSpec,
     SkippedCalls,
+    SkippedEvent,
+    StaleEvent,
     TargetClass,
+    TargetEntry,
     TreeEnvironment,
     UnverifiedLines,
     Verdict,
+    WorkloadEntry,
 )
 
 SCHEMA_FILE = Path(schema.__file__).with_name("schema.json")
@@ -808,6 +838,290 @@ EXAMPLES: dict[str, BaseModel] = {
     ),
     "record_resolution_stop": record(verdict=resolution_stop()),
 }
+
+
+HASH_C = "c" * 64
+HASH_D = "d" * 64
+
+
+def provenance(**changes: Any) -> Provenance:
+    data: dict[str, Any] = {
+        "files": [
+            {"path": "src/app/io.py", "sha256": HASH_A},
+            {"path": "bench/run.py", "sha256": HASH_B},
+        ],
+        "commands": [["python", "-m", "pytest", "--collect-only"]],
+        "perfproof_version": "0.1.0",
+        "derived_at": T0,
+        **changes,
+    }
+    return Provenance.model_validate(data)
+
+
+def confirmation() -> Confirmation:
+    return Confirmation(session="s-1", confirmed_at=T0)
+
+
+def invalidation() -> Invalidation:
+    return Invalidation(
+        trigger="file_changed", detail="src/app/io.py", detected_at=T0
+    )
+
+
+def entry_data(kind: str, **changes: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "kind": kind,
+        "id": f"{kind}-1",
+        "status": "proposed",
+        "provenance": as_json(provenance()),
+    }
+    extra: dict[str, Any]
+    if kind == "target":
+        extra = {
+            "target_class": "python_cpu",
+            "evidence": ["pyproject.toml declares a Python package"],
+        }
+    elif kind == "workload":
+        extra = {
+            "target_id": "target-1",
+            "source": "existing_benchmark",
+            "command": ["python", "bench/run.py"],
+            "cwd": ".",
+        }
+    elif kind == "goal":
+        extra = {
+            "workload_id": "workload-1",
+            "metric": "wall_time",
+            "direction": "lower_is_better",
+            "unit": "s",
+            "bar": {"kind": "ratio", "value": 1.2},
+            "guardrails": [as_json(memory_guardrail())],
+        }
+    elif kind == "constraint":
+        extra = {
+            "constraint": "numeric_tolerance",
+            "subject": "frames output",
+            "rtol": 1e-9,
+            "atol": 0.0,
+        }
+    else:
+        extra = {
+            "workload_id": "workload-1",
+            "setup": [["uv", "sync"]],
+            "build": [],
+            "reset": "none_needed",
+            "services": [
+                {
+                    "name": "db",
+                    "command": ["docker", "compose", "up", "db"],
+                    "timeout_seconds": 60.0,
+                }
+            ],
+        }
+    return {**base, **extra, **changes}
+
+
+ENTRY_CLASSES: dict[str, type[BaseModel]] = {
+    "target": TargetEntry,
+    "workload": WorkloadEntry,
+    "goal": GoalEntry,
+    "constraint": ConstraintEntry,
+    "how_to_run": HowToRunEntry,
+}
+
+
+def entry(kind: str, **changes: Any) -> Any:
+    return ENTRY_CLASSES[kind].model_validate(entry_data(kind, **changes))
+
+
+CONFIRMED: dict[str, Any] = {
+    "status": "confirmed",
+    "confirmation": as_json(confirmation()),
+}
+UNKNOWN_GOAL: dict[str, Any] = {
+    "metric": None,
+    "direction": None,
+    "unit": None,
+    "bar": None,
+    "guardrails": None,
+    "missing": {
+        "metric": "no benchmark names one",
+        "direction": "metric unknown",
+        "unit": "metric unknown",
+        "bar": "the developer has not said",
+        "guardrails": "not asked yet",
+    },
+}
+
+
+def project_model(**changes: Any) -> ProjectModel:
+    data: dict[str, Any] = {
+        "updated_at": T0,
+        "targets": [entry_data("target")],
+        "workloads": [entry_data("workload")],
+        "goals": [entry_data("goal")],
+        "constraints": [entry_data("constraint")],
+        "how_to_run": [entry_data("how_to_run")],
+        **changes,
+    }
+    return ProjectModel.model_validate(data)
+
+
+def evidence(kind: str = "measurement", sha: str = HASH_A) -> dict[str, Any]:
+    return {"kind": kind, "path": f"scratch/{kind}.json", "sha256": sha}
+
+
+ANCHORS: dict[str, Any] = {
+    "workload": "parse",
+    "workload_spec_hash": HASH_B,
+    "code": [
+        {
+            "file": "src/app/io.py",
+            "qualified_name": "Reader.parse",
+            "source_hash": HASH_C,
+        }
+    ],
+    "entries": [{"kind": "goal", "id": "goal-1", "version": 1}],
+}
+AMDAHL: dict[str, Any] = {
+    "kind": "amdahl",
+    "share": 0.25,
+    "upper_bound": 1 / 0.75,
+    "derivation": "parse is 25% of wall time in the profile",
+}
+SPEEDUP: dict[str, Any] = {
+    "estimate": 1.08,
+    "interval": as_json(interval()),
+}
+
+EVENTS: dict[str, dict[str, Any]] = {
+    "observation": {"anchors": ANCHORS, "evidence": [evidence("profile")]},
+    "mechanism": {
+        "claim": "parse re-reads the file for every row",
+        "would_be_false_if": "the file is opened once per run",
+        "evidence": [evidence("profile")],
+    },
+    "prediction": {
+        "cap": AMDAHL,
+        "expect_if_true": "stubbing parse removes about 25% of wall time",
+        "expect_if_false": "wall time barely moves",
+        "evidence": [evidence("profile")],
+    },
+    "falsification": {
+        "test": "stub_out",
+        "description": "ran the workload with parse stubbed out",
+        "result": "supported",
+        "evidence": [evidence("cheap_test", HASH_D)],
+    },
+    "implementation": {
+        "diff_hash": HASH_C,
+        "worktree": ".claude/worktrees/parse-cache",
+        "approach": "cache the opened file across rows",
+        "evidence": [evidence("diff", HASH_C)],
+    },
+    "outcome": {
+        "verdict": "KEEP",
+        "reason": "performance",
+        "rule": 2,
+        "calibration": "uncalibrated",
+        "bar": 1.03,
+        "run_record_hash": HASH_D,
+        "speedup": SPEEDUP,
+        "evidence": [evidence("run_record", HASH_D)],
+    },
+    "skipped": {
+        "step": "falsification",
+        "reason": "no cheap test isolates the allocator",
+    },
+    "reordered": {
+        "before": "h-other",
+        "reason": "cheaper to try first and shares a code path",
+    },
+    "stale": {
+        "anchor": "code",
+        "detail": "Reader.parse changed",
+        "evidence": [evidence("measurement", HASH_D)],
+    },
+    "revalidated": {
+        "anchors": ANCHORS,
+        "what_differs": "parse now streams rows",
+        "evidence": [evidence("profile", HASH_D)],
+    },
+}
+EVENT_CLASSES: dict[str, type[BaseModel]] = {
+    "observation": ObservationEvent,
+    "mechanism": MechanismEvent,
+    "prediction": PredictionEvent,
+    "falsification": FalsificationEvent,
+    "implementation": ImplementationEvent,
+    "outcome": OutcomeEvent,
+    "skipped": SkippedEvent,
+    "reordered": ReorderedEvent,
+    "stale": StaleEvent,
+    "revalidated": RevalidatedEvent,
+}
+
+
+def event_data(name: str, **changes: Any) -> dict[str, Any]:
+    return {
+        "hypothesis_id": "h-1",
+        "event_id": f"e-{name}",
+        "recorded_at": T0,
+        "session": "s-1",
+        "event": name,
+        **EVENTS[name],
+        **changes,
+    }
+
+
+def without(data: dict[str, Any], key: str) -> dict[str, Any]:
+    return {k: v for k, v in data.items() if k != key}
+
+
+def event(name: str, **changes: Any) -> Any:
+    return EVENT_CLASSES[name].model_validate(event_data(name, **changes))
+
+
+EXAMPLES.update(
+    {
+        "file_hash": FileHash(path="src/app/io.py", sha256=HASH_A),
+        "provenance": provenance(),
+        "confirmation": confirmation(),
+        "invalidation": invalidation(),
+        "target_entry": entry("target"),
+        "workload_entry": entry("workload"),
+        "workload_entry_with_spec": entry(
+            "workload", spec_hash=HASH_B, cwd="bench", **CONFIRMED
+        ),
+        "goal_bar": GoalBar(kind="absolute", value=0.2),
+        "goal_entry": entry("goal"),
+        "goal_entry_unknown": entry("goal", **UNKNOWN_GOAL),
+        "constraint_entry": entry("constraint"),
+        "service": ServiceSpec(
+            name="db", command=("docker", "start", "db"), timeout_seconds=30.0
+        ),
+        "how_to_run_entry": entry("how_to_run"),
+        "project_model": project_model(),
+        "project_history": ProjectHistoryRecord(
+            recorded_at=T0,
+            event="confirmed",
+            entry=entry("workload", **CONFIRMED),
+            note="confirmed by the developer",
+        ),
+        "evidence_ref": EvidenceRef.model_validate(evidence()),
+        "code_anchor": CodeAnchor.model_validate(ANCHORS["code"][0]),
+        "entry_ref": EntryRef.model_validate(ANCHORS["entries"][0]),
+        "anchors": Anchors.model_validate(ANCHORS),
+        "cap": Cap.model_validate(AMDAHL),
+        "cap_model": Cap(
+            kind="model",
+            upper_bound=3.0,
+            derivation="launch overhead bounds the kernel at 3x",
+        ),
+        "measured_speedup": MeasuredSpeedup.model_validate(SPEEDUP),
+        **{f"event_{n}": event(n) for n in EVENTS},
+    }
+)
 
 
 def with_value(data: dict[str, Any], path: str, value: Any) -> dict[str, Any]:
@@ -3168,3 +3482,789 @@ def test_json_schema_covers_every_model() -> None:
     assert {m.__name__ for m in MODELS} <= set(defs)
     assert "spec_hash" in defs["BenchmarkSpec"]["properties"]
     assert defs["Verdict"]["additionalProperties"] is False
+
+
+# Project model and hypotheses (T3.1)
+
+NEW_REJECTED: list[tuple[str, str, Any]] = [
+    ("file_hash", "path", "../x"),
+    ("file_hash", "sha256", "ABC"),
+    ("provenance", "perfproof_version", ""),
+    ("provenance", "commands.0", []),
+    ("provenance", "derived_at", "2026-10-15T12:00:00"),
+    ("confirmation", "session", ""),
+    ("confirmation", "confirmed_at", "2026-10-15T12:00:00"),
+    ("invalidation", "trigger", "vibes"),
+    ("invalidation", "detail", ""),
+    ("target_entry", "target_class", "quantum"),
+    ("target_entry", "evidence", []),
+    ("target_entry", "id", "../x"),
+    ("target_entry", "version", 0),
+    ("target_entry", "status", "done"),
+    ("target_entry", "kind", "workload"),
+    ("workload_entry", "source", "guess"),
+    ("workload_entry", "command", []),
+    ("workload_entry", "cwd", "/abs"),
+    ("workload_entry", "spec_hash", "short"),
+    ("goal_bar", "kind", "ratio"),
+    ("goal_bar", "value", 0.0),
+    ("goal_bar", "value", math.nan),
+    ("goal_entry", "metric", "Wall Time"),
+    ("goal_entry", "direction", "faster"),
+    ("goal_entry", "bar.value", 0.9),
+    ("goal_entry", "guardrails.0.direction", "worse"),
+    ("constraint_entry", "constraint", "vibes"),
+    ("constraint_entry", "rtol", -1.0),
+    ("constraint_entry", "atol", math.inf),
+    ("service", "name", "bad name"),
+    ("service", "timeout_seconds", 0.0),
+    ("service", "health_command", []),
+    ("how_to_run_entry", "services.0.command", []),
+    ("how_to_run_entry", "setup.0", []),
+    ("project_model", "updated_at", "2026-10-15T12:00:00"),
+    ("project_model", "targets.0.evidence", []),
+    ("project_history", "event", "deleted"),
+    ("project_history", "entry.kind", "dream"),
+    ("evidence_ref", "kind", "hunch"),
+    ("evidence_ref", "path", "/abs/x"),
+    ("evidence_ref", "sha256", "x"),
+    ("code_anchor", "file", "a/../b.py"),
+    ("code_anchor", "qualified_name", ""),
+    ("code_anchor", "source_hash", "x"),
+    ("entry_ref", "kind", "hypothesis"),
+    ("entry_ref", "version", 0),
+    ("anchors", "workload", "../x"),
+    ("anchors", "workload_spec_hash", "x"),
+    ("cap", "kind", "guess"),
+    ("cap", "upper_bound", 0.5),
+    ("cap", "upper_bound", math.inf),
+    ("cap", "share", -0.1),
+    ("cap", "derivation", ""),
+    ("cap_model", "upper_bound", "3"),
+    ("measured_speedup", "estimate", 0.0),
+    ("measured_speedup", "interval.lower", math.nan),
+    ("event_observation", "evidence.0.sha256", "x"),
+    ("event_observation", "schema_version", 2),
+    ("event_observation", "schema_version", True),
+    ("event_observation", "recorded_at", "2026-10-15T12:00:00"),
+    ("event_observation", "session", ""),
+    ("event_mechanism", "claim", ""),
+    ("event_prediction", "expect_if_true", ""),
+    ("event_falsification", "result", "proved"),
+    ("event_falsification", "test", "vibes"),
+    ("event_implementation", "worktree", ""),
+    ("event_outcome", "verdict", "MAYBE"),
+    ("event_outcome", "reason", "speed"),
+    ("event_skipped", "step", "observation"),
+    ("event_skipped", "reason", ""),
+    ("event_reordered", "reason", ""),
+    ("event_stale", "anchor", "mood"),
+    ("event_revalidated", "what_differs", ""),
+    # unknown fields are refused, not dropped
+    ("event_prediction", "speedup", 1.33),
+    ("event_prediction", "cap.speedup", 1.33),
+    ("event_outcome", "cap", as_json(Cap.model_validate(AMDAHL))),
+    ("measured_speedup", "upper_bound", 2.0),
+    ("goal_entry", "default_metric", "wall_time"),
+    ("project_model", "extra", 1),
+]
+
+
+@pytest.mark.parametrize(("name", "path", "value"), NEW_REJECTED)
+def test_new_models_reject_invalid_value(
+    name: str, path: str, value: Any
+) -> None:
+    model = EXAMPLES[name]
+    data = with_value(as_json(model), path, value)
+    with pytest.raises(ValidationError):
+        type(model).model_validate(data)
+
+
+def test_new_documents_do_not_bump_schema_version() -> None:
+    assert schema.SCHEMA_VERSION == 3
+    assert as_json(project_model())["schema_version"] == 1
+    assert as_json(EXAMPLES["project_history"])["schema_version"] == 1
+    assert as_json(event("observation"))["schema_version"] == 1
+    for cls, doc in (
+        (ProjectModel, project_model()),
+        (ProjectHistoryRecord, EXAMPLES["project_history"]),
+    ):
+        for version in (0, 2, 3, True, 1.0):
+            data = with_value(as_json(doc), "schema_version", version)
+            with pytest.raises(ValidationError):
+                cls.model_validate(data)
+
+
+def test_provenance_sorts_files_and_refuses_duplicates() -> None:
+    assert [f.path for f in provenance().files] == [
+        "bench/run.py",
+        "src/app/io.py",
+    ]
+    twice = [{"path": "a.py", "sha256": HASH_A}] * 2
+    with pytest.raises(ValidationError, match="more than once"):
+        provenance(files=twice)
+
+
+# Entry status
+
+
+@pytest.mark.parametrize("kind", list(ENTRY_CLASSES))
+def test_each_entry_kind_accepts_every_status(kind: str) -> None:
+    entry(kind)
+    entry(kind, **CONFIRMED)
+    stale = {
+        "status": "stale",
+        "invalidation": as_json(invalidation()),
+        "previous_status": "proposed",
+    }
+    entry(kind, **stale)
+    entry(
+        kind,
+        **{
+            **stale,
+            "previous_status": "confirmed",
+            "confirmation": as_json(confirmation()),
+        },
+    )
+    entry(kind, status="retired", retired_reason="workload removed")
+
+
+STATUS_REFUSALS: list[dict[str, Any]] = [
+    {"status": "confirmed"},
+    {"status": "proposed", "confirmation": as_json(confirmation())},
+    {"status": "proposed", "invalidation": as_json(invalidation())},
+    {"status": "proposed", "previous_status": "proposed"},
+    {"status": "proposed", "retired_reason": "gone"},
+    {"status": "stale"},
+    {"status": "stale", "invalidation": as_json(invalidation())},
+    {"status": "stale", "previous_status": "proposed"},
+    {
+        "status": "stale",
+        "invalidation": as_json(invalidation()),
+        "previous_status": "confirmed",
+    },
+    {
+        "status": "stale",
+        "invalidation": as_json(invalidation()),
+        "previous_status": "proposed",
+        "confirmation": as_json(confirmation()),
+    },
+    {
+        "status": "stale",
+        "invalidation": as_json(invalidation()),
+        "previous_status": "stale",
+    },
+    {**CONFIRMED, "invalidation": as_json(invalidation())},
+    {**CONFIRMED, "retired_reason": "gone"},
+    {"status": "retired"},
+    {"status": "retired", "retired_reason": ""},
+    {
+        "status": "retired",
+        "retired_reason": "gone",
+        "invalidation": as_json(invalidation()),
+    },
+]
+
+
+@pytest.mark.parametrize("changes", STATUS_REFUSALS)
+def test_entry_status_must_match_its_fields(changes: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        entry("workload", **changes)
+
+
+def test_entry_version_defaults_to_one_and_is_explicit_after() -> None:
+    assert entry("target").version == 1
+    assert entry("target", version=4).version == 4
+
+
+# Goals: an unknown stays unknown
+
+
+def test_unknown_goal_stays_unknown() -> None:
+    goal = entry("goal", **UNKNOWN_GOAL)
+    assert goal.metric is None
+    assert goal.direction is None
+    assert goal.unit is None
+    assert goal.bar is None
+    assert goal.guardrails is None
+    assert set(goal.missing) == {
+        "metric",
+        "direction",
+        "unit",
+        "bar",
+        "guardrails",
+    }
+    again = GoalEntry.model_validate_json(goal.model_dump_json())
+    assert again == goal
+    assert again.metric is None
+
+
+@pytest.mark.parametrize(
+    "field", ["metric", "direction", "unit", "bar", "guardrails"]
+)
+def test_goal_field_is_never_defaulted(field: str) -> None:
+    data = entry_data("goal")
+    del data[field]
+    with pytest.raises(ValidationError, match=field):
+        GoalEntry.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    "field", ["metric", "direction", "unit", "bar", "guardrails"]
+)
+def test_goal_none_needs_a_reason_and_a_reason_needs_none(
+    field: str,
+) -> None:
+    with pytest.raises(ValidationError, match="reasons"):
+        entry("goal", **{field: None})
+    with pytest.raises(ValidationError, match="reasons"):
+        entry("goal", missing={field: "asked, no answer"})
+    entry("goal", **{field: None, "missing": {field: "not asked yet"}})
+
+
+def test_empty_guardrails_differ_from_unknown_guardrails() -> None:
+    assert entry("goal", guardrails=[]).guardrails == ()
+    assert entry("goal", guardrails=[]).missing == {}
+
+
+def test_confirmed_goal_cannot_have_an_unknown_metric() -> None:
+    unknown = {**UNKNOWN_GOAL, **CONFIRMED}
+    with pytest.raises(ValidationError, match="asked"):
+        entry("goal", **unknown)
+    for field in ("metric", "direction", "unit"):
+        with pytest.raises(ValidationError, match="asked"):
+            entry(
+                "goal",
+                **CONFIRMED,
+                **{field: None, "missing": {field: "unknown"}},
+            )
+
+
+def test_confirmed_goal_may_leave_its_bar_unknown() -> None:
+    goal = entry(
+        "goal", **CONFIRMED, bar=None, missing={"bar": "no number given"}
+    )
+    assert goal.bar is None
+
+
+def test_goal_known_metric_has_one_direction() -> None:
+    with pytest.raises(ValidationError, match="throughput"):
+        entry("goal", metric="throughput", direction="lower_is_better")
+    entry("goal", metric="throughput", direction="higher_is_better")
+    entry("goal", metric="tokens_per_s", direction="lower_is_better")
+
+
+def test_ratio_bar_must_beat_one() -> None:
+    for value in (1.0, 0.5):
+        with pytest.raises(ValidationError, match="above 1"):
+            GoalBar(kind="ratio", value=value)
+    assert GoalBar(kind="absolute", value=0.5).value == 0.5
+
+
+# Constraints and how to run
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"rtol": None},
+        {"atol": None},
+        {"rtol": None, "atol": None},
+        {"constraint": "public_api"},
+        {"constraint": "protected_file", "subject": "a/../b"},
+        {"constraint": "protected_file", "subject": "/abs"},
+        {"constraint": "target_hardware", "rtol": None},
+        {"constraint": "forbidden_dependency", "atol": 0.0},
+        {"constraint": "forbidden_dependency", "rtol": None, "atol": 0.0},
+    ],
+)
+def test_constraint_rules(changes: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        entry("constraint", **changes)
+
+
+def test_valid_constraints() -> None:
+    assert entry("constraint", rtol=0.0, atol=0.0).atol == 0.0
+    entry("constraint", constraint="public_api", rtol=None, atol=None)
+    entry(
+        "constraint",
+        constraint="protected_file",
+        rtol=None,
+        atol=None,
+        subject="src/a.py",
+    )
+    hardware = entry(
+        "constraint",
+        constraint="target_hardware",
+        rtol=None,
+        atol=None,
+        subject="M4 Pro",
+        host_id="host-1",
+    )
+    assert hardware.host_id == "host-1"
+
+
+HOW_FIELDS = ["setup", "build", "services", "reset"]
+
+
+def test_how_to_run_none_needed_differs_from_not_established() -> None:
+    nothing = entry(
+        "how_to_run",
+        setup=[],
+        build=[],
+        services=[],
+        reset="none_needed",
+    )
+    assert nothing.setup == ()
+    assert nothing.reset == "none_needed"
+    assert nothing.missing == {}
+    unknown = entry(
+        "how_to_run",
+        setup=None,
+        build=None,
+        services=None,
+        reset=None,
+        missing=dict.fromkeys(HOW_FIELDS, "not looked at yet"),
+    )
+    assert unknown.setup is None
+    assert unknown.reset is None
+    again = HowToRunEntry.model_validate_json(unknown.model_dump_json())
+    assert again == unknown
+
+
+@pytest.mark.parametrize("field", HOW_FIELDS)
+def test_how_to_run_fields_are_never_defaulted(field: str) -> None:
+    data = entry_data("how_to_run")
+    del data[field]
+    with pytest.raises(ValidationError, match=field):
+        HowToRunEntry.model_validate(data)
+
+
+@pytest.mark.parametrize("field", HOW_FIELDS)
+def test_how_to_run_none_and_reason_go_together(field: str) -> None:
+    with pytest.raises(ValidationError, match="reasons"):
+        entry("how_to_run", **{field: None})
+    with pytest.raises(ValidationError, match="reasons"):
+        entry("how_to_run", missing={field: "asked, no answer"})
+    entry("how_to_run", **{field: None, "missing": {field: "not asked"}})
+
+
+def test_how_to_run_reset_command_is_kept() -> None:
+    reset = {"command": ["make", "reset"], "timeout_seconds": 5.0}
+    assert entry("how_to_run", reset=reset).reset == ResetSpec(
+        command=("make", "reset"), timeout_seconds=5.0
+    )
+    with pytest.raises(ValidationError):
+        entry("how_to_run", reset="whenever")
+
+
+def test_workload_cwd_is_given_not_defaulted() -> None:
+    with pytest.raises(ValidationError, match="cwd"):
+        WorkloadEntry.model_validate(without(entry_data("workload"), "cwd"))
+
+
+@pytest.mark.parametrize(
+    "metric", ["p50_latency", "startup_time", "cost_per_token"]
+)
+def test_goal_metrics_have_one_direction(metric: str) -> None:
+    with pytest.raises(ValidationError, match=metric):
+        entry("goal", metric=metric, direction="higher_is_better")
+    entry("goal", metric=metric, direction="lower_is_better")
+
+
+# The project model
+
+
+def test_project_model_may_be_empty() -> None:
+    model = ProjectModel(updated_at=T0)
+    assert model.targets == ()
+    assert ProjectModel.model_validate_json(model.model_dump_json()) == model
+
+
+PROJECT_REFUSALS: list[dict[str, Any]] = [
+    {"workloads": [entry_data("workload", target_id="missing")]},
+    {"goals": [entry_data("goal", workload_id="missing")]},
+    {"how_to_run": [entry_data("how_to_run", workload_id="missing")]},
+    {"targets": [entry_data("target"), entry_data("target")]},
+    {"goals": [entry_data("goal", id="workload-1")]},
+]
+
+
+@pytest.mark.parametrize("changes", PROJECT_REFUSALS)
+def test_project_model_links_are_checked(changes: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        project_model(**changes)
+
+
+def test_project_wide_how_to_run_needs_no_workload() -> None:
+    project_model(how_to_run=[entry_data("how_to_run", workload_id=None)])
+
+
+def test_retired_entries_stay_in_the_model() -> None:
+    retired = entry_data(
+        "workload", id="workload-0", status="retired", retired_reason="gone"
+    )
+    model = project_model(workloads=[entry_data("workload"), retired])
+    assert [w.status for w in model.workloads] == ["proposed", "retired"]
+
+
+def test_history_record_picks_the_entry_class_by_kind() -> None:
+    for kind in ENTRY_CLASSES:
+        record_ = ProjectHistoryRecord.model_validate(
+            {
+                "recorded_at": T0,
+                "event": "created",
+                "entry": entry_data(kind),
+            }
+        )
+        assert type(record_.entry) is ENTRY_CLASSES[kind]
+    with pytest.raises(ValidationError):
+        ProjectHistoryRecord.model_validate(
+            {
+                "recorded_at": T0,
+                "event": "created",
+                "entry": {
+                    k: v for k, v in entry_data("goal").items() if k != "kind"
+                },
+            }
+        )
+
+
+HISTORY_STATUS = [
+    ("confirmed", "confirmed"),
+    ("marked_stale", "stale"),
+    ("reproposed", "proposed"),
+    ("retired", "retired"),
+    ("revalidated", "proposed"),
+    ("revalidated", "confirmed"),
+]
+STATUS_FIELDS: dict[str, dict[str, Any]] = {
+    "proposed": {},
+    "confirmed": CONFIRMED,
+    "stale": {
+        "status": "stale",
+        "invalidation": as_json(invalidation()),
+        "previous_status": "proposed",
+    },
+    "retired": {"status": "retired", "retired_reason": "gone"},
+}
+
+
+@pytest.mark.parametrize(("event_name", "status"), HISTORY_STATUS)
+def test_history_event_matches_entry_status(
+    event_name: str, status: str
+) -> None:
+    for other in STATUS_FIELDS:
+        data = {
+            "recorded_at": T0,
+            "event": event_name,
+            "entry": entry_data("workload", **STATUS_FIELDS[other]),
+        }
+        if other == status:
+            ProjectHistoryRecord.model_validate(data)
+        elif not (event_name == "revalidated" and other in HISTORY_BACK):
+            with pytest.raises(ValidationError, match=event_name):
+                ProjectHistoryRecord.model_validate(data)
+
+
+HISTORY_BACK = ("proposed", "confirmed")
+
+
+@pytest.mark.parametrize("event_name", ["created", "edited"])
+def test_history_created_and_edited_take_any_status(event_name: str) -> None:
+    for fields in STATUS_FIELDS.values():
+        ProjectHistoryRecord.model_validate(
+            {
+                "recorded_at": T0,
+                "event": event_name,
+                "entry": entry_data("workload", **fields),
+            }
+        )
+
+
+# Caps and bounds are not speedups
+
+
+def test_amdahl_cap_must_match_its_share() -> None:
+    assert Cap.model_validate(AMDAHL).upper_bound == pytest.approx(4 / 3)
+    for update in (
+        {"upper_bound": 2.0},
+        {"share": None},
+        {"share": 1.0, "upper_bound": 1e12},
+        {"share": 0.0, "upper_bound": 1.5},
+    ):
+        with pytest.raises(ValidationError):
+            Cap.model_validate({**AMDAHL, **update})
+    assert (
+        Cap.model_validate(
+            {**AMDAHL, "share": 0.0, "upper_bound": 1.0}
+        ).upper_bound
+        == 1.0
+    )
+
+
+def test_model_cap_has_no_share() -> None:
+    with pytest.raises(ValidationError, match="amdahl"):
+        Cap(kind="model", share=0.5, upper_bound=2.0, derivation="x")
+
+
+def test_a_cap_cannot_be_stored_as_a_speedup() -> None:
+    cap = as_json(Cap.model_validate(AMDAHL))
+    # A bound where a measured effect goes, and a measured effect where
+    # a bound goes, are both refused by the field names and types.
+    with pytest.raises(ValidationError):
+        MeasuredSpeedup.model_validate(cap)
+    with pytest.raises(ValidationError):
+        MeasuredSpeedup.model_validate({**SPEEDUP, "upper_bound": 1.33})
+    with pytest.raises(ValidationError):
+        event("outcome", speedup=cap)
+    with pytest.raises(ValidationError):
+        event("outcome", speedup=AMDAHL["upper_bound"])
+    with pytest.raises(ValidationError):
+        event("outcome", cap=cap)
+    with pytest.raises(ValidationError):
+        event("prediction", cap=SPEEDUP)
+    with pytest.raises(ValidationError):
+        event("prediction", speedup=1.33)
+    with pytest.raises(ValidationError):
+        event("prediction", cap={**cap, "speedup": 1.33})
+    assert "speedup" not in Cap.model_fields
+    assert "upper_bound" not in MeasuredSpeedup.model_fields
+    assert "speedup" not in PredictionEvent.model_fields
+
+
+# Hypothesis events
+
+
+@pytest.mark.parametrize("name", list(EVENTS))
+def test_event_union_parses_to_its_own_class(name: str) -> None:
+    parsed = HYPOTHESIS_EVENT.validate_json(event(name).model_dump_json())
+    assert type(parsed) is EVENT_CLASSES[name]
+    assert parsed == event(name)
+    assert HYPOTHESIS_EVENT.validate_python(as_json(event(name))) == parsed
+
+
+def test_event_union_refuses_unknown_events() -> None:
+    for bad in ("vibes", None):
+        with pytest.raises(ValidationError):
+            HYPOTHESIS_EVENT.validate_python(event_data("stale", event=bad))
+    data = without(event_data("stale"), "event")
+    with pytest.raises(ValidationError):
+        HYPOTHESIS_EVENT.validate_python(data)
+
+
+NEEDS_EVIDENCE = [n for n in EVENTS if "evidence" in EVENTS[n]]
+
+
+@pytest.mark.parametrize("name", NEEDS_EVIDENCE)
+def test_event_without_evidence_hashes_is_refused(name: str) -> None:
+    with pytest.raises(ValidationError, match="evidence hashes"):
+        event(name, evidence=[])
+    data = without(event_data(name), "evidence")
+    with pytest.raises(ValidationError, match="evidence hashes"):
+        EVENT_CLASSES[name].model_validate(data)
+    with pytest.raises(ValidationError, match="evidence hashes"):
+        HYPOTHESIS_EVENT.validate_json(
+            json.dumps({**data, "recorded_at": T0.isoformat()})
+        )
+
+
+def test_every_event_that_makes_a_claim_needs_evidence() -> None:
+    assert set(NEEDS_EVIDENCE) == set(EVENTS) - {"skipped", "reordered"}
+
+
+@pytest.mark.parametrize("name", ["skipped", "reordered"])
+def test_skip_and_reorder_carry_reasons_not_evidence(name: str) -> None:
+    assert event(name).evidence == ()
+
+
+def test_evidence_hash_must_be_a_sha256() -> None:
+    with pytest.raises(ValidationError):
+        event("observation", evidence=[evidence(sha="abc")])
+    with pytest.raises(ValidationError):
+        event("observation", evidence=[{"kind": "measurement"}])
+
+
+def test_event_cannot_correct_itself() -> None:
+    assert event("mechanism", corrects="e-old").corrects == "e-old"
+    with pytest.raises(ValidationError, match="itself"):
+        event("mechanism", corrects="e-mechanism")
+
+
+def test_retry_and_what_differs_go_together() -> None:
+    with pytest.raises(ValidationError, match="what differs"):
+        event("observation", retry_of="h-0")
+    with pytest.raises(ValidationError, match="what differs"):
+        event("observation", what_differs="new parser")
+    with pytest.raises(ValidationError):
+        event("observation", retry_of="h-0", what_differs="")
+    retry = event("observation", retry_of="h-0", what_differs="new parser")
+    assert retry.retry_of == "h-0"
+
+
+def test_reordered_cannot_point_at_itself() -> None:
+    with pytest.raises(ValidationError, match="itself"):
+        event("reordered", before="h-1")
+    event("reordered", before="h-2")
+
+
+def test_implementation_evidence_must_be_the_diff() -> None:
+    with pytest.raises(ValidationError, match="diff_hash"):
+        event("implementation", diff_hash=HASH_A)
+    # Right hash, wrong kind of evidence.
+    with pytest.raises(ValidationError, match="diff_hash"):
+        event(
+            "implementation",
+            evidence=[evidence("profile", HASH_C)],
+        )
+    refuted = event("implementation", override_reason="cheap test was noisy")
+    assert refuted.override_reason == "cheap test was noisy"
+
+
+def test_outcome_evidence_must_be_the_run_record() -> None:
+    with pytest.raises(ValidationError, match="run_record_hash"):
+        event("outcome", run_record_hash=HASH_A)
+    with pytest.raises(ValidationError, match="run_record_hash"):
+        event("outcome", evidence=[evidence("profile", HASH_D)])
+
+
+def lost(lower: float, upper: float) -> dict[str, Any]:
+    return {
+        "estimate": 1.0,
+        "interval": {"lower": lower, "upper": upper, "confidence": 0.99},
+    }
+
+
+GATE_OUTCOMES = [
+    ("correctness", "correctness"),
+    ("coverage", "correctness"),
+    ("lock", "integrity"),
+    ("procedure", "integrity"),
+    ("runtime", "integrity"),
+    ("same_host", "integrity"),
+    ("side_effects", "integrity"),
+]
+
+
+@pytest.mark.parametrize(("gate", "reason"), GATE_OUTCOMES)
+def test_gate_outcome_carries_no_speedup(gate: str, reason: str) -> None:
+    gate_outcome = {
+        "verdict": "REJECT",
+        "reason": reason,
+        "rule": 1,
+        "gate": gate,
+    }
+    assert event("outcome", **gate_outcome, speedup=None).gate == gate
+    # Faster but wrong: the speed is never stored.
+    with pytest.raises(ValidationError, match="no speedup"):
+        event("outcome", **gate_outcome, speedup={**SPEEDUP, "estimate": 3.0})
+
+
+def test_gate_outcome_needs_its_gate_and_reason() -> None:
+    base = {"verdict": "REJECT", "rule": 1, "speedup": None}
+    with pytest.raises(ValidationError, match="gate"):
+        event("outcome", **base, reason="correctness")
+    with pytest.raises(ValidationError, match="gives reason"):
+        event("outcome", **base, reason="correctness", gate="lock")
+    with pytest.raises(ValidationError, match="gate"):
+        event("outcome", gate="correctness")
+
+
+def test_resolution_stop_carries_no_speedup_and_no_gate() -> None:
+    stop = {
+        "verdict": "INCONCLUSIVE",
+        "reason": "insufficient_evidence",
+        "rule": 1,
+    }
+    assert event("outcome", **stop, speedup=None).speedup is None
+    with pytest.raises(ValidationError, match="no speedup"):
+        event("outcome", **stop, speedup=SPEEDUP)
+    with pytest.raises(ValidationError, match="gate"):
+        event("outcome", **stop, speedup=None, gate="runtime")
+
+
+def test_rule_five_inconclusive_may_carry_an_estimate() -> None:
+    five = {
+        "verdict": "INCONCLUSIVE",
+        "reason": "insufficient_evidence",
+        "rule": 5,
+    }
+    assert event("outcome", **five, speedup=lost(1.0, 1.1)).speedup
+    # A budget spent before the first look leaves no interval to record.
+    assert event("outcome", **five, speedup=None).speedup is None
+
+
+def test_rule_two_interval_must_clear_the_bar() -> None:
+    assert event("outcome", bar=1.0499).speedup is not None
+    for bar in (1.05, 1.06):
+        with pytest.raises(ValidationError, match="above the bar"):
+            event("outcome", bar=bar)
+    with pytest.raises(ValidationError, match="needs an estimate"):
+        event("outcome", speedup=None)
+    # A guardrail REJECT and a compliance INCONCLUSIVE keep their speed.
+    event("outcome", verdict="REJECT", reason="guardrail")
+    event(
+        "outcome",
+        verdict="INCONCLUSIVE",
+        reason="insufficient_evidence",
+    )
+    with pytest.raises(ValidationError, match="needs an estimate"):
+        event("outcome", verdict="REJECT", reason="guardrail", speedup=None)
+
+
+def test_rule_three_interval_must_sit_at_or_below_the_bar() -> None:
+    reject = {"verdict": "REJECT", "reason": "performance", "rule": 3}
+    event("outcome", **reject, speedup=lost(0.9, 1.03))
+    event("outcome", **reject, speedup=lost(0.8, 0.95))
+    with pytest.raises(ValidationError, match="at or below"):
+        event("outcome", **reject, speedup=lost(0.9, 1.0301))
+    with pytest.raises(ValidationError, match="needs an estimate"):
+        event("outcome", **reject, speedup=None)
+
+
+def test_outcome_rule_verdict_and_reason_must_agree() -> None:
+    for rule, verdict, reason in (
+        (2, "KEEP", "correctness"),
+        (2, "REJECT", "performance"),
+        (3, "KEEP", "performance"),
+        (5, "REJECT", "guardrail"),
+        (1, "KEEP", "performance"),
+        (2, "INCONCLUSIVE", "performance"),
+    ):
+        with pytest.raises(ValidationError, match="gives one of"):
+            event("outcome", rule=rule, verdict=verdict, reason=reason)
+    with pytest.raises(ValidationError):
+        event("outcome", rule=4)
+
+
+def test_outcome_records_calibration_and_a_real_bar() -> None:
+    assert event("outcome", calibration="calibrated").calibration == (
+        "calibrated"
+    )
+    with pytest.raises(ValidationError):
+        event("outcome", calibration="mostly")
+    with pytest.raises(ValidationError):
+        event("outcome", bar=0.9)
+
+
+def test_events_are_frozen_and_hashable() -> None:
+    e = event("observation")
+    with pytest.raises(ValidationError, match="frozen"):
+        e.session = "s-2"  # type: ignore[misc]
+    assert hash(event("stale")) == hash(event("stale"))
+
+
+def test_new_models_are_in_the_json_schema() -> None:
+    defs = json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))["$defs"]
+    for cls in (
+        ProjectModel,
+        ProjectHistoryRecord,
+        GoalEntry,
+        Cap,
+        MeasuredSpeedup,
+        *EVENT_CLASSES.values(),
+    ):
+        assert defs[cls.__name__]["additionalProperties"] is False
+    assert "upper_bound" in defs["Cap"]["properties"]
+    assert "estimate" not in defs["Cap"]["properties"]
+    assert "upper_bound" not in defs["MeasuredSpeedup"]["properties"]

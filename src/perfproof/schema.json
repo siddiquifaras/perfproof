@@ -24,6 +24,48 @@
       "title": "AbsoluteLimit",
       "type": "object"
     },
+    "Anchors": {
+      "additionalProperties": false,
+      "description": "What a hypothesis was about, so a change can make it stale.",
+      "properties": {
+        "workload": {
+          "description": "ID of the workload, also the log file's name.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Workload",
+          "type": "string"
+        },
+        "workload_spec_hash": {
+          "description": "`BenchmarkSpec.spec_hash` of that workload when observed.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Workload Spec Hash",
+          "type": "string"
+        },
+        "code": {
+          "default": [],
+          "description": "Code it is about; empty for a hypothesis about settings.",
+          "items": {
+            "$ref": "#/$defs/CodeAnchor"
+          },
+          "title": "Code",
+          "type": "array"
+        },
+        "entries": {
+          "default": [],
+          "description": "Project model entries it used.",
+          "items": {
+            "$ref": "#/$defs/EntryRef"
+          },
+          "title": "Entries",
+          "type": "array"
+        }
+      },
+      "required": [
+        "workload",
+        "workload_spec_hash"
+      ],
+      "title": "Anchors",
+      "type": "object"
+    },
     "BenchmarkSpec": {
       "additionalProperties": false,
       "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, ``n0`` or ``k`` is odd without\n    the cross-host opt-in, a path is declared twice\n    across the locked groups, a guardrail metric is declared twice\n    or is the primary objective, guardrails are declared without an\n    objective, the metric kind cannot measure the objective or its\n    direction is not the objective's, or a supplied ``spec_hash``\n    does not match the content.",
@@ -251,6 +293,85 @@
       "title": "Budget",
       "type": "object"
     },
+    "Cap": {
+      "additionalProperties": false,
+      "description": "An upper bound on the gain, from a model of the workload.\n\nNever a speedup: it is stored under ``upper_bound``, which no\nmeasured field accepts, and `MeasuredSpeedup` takes no bound.\n\nRaises\n------\npydantic.ValidationError\n    If an ``amdahl`` cap lacks ``share``, has ``share`` of 1 or more\n    or an ``upper_bound`` other than ``1 / (1 - share)``, or any\n    other kind carries a ``share``.",
+      "properties": {
+        "kind": {
+          "description": "``amdahl``: ``1 / (1 - p)`` for a runtime share ``p``. ``model``:\nanother model of the workload, derived in ``derivation``.",
+          "enum": [
+            "amdahl",
+            "model"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share ``p`` of runtime, as a fraction, for ``amdahl``.",
+          "title": "Share"
+        },
+        "upper_bound": {
+          "description": "The bound, a dimensionless ratio not below 1.",
+          "minimum": 1,
+          "title": "Upper Bound",
+          "type": "number"
+        },
+        "derivation": {
+          "description": "How the bound follows from the evidence.",
+          "minLength": 1,
+          "title": "Derivation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "upper_bound",
+        "derivation"
+      ],
+      "title": "Cap",
+      "type": "object"
+    },
+    "CodeAnchor": {
+      "additionalProperties": false,
+      "description": "The code a hypothesis is about.",
+      "properties": {
+        "file": {
+          "description": "Source file, relative to the project root.",
+          "title": "File",
+          "type": "string"
+        },
+        "qualified_name": {
+          "description": "Qualified name of the function or class, so a move within its\nfile keeps the match.",
+          "minLength": 1,
+          "title": "Qualified Name",
+          "type": "string"
+        },
+        "source_hash": {
+          "description": "SHA-256 of that definition's source at observation time.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "qualified_name",
+        "source_hash"
+      ],
+      "title": "CodeAnchor",
+      "type": "object"
+    },
     "CommandOutput": {
       "additionalProperties": false,
       "description": "What a command that failed a gate printed, such as a reset.",
@@ -300,6 +421,195 @@
         "stderr"
       ],
       "title": "CommandOutput",
+      "type": "object"
+    },
+    "Confirmation": {
+      "additionalProperties": false,
+      "description": "The developer's confirmation of an entry.",
+      "properties": {
+        "session": {
+          "description": "Session the developer confirmed it in.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "confirmed_at": {
+          "description": "When, with time zone.",
+          "format": "date-time",
+          "title": "Confirmed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session",
+        "confirmed_at"
+      ],
+      "title": "Confirmation",
+      "type": "object"
+    },
+    "ConstraintEntry": {
+      "additionalProperties": false,
+      "description": "Something an optimization must not change.\n\nRaises\n------\npydantic.ValidationError\n    If a ``numeric_tolerance`` states only one of ``rtol`` and\n    ``atol`` (``0.0`` is a statement), another kind has either, a\n    ``target_hardware`` has no ``host_id``, or a ``protected_file``\n    subject is not a normalized relative path.",
+      "properties": {
+        "id": {
+          "description": "Entry ID, unique across the whole model.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "description": "Revision of this entry, 1 when created; every earlier revision is\nkept in the history.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "status": {
+          "description": "Exactly one of the four states of ``docs/discovery.md``.",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "stale",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "What the entry was derived from."
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set once the developer confirmed it; kept while it is stale."
+        },
+        "invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Invalidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The trigger, while ``stale``."
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "proposed",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Status to return to if revalidation finds no change; only while\n``stale``.",
+          "title": "Previous Status"
+        },
+        "retired_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it no longer applies; only when ``retired``.",
+          "title": "Retired Reason"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`MachineFingerprint.host_id` of the machine a hardware-bound goal\nor limit was set for; ``None`` when not hardware-bound.",
+          "title": "Host Id"
+        },
+        "kind": {
+          "const": "constraint",
+          "default": "constraint",
+          "description": "Discriminator.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "constraint": {
+          "description": "What sort of constraint.",
+          "enum": [
+            "public_api",
+            "numeric_tolerance",
+            "target_hardware",
+            "forbidden_dependency",
+            "protected_file"
+          ],
+          "title": "Constraint",
+          "type": "string"
+        },
+        "subject": {
+          "description": "The API symbol, dependency, hardware description or path.",
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "rtol": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Relative tolerance of a ``numeric_tolerance``; stated together\nwith ``atol``.",
+          "title": "Rtol"
+        },
+        "atol": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Absolute tolerance of a ``numeric_tolerance``; stated together\nwith ``rtol``.",
+          "title": "Atol"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "provenance",
+        "constraint",
+        "subject"
+      ],
+      "title": "ConstraintEntry",
       "type": "object"
     },
     "CorrectnessSpec": {
@@ -639,6 +949,211 @@
       "title": "DifferentialCheck",
       "type": "object"
     },
+    "EntryRef": {
+      "additionalProperties": false,
+      "description": "A project model entry a hypothesis relied on.",
+      "properties": {
+        "kind": {
+          "description": "Which kind of entry.",
+          "enum": [
+            "target",
+            "workload",
+            "goal",
+            "constraint",
+            "how_to_run"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "id": {
+          "description": "The entry's ID.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "description": "Revision relied on; another one makes the hypothesis stale.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "version"
+      ],
+      "title": "EntryRef",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "A piece of evidence, read again later by its path and hash.",
+      "properties": {
+        "kind": {
+          "description": "What sort of evidence.",
+          "enum": [
+            "measurement",
+            "profile",
+            "captured_calls",
+            "cheap_test",
+            "diff",
+            "run_record",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path relative to the project root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file's bytes when recorded.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "FalsificationEvent": {
+      "additionalProperties": false,
+      "description": "Step 4: the cheap test that was run and its result.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "falsification",
+          "default": "falsification",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "test": {
+          "description": "Kind of cheap test.",
+          "enum": [
+            "stage_timing",
+            "count",
+            "microbenchmark",
+            "stub_out",
+            "toggle_setting",
+            "other"
+          ],
+          "title": "Test",
+          "type": "string"
+        },
+        "description": {
+          "description": "What was run.",
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "result": {
+          "description": "Whether the test supported or refuted the mechanism.",
+          "enum": [
+            "supported",
+            "refuted",
+            "inconclusive"
+          ],
+          "title": "Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "test",
+        "description",
+        "result"
+      ],
+      "title": "FalsificationEvent",
+      "type": "object"
+    },
+    "FileHash": {
+      "additionalProperties": false,
+      "description": "One file an entry was derived from.",
+      "properties": {
+        "path": {
+          "description": "Path relative to the project root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the file's bytes.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileHash",
+      "type": "object"
+    },
     "GateResult": {
       "additionalProperties": false,
       "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines, a differential mismatch or ``output`` come\n    with a gate that did not fail; or a test, function or path\n    repeats.",
@@ -734,6 +1249,239 @@
         "status"
       ],
       "title": "GateResult",
+      "type": "object"
+    },
+    "GoalBar": {
+      "additionalProperties": false,
+      "description": "How much better counts as meeting a goal.\n\nRaises\n------\npydantic.ValidationError\n    If a ``ratio`` bar is not above 1.",
+      "properties": {
+        "kind": {
+          "description": "``ratio``: oriented ratio the candidate must reach, above 1\nmeaning faster. ``absolute``: value the metric must reach, in the\ngoal's unit.",
+          "enum": [
+            "ratio",
+            "absolute"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "description": "The bar.",
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "title": "GoalBar",
+      "type": "object"
+    },
+    "GoalEntry": {
+      "additionalProperties": false,
+      "description": "What faster means for one workload.\n\nThe goal's own fields have no defaults: each is given, or is\n``None`` with a reason in ``missing``, so a goal perfproof could not\nestablish stays unknown and is asked about.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field has no reason in ``missing`` or the reverse,\n    a known metric has the wrong direction, or a confirmed goal\n    leaves its metric, direction or unit unknown.",
+      "properties": {
+        "id": {
+          "description": "Entry ID, unique across the whole model.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "description": "Revision of this entry, 1 when created; every earlier revision is\nkept in the history.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "status": {
+          "description": "Exactly one of the four states of ``docs/discovery.md``.",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "stale",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "What the entry was derived from."
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set once the developer confirmed it; kept while it is stale."
+        },
+        "invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Invalidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The trigger, while ``stale``."
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "proposed",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Status to return to if revalidation finds no change; only while\n``stale``.",
+          "title": "Previous Status"
+        },
+        "retired_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it no longer applies; only when ``retired``.",
+          "title": "Retired Reason"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`MachineFingerprint.host_id` of the machine a hardware-bound goal\nor limit was set for; ``None`` when not hardware-bound.",
+          "title": "Host Id"
+        },
+        "kind": {
+          "const": "goal",
+          "default": "goal",
+          "description": "Discriminator.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "workload_id": {
+          "description": "ID of the `WorkloadEntry` the goal is for.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Workload Id",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Metric name, in the namespace of `BenchmarkSpec.objective`.",
+          "title": "Metric"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "lower_is_better",
+                "higher_is_better"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether smaller or larger is better.",
+          "title": "Direction"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Unit of the metric's values and of an absolute bar.",
+          "title": "Unit"
+        },
+        "bar": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GoalBar"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bar; ``None`` when the developer has not said."
+        },
+        "guardrails": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/GuardrailSpec"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Guardrails; ``None`` when not established, which differs from\nan empty tuple (none wanted).",
+          "title": "Guardrails"
+        },
+        "missing": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Why each field left ``None`` is unknown, keyed by field name.",
+          "title": "Missing",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "provenance",
+        "workload_id",
+        "metric",
+        "direction",
+        "unit",
+        "bar",
+        "guardrails"
+      ],
+      "title": "GoalEntry",
       "type": "object"
     },
     "GpuInfo": {
@@ -1043,6 +1791,331 @@
       "title": "Hotspot",
       "type": "object"
     },
+    "HowToRunEntry": {
+      "additionalProperties": false,
+      "description": "Build, setup, services and reset for a workload or the project.\n\nLike `GoalEntry`, the fields have no defaults. An empty tuple says\nnone is needed; ``None`` says it is not established, with a reason\nin ``missing``.\n\nRaises\n------\npydantic.ValidationError\n    If a ``None`` field has no reason in ``missing`` or the reverse.",
+      "properties": {
+        "id": {
+          "description": "Entry ID, unique across the whole model.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "description": "Revision of this entry, 1 when created; every earlier revision is\nkept in the history.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "status": {
+          "description": "Exactly one of the four states of ``docs/discovery.md``.",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "stale",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "What the entry was derived from."
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set once the developer confirmed it; kept while it is stale."
+        },
+        "invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Invalidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The trigger, while ``stale``."
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "proposed",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Status to return to if revalidation finds no change; only while\n``stale``.",
+          "title": "Previous Status"
+        },
+        "retired_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it no longer applies; only when ``retired``.",
+          "title": "Retired Reason"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`MachineFingerprint.host_id` of the machine a hardware-bound goal\nor limit was set for; ``None`` when not hardware-bound.",
+          "title": "Host Id"
+        },
+        "kind": {
+          "const": "how_to_run",
+          "default": "how_to_run",
+          "description": "Discriminator.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "workload_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Workload it is for; ``None`` for the whole project.",
+          "title": "Workload Id"
+        },
+        "setup": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Setup commands, in order.",
+          "title": "Setup"
+        },
+        "build": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Build commands, in order.",
+          "title": "Build"
+        },
+        "services": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ServiceSpec"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Services the workload needs.",
+          "title": "Services"
+        },
+        "reset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResetSpec"
+            },
+            {
+              "const": "none_needed",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Command run between rounds; ``\"none_needed\"`` when the workload\nneeds no reset.",
+          "title": "Reset"
+        },
+        "missing": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Why each field left ``None`` is not established, keyed by field\nname.",
+          "title": "Missing",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "provenance",
+        "setup",
+        "build",
+        "services",
+        "reset"
+      ],
+      "title": "HowToRunEntry",
+      "type": "object"
+    },
+    "ImplementationEvent": {
+      "additionalProperties": false,
+      "description": "Step 5: the candidate change.\n\nRaises\n------\npydantic.ValidationError\n    If ``diff_hash`` is not the hash of evidence of kind ``diff``.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "implementation",
+          "default": "implementation",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "diff_hash": {
+          "description": "SHA-256 of the candidate's diff.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Diff Hash",
+          "type": "string"
+        },
+        "worktree": {
+          "description": "Worktree the candidate lives in.",
+          "minLength": 1,
+          "title": "Worktree",
+          "type": "string"
+        },
+        "approach": {
+          "description": "The approach in the agent's words.",
+          "minLength": 1,
+          "title": "Approach",
+          "type": "string"
+        },
+        "override_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why a hypothesis its cheap test refuted is implemented anyway.",
+          "title": "Override Reason"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "diff_hash",
+        "worktree",
+        "approach"
+      ],
+      "title": "ImplementationEvent",
+      "type": "object"
+    },
     "Interval": {
       "additionalProperties": false,
       "description": "Two-sided confidence interval with positive bounds.\n\nOn the ratio scale for a speedup (above 1 means faster) and for a\nguardrail's worsening ratio (above 1 means worse); in the\nguardrail's unit for a candidate's own value.\n\nRaises\n------\npydantic.ValidationError\n    If ``lower > upper``.",
@@ -1073,6 +2146,45 @@
         "confidence"
       ],
       "title": "Interval",
+      "type": "object"
+    },
+    "Invalidation": {
+      "additionalProperties": false,
+      "description": "Why an entry became stale.",
+      "properties": {
+        "trigger": {
+          "description": "Which trigger fired.",
+          "enum": [
+            "file_changed",
+            "command_failed",
+            "output_shape_changed",
+            "lockfile_changed",
+            "machine_differs",
+            "dependency_edited",
+            "perfproof_upgraded"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        },
+        "detail": {
+          "description": "What changed, such as the file path or command.",
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "detected_at": {
+          "description": "When it was noticed, with time zone.",
+          "format": "date-time",
+          "title": "Detected At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trigger",
+        "detail",
+        "detected_at"
+      ],
+      "title": "Invalidation",
       "type": "object"
     },
     "LinkedLibrary": {
@@ -1509,6 +2621,117 @@
       "title": "MachineFingerprint",
       "type": "object"
     },
+    "MeasuredSpeedup": {
+      "additionalProperties": false,
+      "description": "A speedup measured by prove, with its interval.",
+      "properties": {
+        "estimate": {
+          "description": "Oriented ratio, above 1 meaning the candidate is faster.",
+          "exclusiveMinimum": 0,
+          "title": "Estimate",
+          "type": "number"
+        },
+        "interval": {
+          "$ref": "#/$defs/Interval",
+          "description": "Interval of the ratio."
+        }
+      },
+      "required": [
+        "estimate",
+        "interval"
+      ],
+      "title": "MeasuredSpeedup",
+      "type": "object"
+    },
+    "MechanismEvent": {
+      "additionalProperties": false,
+      "description": "Step 2: why the cost exists, as a claim that could be false.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "mechanism",
+          "default": "mechanism",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "claim": {
+          "description": "The mechanism.",
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "would_be_false_if": {
+          "description": "An observation that would show the claim false.",
+          "minLength": 1,
+          "title": "Would Be False If",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "claim",
+        "would_be_false_if"
+      ],
+      "title": "MechanismEvent",
+      "type": "object"
+    },
     "MetricSpec": {
       "additionalProperties": false,
       "description": "The one metric a benchmark is judged on.\n\n``wall`` and ``cpu`` are times in seconds and ``counter`` is an\nevent count, so all three are lower-is-better. Only ``reported``\nmetrics choose a direction.\n\nRaises\n------\npydantic.ValidationError\n    If the direction or unit contradicts the kind, ``event`` is set\n    for anything but a ``counter`` metric or missing for one, or\n    ``resolution`` is set for anything but a ``reported`` metric.",
@@ -1576,6 +2799,283 @@
       "title": "MetricSpec",
       "type": "object"
     },
+    "ObservationEvent": {
+      "additionalProperties": false,
+      "description": "Step 1: the evidence a hypothesis starts from.\n\nRaises\n------\npydantic.ValidationError\n    If ``retry_of`` and ``what_differs`` are not set together.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "observation",
+          "default": "observation",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "anchors": {
+          "$ref": "#/$defs/Anchors",
+          "description": "What the hypothesis is about."
+        },
+        "retry_of": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Refuted hypothesis this retries on different code.",
+          "title": "Retry Of"
+        },
+        "what_differs": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What differs from the refuted attempt; set for a retry, only.",
+          "title": "What Differs"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "anchors"
+      ],
+      "title": "ObservationEvent",
+      "type": "object"
+    },
+    "OutcomeEvent": {
+      "additionalProperties": false,
+      "description": "Step 6: the prove verdict next to the prediction.\n\nMirrors `Verdict`: a gate verdict (rule 1) and the resolution stop\ncarry no speedup, rules 2 and 3 carry an estimate and interval,\nrule 5 carries one unless the budget ended before the first look,\nand the interval sits on the side of ``bar`` the rule needs.\n\nRaises\n------\npydantic.ValidationError\n    If ``run_record_hash`` is not the hash of evidence of kind\n    ``run_record``, ``rule``, ``verdict``, ``reason`` and ``gate``\n    do not agree as in `Verdict`, a rule 1 outcome carries a\n    speedup, a rule 2, 3 or 5 outcome lacks one, a rule 2 interval\n    does not lie above ``bar`` (``L > bar``), a rule 3 interval does\n    not lie at or below it (``U <= bar``).",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "outcome",
+          "default": "outcome",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "verdict": {
+          "description": "Prove's outcome.",
+          "enum": [
+            "KEEP",
+            "REJECT",
+            "INCONCLUSIVE"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Prove's reason.",
+          "enum": [
+            "performance",
+            "correctness",
+            "integrity",
+            "guardrail",
+            "insufficient_evidence"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "rule": {
+          "description": "The decision rule that decided.",
+          "enum": [
+            1,
+            2,
+            3,
+            5
+          ],
+          "title": "Rule",
+          "type": "integer"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "enum": [
+                "side_effects",
+                "lock",
+                "procedure",
+                "runtime",
+                "same_host",
+                "correctness",
+                "coverage"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The failed gate, for rule 1; ``None`` otherwise.",
+          "title": "Gate"
+        },
+        "calibration": {
+          "description": "Whether the procedure was calibrated for the target class.",
+          "enum": [
+            "calibrated",
+            "uncalibrated"
+          ],
+          "title": "Calibration",
+          "type": "string"
+        },
+        "bar": {
+          "description": "The bar the comparison used, ``1 + min_effect``, as an oriented\nratio.",
+          "minimum": 1,
+          "title": "Bar",
+          "type": "number"
+        },
+        "run_record_hash": {
+          "description": "SHA-256 of the run record file.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Run Record Hash",
+          "type": "string"
+        },
+        "speedup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeasuredSpeedup"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The measured effect from the verdict: none for a gate verdict or\nthe resolution stop, present for every other outcome."
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "verdict",
+        "reason",
+        "rule",
+        "calibration",
+        "bar",
+        "run_record_hash"
+      ],
+      "title": "OutcomeEvent",
+      "type": "object"
+    },
     "OutputCheck": {
       "additionalProperties": false,
       "description": "One declared output compared between the baseline and candidate.\n\nRaises\n------\npydantic.ValidationError\n    If a tolerance or ``equal_nan`` is set for a ``bytes`` or\n    ``text`` comparison.",
@@ -1623,6 +3123,293 @@
       "title": "OutputCheck",
       "type": "object"
     },
+    "PredictionEvent": {
+      "additionalProperties": false,
+      "description": "Step 3: the gain cap and what the cheap test should show.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "prediction",
+          "default": "prediction",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "cap": {
+          "$ref": "#/$defs/Cap",
+          "description": "Upper bound on the gain; not a speedup."
+        },
+        "expect_if_true": {
+          "description": "What the cheap test shows if the mechanism is right.",
+          "minLength": 1,
+          "title": "Expect If True",
+          "type": "string"
+        },
+        "expect_if_false": {
+          "description": "What it shows if the mechanism is wrong.",
+          "minLength": 1,
+          "title": "Expect If False",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "cap",
+        "expect_if_true",
+        "expect_if_false"
+      ],
+      "title": "PredictionEvent",
+      "type": "object"
+    },
+    "ProjectHistoryRecord": {
+      "additionalProperties": false,
+      "description": "One line of ``project.history.jsonl``: an entry as it was.\n\nAppended whenever an entry changes, so no earlier version is lost.\n\nRaises\n------\npydantic.ValidationError\n    If the event contradicts the entry's status: ``confirmed``\n    needs a confirmed entry, ``marked_stale`` a stale one,\n    ``reproposed`` a proposed one, ``retired`` a retired one, and\n    ``revalidated`` one back at ``proposed`` or ``confirmed``.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "recorded_at": {
+          "description": "When the line was written, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "event": {
+          "description": "What happened to the entry.",
+          "enum": [
+            "created",
+            "edited",
+            "confirmed",
+            "marked_stale",
+            "revalidated",
+            "reproposed",
+            "retired"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "entry": {
+          "description": "The entry's content at that revision.",
+          "discriminator": {
+            "mapping": {
+              "constraint": "#/$defs/ConstraintEntry",
+              "goal": "#/$defs/GoalEntry",
+              "how_to_run": "#/$defs/HowToRunEntry",
+              "target": "#/$defs/TargetEntry",
+              "workload": "#/$defs/WorkloadEntry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/TargetEntry"
+            },
+            {
+              "$ref": "#/$defs/WorkloadEntry"
+            },
+            {
+              "$ref": "#/$defs/GoalEntry"
+            },
+            {
+              "$ref": "#/$defs/ConstraintEntry"
+            },
+            {
+              "$ref": "#/$defs/HowToRunEntry"
+            }
+          ],
+          "title": "Entry"
+        },
+        "note": {
+          "default": "",
+          "description": "Free text, such as what a revalidation found.",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recorded_at",
+        "event",
+        "entry"
+      ],
+      "title": "ProjectHistoryRecord",
+      "type": "object"
+    },
+    "ProjectModel": {
+      "additionalProperties": false,
+      "description": "The current project model, the content of ``project.json``.\n\nRaises\n------\npydantic.ValidationError\n    If an ID appears twice, a workload names a missing target, or a\n    goal or how-to-run names a missing workload.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "updated_at": {
+          "description": "When the model was last written, with time zone.",
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "targets": {
+          "default": [],
+          "description": "Kinds of code present.",
+          "items": {
+            "$ref": "#/$defs/TargetEntry"
+          },
+          "title": "Targets",
+          "type": "array"
+        },
+        "workloads": {
+          "default": [],
+          "description": "Named benchmarks.",
+          "items": {
+            "$ref": "#/$defs/WorkloadEntry"
+          },
+          "title": "Workloads",
+          "type": "array"
+        },
+        "goals": {
+          "default": [],
+          "description": "Per-workload goals.",
+          "items": {
+            "$ref": "#/$defs/GoalEntry"
+          },
+          "title": "Goals",
+          "type": "array"
+        },
+        "constraints": {
+          "default": [],
+          "description": "What must not change.",
+          "items": {
+            "$ref": "#/$defs/ConstraintEntry"
+          },
+          "title": "Constraints",
+          "type": "array"
+        },
+        "how_to_run": {
+          "default": [],
+          "description": "Build, setup and reset.",
+          "items": {
+            "$ref": "#/$defs/HowToRunEntry"
+          },
+          "title": "How To Run",
+          "type": "array"
+        }
+      },
+      "required": [
+        "updated_at"
+      ],
+      "title": "ProjectModel",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where an entry came from.\n\nRaises\n------\npydantic.ValidationError\n    If a file path appears twice.",
+      "properties": {
+        "files": {
+          "description": "Files the entry was derived from, sorted by path.",
+          "items": {
+            "$ref": "#/$defs/FileHash"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "commands": {
+          "description": "Commands that produced it, as argv lists.",
+          "items": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "title": "Commands",
+          "type": "array"
+        },
+        "perfproof_version": {
+          "description": "Version of perfproof that derived it.",
+          "minLength": 1,
+          "title": "Perfproof Version",
+          "type": "string"
+        },
+        "derived_at": {
+          "description": "When it was derived, with time zone.",
+          "format": "date-time",
+          "title": "Derived At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "files",
+        "commands",
+        "perfproof_version",
+        "derived_at"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
     "QuarantinedTest": {
       "additionalProperties": false,
       "description": "A test whose result changed across the baseline runs.\n\nIt is flaky, so it is not used to judge the candidate. Lines only\nquarantined tests ran still count as unverified.\n\nRaises\n------\npydantic.ValidationError\n    If every baseline run gave the same result, which is not flaky.",
@@ -1649,6 +3436,95 @@
         "baseline_results"
       ],
       "title": "QuarantinedTest",
+      "type": "object"
+    },
+    "ReorderedEvent": {
+      "additionalProperties": false,
+      "description": "The agent ranked a hypothesis away from its cap order.\n\nRaises\n------\npydantic.ValidationError\n    If ``before`` names the hypothesis itself.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "reordered",
+          "default": "reordered",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "before": {
+          "description": "Hypothesis it is now ranked ahead of.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Before",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why.",
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "before",
+        "reason"
+      ],
+      "title": "ReorderedEvent",
       "type": "object"
     },
     "ResetSpec": {
@@ -1683,6 +3559,93 @@
         "timeout_seconds"
       ],
       "title": "ResetSpec",
+      "type": "object"
+    },
+    "RevalidatedEvent": {
+      "additionalProperties": false,
+      "description": "Evidence produced again on the current anchors.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "revalidated",
+          "default": "revalidated",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "anchors": {
+          "$ref": "#/$defs/Anchors",
+          "description": "The anchors now."
+        },
+        "what_differs": {
+          "description": "What differs from the stale version.",
+          "minLength": 1,
+          "title": "What Differs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "anchors",
+        "what_differs"
+      ],
+      "title": "RevalidatedEvent",
       "type": "object"
     },
     "RunRecord": {
@@ -2018,6 +3981,59 @@
       "title": "Sample",
       "type": "object"
     },
+    "ServiceSpec": {
+      "additionalProperties": false,
+      "description": "A service a workload needs while it runs.",
+      "properties": {
+        "name": {
+          "description": "Service name.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "command": {
+          "description": "Command that starts it.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "health_command": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command whose exit status 0 means it is ready; ``None`` when no\ncheck is known.",
+          "title": "Health Command"
+        },
+        "timeout_seconds": {
+          "description": "Time to wait for it to become ready, in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "command",
+        "timeout_seconds"
+      ],
+      "title": "ServiceSpec",
+      "type": "object"
+    },
     "SkippedCalls": {
       "additionalProperties": false,
       "description": "Calls to one function a differential check could not use.",
@@ -2050,6 +4066,336 @@
         "count"
       ],
       "title": "SkippedCalls",
+      "type": "object"
+    },
+    "SkippedEvent": {
+      "additionalProperties": false,
+      "description": "A step of the chain skipped, with the reason.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "skipped",
+          "default": "skipped",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "step": {
+          "description": "The step skipped; an observation is never skipped.",
+          "enum": [
+            "mechanism",
+            "prediction",
+            "falsification",
+            "implementation",
+            "outcome"
+          ],
+          "title": "Step",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why, such as why no cheap test was possible.",
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "step",
+        "reason"
+      ],
+      "title": "SkippedEvent",
+      "type": "object"
+    },
+    "StaleEvent": {
+      "additionalProperties": false,
+      "description": "An anchor changed, so the conclusion is on older code or data.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "hypothesis_id": {
+          "description": "Hypothesis the event belongs to.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "event_id": {
+          "description": "ID of this event, unique within its log.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "description": "When it was recorded, with time zone.",
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "session": {
+          "description": "Session that recorded it.",
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "corrects": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``event_id`` of the earlier event this one corrects; nothing is\nedited in place.",
+          "title": "Corrects"
+        },
+        "evidence": {
+          "default": [],
+          "description": "Evidence by path and content hash; at least one unless the event\nis a skip or a reorder.",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "event": {
+          "const": "stale",
+          "default": "stale",
+          "description": "Discriminator.",
+          "title": "Event",
+          "type": "string"
+        },
+        "anchor": {
+          "description": "Which anchor changed.",
+          "enum": [
+            "code",
+            "workload",
+            "project_entry"
+          ],
+          "title": "Anchor",
+          "type": "string"
+        },
+        "detail": {
+          "description": "What changed; the new hash is in the evidence.",
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "event_id",
+        "recorded_at",
+        "session",
+        "anchor",
+        "detail"
+      ],
+      "title": "StaleEvent",
+      "type": "object"
+    },
+    "TargetEntry": {
+      "additionalProperties": false,
+      "description": "A kind of code present in the project.",
+      "properties": {
+        "id": {
+          "description": "Entry ID, unique across the whole model.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "description": "Revision of this entry, 1 when created; every earlier revision is\nkept in the history.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "status": {
+          "description": "Exactly one of the four states of ``docs/discovery.md``.",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "stale",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "What the entry was derived from."
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set once the developer confirmed it; kept while it is stale."
+        },
+        "invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Invalidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The trigger, while ``stale``."
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "proposed",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Status to return to if revalidation finds no change; only while\n``stale``.",
+          "title": "Previous Status"
+        },
+        "retired_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it no longer applies; only when ``retired``.",
+          "title": "Retired Reason"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`MachineFingerprint.host_id` of the machine a hardware-bound goal\nor limit was set for; ``None`` when not hardware-bound.",
+          "title": "Host Id"
+        },
+        "kind": {
+          "const": "target",
+          "default": "target",
+          "description": "Discriminator.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_class": {
+          "description": "Which of the six release classes.",
+          "enum": [
+            "python_cpu",
+            "native",
+            "web_service",
+            "llm_serving",
+            "gpu_kernel",
+            "agentic"
+          ],
+          "title": "Target Class",
+          "type": "string"
+        },
+        "evidence": {
+          "description": "What it was detected from, in words; the files are in\n`provenance`.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "provenance",
+        "target_class",
+        "evidence"
+      ],
+      "title": "TargetEntry",
       "type": "object"
     },
     "TreeEnvironment": {
@@ -2410,6 +4756,175 @@
         "diagnostics"
       ],
       "title": "Verdict",
+      "type": "object"
+    },
+    "WorkloadEntry": {
+      "additionalProperties": false,
+      "description": "A named benchmark and whether it represents real use.",
+      "properties": {
+        "id": {
+          "description": "Entry ID, unique across the whole model.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "description": "Revision of this entry, 1 when created; every earlier revision is\nkept in the history.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "status": {
+          "description": "Exactly one of the four states of ``docs/discovery.md``.",
+          "enum": [
+            "proposed",
+            "confirmed",
+            "stale",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance",
+          "description": "What the entry was derived from."
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confirmation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set once the developer confirmed it; kept while it is stale."
+        },
+        "invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Invalidation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The trigger, while ``stale``."
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "proposed",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Status to return to if revalidation finds no change; only while\n``stale``.",
+          "title": "Previous Status"
+        },
+        "retired_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it no longer applies; only when ``retired``.",
+          "title": "Retired Reason"
+        },
+        "host_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`MachineFingerprint.host_id` of the machine a hardware-bound goal\nor limit was set for; ``None`` when not hardware-bound.",
+          "title": "Host Id"
+        },
+        "kind": {
+          "const": "workload",
+          "default": "workload",
+          "description": "Discriminator.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "description": "ID of the `TargetEntry` it runs against.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "source": {
+          "description": "Where the workload came from.",
+          "enum": [
+            "existing_benchmark",
+            "slow_test",
+            "entry_point",
+            "route_list",
+            "recorded_traffic",
+            "recorded_agent_run"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "command": {
+          "description": "Command that defines it, as an argv list.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "cwd": {
+          "description": "Working directory of ``command``, relative to the project; given,\nnever defaulted.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "spec_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`BenchmarkSpec.spec_hash` of its frozen spec; ``None`` while no\nspec has been written.",
+          "title": "Spec Hash"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "provenance",
+        "target_id",
+        "source",
+        "command",
+        "cwd"
+      ],
+      "title": "WorkloadEntry",
       "type": "object"
     }
   },

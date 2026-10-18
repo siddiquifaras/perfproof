@@ -8,8 +8,10 @@ or the CLI is one of them, so field names and meanings follow
 All models validate strictly: unknown fields are refused, values are
 not coerced between types, and floats must be finite. The root
 documents (`BenchmarkSpec`, `LockManifest`, `RunRecord`) carry a
-``schema_version``. The checked-in ``schema.json`` next to this module
-is the exported JSON Schema; regenerate it with
+``schema_version``; the project model and hypothesis documents
+(`ProjectModel`, `ProjectHistoryRecord` and the hypothesis events) carry
+their own, starting at 1. The checked-in ``schema.json`` next to this
+module is the exported JSON Schema; regenerate it with
 ``uv run python -m perfproof.schema > src/perfproof/schema.json``.
 
 The JSON Schema checks structure: field names, types, enums, numeric
@@ -32,11 +34,21 @@ A document that passes the JSON Schema can still be refused here.
 import hashlib
 import itertools
 import json
+import math
 import re
 import sys
 from collections.abc import Iterator, Mapping
 from types import MappingProxyType
-from typing import Annotated, Any, Final, Literal, Self, cast, get_args
+from typing import (
+    Annotated,
+    Any,
+    ClassVar,
+    Final,
+    Literal,
+    Self,
+    cast,
+    get_args,
+)
 
 from pydantic import (
     AfterValidator,
@@ -49,6 +61,7 @@ from pydantic import (
     PlainSerializer,
     Strict,
     StringConstraints,
+    TypeAdapter,
     computed_field,
     field_validator,
     model_validator,
@@ -58,55 +71,89 @@ from pydantic.json_schema import models_json_schema
 __all__ = [
     "DEFAULT_GUARDRAILS",
     "GATE_REASON",
+    "HYPOTHESIS_EVENT",
     "MODELS",
     "SCHEMA_VERSION",
     "AbsoluteLimit",
     "AllowanceSource",
+    "Anchors",
     "Arm",
     "BenchmarkSpec",
     "Budget",
     "CalibrationStatus",
+    "Cap",
+    "CodeAnchor",
     "CommandOutput",
+    "Confirmation",
+    "ConstraintEntry",
     "CorrectnessSpec",
     "DependencyLock",
     "Diagnostics",
     "Difference",
     "DifferentialCheck",
     "Direction",
+    "EntryRef",
+    "EvidenceRef",
+    "FalsificationEvent",
+    "FileHash",
     "GateName",
     "GateResult",
     "GateStatus",
+    "GoalBar",
+    "GoalEntry",
     "GpuInfo",
     "GuardrailResult",
     "GuardrailSpec",
     "GuardrailStatus",
     "Hotspot",
+    "HowToRunEntry",
+    "HypothesisEvent",
+    "HypothesisSchemaVersion",
+    "ImplementationEvent",
     "Interval",
+    "Invalidation",
     "LinkedLibrary",
     "LockManifest",
     "LockRole",
     "LockedFile",
     "LookSchedule",
     "MachineFingerprint",
+    "MeasuredSpeedup",
+    "MechanismEvent",
     "MetricKind",
     "MetricSpec",
+    "ObservationEvent",
     "Outcome",
+    "OutcomeEvent",
     "OutputCheck",
+    "PredictionEvent",
     "Procedure",
+    "ProjectEntry",
+    "ProjectHistoryRecord",
+    "ProjectModel",
+    "ProjectSchemaVersion",
+    "Provenance",
     "QuarantinedTest",
     "Reason",
+    "ReorderedEvent",
     "ResetSpec",
     "ResolutionSource",
+    "RevalidatedEvent",
     "Rule",
     "RunRecord",
     "RunWarning",
     "RuntimeKind",
     "Sample",
+    "ServiceSpec",
     "SkippedCalls",
+    "SkippedEvent",
+    "StaleEvent",
     "TargetClass",
+    "TargetEntry",
     "TreeEnvironment",
     "UnverifiedLines",
     "Verdict",
+    "WorkloadEntry",
     "json_schema",
     "json_schema_text",
 ]
@@ -275,6 +322,9 @@ _KNOWN_DIRECTION: Final[Mapping[str, Direction]] = MappingProxyType(
         "peak_memory": "lower_is_better",
         "peak_gpu_memory": "lower_is_better",
         "p99_latency": "lower_is_better",
+        "p50_latency": "lower_is_better",
+        "startup_time": "lower_is_better",
+        "cost_per_token": "lower_is_better",
         "throughput": "higher_is_better",
     }
 )
@@ -2406,6 +2456,914 @@ class RunRecord(_Model):
             raise ValueError(msg)
 
 
+ProjectSchemaVersion = Annotated[Literal[1], BeforeValidator(_exact_int)]
+"""Version of the project model and history formats, independent of
+`SCHEMA_VERSION`: these are new root documents, so they start their own
+count."""
+HypothesisSchemaVersion = Annotated[Literal[1], BeforeValidator(_exact_int)]
+"""Version of the hypothesis event format, independent of
+`SCHEMA_VERSION`."""
+EntryStatus = Literal["proposed", "confirmed", "stale", "retired"]
+EntryKind = Literal["target", "workload", "goal", "constraint", "how_to_run"]
+StaleTrigger = Literal[
+    "file_changed",
+    "command_failed",
+    "output_shape_changed",
+    "lockfile_changed",
+    "machine_differs",
+    "dependency_edited",
+    "perfproof_upgraded",
+]
+"""The invalidation triggers of ``docs/discovery.md``."""
+WorkloadSource = Literal[
+    "existing_benchmark",
+    "slow_test",
+    "entry_point",
+    "route_list",
+    "recorded_traffic",
+    "recorded_agent_run",
+]
+ConstraintKind = Literal[
+    "public_api",
+    "numeric_tolerance",
+    "target_hardware",
+    "forbidden_dependency",
+    "protected_file",
+]
+HistoryEvent = Literal[
+    "created",
+    "edited",
+    "confirmed",
+    "marked_stale",
+    "revalidated",
+    "reproposed",
+    "retired",
+]
+Bound = Annotated[float, Strict(), Field(ge=1)]
+"""An upper bound on a speedup; never below 1."""
+
+
+class FileHash(_Model):
+    """One file an entry was derived from."""
+
+    path: RelPath
+    """Path relative to the project root."""
+    sha256: Sha256Hex
+    """SHA-256 of the file's bytes."""
+
+
+class Provenance(_Model):
+    """Where an entry came from.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a file path appears twice.
+    """
+
+    files: tuple[FileHash, ...]
+    """Files the entry was derived from, sorted by path."""
+    commands: tuple[Argv, ...]
+    """Commands that produced it, as argv lists."""
+    perfproof_version: Text
+    """Version of perfproof that derived it."""
+    derived_at: AwareDatetime
+    """When it was derived, with time zone."""
+
+    @field_validator("files", mode="after")
+    @classmethod
+    def _sort_files(cls, files: tuple[FileHash, ...]) -> tuple[FileHash, ...]:
+        ordered = tuple(sorted(files, key=lambda f: f.path))
+        for a, b in itertools.pairwise(ordered):
+            if a.path == b.path:
+                msg = f"{a.path!r} appears more than once"
+                raise ValueError(msg)
+        return ordered
+
+
+class Confirmation(_Model):
+    """The developer's confirmation of an entry."""
+
+    session: Text
+    """Session the developer confirmed it in."""
+    confirmed_at: AwareDatetime
+    """When, with time zone."""
+
+
+class Invalidation(_Model):
+    """Why an entry became stale."""
+
+    trigger: StaleTrigger
+    """Which trigger fired."""
+    detail: Text
+    """What changed, such as the file path or command."""
+    detected_at: AwareDatetime
+    """When it was noticed, with time zone."""
+
+
+_ENTRY_OPTIONAL: Final = frozenset(
+    {
+        "confirmation",
+        "invalidation",
+        "previous_status",
+        "retired_reason",
+        "host_id",
+    }
+)
+
+
+class _Entry(_Model):
+    """Fields and status rules shared by every project model entry.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If the status disagrees with the fields it needs: ``proposed``
+        has no confirmation, invalidation or retirement; ``confirmed``
+        has a confirmation; ``stale`` has an invalidation and the
+        status it came from (``proposed`` or ``confirmed``), with a
+        confirmation exactly when that was ``confirmed``; ``retired``
+        has a reason and no invalidation.
+    """
+
+    id: Name
+    """Entry ID, unique across the whole model."""
+    version: PositiveInt = 1
+    """Revision of this entry, 1 when created; every earlier revision is
+    kept in the history."""
+    status: EntryStatus
+    """Exactly one of the four states of ``docs/discovery.md``."""
+    provenance: Provenance
+    """What the entry was derived from."""
+    confirmation: Confirmation | None = None
+    """Set once the developer confirmed it; kept while it is stale."""
+    invalidation: Invalidation | None = None
+    """The trigger, while ``stale``."""
+    previous_status: Literal["proposed", "confirmed"] | None = None
+    """Status to return to if revalidation finds no change; only while
+    ``stale``."""
+    retired_reason: Text | None = None
+    """Why it no longer applies; only when ``retired``."""
+    host_id: Text | None = None
+    """`MachineFingerprint.host_id` of the machine a hardware-bound goal
+    or limit was set for; ``None`` when not hardware-bound."""
+
+    @model_validator(mode="after")
+    def _check_status(self) -> Self:
+        s = self.status
+        if s == "stale":
+            if self.invalidation is None or self.previous_status is None:
+                msg = "a stale entry records its trigger and previous status"
+                raise ValueError(msg)
+            was_confirmed = self.previous_status == "confirmed"
+            if was_confirmed != (self.confirmation is not None):
+                msg = "a stale entry keeps its confirmation if it had one"
+                raise ValueError(msg)
+        else:
+            if self.invalidation is not None or self.previous_status:
+                msg = f"a {s} entry has no invalidation or previous status"
+                raise ValueError(msg)
+            if s == "confirmed" and self.confirmation is None:
+                msg = "a confirmed entry records who confirmed it"
+                raise ValueError(msg)
+            if s == "proposed" and self.confirmation is not None:
+                msg = "a proposed entry has no confirmation"
+                raise ValueError(msg)
+        if (s == "retired") != (self.retired_reason is not None):
+            msg = "a retired entry, and only it, records its reason"
+            raise ValueError(msg)
+        return self
+
+
+class TargetEntry(_Entry):
+    """A kind of code present in the project."""
+
+    kind: Literal["target"] = "target"
+    """Discriminator."""
+    target_class: TargetClass
+    """Which of the six release classes."""
+    evidence: tuple[Text, ...] = Field(min_length=1)
+    """What it was detected from, in words; the files are in
+    `provenance`."""
+
+
+class WorkloadEntry(_Entry):
+    """A named benchmark and whether it represents real use."""
+
+    kind: Literal["workload"] = "workload"
+    """Discriminator."""
+    target_id: Name
+    """ID of the `TargetEntry` it runs against."""
+    source: WorkloadSource
+    """Where the workload came from."""
+    command: Argv
+    """Command that defines it, as an argv list."""
+    cwd: RelDir
+    """Working directory of ``command``, relative to the project; given,
+    never defaulted."""
+    spec_hash: Sha256Hex | None = None
+    """`BenchmarkSpec.spec_hash` of its frozen spec; ``None`` while no
+    spec has been written."""
+
+
+class GoalBar(_Model):
+    """How much better counts as meeting a goal.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``ratio`` bar is not above 1.
+    """
+
+    kind: Literal["ratio", "absolute"]
+    """``ratio``: oriented ratio the candidate must reach, above 1
+    meaning faster. ``absolute``: value the metric must reach, in the
+    goal's unit."""
+    value: Positive
+    """The bar."""
+
+    @model_validator(mode="after")
+    def _check_ratio(self) -> Self:
+        if self.kind == "ratio" and self.value <= 1:
+            msg = "a ratio bar is above 1"
+            raise ValueError(msg)
+        return self
+
+
+class GoalEntry(_Entry):
+    """What faster means for one workload.
+
+    The goal's own fields have no defaults: each is given, or is
+    ``None`` with a reason in ``missing``, so a goal perfproof could not
+    establish stays unknown and is asked about.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``None`` field has no reason in ``missing`` or the reverse,
+        a known metric has the wrong direction, or a confirmed goal
+        leaves its metric, direction or unit unknown.
+    """
+
+    kind: Literal["goal"] = "goal"
+    """Discriminator."""
+    workload_id: Name
+    """ID of the `WorkloadEntry` the goal is for."""
+    metric: Code | None
+    """Metric name, in the namespace of `BenchmarkSpec.objective`."""
+    direction: Direction | None
+    """Whether smaller or larger is better."""
+    unit: Text | None
+    """Unit of the metric's values and of an absolute bar."""
+    bar: GoalBar | None
+    """The bar; ``None`` when the developer has not said."""
+    guardrails: tuple[GuardrailSpec, ...] | None
+    """Guardrails; ``None`` when not established, which differs from
+    an empty tuple (none wanted)."""
+    missing: ReasonMap = Field(default_factory=_FrozenMap)
+    """Why each field left ``None`` is unknown, keyed by field name."""
+
+    @model_validator(mode="after")
+    def _check_goal(self) -> Self:
+        _check_reasons(self, self.missing, _ENTRY_OPTIONAL)
+        if self.metric is not None and self.direction is not None:
+            _check_direction(self.metric, self.direction, "goal")
+        if self.status == "confirmed" and None in (
+            self.metric,
+            self.direction,
+            self.unit,
+        ):
+            msg = "a goal with an unknown metric, direction or unit is asked"
+            raise ValueError(msg)
+        return self
+
+
+class ConstraintEntry(_Entry):
+    """Something an optimization must not change.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``numeric_tolerance`` states only one of ``rtol`` and
+        ``atol`` (``0.0`` is a statement), another kind has either, a
+        ``target_hardware`` has no ``host_id``, or a ``protected_file``
+        subject is not a normalized relative path.
+    """
+
+    kind: Literal["constraint"] = "constraint"
+    """Discriminator."""
+    constraint: ConstraintKind
+    """What sort of constraint."""
+    subject: Text
+    """The API symbol, dependency, hardware description or path."""
+    rtol: NonNegative | None = None
+    """Relative tolerance of a ``numeric_tolerance``; stated together
+    with ``atol``."""
+    atol: NonNegative | None = None
+    """Absolute tolerance of a ``numeric_tolerance``; stated together
+    with ``rtol``."""
+
+    @model_validator(mode="after")
+    def _check_constraint(self) -> Self:
+        tolerance = (self.rtol, self.atol)
+        if self.constraint == "numeric_tolerance":
+            if None in tolerance:
+                msg = "a numeric_tolerance states both rtol and atol"
+                raise ValueError(msg)
+        elif tolerance != (None, None):
+            msg = "rtol and atol are set for numeric_tolerance, only"
+            raise ValueError(msg)
+        if self.constraint == "target_hardware" and self.host_id is None:
+            msg = "a target_hardware constraint names its host_id"
+            raise ValueError(msg)
+        if self.constraint == "protected_file":
+            _check_relative_path(self.subject)
+        return self
+
+
+class ServiceSpec(_Model):
+    """A service a workload needs while it runs."""
+
+    name: Name
+    """Service name."""
+    command: Argv
+    """Command that starts it."""
+    health_command: Argv | None = None
+    """Command whose exit status 0 means it is ready; ``None`` when no
+    check is known."""
+    timeout_seconds: Seconds
+    """Time to wait for it to become ready, in seconds."""
+
+
+class HowToRunEntry(_Entry):
+    """Build, setup, services and reset for a workload or the project.
+
+    Like `GoalEntry`, the fields have no defaults. An empty tuple says
+    none is needed; ``None`` says it is not established, with a reason
+    in ``missing``.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a ``None`` field has no reason in ``missing`` or the reverse.
+    """
+
+    kind: Literal["how_to_run"] = "how_to_run"
+    """Discriminator."""
+    workload_id: Name | None = None
+    """Workload it is for; ``None`` for the whole project."""
+    setup: tuple[Argv, ...] | None
+    """Setup commands, in order."""
+    build: tuple[Argv, ...] | None
+    """Build commands, in order."""
+    services: tuple[ServiceSpec, ...] | None
+    """Services the workload needs."""
+    reset: ResetSpec | Literal["none_needed"] | None
+    """Command run between rounds; ``"none_needed"`` when the workload
+    needs no reset."""
+    missing: ReasonMap = Field(default_factory=_FrozenMap)
+    """Why each field left ``None`` is not established, keyed by field
+    name."""
+
+    @model_validator(mode="after")
+    def _check_missing(self) -> Self:
+        _check_reasons(self, self.missing, _ENTRY_OPTIONAL | {"workload_id"})
+        return self
+
+
+ProjectEntry = Annotated[
+    TargetEntry | WorkloadEntry | GoalEntry | ConstraintEntry | HowToRunEntry,
+    Field(discriminator="kind"),
+]
+"""Any entry of the project model."""
+
+
+class ProjectModel(_Model):
+    """The current project model, the content of ``project.json``.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If an ID appears twice, a workload names a missing target, or a
+        goal or how-to-run names a missing workload.
+    """
+
+    schema_version: ProjectSchemaVersion = 1
+    """Version of this format."""
+    updated_at: AwareDatetime
+    """When the model was last written, with time zone."""
+    targets: tuple[TargetEntry, ...] = ()
+    """Kinds of code present."""
+    workloads: tuple[WorkloadEntry, ...] = ()
+    """Named benchmarks."""
+    goals: tuple[GoalEntry, ...] = ()
+    """Per-workload goals."""
+    constraints: tuple[ConstraintEntry, ...] = ()
+    """What must not change."""
+    how_to_run: tuple[HowToRunEntry, ...] = ()
+    """Build, setup and reset."""
+
+    @model_validator(mode="after")
+    def _check_links(self) -> Self:
+        every = (
+            *self.targets,
+            *self.workloads,
+            *self.goals,
+            *self.constraints,
+            *self.how_to_run,
+        )
+        ids = [e.id for e in every]
+        if len(set(ids)) != len(ids):
+            msg = "an entry ID appears more than once"
+            raise ValueError(msg)
+        targets = {t.id for t in self.targets}
+        workloads = {w.id for w in self.workloads}
+        for w in self.workloads:
+            if w.target_id not in targets:
+                msg = f"workload {w.id} names a missing target {w.target_id}"
+                raise ValueError(msg)
+        refs = [g.workload_id for g in self.goals]
+        refs += [h.workload_id for h in self.how_to_run if h.workload_id]
+        for ref in refs:
+            if ref not in workloads:
+                msg = f"a missing workload {ref} is named"
+                raise ValueError(msg)
+        return self
+
+
+_HISTORY_STATUS: Final[Mapping[str, frozenset[str]]] = MappingProxyType(
+    {
+        "confirmed": frozenset({"confirmed"}),
+        "marked_stale": frozenset({"stale"}),
+        "reproposed": frozenset({"proposed"}),
+        "retired": frozenset({"retired"}),
+        "revalidated": frozenset({"proposed", "confirmed"}),
+    }
+)
+
+
+class ProjectHistoryRecord(_Model):
+    """One line of ``project.history.jsonl``: an entry as it was.
+
+    Appended whenever an entry changes, so no earlier version is lost.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If the event contradicts the entry's status: ``confirmed``
+        needs a confirmed entry, ``marked_stale`` a stale one,
+        ``reproposed`` a proposed one, ``retired`` a retired one, and
+        ``revalidated`` one back at ``proposed`` or ``confirmed``.
+    """
+
+    schema_version: ProjectSchemaVersion = 1
+    """Version of this format."""
+    recorded_at: AwareDatetime
+    """When the line was written, with time zone."""
+    event: HistoryEvent
+    """What happened to the entry."""
+    entry: ProjectEntry
+    """The entry's content at that revision."""
+    note: Str = ""
+    """Free text, such as what a revalidation found."""
+
+    @model_validator(mode="after")
+    def _check_event(self) -> Self:
+        allowed = _HISTORY_STATUS.get(self.event)
+        if allowed is not None and self.entry.status not in allowed:
+            msg = (
+                f"a {self.event} line holds an entry that is "
+                f"{' or '.join(sorted(allowed))}, not {self.entry.status}"
+            )
+            raise ValueError(msg)
+        return self
+
+
+EvidenceKind = Literal[
+    "measurement",
+    "profile",
+    "captured_calls",
+    "cheap_test",
+    "diff",
+    "run_record",
+    "other",
+]
+FalsificationResult = Literal["supported", "refuted", "inconclusive"]
+CheapTest = Literal[
+    "stage_timing",
+    "count",
+    "microbenchmark",
+    "stub_out",
+    "toggle_setting",
+    "other",
+]
+SkippableStep = Literal[
+    "mechanism", "prediction", "falsification", "implementation", "outcome"
+]
+HypothesisStaleness = Literal["code", "workload", "project_entry"]
+
+
+class EvidenceRef(_Model):
+    """A piece of evidence, read again later by its path and hash."""
+
+    kind: EvidenceKind
+    """What sort of evidence."""
+    path: RelPath
+    """Path relative to the project root."""
+    sha256: Sha256Hex
+    """SHA-256 of the file's bytes when recorded."""
+
+
+class CodeAnchor(_Model):
+    """The code a hypothesis is about."""
+
+    file: RelPath
+    """Source file, relative to the project root."""
+    qualified_name: Text
+    """Qualified name of the function or class, so a move within its
+    file keeps the match."""
+    source_hash: Sha256Hex
+    """SHA-256 of that definition's source at observation time."""
+
+
+class EntryRef(_Model):
+    """A project model entry a hypothesis relied on."""
+
+    kind: EntryKind
+    """Which kind of entry."""
+    id: Name
+    """The entry's ID."""
+    version: PositiveInt
+    """Revision relied on; another one makes the hypothesis stale."""
+
+
+class Anchors(_Model):
+    """What a hypothesis was about, so a change can make it stale."""
+
+    workload: Name
+    """ID of the workload, also the log file's name."""
+    workload_spec_hash: Sha256Hex
+    """`BenchmarkSpec.spec_hash` of that workload when observed."""
+    code: tuple[CodeAnchor, ...] = ()
+    """Code it is about; empty for a hypothesis about settings."""
+    entries: tuple[EntryRef, ...] = ()
+    """Project model entries it used."""
+
+
+class Cap(_Model):
+    """An upper bound on the gain, from a model of the workload.
+
+    Never a speedup: it is stored under ``upper_bound``, which no
+    measured field accepts, and `MeasuredSpeedup` takes no bound.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If an ``amdahl`` cap lacks ``share``, has ``share`` of 1 or more
+        or an ``upper_bound`` other than ``1 / (1 - share)``, or any
+        other kind carries a ``share``.
+    """
+
+    kind: Literal["amdahl", "model"]
+    """``amdahl``: ``1 / (1 - p)`` for a runtime share ``p``. ``model``:
+    another model of the workload, derived in ``derivation``."""
+    share: Fraction | None = None
+    """Share ``p`` of runtime, as a fraction, for ``amdahl``."""
+    upper_bound: Bound
+    """The bound, a dimensionless ratio not below 1."""
+    derivation: Text
+    """How the bound follows from the evidence."""
+
+    @model_validator(mode="after")
+    def _check_bound(self) -> Self:
+        if (self.kind == "amdahl") != (self.share is not None):
+            msg = "share is set for an amdahl cap, only"
+            raise ValueError(msg)
+        if self.share is not None:
+            if self.share >= 1:
+                msg = "an amdahl share is below 1"
+                raise ValueError(msg)
+            if not math.isclose(
+                self.upper_bound, 1 / (1 - self.share), rel_tol=1e-9
+            ):
+                msg = "upper_bound is not 1 / (1 - share)"
+                raise ValueError(msg)
+        return self
+
+
+class MeasuredSpeedup(_Model):
+    """A speedup measured by prove, with its interval."""
+
+    estimate: Ratio
+    """Oriented ratio, above 1 meaning the candidate is faster."""
+    interval: Interval
+    """Interval of the ratio."""
+
+
+class _EventBase(_Model):
+    """Fields shared by every hypothesis event.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If an event that needs evidence has none, or it corrects
+        itself.
+    """
+
+    _needs_evidence: ClassVar[bool] = True
+
+    schema_version: HypothesisSchemaVersion = 1
+    """Version of this format."""
+    hypothesis_id: Name
+    """Hypothesis the event belongs to."""
+    event_id: Name
+    """ID of this event, unique within its log."""
+    recorded_at: AwareDatetime
+    """When it was recorded, with time zone."""
+    session: Text
+    """Session that recorded it."""
+    corrects: Name | None = None
+    """``event_id`` of the earlier event this one corrects; nothing is
+    edited in place."""
+    evidence: tuple[EvidenceRef, ...] = ()
+    """Evidence by path and content hash; at least one unless the event
+    is a skip or a reorder."""
+
+    @model_validator(mode="after")
+    def _check_base(self) -> Self:
+        if self._needs_evidence and not self.evidence:
+            msg = "an event without evidence hashes is refused"
+            raise ValueError(msg)
+        if self.corrects == self.event_id:
+            msg = "an event cannot correct itself"
+            raise ValueError(msg)
+        return self
+
+
+class ObservationEvent(_EventBase):
+    """Step 1: the evidence a hypothesis starts from.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``retry_of`` and ``what_differs`` are not set together.
+    """
+
+    event: Literal["observation"] = "observation"
+    """Discriminator."""
+    anchors: Anchors
+    """What the hypothesis is about."""
+    retry_of: Name | None = None
+    """Refuted hypothesis this retries on different code."""
+    what_differs: Text | None = None
+    """What differs from the refuted attempt; set for a retry, only."""
+
+    @model_validator(mode="after")
+    def _check_retry(self) -> Self:
+        if (self.retry_of is None) != (self.what_differs is None):
+            msg = "a retry, and only a retry, says what differs"
+            raise ValueError(msg)
+        return self
+
+
+class MechanismEvent(_EventBase):
+    """Step 2: why the cost exists, as a claim that could be false."""
+
+    event: Literal["mechanism"] = "mechanism"
+    """Discriminator."""
+    claim: Text
+    """The mechanism."""
+    would_be_false_if: Text
+    """An observation that would show the claim false."""
+
+
+class PredictionEvent(_EventBase):
+    """Step 3: the gain cap and what the cheap test should show."""
+
+    event: Literal["prediction"] = "prediction"
+    """Discriminator."""
+    cap: Cap
+    """Upper bound on the gain; not a speedup."""
+    expect_if_true: Text
+    """What the cheap test shows if the mechanism is right."""
+    expect_if_false: Text
+    """What it shows if the mechanism is wrong."""
+
+
+class FalsificationEvent(_EventBase):
+    """Step 4: the cheap test that was run and its result."""
+
+    event: Literal["falsification"] = "falsification"
+    """Discriminator."""
+    test: CheapTest
+    """Kind of cheap test."""
+    description: Text
+    """What was run."""
+    result: FalsificationResult
+    """Whether the test supported or refuted the mechanism."""
+
+
+class ImplementationEvent(_EventBase):
+    """Step 5: the candidate change.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``diff_hash`` is not the hash of evidence of kind ``diff``.
+    """
+
+    event: Literal["implementation"] = "implementation"
+    """Discriminator."""
+    diff_hash: Sha256Hex
+    """SHA-256 of the candidate's diff."""
+    worktree: Text
+    """Worktree the candidate lives in."""
+    approach: Text
+    """The approach in the agent's words."""
+    override_reason: Text | None = None
+    """Why a hypothesis its cheap test refuted is implemented anyway."""
+
+    @model_validator(mode="after")
+    def _check_diff(self) -> Self:
+        if self.diff_hash not in {
+            e.sha256 for e in self.evidence if e.kind == "diff"
+        }:
+            msg = "diff_hash is not the hash of evidence of kind diff"
+            raise ValueError(msg)
+        return self
+
+
+class OutcomeEvent(_EventBase):
+    """Step 6: the prove verdict next to the prediction.
+
+    Mirrors `Verdict`: a gate verdict (rule 1) and the resolution stop
+    carry no speedup, rules 2 and 3 carry an estimate and interval,
+    rule 5 carries one unless the budget ended before the first look,
+    and the interval sits on the side of ``bar`` the rule needs.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``run_record_hash`` is not the hash of evidence of kind
+        ``run_record``, ``rule``, ``verdict``, ``reason`` and ``gate``
+        do not agree as in `Verdict`, a rule 1 outcome carries a
+        speedup, a rule 2, 3 or 5 outcome lacks one, a rule 2 interval
+        does not lie above ``bar`` (``L > bar``), a rule 3 interval does
+        not lie at or below it (``U <= bar``).
+    """
+
+    event: Literal["outcome"] = "outcome"
+    """Discriminator."""
+    verdict: Outcome
+    """Prove's outcome."""
+    reason: Reason
+    """Prove's reason."""
+    rule: Rule
+    """The decision rule that decided."""
+    gate: GateName | None = None
+    """The failed gate, for rule 1; ``None`` otherwise."""
+    calibration: CalibrationStatus
+    """Whether the procedure was calibrated for the target class."""
+    bar: Bound
+    """The bar the comparison used, ``1 + min_effect``, as an oriented
+    ratio."""
+    run_record_hash: Sha256Hex
+    """SHA-256 of the run record file."""
+    speedup: MeasuredSpeedup | None = None
+    """The measured effect from the verdict: none for a gate verdict or
+    the resolution stop, present for every other outcome."""
+
+    @model_validator(mode="after")
+    def _check_run(self) -> Self:
+        if self.run_record_hash not in {
+            e.sha256 for e in self.evidence if e.kind == "run_record"
+        }:
+            msg = (
+                "run_record_hash is not the hash of evidence of kind "
+                "run_record"
+            )
+            raise ValueError(msg)
+        allowed = _RULE_OUTCOMES[self.rule]
+        if (self.verdict, self.reason) not in allowed:
+            msg = (
+                f"rule {self.rule} gives one of {sorted(allowed)}, not "
+                f"{self.verdict} {self.reason}"
+            )
+            raise ValueError(msg)
+        self._check_gate()
+        self._check_speedup()
+        return self
+
+    def _check_gate(self) -> None:
+        gate_verdict = self.rule == 1 and self.verdict != "INCONCLUSIVE"
+        if gate_verdict != (self.gate is not None):
+            msg = "a gate is named for a rule 1 gate verdict, and only then"
+            raise ValueError(msg)
+        if self.gate is not None and GATE_REASON[self.gate] != self.reason:
+            msg = f"the {self.gate} gate gives reason {GATE_REASON[self.gate]}"
+            raise ValueError(msg)
+
+    def _check_speedup(self) -> None:
+        if self.rule == 1:
+            if self.speedup is not None:
+                msg = f"a rule 1 {self.reason} outcome carries no speedup"
+                raise ValueError(msg)
+            return
+        if self.speedup is None:
+            # Rule 5 can end with no interval: a budget spent before the
+            # first look gives INCONCLUSIVE with nothing to record.
+            if self.rule == 5:
+                return
+            msg = f"a rule {self.rule} outcome needs an estimate and interval"
+            raise ValueError(msg)
+        interval = self.speedup.interval
+        if self.rule == 2 and not interval.lower > self.bar:
+            msg = "a rule 2 interval lies above the bar (L > bar)"
+            raise ValueError(msg)
+        if self.rule == 3 and not interval.upper <= self.bar:
+            msg = "a rule 3 interval lies at or below the bar (U <= bar)"
+            raise ValueError(msg)
+
+
+class SkippedEvent(_EventBase):
+    """A step of the chain skipped, with the reason."""
+
+    _needs_evidence: ClassVar[bool] = False
+
+    event: Literal["skipped"] = "skipped"
+    """Discriminator."""
+    step: SkippableStep
+    """The step skipped; an observation is never skipped."""
+    reason: Text
+    """Why, such as why no cheap test was possible."""
+
+
+class ReorderedEvent(_EventBase):
+    """The agent ranked a hypothesis away from its cap order.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``before`` names the hypothesis itself.
+    """
+
+    _needs_evidence: ClassVar[bool] = False
+
+    event: Literal["reordered"] = "reordered"
+    """Discriminator."""
+    before: Name
+    """Hypothesis it is now ranked ahead of."""
+    reason: Text
+    """Why."""
+
+    @model_validator(mode="after")
+    def _check_before(self) -> Self:
+        if self.before == self.hypothesis_id:
+            msg = "a hypothesis cannot be ranked ahead of itself"
+            raise ValueError(msg)
+        return self
+
+
+class StaleEvent(_EventBase):
+    """An anchor changed, so the conclusion is on older code or data."""
+
+    event: Literal["stale"] = "stale"
+    """Discriminator."""
+    anchor: HypothesisStaleness
+    """Which anchor changed."""
+    detail: Text
+    """What changed; the new hash is in the evidence."""
+
+
+class RevalidatedEvent(_EventBase):
+    """Evidence produced again on the current anchors."""
+
+    event: Literal["revalidated"] = "revalidated"
+    """Discriminator."""
+    anchors: Anchors
+    """The anchors now."""
+    what_differs: Text
+    """What differs from the stale version."""
+
+
+HypothesisEvent = Annotated[
+    ObservationEvent
+    | MechanismEvent
+    | PredictionEvent
+    | FalsificationEvent
+    | ImplementationEvent
+    | OutcomeEvent
+    | SkippedEvent
+    | ReorderedEvent
+    | StaleEvent
+    | RevalidatedEvent,
+    Field(discriminator="event"),
+]
+"""One line of ``.perfproof/hypotheses/<workload>.jsonl``."""
+HYPOTHESIS_EVENT: Final[TypeAdapter[HypothesisEvent]] = TypeAdapter(
+    HypothesisEvent
+)
+"""Parses one hypothesis event line into its model."""
 MODELS: Final[tuple[type[BaseModel], ...]] = (
     MetricSpec,
     OutputCheck,
@@ -2438,6 +3396,35 @@ MODELS: Final[tuple[type[BaseModel], ...]] = (
     LinkedLibrary,
     TreeEnvironment,
     RunRecord,
+    FileHash,
+    Provenance,
+    Confirmation,
+    Invalidation,
+    TargetEntry,
+    WorkloadEntry,
+    GoalBar,
+    GoalEntry,
+    ConstraintEntry,
+    ServiceSpec,
+    HowToRunEntry,
+    ProjectModel,
+    ProjectHistoryRecord,
+    EvidenceRef,
+    CodeAnchor,
+    EntryRef,
+    Anchors,
+    Cap,
+    MeasuredSpeedup,
+    ObservationEvent,
+    MechanismEvent,
+    PredictionEvent,
+    FalsificationEvent,
+    ImplementationEvent,
+    OutcomeEvent,
+    SkippedEvent,
+    ReorderedEvent,
+    StaleEvent,
+    RevalidatedEvent,
 )
 """Every public model, in the order they appear in the JSON Schema."""
 
