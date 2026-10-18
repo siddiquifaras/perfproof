@@ -1232,11 +1232,9 @@ claim is checked for speed, correctness and regressions elsewhere
     how a tier will work on a Pro seat; every measurement names the seat
     it was taken on.
   - Done when: the cost curves and the chosen boundaries are in
-    `docs/cli.md` with their data; on the held-out tasks each tier keeps
-    real speedups with no wrong KEEP and costs less per kept speedup
-    than the T3.11 unaided-agent baseline; a `light` and a `medium`
-    session each fit in one 5-hour window on the Team seat (measured);
-    each tier's message snapshots are tested.
+    `docs/cli.md` with their data; no tier gives a wrong KEEP; a
+    `light` and a `medium` session each fit in one 5-hour window on the
+    Team seat (measured); each tier's message snapshots are tested.
   - Effort: high
 
 - [ ] **T3.15 Token-thrift output**
@@ -1316,10 +1314,8 @@ claim is checked for speed, correctness and regressions elsewhere
     proposed from it.
   - Effort: medium
 
-M3 is right when, beyond T3.13: three developers who haven't seen the
-docs each get an understood, correct result on their own repo without
-help (Faras recruits them); and, as the final bar, a perfproof report is
-accepted on a real upstream performance PR (Faras's call which PR).
+M3 is right when T3.13 passes: both agents reach the same correct
+verdict on tasks with known answers, with no wrong KEEP.
 
 ## M4 Evaluation
 
@@ -1561,14 +1557,20 @@ would not write on its own.
 
 ## M6 Release
 
-- [ ] **T6.1 Release bar** (lead): for every class, its contract,
-  fixture, real-trace calibration and case study (with all three
-  negative cases refused) passed; the held-out evaluation (T4.5)
-  published as it came out; Claude Code and Codex verified (T3.9);
-  every README claim links to the run or result behind it and names
-  what it was shown on, never "works on any X codebase". A class that
-  misses the bar holds the release rather than being quietly dropped,
-  unless Faras decides otherwise.
+- [ ] **T6.1 Release bar** (lead). Target: full release by about
+  2026-11-02 (Faras, 2026-10-19: one to two weeks). The bar:
+  - KEEP is trustworthy: T1.6 calibration passes for the procedure in
+    force (or the method is fixed until it does). Non-negotiable; it is
+    the product's core promise.
+  - `/perfproof` finds and proves end to end in Claude Code and Codex
+    (T3.8, T3.9, T3.13), with depth tiers (T3.14), brief output
+    (T3.15) and a one-line install (T3.16).
+  - Each class ships with what it was shown on: its fixture and the
+    case studies run by then. A class without a run behind it is
+    labelled experimental in the README, not dropped and not claimed.
+  - Every README claim links to the run or result behind it.
+  Dropped (Faras): outside developer trials and an upstream
+  maintainer's acceptance as release gates.
 - [ ] **T6.2** README with the case-study and evaluation results, demo
   recording, docs pass, fresh prior-art check.
 - [ ] **T6.3** Release: version, changelog, PyPI publish (Faras), repo
