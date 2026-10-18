@@ -143,18 +143,26 @@ hypothesis records that its outcome describes an earlier version.
 **Measurement angles.** The measurements are made by the CLI; which
 angles to try, and in what order, is the playbook's checklist:
 
-| Angle | What it finds | Evidence |
-|---|---|---|
-| CPU hotspots | Functions that dominate CPU time | `perfproof profile` on folded stacks |
-| Waiting, not computing | Time lost to I/O, locks, the GIL or network calls | Gap between wall time and CPU time; off-CPU profiles. CPU time is summed over every thread, so an idle thread pool that spins (OpenBLAS under NumPy on Linux) can push it above wall time and hide the gap; check the off-CPU profile when CPU exceeds wall |
-| Repeated identical work | The same call with the same arguments, again and again | Calls captured by the differential checks |
-| Growth with input size | Code that gets worse than linear as inputs grow | `perfproof measure --sizes` |
-| Startup and imports | Slow starts and cold paths | `python -X importtime`, startup timing |
-| Allocation churn | Objects created and thrown away in hot paths | Allocation profiles |
-| Database patterns | N+1 queries, missing batching | Queries counted per request |
-| Serialization | Time spent encoding and decoding | Stage timing in service workloads |
-| GPU idle time | Data loading, tiny kernels, host-to-device copies | GPU timelines |
-| Settings | Batch sizes, thread counts, flags, backends | `perfproof measure --set`, then `perfproof confirm` across settings |
+| Angle | What it finds | Evidence | Seen in classified diffs (counts, not rates) |
+|---|---|---|---|
+| CPU hotspots | Functions that dominate CPU time | `perfproof profile` on folded stacks | n 22 (draw 13): 14 landed, 4 reverted, 1 regression. Kinds: codegen 11 (native 8, gpu 3), cheaper primitive 7, per-element loop 4 |
+| Waiting, not computing | Time lost to I/O, locks, the GIL or network calls | Gap between wall time and CPU time; off-CPU profiles. CPU time is summed over every thread, so an idle thread pool that spins (OpenBLAS under NumPy on Linux) can push it above wall time and hide the gap; check the off-CPU profile when CPU exceeds wall | n 8 (draw 2): 4 landed, 2 reverted, 1 regression. serialized 5, repeated I/O 3, lock contention 0 |
+| Repeated identical work | The same call with the same arguments, again and again | Calls captured by the differential checks | n 19 (draw 7): 13 landed, 5 reverted, 1 regression |
+| Skippable work | Work whose result the path does not use, or that a fast path, early exit, pushdown or lazy branch could skip | The "what if this were free?" cheap test: workload time with the stage stubbed out; rows scanned against rows returned; share of calls whose result is discarded | n 16 (draw 8): 9 landed, 6 reverted, 1 regression. 2 of the 6 reverts were for broken behaviour and 4 give no reason. Needs an edge-case oracle |
+| Growth with input size | Code that gets worse than linear as inputs grow | `perfproof measure --sizes` | n 6 (draw 4): 5 landed, 1 reverted. quadratic 3, wrong data structure or algorithm family 3 |
+| Startup and imports | Slow starts and cold paths | `python -X importtime`, startup timing | n 4 (draw 4): 4 landed. All lazy imports |
+| Allocation churn | Objects created and thrown away in hot paths | Allocation profiles | n 10 (draw 2): 5 landed, 3 regression, 2 not submitted. 3 of the 8 regressions in the sample were copies or GC cost; 2 agent attempts here gained nothing or lost (T3.11) |
+| Database patterns | N+1 queries, missing batching | Queries counted per request | n 6 (draw 2): 3 landed, 1 reverted, 2 not submitted. Fewer queries was not faster in one agent run (T3.11 X3) |
+| Serialization | Time spent encoding and decoding | Stage timing in service workloads | n 0 as a primary kind. 2 parser changes (serde_json `\u` escapes, pandas integer parsing) were filed under codegen and cheaper primitive |
+| GPU idle time | Data loading, tiny kernels, host-to-device copies | GPU timelines | n 11 (draw 4): 7 landed, 3 reverted, 1 not submitted. Fusion and launch overhead; serving 6, gpu 4, python 1 |
+| Bandwidth against peak (thin evidence) | Kernels and loops that move bytes slower than the device or memcpy can | Achieved bytes per second over device peak; sectors per request and L2 hit rate (Nsight Compute); roofline position | n 4 (draw 4): 4 landed. Thin: vector or coalesced loads, loop order, L2 locality |
+| Settings | Batch sizes, thread counts, flags, backends | `perfproof measure --set`, then `perfproof confirm` across settings | n 11 (draw 3): 8 landed, 2 reverted, 1 regression. settings and backend selection 7, serial where parallel 4 |
+
+The counts come from 126 real performance changes classified in
+`studies/agent-inefficiencies/` (one reader; landed changes are a
+random draw plus a keyword supplement, reverted ones the full
+population), so they show which mechanisms occur, not how often an
+angle pays off.
 
 **Code reasoning**, by the agent, guided by the target's playbook:
 expensive abstractions, redundant work, algorithmic alternatives,
