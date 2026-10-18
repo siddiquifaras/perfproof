@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `e6cd1a8` | T2.14 coverage gate merged (PR #26), squash, after three review rounds (five false passes fixed: clause-exact deletion siting, lambda entry arcs, long-lived child lifetimes, untracked files listed before any run, `git diff --text`; parser failures fail closed; only judged test ids count). Reviewer PASS on code at `822793d` (8 of 8 mutations caught), worker /verify (3702 passed) and Linux (3699 passed) there; lead merged main (docs-only delta) into the head. Done-when: covered change, unreached branch, quarantined-only, deleted line, non-Python change without opt-in, each tested |
 | `39d10d7` | T3.10 hand-runs on frames2py and picolm merged (PR #27), squash. Reviews found every number traced to logs and records; three wording rounds removed verdict language from uncalibrated INCONCLUSIVE results; the lead made the last wording fixes and merged main. Docs only, under `studies/hand-runs/` |
 | `8edc142` | T3.10 hand-runs on NetBox merged (PR #25), squash. Same pattern: every number traced; overclaiming removed over three rounds; lead fixed the last items (estimates labelled, query counts instead of timings, `~` paths) and merged main. Docs only |
 | `6c5e4aa` | T2.18 schema 3 merged (PR #21), squash, after three review rounds (resolution stop carries no estimate or interval; a capped differential count labelled a bound; repository URLs refuse any user part on web schemes, plain login names only for ssh and scp); reviewer PASS at `b4f9cfc` (rounds 2-3 narrow, Sonnet), worker /verify (3669 passed) and Linux check (3666 passed) on that head, which contains main `d115c42`. Done-when: 22 refusals and fields each caught by a test (mutation probe), schema.json regenerated, the runtime gate reads `runtime_kind` |
@@ -130,7 +131,6 @@ playbooks (M5 intro).
 
 | Piece | Branch / worktree | Where it stopped | Next |
 |---|---|---|---|
-| PR #26 T2.14 coverage gate | `task/t2.14-coverage-gate`, `.claude/worktrees/agent-a519b3f94416597c1` (head 822793d, main 27b65e2 merged) | Snapshot untracked files before any run, so the gate's own leftovers (`__pycache__`) never count; its test; final checks | Narrow re-review of the untracked rule, then merge |
 | T2.19 runner follow-ups | `task/t2.19-runner`, `.claude/worktrees/agent-a0a873c1036fbd37a` (85d2733, committed, not pushed, no PR) | Mutation checks of the new tests, overhead re-measure, checks, push, PR | Review, merge |
 | T4.2 labeller | `task/t4.2-labeller`, `.claude/worktrees/agent-ae559ea2ecf238552` (a0d94a1; main merged uncommitted?) | README total-hours estimate for the CCX13, Linux check, push, PR | Review; then tell Faras to create the Hetzner CCX13 (approved, $5 cap) |
 | T1.6 calibration | `task/t1.6-calibration`, `.claude/worktrees/agent-ad272fa48b82d2ed9` (staged, uncommitted: montecarlo.py, run_calibration.py, two result CSVs, bootstrap.py) | The CI-subset test file; N1 decision; results table in method.md; merge main (schema 3) | reviewer + stats-auditor, merge |

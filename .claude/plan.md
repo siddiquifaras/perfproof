@@ -890,7 +890,7 @@ Mac and on Linux CI, with decoys that must be refused.
     running during measured rounds.
   - Effort: high
 
-- [ ] **T2.14 Coverage gate**
+- [x] **T2.14 Coverage gate** (siddiquifaras/perfproof#26, `e6cd1a8`; follow-ups: differential replays under coverage, judged ids from `SuiteComparison`, a gitignored candidate `.py` is not judged)
   - Owns: `src/perfproof/bench/coverage_gate.py`,
     `tests/bench/test_coverage_gate.py`
   - Needs: T2.12, T2.4, T2.13
@@ -1001,8 +1001,8 @@ Mac and on Linux CI, with decoys that must be refused.
 
 ## M3 Agent workflow
 
-Starts after the M2 exit, except T3.10 and T3.11, which need only the
-current CLI and reading and run now. Turns the proving core into the
+Runs alongside M2 to meet the release target (Faras, 2026-10-19);
+each task still waits for the tasks it needs. Turns the proving core into the
 `/perfproof` workflow in `docs/cli.md`.
 
 Users mostly type `/perfproof`, sometimes with a line of context
