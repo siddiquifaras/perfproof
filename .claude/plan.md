@@ -1065,7 +1065,7 @@ claim is checked for speed, correctness and regressions elsewhere
     evidence asked, each row linked to its source.
   - Effort: medium
 
-- [ ] **T3.12 Skill contract**
+- [x] **T3.12 Skill contract** (siddiquifaras/perfproof#32, `a10063d`; for T3.8: rule 8's "old time divided by new time" assumes lower is better)
   - Owns: `docs/skill.md`
   - Needs: T3.10, T3.11
   - Do: from that material, every input (none, free text, a file or
