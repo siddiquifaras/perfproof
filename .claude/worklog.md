@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `252bea1` | T3.11 perf PR and unaided-agent study merged (PR #28), squash: 10 PRs (7 merged, 3 closed; 2 reverts) and 7 agent runs scored. Review re-fetched every PR and checked about 70 run values against the logs; one fix round corrected a misread quote, P4 and P7 figures, X3 summary, numbers with no surviving record (now labelled), X2 setup difference, C4 ranking consistency; lead spot-checked the fixes. Docs only |
 | `e6cd1a8` | T2.14 coverage gate merged (PR #26), squash, after three review rounds (five false passes fixed: clause-exact deletion siting, lambda entry arcs, long-lived child lifetimes, untracked files listed before any run, `git diff --text`; parser failures fail closed; only judged test ids count). Reviewer PASS on code at `822793d` (8 of 8 mutations caught), worker /verify (3702 passed) and Linux (3699 passed) there; lead merged main (docs-only delta) into the head. Done-when: covered change, unreached branch, quarantined-only, deleted line, non-Python change without opt-in, each tested |
 | `39d10d7` | T3.10 hand-runs on frames2py and picolm merged (PR #27), squash. Reviews found every number traced to logs and records; three wording rounds removed verdict language from uncalibrated INCONCLUSIVE results; the lead made the last wording fixes and merged main. Docs only, under `studies/hand-runs/` |
 | `8edc142` | T3.10 hand-runs on NetBox merged (PR #25), squash. Same pattern: every number traced; overclaiming removed over three rounds; lead fixed the last items (estimates labelled, query counts instead of timings, `~` paths) and merged main. Docs only |
@@ -134,7 +135,6 @@ playbooks (M5 intro).
 | T2.19 runner follow-ups | `task/t2.19-runner`, `.claude/worktrees/agent-a0a873c1036fbd37a` (85d2733, committed, not pushed, no PR) | Mutation checks of the new tests, overhead re-measure, checks, push, PR | Review, merge |
 | T4.2 labeller | `task/t4.2-labeller`, `.claude/worktrees/agent-ae559ea2ecf238552` (a0d94a1; main merged uncommitted?) | README total-hours estimate for the CCX13, Linux check, push, PR | Review; then tell Faras to create the Hetzner CCX13 (approved, $5 cap) |
 | T1.6 calibration | `task/t1.6-calibration`, `.claude/worktrees/agent-ad272fa48b82d2ed9` (staged, uncommitted: montecarlo.py, run_calibration.py, two result CSVs, bootstrap.py) | The CI-subset test file; N1 decision; results table in method.md; merge main (schema 3) | reviewer + stats-auditor, merge |
-| T3.11 PR study | session local_4c51bae0 (`t3.11-pr-study` worktree; 63ef61b, 3c505fc local, not pushed) | findings.md, summary table in agents.md, push, PR | Review, merge |
 | T1.3 session | local_b4ab9cc0 (PR #3 merged 2026-10-15) | Waiting on a prompt only Faras can answer; its work is merged | Faras answers or archives it |
 
 Main is `27b65e2`. Merged this stretch: #23 profile, #19 differential, #24 compare, #22 eval tasks, #21 schema 3.
