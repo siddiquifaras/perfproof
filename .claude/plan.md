@@ -547,24 +547,41 @@ by `stats-auditor` before its PR opens.
     minutes.
   - Effort: max
 
-- [ ] **T1.8 Switch the primary to batch means (one host)**
+- [ ] **T1.8 Switch the primary to batch means, and close the audit-range gaps**
   - Owns: `src/perfproof/stats/intervals.py`, `sequential.py`, their
-    tests, "Speedup and interval" in `docs/method.md`
+    tests, `tests/calibration/`, "Speedup and interval" and the
+    calibration sections of `docs/method.md`, the t references in
+    `docs/failure-modes.md`
   - Needs: T1.6 merged
-  - Decision (lead, from T1.6 PR #33): on one host the primary interval
-    becomes batch means with blocks of 6 rounds (3 order pairs), which
-    passed all 560 cells at both seeds while t failed 10 to 11 AR(1)
-    cells; cross host keeps t, which passed every cross-host cell with
-    more power. Fewer than two complete blocks gives no interval and
-    the look continues, never an error. `BATCH_BLOCK` becomes 6.
-    Delete Hodges-Lehmann and the bootstrap if nothing else uses them
-    (T1.6: they lost everywhere); port the T1.2 auditor's third
-    constructed test (the box-corner guard) if the bootstrap stays.
-  - Done when: the calibration CI subset passes on the switched code at
-    the seed of record and at a fresh seed; `docs/method.md` names
-    batch means as the one-host primary throughout; stats-auditor
-    passes.
-  - Effort: medium
+  - Decision (lead, from the T1.6 stats audit on PR #33): batch means
+    with blocks of 6 rounds (3 order pairs) is the primary in both host
+    modes; cross host does not keep t (it passed the development grid
+    only because the 15% session offset dilutes AR(1), and failed 24 of
+    160 held-out cross-host scenarios against 1 for blocks of 6).
+    Fewer than two complete blocks gives no interval and the look
+    continues, never an error. `BATCH_BLOCK` becomes 6; reconcile
+    `method.md:378` ("cross host a block is 6 session pairs").
+  - Close the gaps the audit found inside the documented audit ranges,
+    where blocks of 6 still fail: AR(1) rho 0.6 to 0.7 with little
+    other noise (gpu_kernels), and 4 to 5% outliers at 2.8 to 4.5x with
+    CV under 1% on schedules with three blocks or fewer (llm_serving,
+    22 rounds). Candidate remedies, chosen under calibration and
+    written into `docs/method.md` first: a diagnostic gate that, when
+    lag-1 autocorrelation or the outlier share is high, withholds a
+    decision until at least ten blocks exist and otherwise ends
+    INCONCLUSIVE naming it; a larger minimum schedule where three
+    blocks is all the budget allows. The auditor's exposed scenarios
+    (`scratch/audit-pr33-work/heldout/`) become development scenarios;
+    T1.7 draws fresh ones.
+  - Also: a committed differential test of production `decide_look` at
+    block 6 against the harness; the T1.2 auditor's third constructed
+    test if the bootstrap stays, else delete Hodges-Lehmann and the
+    bootstrap (they lost everywhere).
+  - Done when: the full grid and the auditor's scenarios pass the
+    acceptance rule at the seed of record and at a fresh seed, both
+    host modes; `docs/method.md` names batch means as the primary
+    throughout; stats-auditor passes.
+  - Effort: high
 
 - [ ] **T1.7 Held-out audit** (lead runs `stats-auditor`)
   - Owns: the audit results in `docs/method.md`
