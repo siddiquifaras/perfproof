@@ -547,6 +547,25 @@ by `stats-auditor` before its PR opens.
     minutes.
   - Effort: max
 
+- [ ] **T1.8 Switch the primary to batch means (one host)**
+  - Owns: `src/perfproof/stats/intervals.py`, `sequential.py`, their
+    tests, "Speedup and interval" in `docs/method.md`
+  - Needs: T1.6 merged
+  - Decision (lead, from T1.6 PR #33): on one host the primary interval
+    becomes batch means with blocks of 6 rounds (3 order pairs), which
+    passed all 560 cells at both seeds while t failed 10 to 11 AR(1)
+    cells; cross host keeps t, which passed every cross-host cell with
+    more power. Fewer than two complete blocks gives no interval and
+    the look continues, never an error. `BATCH_BLOCK` becomes 6.
+    Delete Hodges-Lehmann and the bootstrap if nothing else uses them
+    (T1.6: they lost everywhere); port the T1.2 auditor's third
+    constructed test (the box-corner guard) if the bootstrap stays.
+  - Done when: the calibration CI subset passes on the switched code at
+    the seed of record and at a fresh seed; `docs/method.md` names
+    batch means as the one-host primary throughout; stats-auditor
+    passes.
+  - Effort: medium
+
 - [ ] **T1.7 Held-out audit** (lead runs `stats-auditor`)
   - Owns: the audit results in `docs/method.md`
   - Needs: T1.6
