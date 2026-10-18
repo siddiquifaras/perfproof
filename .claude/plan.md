@@ -1241,8 +1241,8 @@ claim is checked for speed, correctness and regressions elsewhere
     T4.2) against agent tokens and wall time. Put `light`, `medium` and
     `full` where the curve flattens. Ideas are tried in order of their
     Amdahl or roofline bound (`docs/discovery.md`), so a cap cuts the
-    least promising first. Proving an existing diff is `light` by
-    default. Each preset is one declared table in one place; the skill
+    least promising first. The default is `medium`; proving an
+    existing diff is `light` by default. Each preset is one declared table in one place; the skill
     and the CLI read it, never restate it.
   - Cost unit: the share of a 5-hour usage window each tier uses on
     Faras's $100 Team premium seat (`get_usage` before and after),
