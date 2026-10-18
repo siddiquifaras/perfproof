@@ -47,7 +47,7 @@ build-backend = "uv_build"
 [tool.ruff]
 line-length = 79
 target-version = "py312"
-extend-exclude = ["reference"]
+extend-exclude = ["reference", "studies/**/*.md"]
 
 [tool.ruff.lint]
 select = [
