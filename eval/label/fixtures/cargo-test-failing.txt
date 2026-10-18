@@ -1,0 +1,34 @@
+   Compiling probe v0.1.0 (scratch/cargo-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running unittests src/lib.rs (scratch/cargo-probe/target/debug/deps/probe-dbf63500bc3262b6)
+
+running 3 tests
+test tests::ignored ... ignored
+test tests::fails ... FAILED
+test tests::passes ... ok
+
+failures:
+
+---- tests::fails stdout ----
+
+thread 'tests::fails' (39675883) panicked at src/lib.rs:7:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::fails
+
+test result: FAILED. 1 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
+   Doc-tests probe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `--lib`

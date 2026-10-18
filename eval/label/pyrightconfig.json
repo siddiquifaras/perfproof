@@ -1,0 +1,7 @@
+{
+  "include": ["."],
+  "exclude": ["work", "**/__pycache__"],
+  "extraPaths": ["../mine"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict"
+}

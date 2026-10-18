@@ -1,0 +1,17 @@
+{
+  "textualize-rich-pr2217-landed": {
+    "command": "python -m pytest -q -p no:cacheprovider --junitxml=eval-label-junit.xml tests",
+    "reader": "pytest-junit",
+    "source": "rich's whole tests/ directory with pytest, as its Makefile's test target runs it (without coverage), using the packages the check recipe installs"
+  },
+  "django-django-pr21460": {
+    "command": "python tests/runtests.py --parallel 4",
+    "reader": "unittest",
+    "source": "Django's own runner over its whole suite on SQLite (tests/runtests.py with no labels), with only the packages the check recipe installs, so tests that need optional packages skip themselves"
+  },
+  "sharkdp-fd-pr853": {
+    "command": "cargo test --release --locked --no-fail-fast",
+    "reader": "cargo",
+    "source": "fd's unit and integration tests, every test target cargo builds, with --no-fail-fast so one failing target doesn't hide the rest"
+  }
+}
