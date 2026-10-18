@@ -1252,7 +1252,17 @@ claim is checked for speed, correctness and regressions elsewhere
     agent opens only on request. The skill tells the agent to use a
     semantic code search (mgrep, zg, grepai or similar) when one is
     installed, and plain grep otherwise; perfproof depends on none.
-  - Do first: cut what T3.17 shows costs most, largest first.
+  - Do first, from T3.17 (PR #31; 172 sessions, mostly perfproof's own
+    development, so a proxy for real use): test, profiler and
+    perfproof output were under 1% each in the hand-runs, while cache
+    re-reads of a growing context were 54% of cost. The levers, largest
+    first: fewer agent turns per session (every turn re-reads the whole
+    context); targeted file reads instead of whole files and re-reads
+    (file reads and search were 24%; a semantic search tool helps
+    here); CLI commands for the steps agents otherwise script by hand
+    (heredoc and `python -c` scripts were 65% of shell-command text); a
+    small fixed skill prompt; brief CLI output stays, but it is not the
+    main lever.
   - Done when: each brief output has a byte cap and a test; T3.13
     reports tokens per session before and after on the examples, and
     the saving on T3.17's top cost items is measured, not assumed.
