@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `554ccd2` | T4.2 independent labeller merged (PR #29), squash, after three rounds: oracle failure gives `fail` without a suite recipe; runtime no-perfproof-import test; pinned rustup-init 1.28.2 and uv 0.12.20 tarballs with sha256 (lead verified uv's against GitHub's published file), pinned cmake/ninja/node; held-out guard covers every file that decides a label and runs before anything is touched; reruns of invalid results wired and tested. Reviewer simulated the two-machine rule: false improvement 0.05 to 0.7% in plausible cells, 2.6% only at lag-1 0.9. Lead merged main (T2.19 delta, independent), eval/label 102 passed, pyright clean. Pilot: about 40 VM hours, about $2.80 on a CCX13 (estimate) |
 | `b9db3b2` | T2.19 runner follow-ups merged (PR #34), squash: balanced order pairs (`round_orders` matches simulate.py), the spec's reset before every execution outside the timed region, `run_single` so the baseline recheck runs once; compare drops the reset refusal and order warning. Reviewer PASS at `7d792d7`; lead merged main twice, /verify 3721 passed and Linux 3718 passed on the first merge, then examples (46) and runner/compare tests (112) after the examples-only delta |
 | `d9adde6` | T2.20 examples merged (PR #35), squash: shipped specs declare objective `wall_time` and the three default guardrails; compare now runs them (fixes INCONCLUSIVE uncalibrated; wrong-output REJECT correctness; bench-edit REJECT lock; remote-db REJECT side_effects). Reviewer PASS at `661184a` (4 of 4 spec mutations caught); lead merged main (no code delta), ruff clean, `pytest examples` 46 passed. Peak memory is `unmeasurable` until T2.15 |
 | `a10063d` | T3.12 skill contract merged (PR #32), squash, after two rounds: split into `docs/skill.md` (208-line contract), `skill-messages.md`, `skill-rationale.md`; one row per trigger; revisions only when explicit; NO VERDICT where none exists; dirty-tree check before writes on the find path; default depth medium, light for diffs. Lead read the contract and confirmed the rule-2 not_available case in method.md. Docs only |
@@ -171,7 +172,8 @@ Next after the above: T2.20 examples (needs schema 3, done), compare wiring (dif
 - 2026-10-17: Faras approved a Hetzner CCX13 (2 dedicated vCPU, about
   $0.07/hour, billed hourly until deleted) as the second labelling
   machine for T4.2, about 20 hours, capped at $5. Faras creates and
-  deletes it; not created yet (waits for the labeller). Spent so far: $0.
+  deletes it. Labeller merged 2026-10-19 (`554ccd2`); pilot estimate about
+  40 hours, about $2.80, inside the $5 cap. Spent so far: $0.
 
 ### Blockers
 
