@@ -156,7 +156,7 @@ Paused 2026-10-19 on Faras's word ("wind up and pause everything"). Nothing runn
 | CLI bug | open | `record.json` candidate_commit null for `--candidate <branch>`; gate details in `compare --json`; a simpler `log add` for agents |
 | Eval harness | | runner needs absolute paths (`--skill`, `--out`); run from the main checkout; `pgrep -f linux.sh` also matches old wait loops (use `pgrep -f "verify/linux.sh "` or no wait loop) |
 
-Spend today on skill evals: about $25 (runs 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3j, 4a, 4b, plus frames2py x3).
+Skill-eval and real-repo runs since resuming: $20.22 summed from each run's reported `total_cost_usd` (3b-find 0.91, 3c 2.76, 3d-find 0.56, 3e 2.55, 3f 0.59, 3g 0.63, 3h 0.66, 3i 2.37, 3j 1.48, 4a 2.79, 4b 2.86, frames2py 0.85 + 1.21); API-equivalent figures on plan usage, not billed.
 
 ### Known gaps
 
