@@ -22,8 +22,8 @@ words. It is judged by measurement, not by impression:
 - **Right verdict or refusal** on every known-answer task; never a
   wrong KEEP.
 - **Tells everything**: what was slow and why, what changed, the
-  evidence, what was not checked; for open source, a PR-ready write-up
-  with the evidence maintainers ask for.
+  evidence, what was not checked. A PR-ready write-up only when the
+  user asks for one, never by default.
 - **Beats the agent alone**: more real wins and fewer false claims than
   the same agent without perfproof, at a cost that fits a 5-hour window.
 
