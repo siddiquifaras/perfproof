@@ -1,0 +1,7 @@
+{
+  "source": "scratch/e2e/logs/prove-fix-2.jsonl in the main checkout; the line with type result",
+  "tool": "claude -p --output-format stream-json --verbose",
+  "claude_code_version": "2.1.291",
+  "model": "claude-sonnet-5-5",
+  "note": "Lead's hand run of the skill (T3.8) on rolling, branch agent-speedup, 2026-10-19. The line is copied unchanged."
+}

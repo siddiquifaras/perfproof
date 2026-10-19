@@ -1,0 +1,39 @@
+{
+  "status": "",
+  "current_branch": "perfproof/rolling-cumsum",
+  "branches": {
+    "main": "ab53487a8285cd7d97195f15420890e17df7618d",
+    "perfproof/rolling-cumsum": "a7e1d3e6f42d0b5378909ac3d3fb9e06623f0722"
+  },
+  "seeded": {
+    "main": "ab53487a8285cd7d97195f15420890e17df7618d"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [
+        "rolling.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.13s"
+    },
+    {
+      "ref": "perfproof/rolling-cumsum",
+      "changed": [
+        "rolling.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.09s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261019T014438Z-11b7ef",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

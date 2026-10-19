@@ -1,0 +1,47 @@
+{
+  "status": "",
+  "current_branch": "perfproof/rolling-prefix",
+  "branches": {
+    "agent-wrong": "9fa460d2911b8a779cf28d3e43473b4d34b27595",
+    "main": "639bfd1d72b4f82ff028f82d95441a8429ab00f1",
+    "perfproof/rolling-prefix": "84d26dc872947b304bc4cd5211a79a45185cd111"
+  },
+  "seeded": {
+    "agent-wrong": "9fa460d2911b8a779cf28d3e43473b4d34b27595",
+    "main": "639bfd1d72b4f82ff028f82d95441a8429ab00f1"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [
+        "rolling.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.10s"
+    },
+    {
+      "ref": "perfproof/rolling-prefix",
+      "changed": [
+        "rolling.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.09s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261019T012235Z-266568",
+      "outcome": "REJECT",
+      "reason": "correctness",
+      "gate": "correctness",
+      "calibration": "uncalibrated"
+    },
+    {
+      "run_id": "20261019T012258Z-1079a5",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated"
+    }
+  ]
+}

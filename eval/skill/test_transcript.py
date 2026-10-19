@@ -1,0 +1,112 @@
+"""Transcript reading, on stream-json lines captured from real runs.
+
+Every file under ``runs/`` and ``fixtures/`` was written by
+``claude -p --output-format stream-json`` driven by ``runner.py`` (or,
+for ``fixtures/lead/``, by the lead's own hand runs); none is typed by
+hand.
+"""
+
+import json
+from pathlib import Path
+
+import pytest
+
+import transcript
+
+HERE = Path(__file__).resolve().parent
+FIRST = HERE / "runs" / "first"
+
+
+def _turns(task: str) -> list[transcript.Turn]:
+    return transcript.load_turns(FIRST / task)
+
+
+def test_skill_tool_call_is_the_first_action_on_a_plain_phrasing() -> None:
+    turns = _turns("pos-make-faster")
+    calls = transcript.tool_calls(turns)
+    assert calls[0].name == "Skill"
+    assert calls[0].input == {"skill": "perfproof"}
+    assert calls[0].output == "Launching skill: perfproof"
+    assert transcript.skill_started(turns)
+
+
+@pytest.mark.parametrize(
+    "task", ["neg-typo", "neg-add-test", "neg-explain", "neg-rename"]
+)
+def test_skill_does_not_start_on_off_topic_requests(task: str) -> None:
+    assert not transcript.skill_started(_turns(task))
+
+
+def test_compare_verdict_is_read_from_a_filtered_print() -> None:
+    seen = transcript.seen_verdicts(_turns("prove-rolling-wrong-output"))
+    assert seen == [
+        transcript.SeenVerdict(
+            outcome="REJECT",
+            reason="correctness",
+            gate="correctness",
+            calibration="uncalibrated",
+        )
+    ]
+
+
+def test_gate_of_the_verdict_is_not_a_gates_list_entry() -> None:
+    # The compare output lists "gate": "side_effects" (status passed)
+    # before the verdict's own "gate": null.
+    seen = transcript.seen_verdicts(_turns("prove-rolling-fix"))
+    assert [(v.outcome, v.reason, v.gate) for v in seen] == [
+        ("INCONCLUSIVE", "insufficient_evidence", None)
+    ]
+
+
+def test_no_compare_means_no_verdict() -> None:
+    assert transcript.seen_verdicts(_turns("prove-rolling-bench-edit")) == []
+
+
+def test_final_text_is_the_last_result_event() -> None:
+    turns = _turns("prove-rolling-wrong-output")
+    last = turns[-1].result
+    assert last is not None
+    assert transcript.final_text(turns) == last["result"]
+    tail = transcript.final_text(turns).rstrip().rstrip("`")
+    assert tail.endswith("Result: REJECT (correctness, gate correctness)")
+
+
+def test_assistant_texts_leave_out_tool_calls() -> None:
+    texts = transcript.assistant_texts(_turns("prove-rolling-wrong-output"))
+    assert texts
+    assert all(isinstance(t, str) and t for t in texts)
+    calls = transcript.tool_calls(_turns("prove-rolling-wrong-output"))
+    assert all(c.input.get("command", "") not in texts for c in calls)
+
+
+def test_metrics_sum_the_result_events() -> None:
+    turns = _turns("prove-rolling-wrong-output")
+    cost, count, seconds = transcript.result_metrics(turns)
+    results = [t.result for t in turns if t.result is not None]
+    assert len(results) == len(turns) > 1
+    assert cost == pytest.approx(
+        sum(r["total_cost_usd"] for r in results), abs=1e-9
+    )
+    assert count == sum(r["num_turns"] for r in results)
+    assert seconds == pytest.approx(
+        sum(r["duration_ms"] for r in results) / 1000, abs=1e-6
+    )
+
+
+def test_a_task_without_transcripts_has_no_turns(tmp_path: Path) -> None:
+    assert transcript.load_turns(tmp_path) == []
+    assert transcript.final_text([]) == ""
+
+
+def test_saved_lines_carry_no_thinking_blocks() -> None:
+    for path in FIRST.glob("*/turn-*.jsonl"):
+        for line in path.read_text().splitlines():
+            event = transcript.as_dict(json.loads(line))
+            assert event is not None
+            message = transcript.as_dict(event.get("message")) or {}
+            blocks = (
+                transcript.as_dict(b)
+                for b in transcript.as_list(message.get("content"))
+            )
+            kinds = {b.get("type") for b in blocks if b is not None}
+            assert "thinking" not in kinds

@@ -71,7 +71,9 @@ convention = "numpy"
 max-doc-length = 72
 
 [tool.pyright]
-include = ["src", "tests", ".claude/hooks", "examples", "eval/mine"]
+include = [
+    "src", "tests", ".claude/hooks", "examples", "eval/mine", "eval/skill",
+]
 exclude = [
     "reference",
     "**/__pycache__",
@@ -83,7 +85,7 @@ pythonVersion = "3.12"
 typeCheckingMode = "strict"
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "eval/mine"]
+testpaths = ["tests", "eval/mine", "eval/skill"]
 addopts = [
     "--strict-markers",
     "--strict-config",

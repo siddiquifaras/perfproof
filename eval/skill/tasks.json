@@ -1,0 +1,463 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "prove-rolling-fix",
+      "kind": "prove",
+      "example": "rolling",
+      "branches": [
+        {
+          "name": "agent-speedup",
+          "candidate": "fix",
+          "message": "Speed up rolling_sum with cumsum (about 50x faster)"
+        }
+      ],
+      "prompt": "/perfproof branch agent-speedup",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ]
+      }
+    },
+    {
+      "id": "prove-rolling-wrong-output",
+      "kind": "prove",
+      "example": "rolling",
+      "branches": [
+        {
+          "name": "agent-wrong",
+          "candidate": "wrong-output",
+          "message": "Faster rolling_sum"
+        }
+      ],
+      "prompt": "/perfproof branch agent-wrong",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "REJECT"
+        ],
+        "reason": "correctness",
+        "gate": "correctness"
+      }
+    },
+    {
+      "id": "prove-rolling-bench-edit",
+      "kind": "prove",
+      "example": "rolling",
+      "branches": [
+        {
+          "name": "agent-bench",
+          "candidate": "bench-edit",
+          "message": "Speed up the rolling benchmark"
+        }
+      ],
+      "prompt": "/perfproof branch agent-bench",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "REJECT"
+        ],
+        "reason": "integrity",
+        "gate": "lock"
+      }
+    },
+    {
+      "id": "prove-membership-fix",
+      "kind": "prove",
+      "example": "membership",
+      "branches": [
+        {
+          "name": "agent-speedup",
+          "candidate": "fix",
+          "message": "Speed up held_orders with a set (about 100x faster)"
+        }
+      ],
+      "prompt": "/perfproof branch agent-speedup",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ]
+      }
+    },
+    {
+      "id": "prove-membership-wrong-output",
+      "kind": "prove",
+      "example": "membership",
+      "branches": [
+        {
+          "name": "agent-wrong",
+          "candidate": "wrong-output",
+          "message": "Faster held_orders"
+        }
+      ],
+      "prompt": "/perfproof branch agent-wrong",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "REJECT"
+        ],
+        "reason": "correctness",
+        "gate": "correctness"
+      }
+    },
+    {
+      "id": "prove-membership-bench-edit",
+      "kind": "prove",
+      "example": "membership",
+      "branches": [
+        {
+          "name": "agent-bench",
+          "candidate": "bench-edit",
+          "message": "Speed up the held orders benchmark"
+        }
+      ],
+      "prompt": "/perfproof branch agent-bench",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 0.8,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "REJECT"
+        ],
+        "reason": "integrity",
+        "gate": "lock"
+      }
+    },
+    {
+      "id": "find-rolling-light",
+      "kind": "find",
+      "example": "rolling",
+      "prompt": "/perfproof light",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "rolling.py",
+          "function": "rolling_sum"
+        },
+        "fix": "branch"
+      }
+    },
+    {
+      "id": "find-membership-light",
+      "kind": "find",
+      "example": "membership",
+      "prompt": "/perfproof light",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "orders.py",
+          "function": "held_orders"
+        },
+        "fix": "branch"
+      }
+    },
+    {
+      "id": "pos-make-faster",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [],
+      "prompt": "make this faster",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-why-slow",
+      "kind": "trigger",
+      "example": "membership",
+      "branches": [],
+      "prompt": "why is this slow",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-wrong-perf",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [],
+      "prompt": "what's wrong here performance-wise",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-find-inefficiencies",
+      "kind": "trigger",
+      "example": "membership",
+      "branches": [],
+      "prompt": "find inefficiencies in this project",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-speed-up-fn",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [],
+      "prompt": "the rolling_sum function takes forever on big inputs, can you speed it up",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-profile",
+      "kind": "trigger",
+      "example": "membership",
+      "branches": [],
+      "prompt": "can you profile this and tell me what to optimize",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-pr-faster",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [
+        {
+          "name": "agent-speedup",
+          "candidate": "fix",
+          "message": "Speed up rolling_sum with cumsum (about 50x faster)"
+        }
+      ],
+      "prompt": "is the agent-speedup branch actually faster than main",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "pos-verify-claim",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [
+        {
+          "name": "agent-speedup",
+          "candidate": "fix",
+          "message": "Speed up rolling_sum with cumsum (about 50x faster)"
+        }
+      ],
+      "prompt": "my coding agent says its change on agent-speedup makes this 50x faster, can you verify that",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true
+      }
+    },
+    {
+      "id": "neg-typo",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [],
+      "prompt": "fix the typo in the module docstring of rolling.py if there is one",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": false
+      }
+    },
+    {
+      "id": "neg-add-test",
+      "kind": "trigger",
+      "example": "membership",
+      "branches": [],
+      "prompt": "add a test for an empty blocklist",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": false
+      }
+    },
+    {
+      "id": "neg-explain",
+      "kind": "trigger",
+      "example": "rolling",
+      "branches": [],
+      "prompt": "explain what rolling_sum does",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": false
+      }
+    },
+    {
+      "id": "neg-rename",
+      "kind": "trigger",
+      "example": "membership",
+      "branches": [],
+      "prompt": "rename the variable blocked in orders.py to blocklist",
+      "max_turns": 2,
+      "budget_usd": 0.3,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": false
+      }
+    }
+  ]
+}

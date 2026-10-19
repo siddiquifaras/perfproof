@@ -1,0 +1,46 @@
+{
+  "task_id": "pos-pr-faster",
+  "started_at": "2026-10-19T01:47:50+00:00",
+  "wall_seconds": 6.44,
+  "load_start": [
+    10.55810546875,
+    8.70263671875,
+    7.73486328125
+  ],
+  "load_end": [
+    11.31396484375,
+    8.89013671875,
+    7.806640625
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "6087f6fa28cf",
+  "turns": [
+    {
+      "prompt": "is the agent-speedup branch actually faster than main",
+      "argv": [
+        "claude",
+        "-p",
+        "is the agent-speedup branch actually faster than main",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.3",
+        "--max-turns",
+        "2"
+      ],
+      "seconds": 5.98,
+      "exit_code": 1,
+      "session_id": "b64dd5f4-7e9f-4614-9b59-0ae5d3c7d673"
+    }
+  ]
+}

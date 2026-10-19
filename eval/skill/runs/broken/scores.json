@@ -1,0 +1,101 @@
+{
+  "run_id": "broken",
+  "skill_sha": "0674202571f3",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 2,
+    "passed": 0,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 2,
+    "verdict_total": 2,
+    "wrong_keeps": 0,
+    "result_ok": 2,
+    "result_total": 2,
+    "hotspot_ok": 0,
+    "hotspot_total": 0,
+    "fix_ok": 2,
+    "fix_total": 2,
+    "tree_ok": 2,
+    "tree_total": 2,
+    "wording": {
+      "direction_word": 4
+    },
+    "cost_usd": 0.51,
+    "wall_seconds": 168.4,
+    "api_seconds": 163.8,
+    "agent_turns": 19
+  },
+  "tasks": [
+    {
+      "task_id": "prove-rolling-fix",
+      "kind": "prove",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": true,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": null,
+      "hotspot_detail": "",
+      "fix_ok": true,
+      "fix_detail": "no code changed",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "direction_word",
+          "text": "Estimate (not a verdict):** about 62x faster on the benchmark's own timer, with a range of 61x to 64x."
+        },
+        {
+          "rule": "direction_word",
+          "text": "That is faster than claimed, and the range is far above the 3% bar."
+        }
+      ],
+      "cost_usd": 0.2522,
+      "api_seconds": 103.5,
+      "wall_seconds": 105.9,
+      "agent_turns": 10,
+      "calls": 2,
+      "load_start": 9.32275390625,
+      "passed": false
+    },
+    {
+      "task_id": "prove-membership-fix",
+      "kind": "prove",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": true,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": null,
+      "hotspot_detail": "",
+      "fix_ok": true,
+      "fix_detail": "no code changed",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "direction_word",
+          "text": "The claim to check is about 100x faster at screening orders."
+        },
+        {
+          "rule": "direction_word",
+          "text": "On this estimate the change is much faster, and it's on `agent-speedup`."
+        }
+      ],
+      "cost_usd": 0.257,
+      "api_seconds": 60.3,
+      "wall_seconds": 62.5,
+      "agent_turns": 9,
+      "calls": 2,
+      "load_start": 9.26513671875,
+      "passed": false
+    }
+  ]
+}
