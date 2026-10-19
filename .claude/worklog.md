@@ -139,12 +139,15 @@ Stopped at the 5-hour limit, 2026-10-19; wait for Faras to say continue.
 
 | PR / task | State | Next |
 |---|---|---|
-| #43 T2.21 real-repo harness | worker fixing review (lock-recheck test, setup timeout tree kill, candidate setup retry, reap children, generic hint); stats audit was running | narrow re-review, merge, then re-run the skill on frames2py |
-| #44 T3.6 detach | worker fixing (orphaned benchmark child after kill -9; resume refuses when tree identity or locked files changed; unknown process state; whole-run timeout) | narrow re-review, merge, update docs/cli.md, wire `require_confirmed` into compare |
-| #37 T3.4 measure | worker adding tests that pin the stub overhead and withhold rules | lead checks mutations, merge |
-| #45 T3.19 skill eval | first run 18/20 for $3.31, triggers 12/12; review running | merge; then skill fixes: always run compare instead of refusing from the diff, never write to the user's branches, use init/project/log; score with the eval |
-| #33 T1.6 calibration | worker backing or cutting unbacked skew and run-table numbers | merge; then T1.8 (batch means both modes, audit-range gaps) |
+| #43 T2.21 real-repo harness | review fixes done at `8eaf0e3` (contains main); stats audit BLOCK B1: setup host faults (EMFILE, EAGAIN, ENOMEM, E2BIG at Popen, log-open OSError) are blamed on a tree instead of `harness_fault`; reuse runner's errno sets; same pattern in `run_reset`. Audit notes: unlisted harness files not locked (list the directory), dependency stack per tree only warns (pre-existing), setup mutates main venv when candidate is main, uv run without --frozen rewrites locks | send B1 plus doc notes to worker, narrow re-review, merge; re-run skill on frames2py |
+| #44 T3.6 detach | all six fixes at `e79050e` (contains main), orphan found by session sweep rather than recorded PIDs (accepted, avoids writes in the timed region); /verify 4035, Linux 4032 | narrow re-review, merge, update docs/cli.md (states timed_out, failed, unknown; --timeout; resume detached; codes orphan_running, state_unknown, machine_changed), wire `require_confirmed` |
+| #45 T3.19 skill eval | review BLOCK: wording scorer misses "faster than the claimed", "sped up", split sentences; "hotspot named" counts any mention; tree-clean passes uncommitted locked-file edits; follow-up "yes" after a refusal starts new work | send fixes to worker, merge |
+| #37 T3.4 measure | worker adding tests that pin stub overhead and withhold rules | lead checks mutations, merge |
+| #33 T1.6 calibration | worker backing or cutting unbacked numbers | merge; then T1.8 |
+| skill | after #43/#44/#45: always run compare instead of refusing from the diff; never write to the user's branches; use init/project/log; score with the eval | |
 | CLI bug | `record.json` candidate_commit null for `--candidate <branch>` | small fix |
+
+Waiting for Faras to say continue (5-hour-limit rule).
 
 ### Known gaps
 
