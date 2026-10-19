@@ -149,7 +149,7 @@ Resumed 2026-10-19 on Faras's go.
 | T2.21 follow-up | merged | re-run the skill on frames2py and picolm (scratch clones, push disabled); audit notes left open: dependency stack per tree only warns, setup mutates main venv when candidate is main, oracle-only listing REJECTs at lock (spec.md says it installs), symlinked harness dir survives install |
 | T3.6 follow-ups | docs merged (#48) | wire `require_confirmed` into compare and measure; the skill already confirms before measuring in find, but the prove path and the CLI-only path have no confirm step yet (decide: does `bench define` after the user agrees count as confirming?) |
 | T1.8 | starting | primary to batch means, audit-range gaps; also the Assumptions skew figures at method.md:337-343 come from uncommitted audit runs (back or cut) |
-| skill | merged (#46) | next: real repo (frames2py, picolm) with the new skill; colsum/growth/settings tasks in the eval; a Result-line gate suffix was dropped once in 22 prove runs |
+| skill | merged (#46); frames2py light run done (scratch clone, 2 turns, $0.85, tree clean, no branch): one ask, harness under .perfproof/harness, profile np.add.at 34% cap 1.5x, two ideas refuted by cheap tests, no compare | fix next: it reported cheap timings ("much slower at every batch size", "30 to 40 us") against the rule; it said "nothing left could clear the 3% bar" after two light-depth ideas with a 1.5x cap open (say what depth tried, offer medium); add a real-repo task to the eval; picolm not run; colsum/growth/settings not in the eval; a dropped gate suffix once in 22 prove runs |
 | CLI bug | `record.json` candidate_commit null for `--candidate <branch>` | small fix |
 
 Resumed 2026-10-19 on Faras's word; stop at the next 5-hour limit and do not restart.
