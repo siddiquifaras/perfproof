@@ -135,23 +135,16 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-**Resumed 2026-10-19** after the pause. Release target about 2026-11-02 (Faras); review rounds capped at two per PR, then the lead decides. Every subagent, reviewer and side
-session now runs on Sonnet 5.5 (Faras); the lead stays on Opus 5.5.
-Stopped agents were restarted as fresh Sonnet agents in their own
-worktrees. New plan tasks from Faras: T3.14 depth tiers, T3.15
-token-thrift output, T3.16 install and first run, and research-backed
-playbooks (M5 intro).
+Stopped at the 5-hour limit, 2026-10-19; wait for Faras to say continue.
 
-| Piece | Branch / worktree | Where it stopped | Next |
-|---|---|---|---|
-| T2.19 runner follow-ups | `task/t2.19-runner`, `.claude/worktrees/agent-a0a873c1036fbd37a` (85d2733, committed, not pushed, no PR) | Mutation checks of the new tests, overhead re-measure, checks, push, PR | Review, merge |
-| T4.2 labeller | `task/t4.2-labeller`, `.claude/worktrees/agent-ae559ea2ecf238552` (a0d94a1; main merged uncommitted?) | README total-hours estimate for the CCX13, Linux check, push, PR | Review; then tell Faras to create the Hetzner CCX13 (approved, $5 cap) |
-| T1.6 calibration | `task/t1.6-calibration`, `.claude/worktrees/agent-ad272fa48b82d2ed9` (staged, uncommitted: montecarlo.py, run_calibration.py, two result CSVs, bootstrap.py) | The CI-subset test file; N1 decision; results table in method.md; merge main (schema 3) | reviewer + stats-auditor, merge |
-| T1.3 session | local_b4ab9cc0 (PR #3 merged 2026-10-15) | Waiting on a prompt only Faras can answer; its work is merged | Faras answers or archives it |
-
-Main is `27b65e2`. Merged this stretch: #23 profile, #19 differential, #24 compare, #22 eval tasks, #21 schema 3.
-
-Next after the above: T2.20 examples (needs schema 3, done), compare wiring (differential, coverage, declared resolution), T3.12 skill contract from the three studies.
+| PR / task | State | Next |
+|---|---|---|
+| #43 T2.21 real-repo harness | worker fixing review (lock-recheck test, setup timeout tree kill, candidate setup retry, reap children, generic hint); stats audit was running | narrow re-review, merge, then re-run the skill on frames2py |
+| #44 T3.6 detach | worker fixing (orphaned benchmark child after kill -9; resume refuses when tree identity or locked files changed; unknown process state; whole-run timeout) | narrow re-review, merge, update docs/cli.md, wire `require_confirmed` into compare |
+| #37 T3.4 measure | worker adding tests that pin the stub overhead and withhold rules | lead checks mutations, merge |
+| #45 T3.19 skill eval | first run 18/20 for $3.31, triggers 12/12; review running | merge; then skill fixes: always run compare instead of refusing from the diff, never write to the user's branches, use init/project/log; score with the eval |
+| #33 T1.6 calibration | worker backing or cutting unbacked skew and run-table numbers | merge; then T1.8 (batch means both modes, audit-range gaps) |
+| CLI bug | `record.json` candidate_commit null for `--candidate <branch>` | small fix |
 
 ### Known gaps
 
