@@ -731,6 +731,20 @@ Mac and on Linux CI, with decoys that must be refused.
     verdict through the CLI.
   - Effort: low
 
+- [ ] **T2.21 Real-repo harness and per-tree setup** (top CLI priority)
+  - Found by the skill's first real-repo run (frames2py): a benchmark
+    the skill writes under `.perfproof/` is missing from the baseline
+    worktree, and a gitignored `.venv` interpreter doesn't exist there
+    (and sharing the main checkout's editable venv would import the
+    same source for both versions). Do: perfproof-owned harness files
+    under `.perfproof/harness/` copied identically into both trees and
+    locked; an optional `setup` on the spec run once per tree before
+    warmup (for example `uv sync --frozen`); a clear message when an
+    interpreter lives in an ignored directory.
+  - Done when: an end-to-end test on a temporary uv project proves each
+    tree imports its own source, a candidate can't alter harness files,
+    and the frames2py case reaches a verdict.
+
 - [x] **T2.4 Correctness gate**
   - Owns: `src/perfproof/bench/correctness.py`,
     `tests/bench/test_correctness.py`
