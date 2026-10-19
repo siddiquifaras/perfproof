@@ -1203,7 +1203,7 @@ claim is checked for speed, correctness and regressions elsewhere
     rule in simulation; selection-stage results never appear as claims.
   - Effort: high
 
-- [ ] **T3.6 Detach, status, cancel, resume**
+- [x] **T3.6 Detach, status, cancel, resume** (siddiquifaras/perfproof#44, `ae81f40`)
   - Owns: the `--detach` and `--resume` paths of `compare`, the `status`
     and `cancel` commands, `tests/bench/test_detach.py`
   - Needs: T2.5

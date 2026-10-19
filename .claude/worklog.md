@@ -10,6 +10,7 @@ lead; task branches don't edit it.
 
 | Commit | What |
 |---|---|
+| `ae81f40` | T3.6 detach, status, cancel, resume merged (PR #44), squash, at `3237cd0` (reviewed head `81c7edd` plus main merged in, one test_cli conflict resolved): run directory is the only state, orphans found by session sweep, trees hashed at freeze, whole-run deadline in job.json. Added-file mutation killed. /verify 4451 passed; Linux 3.12 4448 passed. Follow-ups: docs/cli.md states and codes, `require_confirmed` in compare and measure |
 | `1433c1a` | T3.19 skill eval merged (PR #45), squash: 20-task set (prove fix, wrong-output, bench-edit on rolling and membership; bare find on both; 12 trigger phrasings), headless runner with CLAUDE.md and memory disabled, code-only scorer reproducible from saved transcripts. First run 18/20 for $3.31, triggers 12/12, 0 wrong KEEP; a broken skill scores worse. Two review rounds closed scorer false passes (wording paraphrases, hotspot must rank first in a real profile, uncommitted locked-file edits). Lead added more paraphrases and narrowed the machine-load exception; eval tests 99 passed; main (T3.4) merged in, test_cli 101 passed; full suite not re-run after that merge |
 | `4c0daa2` | T3.4 discovery primitives merged (PR #37), squash, after three rounds: `measure --sizes` (growth exponent, per-round means), `--stub` (cap withheld when the hook's own cost, a remainder at or above baseline, or uncounted forks make it uninformative; bound is the interval's upper end; forked children counted), `--set`; profile summary with Amdahl caps. Lead re-ran three mutations (calibrated overhead term, both withhold rules): each now fails the tests. Lead resolved the BUILT conflict with main; /verify 4321 passed and Linux 4318 passed on the merged head `7a5b8ec` |
 | `9998d31` | T3.2 init and project merged (PR #39), squash, after three rounds: detection proposes, never invents (a question where no runnable command is found); nothing measured on a proposed workload; a workload whose own files differ from its confirmed hashes is re-proposed everywhere (probe, settle, guard) and never runs or re-confirms unreviewed; default guardrails recomputed on a metric change; crash-safe writes, orphan history marked; real JUnit fixture. Lead verified the two final repro tests fail on the previous round's code and pass on the head; worker /verify 4133 and Linux 4128 passed on `5bba730`, which contains main. compare and measure call `require_confirmed` after T3.6 |
@@ -137,12 +138,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-Stopped at the 5-hour limit, 2026-10-19; wait for Faras to say continue.
+Resumed 2026-10-19 on Faras's go.
 
 | PR / task | State | Next |
 |---|---|---|
 | #43 T2.21 real-repo harness | review fixes done at `8eaf0e3` (contains main); stats audit BLOCK B1: setup host faults (EMFILE, EAGAIN, ENOMEM, E2BIG at Popen, log-open OSError) are blamed on a tree instead of `harness_fault`; reuse runner's errno sets; same pattern in `run_reset`. Audit notes: unlisted harness files not locked (list the directory), dependency stack per tree only warns (pre-existing), setup mutates main venv when candidate is main, uv run without --frozen rewrites locks | send B1 plus doc notes to worker, narrow re-review, merge; re-run skill on frames2py |
-| #44 T3.6 detach | all six fixes at `e79050e` (contains main), orphan found by session sweep rather than recorded PIDs (accepted, avoids writes in the timed region); /verify 4035, Linux 4032 | narrow re-review, merge, update docs/cli.md (states timed_out, failed, unknown; --timeout; resume detached; codes orphan_running, state_unknown, machine_changed), wire `require_confirmed` |
+| T3.6 follow-ups | merged | docs/cli.md (states timed_out, failed, unknown; --timeout; resume detached; codes orphan_running, state_unknown, machine_changed), wire `require_confirmed` |
 | #33 T1.6 calibration | worker backing or cutting unbacked numbers | merge; then T1.8 |
 | skill | after #43/#44/#45: always run compare instead of refusing from the diff; never write to the user's branches; use init/project/log; score with the eval | |
 | CLI bug | `record.json` candidate_commit null for `--candidate <branch>` | small fix |
