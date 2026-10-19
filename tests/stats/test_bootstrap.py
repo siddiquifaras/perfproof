@@ -1,5 +1,6 @@
 import decimal
 import math
+import re
 import statistics
 import tracemalloc
 from collections.abc import Callable
@@ -12,6 +13,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from numpy.typing import NDArray
 from scipy import stats  # pyright: ignore[reportMissingTypeStubs]
+from scipy.special import (  # pyright: ignore[reportMissingTypeStubs]
+    ndtr,  # pyright: ignore[reportUnknownVariableType]
+    ndtri,  # pyright: ignore[reportUnknownVariableType]
+)
 
 from perfproof.schema import Direction
 from perfproof.stats.bootstrap import (
@@ -20,6 +25,7 @@ from perfproof.stats.bootstrap import (
     RatioInterval,
     _acceleration_bounds,  # pyright: ignore[reportPrivateUsage]
     _bca_tails,  # pyright: ignore[reportPrivateUsage]
+    _leave_one_out_medians,  # pyright: ignore[reportPrivateUsage]
     _median_of_sorted,  # pyright: ignore[reportPrivateUsage]
     bootstrap_median_ratio,
 )
@@ -741,6 +747,134 @@ def test_bca_tails_are_nan_where_one_minus_a_w_reaches_zero() -> None:
     t_lo, t_hi = tails_at(-3.5, -1.0, -0.1, 1 / 6, Z99)
     assert 0 < t_lo < 0.5
     assert 0 < t_hi < 0.5
+
+
+def test_jackknife_spread_is_decided_exactly_not_from_rounded_sums() -> None:
+    # From the T1.2 audit's constructed tests. The middle values are
+    # m - ulp, m and m + ulp with m of even mantissa, so every computed
+    # leave-one-out median rounds to m (ties to even) and every computed
+    # jackknife value is log(1) = 0. The exact leave-one-out medians
+    # are m - ulp/2, m and m + ulp/2, so the exact acceleration exists
+    # and so does the BCa interval. Deciding "no spread" from the
+    # computed sums would give NaN here.
+    base = [
+        float.fromhex(h)
+        for h in (
+            "0x1.0000000000001p+0",
+            "0x1.0000000000002p+0",
+            "0x1.0000000000003p+0",
+        )
+    ]
+    cand = [
+        float.fromhex(h)
+        for h in (
+            "0x1.09fffffffffffp+0",
+            "0x1.0a00000000000p+0",
+            "0x1.0a00000000001p+0",
+        )
+    ]
+    assert exact_acceleration(base, cand) is not None
+    sorted_b = np.sort(np.array([base]), axis=-1)
+    m_b, _ = _median_of_sorted(sorted_b)
+    jackknife = np.log(m_b[:, None] / _leave_one_out_medians(sorted_b))
+    assert np.all(jackknife == 0)
+    b, confidence, seed = 99_999, 0.5, 750481129890
+    result = run(
+        base,
+        cand,
+        "higher_is_better",
+        seed,
+        resamples=b,
+        confidence=confidence,
+    ).bca
+    assert not math.isnan(float(result.lower))
+    reps = exact_replicates(base, cand, b, seed)
+    assert_bca_conservative(
+        base, cand, reps, confidence, "higher_is_better", result
+    )
+
+
+def test_bca_stays_outward_when_libraries_err_by_up_to_eps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # From the T1.2 audit's constructed tests. Both arms have even n, so
+    # the exact acceleration is 0, and at this seed the exact mid-rank
+    # count is exactly B, so z0 = 0 and the exact upper tail mass is
+    # (1 - confidence) / 2. At confidence 0.01 (stored as
+    # 0.01000000000000000020816...) that puts (B + 1) t just below 990:
+    # the exact j is 989, and the 989th and 990th largest replicates
+    # differ. ndtr and ndtri erring by up to the eps the module assumes
+    # must not move the computed j past it.
+    base = [
+        0.972857,
+        1.093174,
+        1.000562,
+        0.964587,
+        1.091454,
+        0.833647,
+        0.951123,
+        1.010838,
+        1.049791,
+        1.017707,
+    ]
+    cand = [
+        1.064779,
+        1.190255,
+        0.925553,
+        0.911427,
+        0.988821,
+        0.923225,
+        0.969978,
+        1.074346,
+        0.957487,
+        0.788826,
+    ]
+    b, confidence, seed = 1999, 0.01, 532
+    reps = exact_replicates(base, cand, b, seed)
+    estimate = exact_median([Fraction(v) for v in cand]) / exact_median(
+        [Fraction(v) for v in base]
+    )
+    assert (
+        sum(r < estimate for r in reps) + sum(r <= estimate for r in reps) == b
+    )
+    for sample in (base, cand):
+        # Two leave-one-out medians, n / 2 times each: the jackknife
+        # deviations are -/+ the same amount in equal numbers, so their
+        # cubes sum to exactly 0, and so does the exact acceleration.
+        values = [Fraction(v) for v in sample]
+        kept = [
+            exact_median(values[:i] + values[i + 1 :])
+            for i in range(len(values))
+        ]
+        counts = sorted(kept.count(m) for m in set(kept))
+        assert counts == [len(values) // 2] * 2
+    j = math.floor((b + 1) * (1 - Fraction(confidence)) / 2)
+    assert j == 989
+    assert reps[b - 989] != reps[b - 990]
+    eps = 2.0**-40
+
+    def ndtri_off(p: Any) -> Any:
+        q = ndtri(p)
+        bump = 0.99 * eps * (1 + np.abs(q))
+        # z (a scalar call) high and z0 (array calls) low: both lower
+        # the upper tail's argument, which raises its mass.
+        return q + bump if np.ndim(p) == 0 else q - bump
+
+    def ndtr_off(x: Any) -> Any:
+        return ndtr(x) * (1 + 0.99 * eps)
+
+    monkeypatch.setattr("perfproof.stats.bootstrap.ndtri", ndtri_off)
+    monkeypatch.setattr("perfproof.stats.bootstrap.ndtr", ndtr_off)
+    result = run(
+        base,
+        cand,
+        "higher_is_better",
+        seed,
+        resamples=b,
+        confidence=confidence,
+    ).bca
+    assert Fraction(float(result.upper)) >= reps[b - 989]
+    assert Fraction(float(result.lower)) <= reps[989 - 1]
 
 
 @settings(max_examples=150, deadline=None)
@@ -1487,6 +1621,38 @@ def test_peak_memory_stays_under_the_budget(
     finally:
         tracemalloc.stop()
     assert peak <= max_bytes
+
+
+@pytest.mark.parametrize(
+    ("rows", "n_b", "n_c", "resamples"),
+    [(1, 3, 3, 20_000), (1, 7, 2, 20_000), (4, 5, 4, 5000)],
+)
+def test_peak_memory_stays_under_the_smallest_accepted_budget(
+    rows: int, n_b: int, n_c: int, resamples: int
+) -> None:
+    # At the smallest budget the module accepts, one resample fits per
+    # chunk and nothing is left over for a buffer the budget does not
+    # count. The T1.2 audit measured peaks up to 1.1% over it there,
+    # from counting the replicates near the estimate with
+    # np.count_nonzero along an axis (a cast buffer of 64 KiB).
+    g = np.random.default_rng(8)
+    base = g.lognormal(size=(rows, n_b))
+    cand = g.lognormal(size=(rows, n_c))
+    with pytest.raises(ValueError, match="too small") as refused:
+        run(base, cand, resamples=resamples, max_bytes=1000)
+    found = re.search(r"needs at least (\d+)", str(refused.value))
+    assert found is not None
+    smallest = int(found.group(1))
+    with pytest.raises(ValueError, match="too small"):
+        run(base, cand, resamples=resamples, max_bytes=smallest - 1)
+    for max_bytes in (smallest, smallest + 1):
+        tracemalloc.start()
+        try:
+            run(base, cand, resamples=resamples, max_bytes=max_bytes)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        assert peak <= max_bytes
 
 
 GOOD = [1.0, 2.0, 3.0]

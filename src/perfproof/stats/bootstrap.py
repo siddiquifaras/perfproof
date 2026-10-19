@@ -437,10 +437,8 @@ def _block(
         del rep_c, rep_err_c, rep_b, rep_err_b
     replicates.sort(axis=-1)
 
-    below = np.count_nonzero(
-        replicates < (ratio * _BAND_DOWN)[:, None], axis=-1
-    )
-    above = np.count_nonzero(replicates > (ratio * _BAND_UP)[:, None], axis=-1)
+    below = _count_below(replicates, ratio * _BAND_DOWN, inclusive=False)
+    above = b - _count_below(replicates, ratio * _BAND_UP, inclusive=True)
     z0_lo = _z0(2 * below + ties, 2 * b)
     z0_hi = _z0(2 * (b - above) - ties, 2 * b)
     tails = _bca_tails(z0_lo, z0_hi, a_lo, a_hi, z)
@@ -716,6 +714,27 @@ def _bca_tails(
         np.where(corners_ok, t_lo, np.nan),
         np.where(corners_ok, t_hi, np.nan),
     )
+
+
+def _count_below(
+    replicates: NDArray[np.float64],
+    threshold: NDArray[np.float64],
+    *,
+    inclusive: bool,
+) -> NDArray[np.int64]:
+    """Count each sorted row's values below (or at) its threshold.
+
+    ``replicates`` is sorted along its last axis, so the count is the
+    position of the first value past the threshold, found with
+    ``argmax`` on a boolean mask. ``np.count_nonzero`` along an axis
+    would sum the mask as integers through a ufunc cast buffer of up
+    to ``8 * np.getbufsize()`` bytes, which the byte budget does not
+    hold; the mask itself is the 1 byte per replicate it does hold.
+    """
+    t = threshold[:, None]
+    past = replicates > t if inclusive else replicates >= t
+    first = np.argmax(past, axis=-1)
+    return np.where(past[:, -1], first, replicates.shape[-1]).astype(np.int64)
 
 
 def _z0(count: NDArray[np.int64], total: int) -> NDArray[np.float64]:

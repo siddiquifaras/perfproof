@@ -366,7 +366,18 @@ order's mean (balanced order otherwise drives it negative), and warns
 when it is above 0.3. If the
 primary procedure fails the acceptance rule under the autocorrelated
 scenarios, the prespecified fallback is batch means: consecutive rounds
-are grouped in blocks of 5 and each block mean becomes one observation.
+are grouped in blocks and each block mean becomes one observation.
+
+**Block size (T1.5 audit N1, decided in T1.6).** A block is 6 rounds,
+three whole order pairs. Blocks of 5 split order pairs, so a look at 16
+or 26 rounds would end on an unpaired round. Blocks hold complete pairs,
+and a trailing incomplete block is dropped, which drops whole pairs
+only, because one-host looks are on even round counts. Fewer than two
+complete blocks give no interval: a look at fewer than 12 rounds
+neither keeps nor rejects and the comparison continues, and at its last
+look it is INCONCLUSIVE. Cross host a block is 6 session pairs. The
+evidence is under "Calibration results", from the run that chose it and
+a second run at a fresh seed that confirmed it.
 
 ### Comparisons across machines
 
@@ -834,6 +845,303 @@ Until a target class passes on its held-out traces, its verdicts carry
 
 Calibration results are written to this page with the seed, `R`, the
 observed rates, and their Clopper-Pearson bounds.
+
+### Calibration results
+
+Written by T1.6. Every number below came from the runs named here; the
+per-cell counts, bounds and diagnostics for all of them are in
+`tests/calibration/results/` (`seed-<seed>.csv`, one row per cell and
+procedure), and `tests/calibration/test_calibration.py` reruns the
+cells nearest the bar and checks them against that file.
+
+**Conditions.** Every development scenario of the table above, one
+host and cross host (drift and the order effect have no cross-host
+cell, as the simulator refuses them), true speedups 0.95, 1.00, 1.03,
+1.04, 1.05, 1.10 and 1.20, the four look schedules of the per-target
+defaults under "Stopping" (python and native share one, web services
+and agentic apps share one), sequential looks on, `R = 4000` per cell,
+`min_effect = 0.03`, `alpha = 0.05`. That is 4 schedules x (11 one-host
++ 9 cross-host scenarios) x 7 speedups = 560 cells. One host uses
+balanced order. Scenarios other than the log-normal rows take a
+run-to-run CV of 5%; cross host every scenario also has a per-session
+offset of 15%. Each cell draws from its own seed sequence keyed by the
+seed and the cell's name, so a cell gives the same counts whichever
+other cells run with it. The time budget holds `max_rounds` typical
+rounds plus the look-ahead round, accumulated in log space, so a
+candidate that is slower than typical reaches `max_seconds` before
+`max_rounds`. At the seed of record the share of replications cut by
+time is 77% of the runs at 0.95, 42% at 1.00, 25% at 1.03, 21% at 1.04,
+17% at 1.05, 6% at 1.10 and 1% at 1.20 (mean over the 80 cells of each
+speedup), so a sizeable share of runs end at a final look on fewer
+rounds than the schedule's last look. Not covered: one-version
+skew (below), a pool that hands one version systematically different
+hosts, drift across a whole cross-host campaign, CV other than 5% for
+the non-log-normal rows, and any target class other than through its
+schedule. Real noise is not calibrated yet.
+
+**Runs.** Two complete runs, both on this MacBook (macOS arm64), 4
+worker processes.
+
+| Run | Seed | Procedures |
+|---|---|---|
+| Development | 1652377851162723444 | t, batch means in blocks of 4, 5, 6 and 10, Hodges-Lehmann, bootstrap of the ratio of medians (percentile and BCa) |
+| Of record | 844029934949031648 | t, batch means in blocks of 6 |
+
+`uv run python tests/calibration/run_calibration.py run --out <file>
+--workers 4` with `PERFPROOF_CALIBRATION_SEED` set reproduces the run of
+record; it prints its own wall time and load.
+
+The development run chose the block size and showed the t primary
+failing. Changing the primary means the whole calibration runs again at
+a new seed, so the run of record is a second complete run at a fresh
+seed with the procedure chosen by the first. The harness was then
+reduced to the two procedures that remained (below); rerun from the
+reduced harness, both seeds reproduce every count, rounds statistic and
+coverage count of the original runs for those two procedures in all 560
+cells. The development run's other procedures were produced by the
+harness at commit `8406d80`.
+
+**The t primary fails under AR(1).** In every run the t primary of
+"Speedup and interval" fails the acceptance rule in the one-host AR(1)
+cells and nowhere else: 10 failing cells at the development seed and 11
+at the seed of record, all `ar1/one_host`. These are failing cells, not
+rerun, written up as they came (seed of record):
+
+| Schedule | Scenario | Host | 0.95 | 1.00 | 1.03 | 1.04 | 1.05 | 1.10 | 1.20 |
+|---|---|---|---|---|---|---|---|---|---|
+| python_native | ar1 | one_host | 0 (0.07%) | 27 (0.93%) | 498 (13.34%) **FAIL** | 204 (5.71%) **FAIL** | 85 (2.54%) **FAIL** | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | ar1 | one_host | 0 (0.07%) | 32 (1.07%) | 469 (12.59%) **FAIL** | 231 (6.42%) **FAIL** | 126 (3.64%) **FAIL** | 5 (0.26%) | 0 (0.07%) |
+| llm_serving | ar1 | one_host | 0 (0.07%) | 53 (1.66%) | 421 (11.36%) **FAIL** | 233 (6.47%) **FAIL** | 112 (3.27%) **FAIL** | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | ar1 | one_host | 0 (0.07%) | 10 (0.42%) | 527 (14.09%) **FAIL** | 175 (4.94%) **FAIL** | 44 (1.41%) | 0 (0.07%) | 0 (0.07%) |
+
+False-KEEP counts at 1.03 are 408 to 528 of 4000 over the two seeds
+(the limit is 83), five to six times the limit, in every schedule. The
+two seeds fail the same cells except python_native at 1.05, which fails
+at the seed of record (85 false REJECTs, a bound of 2.54%) and passes at
+the development seed. The t interval at fixed `n` shows the cause, at
+the seed of record: under AR(1) with rho 0.5 its one-sided miss rate at
+`n` = `max_rounds` is up to 5.4% (python_native), 6.7% (web_agentic),
+6.8% (llm_serving) and 5.3% (gpu_kernels) one host against 0.2% to 0.4%
+designed per side, while in the scenarios other than AR(1) it is at
+most 0.8%. Cross host the same cells reach up to 1.00% (web_agentic),
+against 0.42% designed (the `n_max_miss_above` and `n_max_miss_below`
+columns of the seed-of-record CSV, `R` = 4000, so a Monte Carlo error of
+at most 0.16 points): the 15% session offset dilutes the autocorrelation
+but does not remove it. This is the condition under "Assumptions" for
+the documented fallback.
+
+**Decision: the fallback replaces the primary.** Under the rule written
+under "Assumptions", the t primary fails the acceptance rule under the
+autocorrelated scenario, so the prespecified fallback, batch means,
+becomes the primary for the audit. This is the documented switch and
+no other challenger is substituted. N1 fixes its block size.
+
+**N1 (block size).** Candidates, all in whole order pairs, were
+blocks of 4, 6 and 10 rounds, with the T1.5 block of 5 for reference.
+At the development seed, over all 560 cells:
+
+| Block (rounds) | Failing cells | Largest error count (limit 83) | KEEP at 1.05, one host | KEEP at 1.10, one host |
+|---|---|---|---|---|
+| 4 (2 pairs) | 1: gpu_kernels/ar1/one_host/1.03 | 95 | 22.9% | 70.6% |
+| 5 (not whole pairs) | 1: python_native/ar1/one_host/1.03 | 85 | 21.6% | 66.9% |
+| 6 (3 pairs) | 0 | 67 | 19.3% | 60.9% |
+| 10 (5 pairs) | 0 | 56 | 14.4% | 47.5% |
+| t (reference) | 10 | 528 | 26.7% | 84.1% |
+
+The KEEP rates are unweighted means over the one-host scenarios other
+than AR(1), all schedules together, a comparison between rows and not a
+property of any one cell. Block 6 is the smallest of the whole-pair
+blocks run (4, 6 and 10, with 5 for reference) that passes every cell, and it keeps more of the power than block 10, which
+leaves no interval below 20 rounds. The block was fixed on the
+development seed, so the seed of record is the test of it: block 6
+passes all 560 cells there as well, with the largest error count 64
+(1.97%, gpu_kernels/ar1/one_host/1.03). **Decision: blocks of 6
+rounds.** The price against the t interval, from the same table, is
+power: at the development seed, KEEP at 1.10 falls from 84.1% to 60.9%
+in the mean over the one-host scenarios, and the cross-host means fall
+from 2.9% to 2.1% (1.05) and from 27.6% to 18.2% (1.10). INFERENCE: part
+of the cross-host loss is that blocks of 6 session pairs leave one
+block, and so no decision, at the first look of the schedules with
+`n0 = 10`; this was not isolated.
+
+**Acceptance, procedure of record, seed 844029934949031648, `R` = 4000.**
+Batch means in blocks of 6 rounds. Each cell shows its error count
+(false KEEP at 0.95, 1.00 and 1.03, false REJECT at 1.04, 1.05, 1.10
+and 1.20) and, in brackets, the one-sided 95% Clopper-Pearson upper
+bound on its rate. A cell passes if the bound is at most 2.5%, which at
+`R` = 4000 is a count of at most 83.
+
+| Schedule | Scenario | Host | 0.95 | 1.00 | 1.03 | 1.04 | 1.05 | 1.10 | 1.20 |
+|---|---|---|---|---|---|---|---|---|---|
+| python_native | lognormal_cv1 | one_host | 0 (0.07%) | 0 (0.07%) | 28 (0.96%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | lognormal_cv5 | one_host | 0 (0.07%) | 1 (0.12%) | 28 (0.96%) | 4 (0.23%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | lognormal_cv15 | one_host | 1 (0.12%) | 5 (0.26%) | 39 (1.27%) | 14 (0.55%) | 13 (0.52%) | 1 (0.12%) | 0 (0.07%) |
+| python_native | student_t_df3 | one_host | 0 (0.07%) | 0 (0.07%) | 35 (1.16%) | 5 (0.26%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | bimodal | one_host | 0 (0.07%) | 2 (0.16%) | 18 (0.67%) | 14 (0.55%) | 6 (0.30%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | outliers | one_host | 0 (0.07%) | 0 (0.07%) | 15 (0.58%) | 3 (0.19%) | 3 (0.19%) | 2 (0.16%) | 0 (0.07%) |
+| python_native | drift | one_host | 0 (0.07%) | 0 (0.07%) | 29 (0.99%) | 4 (0.23%) | 2 (0.16%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | variance_step | one_host | 0 (0.07%) | 0 (0.07%) | 35 (1.16%) | 5 (0.26%) | 2 (0.16%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | ar1 | one_host | 0 (0.07%) | 1 (0.12%) | 47 (1.50%) | 12 (0.49%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | order_effect | one_host | 0 (0.07%) | 0 (0.07%) | 39 (1.27%) | 7 (0.33%) | 4 (0.23%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | session_offset | one_host | 0 (0.07%) | 0 (0.07%) | 27 (0.93%) | 4 (0.23%) | 2 (0.16%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | lognormal_cv1 | cross_host | 0 (0.07%) | 4 (0.23%) | 38 (1.24%) | 17 (0.64%) | 7 (0.33%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | lognormal_cv5 | cross_host | 0 (0.07%) | 5 (0.26%) | 27 (0.93%) | 14 (0.55%) | 15 (0.58%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | lognormal_cv15 | cross_host | 0 (0.07%) | 12 (0.49%) | 29 (0.99%) | 23 (0.81%) | 12 (0.49%) | 6 (0.30%) | 0 (0.07%) |
+| python_native | student_t_df3 | cross_host | 0 (0.07%) | 7 (0.33%) | 34 (1.13%) | 17 (0.64%) | 12 (0.49%) | 1 (0.12%) | 0 (0.07%) |
+| python_native | bimodal | cross_host | 0 (0.07%) | 2 (0.16%) | 23 (0.81%) | 24 (0.84%) | 8 (0.36%) | 1 (0.12%) | 0 (0.07%) |
+| python_native | outliers | cross_host | 0 (0.07%) | 4 (0.23%) | 16 (0.61%) | 9 (0.39%) | 10 (0.42%) | 0 (0.07%) | 1 (0.12%) |
+| python_native | variance_step | cross_host | 0 (0.07%) | 4 (0.23%) | 27 (0.93%) | 20 (0.73%) | 13 (0.52%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | ar1 | cross_host | 2 (0.16%) | 5 (0.26%) | 24 (0.84%) | 19 (0.70%) | 12 (0.49%) | 0 (0.07%) | 0 (0.07%) |
+| python_native | session_offset | cross_host | 0 (0.07%) | 9 (0.39%) | 25 (0.87%) | 14 (0.55%) | 13 (0.52%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | lognormal_cv1 | one_host | 0 (0.07%) | 0 (0.07%) | 24 (0.84%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | lognormal_cv5 | one_host | 0 (0.07%) | 0 (0.07%) | 26 (0.90%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | lognormal_cv15 | one_host | 1 (0.12%) | 7 (0.33%) | 33 (1.10%) | 28 (0.96%) | 14 (0.55%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | student_t_df3 | one_host | 0 (0.07%) | 0 (0.07%) | 24 (0.84%) | 2 (0.16%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | bimodal | one_host | 0 (0.07%) | 4 (0.23%) | 39 (1.27%) | 10 (0.42%) | 7 (0.33%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | outliers | one_host | 1 (0.12%) | 3 (0.19%) | 18 (0.67%) | 5 (0.26%) | 2 (0.16%) | 1 (0.12%) | 0 (0.07%) |
+| web_agentic | drift | one_host | 0 (0.07%) | 1 (0.12%) | 22 (0.78%) | 10 (0.42%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | variance_step | one_host | 0 (0.07%) | 0 (0.07%) | 23 (0.81%) | 11 (0.45%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | ar1 | one_host | 0 (0.07%) | 1 (0.12%) | 52 (1.64%) | 14 (0.55%) | 19 (0.70%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | order_effect | one_host | 0 (0.07%) | 1 (0.12%) | 37 (1.22%) | 8 (0.36%) | 2 (0.16%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | session_offset | one_host | 0 (0.07%) | 1 (0.12%) | 35 (1.16%) | 5 (0.26%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | lognormal_cv1 | cross_host | 1 (0.12%) | 7 (0.33%) | 34 (1.13%) | 25 (0.87%) | 19 (0.70%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | lognormal_cv5 | cross_host | 1 (0.12%) | 13 (0.52%) | 32 (1.07%) | 17 (0.64%) | 10 (0.42%) | 2 (0.16%) | 0 (0.07%) |
+| web_agentic | lognormal_cv15 | cross_host | 4 (0.23%) | 12 (0.49%) | 25 (0.87%) | 27 (0.93%) | 15 (0.58%) | 4 (0.23%) | 0 (0.07%) |
+| web_agentic | student_t_df3 | cross_host | 1 (0.12%) | 8 (0.36%) | 19 (0.70%) | 18 (0.67%) | 18 (0.67%) | 2 (0.16%) | 0 (0.07%) |
+| web_agentic | bimodal | cross_host | 3 (0.19%) | 12 (0.49%) | 17 (0.64%) | 21 (0.76%) | 9 (0.39%) | 4 (0.23%) | 0 (0.07%) |
+| web_agentic | outliers | cross_host | 1 (0.12%) | 10 (0.42%) | 30 (1.02%) | 16 (0.61%) | 12 (0.49%) | 3 (0.19%) | 0 (0.07%) |
+| web_agentic | variance_step | cross_host | 0 (0.07%) | 11 (0.45%) | 30 (1.02%) | 25 (0.87%) | 16 (0.61%) | 0 (0.07%) | 0 (0.07%) |
+| web_agentic | ar1 | cross_host | 1 (0.12%) | 13 (0.52%) | 25 (0.87%) | 23 (0.81%) | 20 (0.73%) | 1 (0.12%) | 0 (0.07%) |
+| web_agentic | session_offset | cross_host | 1 (0.12%) | 14 (0.55%) | 27 (0.93%) | 20 (0.73%) | 15 (0.58%) | 2 (0.16%) | 0 (0.07%) |
+| llm_serving | lognormal_cv1 | one_host | 0 (0.07%) | 0 (0.07%) | 43 (1.38%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | lognormal_cv5 | one_host | 0 (0.07%) | 0 (0.07%) | 41 (1.33%) | 17 (0.64%) | 6 (0.30%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | lognormal_cv15 | one_host | 2 (0.16%) | 13 (0.52%) | 34 (1.13%) | 24 (0.84%) | 14 (0.55%) | 3 (0.19%) | 0 (0.07%) |
+| llm_serving | student_t_df3 | one_host | 0 (0.07%) | 0 (0.07%) | 28 (0.96%) | 19 (0.70%) | 1 (0.12%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | bimodal | one_host | 0 (0.07%) | 10 (0.42%) | 30 (1.02%) | 14 (0.55%) | 16 (0.61%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | outliers | one_host | 5 (0.26%) | 4 (0.23%) | 30 (1.02%) | 7 (0.33%) | 10 (0.42%) | 3 (0.19%) | 2 (0.16%) |
+| llm_serving | drift | one_host | 0 (0.07%) | 1 (0.12%) | 35 (1.16%) | 12 (0.49%) | 5 (0.26%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | variance_step | one_host | 0 (0.07%) | 1 (0.12%) | 22 (0.78%) | 9 (0.39%) | 11 (0.45%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | ar1 | one_host | 0 (0.07%) | 8 (0.36%) | 41 (1.33%) | 18 (0.67%) | 15 (0.58%) | 2 (0.16%) | 0 (0.07%) |
+| llm_serving | order_effect | one_host | 0 (0.07%) | 2 (0.16%) | 32 (1.07%) | 16 (0.61%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | session_offset | one_host | 0 (0.07%) | 2 (0.16%) | 37 (1.22%) | 11 (0.45%) | 8 (0.36%) | 0 (0.07%) | 0 (0.07%) |
+| llm_serving | lognormal_cv1 | cross_host | 2 (0.16%) | 14 (0.55%) | 33 (1.10%) | 26 (0.90%) | 13 (0.52%) | 6 (0.30%) | 0 (0.07%) |
+| llm_serving | lognormal_cv5 | cross_host | 1 (0.12%) | 11 (0.45%) | 23 (0.81%) | 26 (0.90%) | 19 (0.70%) | 9 (0.39%) | 0 (0.07%) |
+| llm_serving | lognormal_cv15 | cross_host | 3 (0.19%) | 15 (0.58%) | 25 (0.87%) | 24 (0.84%) | 28 (0.96%) | 9 (0.39%) | 1 (0.12%) |
+| llm_serving | student_t_df3 | cross_host | 0 (0.07%) | 12 (0.49%) | 36 (1.19%) | 15 (0.58%) | 14 (0.55%) | 5 (0.26%) | 1 (0.12%) |
+| llm_serving | bimodal | cross_host | 2 (0.16%) | 16 (0.61%) | 26 (0.90%) | 24 (0.84%) | 23 (0.81%) | 6 (0.30%) | 0 (0.07%) |
+| llm_serving | outliers | cross_host | 6 (0.30%) | 14 (0.55%) | 28 (0.96%) | 26 (0.90%) | 22 (0.78%) | 8 (0.36%) | 0 (0.07%) |
+| llm_serving | variance_step | cross_host | 4 (0.23%) | 17 (0.64%) | 31 (1.04%) | 23 (0.81%) | 24 (0.84%) | 4 (0.23%) | 0 (0.07%) |
+| llm_serving | ar1 | cross_host | 1 (0.12%) | 20 (0.73%) | 35 (1.16%) | 30 (1.02%) | 21 (0.76%) | 2 (0.16%) | 0 (0.07%) |
+| llm_serving | session_offset | cross_host | 4 (0.23%) | 8 (0.36%) | 30 (1.02%) | 20 (0.73%) | 25 (0.87%) | 3 (0.19%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv1 | one_host | 0 (0.07%) | 0 (0.07%) | 36 (1.19%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv5 | one_host | 0 (0.07%) | 0 (0.07%) | 36 (1.19%) | 5 (0.26%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv15 | one_host | 3 (0.19%) | 7 (0.33%) | 43 (1.38%) | 19 (0.70%) | 4 (0.23%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | student_t_df3 | one_host | 0 (0.07%) | 0 (0.07%) | 31 (1.04%) | 4 (0.23%) | 1 (0.12%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | bimodal | one_host | 0 (0.07%) | 3 (0.19%) | 40 (1.30%) | 13 (0.52%) | 3 (0.19%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | outliers | one_host | 1 (0.12%) | 3 (0.19%) | 12 (0.49%) | 6 (0.30%) | 4 (0.23%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | drift | one_host | 0 (0.07%) | 0 (0.07%) | 41 (1.33%) | 3 (0.19%) | 1 (0.12%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | variance_step | one_host | 0 (0.07%) | 0 (0.07%) | 35 (1.16%) | 4 (0.23%) | 0 (0.07%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | ar1 | one_host | 0 (0.07%) | 3 (0.19%) | 64 (1.97%) | 19 (0.70%) | 4 (0.23%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | order_effect | one_host | 0 (0.07%) | 1 (0.12%) | 38 (1.24%) | 1 (0.12%) | 1 (0.12%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | session_offset | one_host | 0 (0.07%) | 1 (0.12%) | 34 (1.13%) | 4 (0.23%) | 1 (0.12%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv1 | cross_host | 1 (0.12%) | 4 (0.23%) | 38 (1.24%) | 13 (0.52%) | 6 (0.30%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv5 | cross_host | 1 (0.12%) | 9 (0.39%) | 32 (1.07%) | 16 (0.61%) | 7 (0.33%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | lognormal_cv15 | cross_host | 1 (0.12%) | 13 (0.52%) | 24 (0.84%) | 15 (0.58%) | 8 (0.36%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | student_t_df3 | cross_host | 0 (0.07%) | 6 (0.30%) | 33 (1.10%) | 15 (0.58%) | 9 (0.39%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | bimodal | cross_host | 1 (0.12%) | 5 (0.26%) | 34 (1.13%) | 14 (0.55%) | 15 (0.58%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | outliers | cross_host | 0 (0.07%) | 8 (0.36%) | 21 (0.76%) | 15 (0.58%) | 5 (0.26%) | 2 (0.16%) | 0 (0.07%) |
+| gpu_kernels | variance_step | cross_host | 0 (0.07%) | 6 (0.30%) | 35 (1.16%) | 24 (0.84%) | 4 (0.23%) | 0 (0.07%) | 0 (0.07%) |
+| gpu_kernels | ar1 | cross_host | 1 (0.12%) | 7 (0.33%) | 57 (1.77%) | 13 (0.52%) | 14 (0.55%) | 1 (0.12%) | 0 (0.07%) |
+| gpu_kernels | session_offset | cross_host | 0 (0.07%) | 4 (0.23%) | 32 (1.07%) | 16 (0.61%) | 6 (0.30%) | 2 (0.16%) | 0 (0.07%) |
+
+**0 of 560 cells fail.** The largest count is 64 of 4000 (1.97% bound),
+at gpu_kernels/ar1/one_host/1.03. The same procedure at the development
+seed also passes all 560 cells, largest count 67 (2.05% bound), in
+`tests/calibration/results/seed-1652377851162723444.csv`. With every
+cell passing, the question the plan left for Faras, what to do when a
+cell fails, did not arise: no cell was rerun and none failed.
+
+**Diagnostics (not pass or fail), procedure of record, seed of record.**
+Range over the scenarios of each schedule and host; percentages of the
+4000 runs. The per-cell values, with the conditional error rate and the
+fixed-`n` coverage counts, are in the CSV.
+
+| Schedule | Host | KEEP at 1.05 | KEEP at 1.10 | KEEP at 1.20 | INCONCLUSIVE at 1.03 | INCONCLUSIVE at 1.04 | Mean rounds at 1.04 | 95th pct rounds at 1.04 |
+|---|---|---|---|---|---|---|---|---|
+| python_native | one_host | 2.45 to 100.00 | 21.15 to 100.00 | 87.25 to 100.00 | 97.25 to 99.30 | 11.28 to 98.70 | 46.6 to 59.5 | 58 to 60 |
+| python_native | cross_host | 1.15 to 2.48 | 9.22 to 19.65 | 60.25 to 93.12 | 98.28 to 99.02 | 97.97 to 98.60 | 57.2 to 59.5 | 60 to 60 |
+| web_agentic | one_host | 1.68 to 93.33 | 6.62 to 100.00 | 41.08 to 100.00 | 97.55 to 99.10 | 62.68 to 98.98 | 28.4 to 29.9 | 30 to 30 |
+| web_agentic | cross_host | 1.30 to 1.62 | 4.03 to 7.42 | 19.98 to 40.38 | 98.52 to 99.02 | 98.10 to 98.67 | 28.6 to 29.9 | 30 to 30 |
+| llm_serving | one_host | 1.27 to 26.02 | 3.10 to 95.85 | 9.98 to 100.00 | 98.05 to 98.90 | 90.38 to 98.70 | 20.7 to 22.0 | 22 to 22 |
+| llm_serving | cross_host | 0.88 to 1.40 | 2.10 to 2.93 | 6.02 to 9.32 | 98.28 to 98.72 | 98.10 to 98.70 | 20.9 to 21.9 | 22 to 22 |
+| gpu_kernels | one_host | 4.95 to 100.00 | 62.85 to 100.00 | 99.90 to 100.00 | 96.70 to 99.55 | 0.00 to 98.65 | 54.4 to 118.6 | 80 to 120 |
+| gpu_kernels | cross_host | 3.10 to 4.72 | 27.40 to 60.42 | 97.10 to 100.00 | 97.02 to 98.67 | 97.40 to 98.42 | 114.5 to 118.7 | 119 to 120 |
+
+- Power is low where noise is large. Cross host, at +5% it is close to
+  none in every schedule (at most 4.72%); at +10% it ranges up to
+  19.65% (python_native), 7.42% (web_agentic), 2.93% (llm_serving) and
+  60.42% (gpu_kernels); at +20% up to 93.12%, 40.38%, 9.32% and 100.00%.
+  The session offsets of 15% make the standard error of a pair mean
+  large relative to the effect.
+- The conditional error rate (errors among runs that reached a verdict)
+  is high in some cells and is not bounded by the argument under
+  "Stopping": up to 68% of the KEEPs at a true 1.03 were false
+  (llm_serving/outliers/one_host/1.03), and up to 46% of the REJECTs at
+  1.04 (llm_serving/outliers/cross_host/1.04). Few runs reach a verdict
+  there, so these are small samples of the unconditional rate that the
+  acceptance rule controls.
+- Coverage at fixed `n = max_rounds`, per-look confidence, each side
+  counted separately: the worst one-sided miss rate over a schedule's
+  cells is at most 0.775% in the scenarios other than AR(1) and 0.88%
+  under AR(1), against 0.21% (six looks) or 0.42% (three looks)
+  designed per side. Set against each cell's own design, the worst
+  cell is 3.4 times it (python_native, AR(1), one host, speedup 1.00:
+  28 of 4000, 0.70% against 0.21%); pooled over the seven speedups of
+  a scenario, at most about 2.2 times. The
+  `alpha / (2K)` margin absorbs that, as the acceptance counts show. The
+  batch-means interval has no value at the first look of the schedules
+  with `n0 = 10`, so its coverage is recorded at the budget end there.
+
+**Challengers.** All lose, and are deleted. At the development seed,
+none passes a cell the batch-means fallback fails (it fails none), and
+each except blocks of 10 fails cells that it passes; blocks of 10
+fail none and lose on power:
+
+| Procedure | Failing cells | Where |
+|---|---|---|
+| Hodges-Lehmann with the Wilcoxon interval | 10 | ar1/one_host, all four schedules, 1.03 and 1.04, and 1.05 for web_agentic and llm_serving |
+| Bootstrap of the ratio of medians, percentile | 8 | ar1/one_host, all four schedules, 1.03 and 1.04 |
+| Bootstrap of the ratio of medians, BCa | 7 | ar1/one_host, 1.03 in all four schedules, 1.04 in three |
+| Batch means, blocks of 4 | 1 | gpu_kernels/ar1/one_host/1.03 |
+| Batch means, blocks of 5 | 1 | python_native/ar1/one_host/1.03 |
+| Batch means, blocks of 10 | 0 | power below block 6 (above) |
+
+Every failing challenger cell is under AR(1) on one host. Block 10 has
+less power than block 6 and leaves no interval below 20 rounds. The
+bootstrap and BCa intervals have more power than batch means in
+blocks of 6 (about 76% and 72% KEEP at 1.10, one host, against 61%) and fail
+the rule in cells where it passes; an interval that does not pass
+cannot be primary. The harness no longer runs any of them;
+`src/perfproof/stats/bootstrap.py` and the Hodges-Lehmann code are not
+part of T1.6's ownership and stay for the lead to decide.
+
+**One-version skew stays a stated limit.** No remedy has been shown
+to pass: this run has no skew scenario, and no committed probe or
+result covers one, so the limit under "Assumptions" stays as stated,
+uncalibrated.
+
+**What this changes elsewhere, not done by T1.6.** The primary
+procedure named under "Speedup and interval", `sequential.BATCH_BLOCK`
+(5), and the rule that a look with fewer than two complete blocks gives
+no interval still describe the t primary and blocks of 5. Making blocks
+of 6 the primary, in code and in that section, is a follow-up task,
+which also has to decide the cross-host case: the t primary passed
+every cross-host cell, including AR(1) (largest count 77 of 4000,
+web_agentic/ar1/cross_host/1.03), but only because the 15% session
+offset dilutes the autocorrelation. The fallback costs cross-host
+power. The per-target defaults under "Stopping" are unchanged by this
+calibration, and they are the schedules these results were measured
+under.
 
 ## What the record contains
 
