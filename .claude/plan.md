@@ -1174,7 +1174,7 @@ claim is checked for speed, correctness and regressions elsewhere
     once, and the refusal above.
   - Effort: medium
 
-- [ ] **T3.4 Discovery primitives**
+- [x] **T3.4 Discovery primitives** (siddiquifaras/perfproof#37, `4c0daa2`)
   - Owns: `src/perfproof/profilers/summary.py` and its tests, the
     `--sizes`, `--stub` and `--set` options of `measure`
   - Needs: T2.10, T2.13
