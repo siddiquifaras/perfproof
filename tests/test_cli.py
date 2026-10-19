@@ -19,7 +19,7 @@ from perfproof.machine import machine_warnings
 from perfproof.schema import BenchmarkSpec, MachineFingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILT = ("bench", "compare", "doctor", "log", "profile")
+BUILT = ("bench", "compare", "doctor", "init", "log", "profile", "project")
 NOT_BUILT = tuple(c for c in COMMANDS if c not in BUILT)
 
 type Run = Callable[..., tuple[int, str, str]]

@@ -87,6 +87,88 @@ evidence is left empty and asked about, never filled with a default
 that looks plausible. Switching goals reuses every entry the new goal
 doesn't depend on.
 
+**Rules the implementation fixes.** The schema leaves these open;
+`src/perfproof/project/` decides them, and tests pin each one.
+
+- *History lines.* One line per revision, holding the entry as it
+  became. `created` and `edited` lines carry `proposed` entries only:
+  an entry is born unconfirmed whoever made it, and a changed claim is
+  a new revision nobody has confirmed, so editing a confirmed entry
+  sends it back to `proposed`. Nothing becomes `confirmed` except
+  through a `confirmed` line. A change is written history first, then
+  the model by rename; a crash between leaves the previous model whole
+  and an orphan history line, which is kept. `project history` marks a
+  line as an orphan when it is newer than the model's `updated_at`, so
+  it is exact for a crash with no later successful write.
+- *Version.* An entry's claim is every field except provenance,
+  version and the status fields. `version` bumps exactly when the claim
+  changes (an edit, a re-derivation that differs, a changed output
+  shape), and when a workload is re-proposed because its own files
+  changed. Confirming, going stale, revalidating unchanged, retiring
+  and a refreshed provenance do not bump it.
+- *Dependencies.* A workload depends on its target; a goal and a
+  workload-bound how-to-run on their workload; a workload with a frozen
+  spec (`spec_hash`) on its goals and on every constraint. A claim
+  change to an entry makes its confirmed dependents `stale` with
+  `dependency_edited`. A frozen spec is carried through
+  revalidation except for that trigger, where the re-derived workload
+  has none and so differs. `dependency_edited` clears only when every
+  dependency is `confirmed`: a workload stays stale while its target,
+  or the goal its frozen spec came from, is an unconfirmed new
+  version. A goal may be confirmed while its workload waits on that goal.
+- *Own files.* A stale workload whose own benchmark or lock files
+  changed is always re-proposed (version +1) and needs confirmation
+  again, even when its command is unchanged: the confirmation covered
+  different code. Probes never run such a workload, nor a proposed
+  one. A change to a target's or how-to-run's files that re-derives
+  identically returns it to its previous status.
+- *Caveats.* A command whose interpreter was guessed (bare `python`
+  without a `uv.lock`, a console script assumed on `PATH`) or whose
+  arguments are unknown carries a caveat, shown by `init` and written
+  as the note of its `created` line.
+- *Consistency.* A live goal or how-to-run has a live workload, and a
+  live workload a live target, so retiring needs `--cascade` and
+  retires the dependents with a reason naming the entry; a confirmed
+  goal on a retired workload cannot exist. A workload has at most one
+  live goal, and a goal never guards its own metric. A goal can be
+  confirmed only while its workload is confirmed. A confirmed goal
+  whose workload later goes stale stays as it is and is refused at use
+  until the workload is revalidated.
+- *Goals.* Unknown fields stay `None` with a reason. A known metric
+  fixes its direction and, for time and memory, its unit; `throughput`
+  and `cost_per_token` leave the unit unknown. When the metric is
+  known and no guardrails are, the target class's default guardrails
+  (`method.md`) are filled with source `default` and shown with the
+  goal. A goal with an unknown metric, direction, unit or guardrails
+  cannot be confirmed.
+- *The default bar.* A goal's `bar` stays `None` until the developer
+  states one. A comparison that finds `None` applies the spec's
+  `min_effect` and calls it the **default bar** (`default bar
+  (min_effect 0.03)`); a stated bar is the **goal bar**. The default
+  is never written into the goal.
+- *Triggers.* `file_changed`: a provenance file's hash differs or the
+  file is gone. `lockfile_changed`: only a dependency lockfile
+  (`uv.lock`, `poetry.lock`, `Cargo.lock`, ...) differs. If both,
+  `file_changed` is recorded and the detail names the other.
+  `command_failed` and `output_shape_changed`: seen only by
+  `project check --probe`, which runs each confirmed workload's
+  command once; the shape is the output with digit runs masked,
+  hashed, and the baseline lives in `.perfproof/project.probes.json`
+  because the model has no field for an observation. A proposed
+  workload is never run. `machine_differs`: an entry's `host_id` is not
+  this machine's; a machine that cannot be identified is reported as
+  unknown, never as a pass. `perfproof_upgraded`: the entry was
+  derived by a version older than the kind's current derivation
+  revision.
+- *Refusal.* `compare` and `measure` will call (wired after T3.6)
+  `perfproof.project.require_confirmed`, which refuses (`not_confirmed`)
+  a workload, its target, its goal or a constraint that is not
+  `confirmed`, a workload
+  with no live goal, an entry whose recorded files changed on disk even
+  if `project check` has not run, an entry bound to another machine,
+  and a frozen spec other than the one being measured. It lists every
+  problem found.
+
 ## Discover
 
 ### Hypotheses

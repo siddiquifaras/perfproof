@@ -102,9 +102,14 @@ for three years. The obvious hotspots are long fixed. They type
 > bench-tile is what users run. Wall time. Don't change the public API
   or add dependencies.
 
-● perfproof project confirm workload=bench-tile goal=wall
-    constraints="public API fixed; no new dependencies" --json
-  Confirmed. Guardrails: peak memory, 10% (default for python).
+● perfproof project confirm target-python_cpu bench-tile --json
+● perfproof project goal bench-tile --metric wall --confirm --json
+● perfproof project constraint add --kind public_api
+    --subject "public API" --confirm --json
+● perfproof project constraint add --kind forbidden_dependency
+    --subject "any new dependency" --confirm --json
+  Confirmed. Guardrails: peak memory, 10% (default for python). No bar
+  was given, so the default bar applies and is named as such.
 
 ● perfproof bench define bench-tile --json
   Spec 4f1c… locked: benchmarks/bench_tile.py, tests/ (214 files),
