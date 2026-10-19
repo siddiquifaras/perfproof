@@ -1141,7 +1141,7 @@ claim is checked for speed, correctness and regressions elsewhere
     evidence hashes is refused; the drift test passes.
   - Effort: high
 
-- [ ] **T3.2 `init` and `project`**
+- [x] **T3.2 `init` and `project`** (siddiquifaras/perfproof#39, `9998d31`; wiring `require_confirmed` into compare and measure follows T3.6)
   - Owns: `src/perfproof/project/`, `tests/project/`, the `init` and
     `project` commands
   - Needs: T3.1, T2.17
