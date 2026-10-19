@@ -732,7 +732,7 @@ Mac and on Linux CI, with decoys that must be refused.
     verdict through the CLI.
   - Effort: low
 
-- [ ] **T2.21 Real-repo harness and per-tree setup** (top CLI priority)
+- [x] **T2.21 Real-repo harness and per-tree setup** (siddiquifaras/perfproof#43, `bbaedcf`)
   - Found by the skill's first real-repo run (frames2py): a benchmark
     the skill writes under `.perfproof/` is missing from the baseline
     worktree, and a gitignored `.venv` interpreter doesn't exist there
