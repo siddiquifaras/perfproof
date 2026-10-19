@@ -18,7 +18,8 @@ the user.
 ## How to talk
 
 - Plain sentences, no jargon. One next step at the end of every stop,
-  as a question with at most two options, your recommendation first.
+  as a question with at most two options, your recommendation first,
+  for example "Shall I <recommended>, or <alternative>?"
 - Three kinds of statement, never mixed up:
   - **Facts**: tests passed or failed, outputs identical or different,
     a count ("236 queries became 10"). Say them plainly.
@@ -42,9 +43,11 @@ the user.
   verdict, copy it: `Result: <verdict.outcome> (<verdict.reason>)`,
   adding `, gate <verdict.gate>` when there is one, for example
   `Result: INCONCLUSIVE (insufficient_evidence)` or
-  `Result: REJECT (correctness, gate coverage)`. Use
-  `Result: NO VERDICT (<plain reason>)` only when no compare finished
-  (you stopped before it, or it errored).
+  `Result: REJECT (correctness, gate coverage)`. A REJECT from a gate
+  (correctness, coverage, lock, side_effects, runtime, procedure,
+  same_host) is a verdict: copy it. Use `Result: NO VERDICT (<plain
+  reason>)` only when `compare` returned no verdict at all (you stopped
+  before it, or it answered `ok: false`).
 
 ## What the user asked for
 
@@ -145,7 +148,9 @@ No discovery. One candidate at a time, against its parent.
    the profile hints at. Check `git log` for what was tried before.
 4. **Cheap test first.** Before writing a real change, test the idea
    cheaply (the cheapest check that would prove it wrong). Drop ideas
-   it refutes and say why.
+   it refutes and say why. A cheap timing only decides what to try
+   next: never report it to the user. Report counts or a bound instead
+   ("the stage is 18% of the run, so it can save at most 1.2x").
 5. **Try.** Ask once before creating the branch `perfproof/<name>`;
    then write the change there, as small as the idea needs, and prove
    it exactly as above.
