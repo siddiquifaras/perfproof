@@ -507,7 +507,7 @@ by `stats-auditor` before its PR opens.
     schedule defaults are written into `docs/method.md`.
   - Effort: high
 
-- [ ] **T1.6 Calibration**
+- [x] **T1.6 Calibration** (siddiquifaras/perfproof#33, `71f8d25`)
   - Owns: `tests/calibration/`, the calibration results in
     `docs/method.md`
   - Needs: T1.1, T1.2, T1.4, T1.5
