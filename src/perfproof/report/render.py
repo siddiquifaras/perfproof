@@ -519,15 +519,27 @@ def _measured(record: RunRecord) -> str:
         ]
     items: list[str] = []
     if v.gate is None:
-        items.append(
-            "Speedup estimate: "
-            + (
-                "not computed"
-                if v.estimate is None
-                else f"{_num(v.estimate)}; above 1 means the candidate is "
-                "faster"
+        if v.diagnostics.procedure_uncalibrated:
+            # Before calibration the number backs no claim of speed.
+            items.append(
+                "Uncalibrated estimate: "
+                + (
+                    "not computed"
+                    if v.estimate is None
+                    else f"{_num(v.estimate)} (old time over new time); "
+                    "not a verdict"
+                )
             )
-        )
+        else:
+            items.append(
+                "Speedup estimate: "
+                + (
+                    "not computed"
+                    if v.estimate is None
+                    else f"{_num(v.estimate)}; above 1 means the candidate "
+                    "is faster"
+                )
+            )
         items.append(
             "Interval at the last look: "
             + ("not computed" if v.interval is None else _interval(v.interval))

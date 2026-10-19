@@ -271,7 +271,14 @@ def _text(record: RunRecord, report: Path) -> str:
     if v.gate is not None:
         head.append(f"gate {v.gate}")
     if v.estimate is not None:
-        head.append(f"speedup {v.estimate:.4g}x")
+        # Before calibration the number backs no claim, so it is shown
+        # as an estimate and never called a speedup.
+        label = (
+            "uncalibrated estimate"
+            if (v.diagnostics.procedure_uncalibrated)
+            else "estimate"
+        )
+        head.append(f"{label} {v.estimate:.4g}x")
     if v.interval is not None:
         head.append(
             f"interval {v.interval.lower:.4g}x to {v.interval.upper:.4g}x"

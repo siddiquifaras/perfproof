@@ -1309,3 +1309,22 @@ def test_write_refuses_a_report_that_differs(tmp_path: Path) -> None:
         write(keep(), tmp_path)
     assert (tmp_path / "report.md").read_text(encoding="utf-8") == "old"
     assert (tmp_path / "record.json").exists()
+
+
+def test_compare_text_never_calls_an_uncalibrated_estimate_a_speedup() -> None:
+    from perfproof.commands.compare import (
+        _text,  # pyright: ignore[reportPrivateUsage]
+    )
+
+    uncalibrated = _text(procedure_uncalibrated(), Path("report.md"))
+    assert "speedup" not in uncalibrated
+    assert "uncalibrated estimate" in uncalibrated
+    calibrated = _text(keep(), Path("report.md"))
+    assert "speedup" not in calibrated
+    assert "estimate" in calibrated
+
+
+def test_report_never_calls_an_uncalibrated_estimate_a_speedup() -> None:
+    text = render(procedure_uncalibrated())
+    assert "Speedup estimate" not in text
+    assert "Uncalibrated estimate: 1.08" in text

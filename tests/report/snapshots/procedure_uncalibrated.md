@@ -21,7 +21,7 @@ Not recorded: the repository and the candidate's commit.
 
 ## Measured
 
-- Speedup estimate: 1.08; above 1 means the candidate is faster
+- Uncalibrated estimate: 1.08 (old time over new time); not a verdict
 - Interval at the last look: 1.05 to 1.11 at confidence 0.99
 - Rounds: 200, of at most 200
 - Looks: 5, of at most 5
