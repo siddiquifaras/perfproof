@@ -1160,7 +1160,7 @@ claim is checked for speed, correctness and regressions elsewhere
     read-only, on frames2py and picolm.
   - Effort: high
 
-- [ ] **T3.3 `log`**
+- [x] **T3.3 `log`** (siddiquifaras/perfproof#38, `dbf5846`)
   - Owns: `src/perfproof/hypotheses.py`, `tests/test_hypotheses.py`,
     the `log` command
   - Needs: T3.1
