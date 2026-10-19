@@ -143,17 +143,20 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### In progress
 
-Resumed 2026-10-19 on Faras's go.
+Paused 2026-10-19 on Faras's word ("wind up and pause everything"). Nothing running: no agents, evals, Docker checks or claude sessions. Resume only when Faras says continue.
 
 | PR / task | State | Next |
 |---|---|---|
-| T2.21 follow-up | merged | re-run the skill on frames2py and picolm (scratch clones, push disabled); audit notes left open: dependency stack per tree only warns, setup mutates main venv when candidate is main, oracle-only listing REJECTs at lock (spec.md says it installs), symlinked harness dir survives install |
-| T3.6 follow-ups | docs merged (#48) | wire `require_confirmed` into compare and measure; the skill already confirms before measuring in find, but the prove path and the CLI-only path have no confirm step yet (decide: does `bench define` after the user agrees count as confirming?) |
-| T1.8 | starting | primary to batch means, audit-range gaps; also the Assumptions skew figures at method.md:337-343 come from uncommitted audit runs (back or cut) |
-| skill | merged (#46); frames2py light run done (scratch clone, 2 turns, $0.85, tree clean, no branch): one ask, harness under .perfproof/harness, profile np.add.at 34% cap 1.5x, two ideas refuted by cheap tests, no compare | fix next: it reported cheap timings ("much slower at every batch size", "30 to 40 us") against the rule; it said "nothing left could clear the 3% bar" after two light-depth ideas with a 1.5x cap open (say what depth tried, offer medium); add a real-repo task to the eval; picolm not run; colsum/growth/settings not in the eval; a dropped gate suffix once in 22 prove runs |
-| CLI bug | `record.json` candidate_commit null for `--candidate <branch>` | small fix |
+| #50 T1.8 batch means + gate | head `43f701e` (main merged in, pushed). Reviewer PASS at `331f61f` (both CSVs reproduced byte for byte, 11 of 13 mutants killed, 2 survivors immaterial). Mac 4417 passed + calibration 389; Linux 3.12 4413 passed, both on `43f701e`. Independent stats-auditor was stopped mid-run at the pause (no verdict; partial work in `scratch/audit-pr50-work/`) | rerun the stats-auditor on `43f701e` (brief: acceptance rule from CSVs, fresh held-out scenarios near gate thresholds, threshold selection bias, white-noise false-withhold power cost per default schedule, the worker's open findings); merge if PASS; tick T1.8 |
+| T1.8 product cost to report to Faras | gate withholds any decision when lag-1 > 0.1 under 20 blocks or outliers > 3% under 10 blocks | numbers from the PR: one-host KEEP at 1.10 python_native 80.3% to 71.1%; AR(1) rho 0.5 79.8% to 4.0%; with default schedules only the 120-round GPU look can decide when lag-1 is high. Fits "KEEP must be trustworthy" but costs power |
+| After T1.8 (wiring, before CALIBRATED flips) | `bench/compare.py:207` still `PROCEDURE = "t_log_ratio"` and passes no `candidate_first`; schema lists deleted procedures and lacks `outlier_rounds`; `autocorrelated_rounds` already a warning code at lag-1 > 0.3 | one task: wire batch means + gate + `candidate_first` into compare, schema update (own task), rename the clash; T1.7 adds a near-deterministic/quantized-metric scenario (gate withheld 808/1000 on a counter metric with a real 20% speedup); stale `stats/AGENTS.md:25-28`, `intervals.py:32` "Walsh average", architecture/evaluation docs mention deleted bootstrap/HL; worker's open findings: one-version skew up to 931/4000, custom multi-look schedules >= 20 blocks under AR(1) 0.6-0.7, `run_looks` raising on interval underflow, missing `candidate_first` silently disables centring |
+| `require_confirmed` wiring | not started, needs a decision | workloads come only from `init` derivation; nothing adds a workload from a hand-written benchmark, so wiring it into compare as docs/discovery.md says would refuse every prove on a spec the skill or user wrote. Needs a schema task (a workload made from a locked spec, confirmed when the user agrees to it) first. Ask Faras |
+| skill | #46 and #49 merged; frames2py light run at the round-4 skill was good (one ask, mechanism refutations, byte-identical attempt, estimate not called a win, untried idea named, medium offered, $1.21) | add a real-repo task to the eval (several competing ideas); picolm not run; colsum/growth/settings not in the eval; Result line dropped `, gate` once in ~30 prove runs; wording scorer is a strict proxy (left-flagged: "points to one", "no speed claim either way", "will check whether ... got faster") |
+| T2.21 audit notes | open | dependency stack per tree only warns; setup mutates main venv when candidate is main; oracle-only listing REJECTs at lock (spec.md says it installs); symlinked harness dir survives install |
+| CLI bug | open | `record.json` candidate_commit null for `--candidate <branch>`; gate details in `compare --json`; a simpler `log add` for agents |
+| Eval harness | | runner needs absolute paths (`--skill`, `--out`); run from the main checkout; `pgrep -f linux.sh` also matches old wait loops (use `pgrep -f "verify/linux.sh "` or no wait loop) |
 
-Resumed 2026-10-19 on Faras's word; stop at the next 5-hour limit and do not restart.
+Spend today on skill evals: about $25 (runs 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3j, 4a, 4b, plus frames2py x3).
 
 ### Known gaps
 
