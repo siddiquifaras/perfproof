@@ -1459,7 +1459,7 @@ Starts now, in parallel with M1 and M2. Implements
     outcome as only a failed oracle or workload.
   - Effort: high
 
-- [ ] **T4.2 Independent ground truth**
+- [ ] **T4.2 Independent ground truth** (labeller merged in siddiquifaras/perfproof#29; held-out labelling on the second machine deferred until after release, Faras 2026-10-19: not a release gate, needed only to publish an accuracy number)
   - Owns: `eval/label/`
   - Needs: T4.1
   - Do: label every task with the independent procedure in
