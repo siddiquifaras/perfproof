@@ -23,6 +23,32 @@ before you lock it.
   `reported` metric. That times only the work, not interpreter start-up.
   Otherwise use `wall`.
 
+## Where the benchmark lives
+
+The baseline is a fresh checkout of the commit, so a file you wrote and
+did not commit is not in it. Put a benchmark you wrote under
+`.perfproof/harness/` (for example `.perfproof/harness/bench_x.py`) and
+list it in `harness`. perfproof copies that directory, byte for byte,
+into both versions before anything runs, and a change cannot touch it.
+Once one file there is listed, every file in the directory is locked,
+so put helper modules beside the benchmark and expect an edit to any of
+them after locking to be refused. Only `.git` and `__pycache__` are
+ignored: any other file that appears or changes there after the freeze
+(a cache the benchmark writes beside itself, a `.DS_Store`) fails the
+lock gate, so tell the benchmark to write caches outside that directory.
+That includes a candidate directory the user hands you: its own
+`.perfproof/harness/` is replaced, so keep nothing of theirs there.
+Run it from the repository root with `cwd` `"."`.
+
+Do not point the command at `.venv/bin/python` or another ignored path
+without `setup`: the baseline checkout has no such directory. Add
+`"setup": {"commands": [["uv", "sync", "--frozen"]], "timeout_seconds":
+600}`, which builds each version's own environment, and run the
+benchmark with `uv run --frozen python ...` (plain `uv run` may
+re-resolve) or `.venv/bin/python ...`, which then
+exists in both. Never use the main checkout's environment: an editable
+install there would import its source in both versions.
+
 ## Choosing the checks
 
 - `correctness.command`: the project's tests for that code, or the whole
@@ -80,6 +106,10 @@ before you lock it.
   seconds and lower is better.
 - `guardrails`: list all three as above. Mark one `applicable: false`
   with a short true reason when it does not apply.
+- `setup`: `{"commands": [[...], ...], "cwd": ".", "timeout_seconds": N}`.
+  Argv commands run once in each version before the first run, outside
+  the timing, with the same environment as the benchmark. It must not
+  need credentials or a remote service.
 - `reset`: if the benchmark changes something outside its own process
   (a local database, a cache directory), add
   `"reset": {"command": [...], "timeout_seconds": 60}` to put it back
@@ -93,8 +123,10 @@ before you lock it.
   the user states a different bar.
 - `harness`, `oracle`, `inputs`, `config`: the benchmark files, test
   files, input data and config files to lock. Paths relative to the
-  repository. Never lock the code you are trying to speed up: a change
-  to a locked file is refused, so the change could never be measured.
+  repository. Those under `.perfproof/harness/` are installed in both
+  versions by perfproof. Never lock the code you are trying to speed
+  up: a change to a locked file is refused, so the change could never
+  be measured.
 
 If `bench define` refuses the spec, its JSON `error.message` says why.
 Fix that field; don't loosen a check to get past it.

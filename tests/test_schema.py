@@ -69,6 +69,7 @@ from perfproof.schema import (
     RunWarning,
     Sample,
     ServiceSpec,
+    SetupSpec,
     SkippedCalls,
     SkippedEvent,
     StaleEvent,
@@ -3406,6 +3407,10 @@ CHANGED: dict[str, Any] = {
     # objective, so test_spec_hash_changes_with_guardrails covers both.
     "objective": None,
     "guardrails": None,
+    "setup": {
+        "commands": [["uv", "sync", "--frozen"]],
+        "timeout_seconds": 600.0,
+    },
 }
 
 
@@ -3428,6 +3433,29 @@ def test_spec_hash_changes_with_guardrails() -> None:
         {"reset": {**as_json(reset()), "timeout_seconds": 31.0}},
     ):
         assert safety_spec(**update).spec_hash != base.spec_hash
+
+
+def test_unset_setup_keeps_the_hash_of_a_spec_written_without_it() -> None:
+    # Version 3 documents that predate `setup` must keep validating,
+    # with the hash they were stored under.
+    data = as_json(spec())
+    del data["setup"]
+    assert BenchmarkSpec.model_validate(data).spec_hash == PINNED_SPEC_HASH
+
+
+BAD_SETUPS: list[dict[str, Any]] = [
+    {"commands": [], "timeout_seconds": 5.0},
+    {"commands": [[]], "timeout_seconds": 5.0},
+    {"commands": [["uv", "sync"]], "timeout_seconds": 0.0},
+    {"commands": [["uv", "sync"]], "timeout_seconds": 5.0, "cwd": "/x"},
+    {"commands": [["uv", "sync"]], "timeout_seconds": 5.0, "extra": 1},
+]
+
+
+@pytest.mark.parametrize("bad", BAD_SETUPS)
+def test_setup_spec_is_validated(bad: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        SetupSpec.model_validate(bad)
 
 
 def test_spec_hash_change_table_covers_every_field() -> None:

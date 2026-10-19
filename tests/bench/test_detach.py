@@ -212,7 +212,17 @@ def project(
     root = tmp_path / "repo"
     root.mkdir()
     pids = tmp_path / "pids.txt"
-    (root / "bench.py").write_text(BENCH.replace("@PIDS@", repr(str(pids))))
+    bench = BENCH.replace("@PIDS@", repr(str(pids)))
+    spec = SPEC
+    harnessed = getattr(request, "param", None) == "harness"
+    if harnessed:
+        spec = {
+            **SPEC,
+            "command": ["python", ".perfproof/harness/bench.py"],
+            "harness": [".perfproof/harness/bench.py"],
+        }
+    else:
+        (root / "bench.py").write_text(bench)
     (root / "work.py").write_text(WORK)
     (root / "test_work.py").write_text(TESTS)
     (root / "pytest.ini").write_text(
@@ -221,10 +231,22 @@ def project(
     git(root, "init", "-q")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "baseline")
+    if harnessed:
+        # Written after the commit, so neither the baseline checkout nor
+        # a copy of the tree has it: only installing it makes it exist.
+        harness = root / ".perfproof" / "harness"
+        harness.mkdir(parents=True)
+        (harness / "bench.py").write_text(
+            "import os, sys\nsys.path.insert(0, os.getcwd())\n" + bench
+        )
     candidate = tmp_path / "candidate"
-    shutil.copytree(root, candidate, ignore=shutil.ignore_patterns(".git"))
+    shutil.copytree(
+        root,
+        candidate,
+        ignore=shutil.ignore_patterns(".git", ".perfproof"),
+    )
     spec_file = tmp_path / "spec.json"
-    spec_file.write_text(json.dumps(SPEC))
+    spec_file.write_text(json.dumps(spec))
     status, doc = cli(
         "bench",
         "define",
@@ -384,6 +406,34 @@ def test_a_stopped_compare_is_failed_with_its_code(
 
 
 # kill -9, interrupted, resume
+
+
+@pytest.mark.parametrize("project", ["harness"], indirect=True)
+def test_a_harness_only_in_the_main_checkout_runs_and_resumes(
+    project: Project,
+) -> None:
+    run_id = start_and_kill(project)
+    run_dir = project.run_dir(run_id)
+    assert project.status(run_id)["state"] == "interrupted"
+    status, doc = project.resume(run_id)
+    assert status == 0, doc
+    final = wait_state(project, run_id, "finished", "failed")
+    assert final["state"] == "finished", final
+    record = read_record(run_dir / "record.json")
+    assert record.verdict.rounds == ROUNDS
+    assert {g.gate: g.status for g in record.gates}["lock"] == "passed"
+    for tree in (project.candidate, project.root):
+        assert (tree / ".perfproof" / "harness" / "bench.py").is_file()
+
+
+@pytest.mark.parametrize("project", ["harness"], indirect=True)
+def test_a_detached_harness_run_finishes_with_a_verdict(
+    project: Project,
+) -> None:
+    run_id = project.detach()["run_id"]
+    final = wait_state(project, run_id, "finished", "failed")
+    assert final["state"] == "finished", final
+    assert final["verdict"]["rounds"] == ROUNDS
 
 
 def start_and_kill(project: Project, after_rounds: int = 3) -> str:

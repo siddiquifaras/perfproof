@@ -65,7 +65,10 @@ repository, which it adds to `.git/info/exclude`:
     <spec-hash>.json           one spec version and its lock manifest
   hypotheses/<workload>.jsonl  every hypothesis event, append-only
   worktrees/<name>/            baseline and candidate checkouts
+  harness/                     benchmark files perfproof owns; copied into
+                               both trees before every run, all locked
   runs/<run-id>/
+    logs/setup/                output of each tree's setup commands
     progress.json              where a detached compare has got to
     pid                        the detached process and its start time
     samples.jsonl              one line per completed round, for resume

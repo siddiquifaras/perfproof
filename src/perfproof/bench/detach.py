@@ -1278,6 +1278,7 @@ def _run(run_dir: Path, job: Job) -> int:
             run_dir=run_dir,
             process_env=os.environ,
             order_seed=job.order_seed,
+            harness_root=Path(job.repo),
             journal=journal,
             resume=resumed,
         )

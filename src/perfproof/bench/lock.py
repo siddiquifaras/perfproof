@@ -27,7 +27,9 @@ a property of the trees it checks; it raises only for a malformed call.
 Locked paths may name files or directories. A directory locks every
 regular file below it except the byproducts in `IGNORED_NAMES`. Files
 are hashed in fixed-size chunks, so memory stays bounded at
-`LOCK_CHUNK_BYTES` whatever the size of the input data.
+`LOCK_CHUNK_BYTES` whatever the size of the input data. When a spec
+lists a file under `HARNESS_DIR`, every file of that directory is
+locked as harness, listed or not.
 """
 
 import hashlib
@@ -43,7 +45,11 @@ from typing import Final, Literal, get_args
 
 from pydantic import ValidationError
 
-from perfproof.bench.spec import normalize_launch_path, spec_command_hash
+from perfproof.bench.spec import (
+    STATE_DIR,
+    normalize_launch_path,
+    spec_command_hash,
+)
 from perfproof.schema import (
     Arm,
     BenchmarkSpec,
@@ -62,6 +68,7 @@ from perfproof.schema import (
 
 __all__ = [
     "DEPENDENCY_LOCKFILES",
+    "HARNESS_DIR",
     "IGNORED_NAMES",
     "LOCK_CHUNK_BYTES",
     "MAX_DIFFERENCES",
@@ -72,12 +79,15 @@ __all__ = [
     "environment_warnings",
     "hash_file",
     "lock_gate",
+    "owns_harness",
     "probe_environment",
     "procedure_gate",
     "resolve_executable",
     "runtime_gate",
 ]
 
+HARNESS_DIR: Final = f"{STATE_DIR}/harness"
+"""Tree-relative directory whose contents belong to perfproof."""
 LOCK_CHUNK_BYTES: Final = 1 << 20
 """Read size when hashing a file, in bytes; the hashing memory bound."""
 MAX_DIFFERENCES: Final = 20
@@ -370,6 +380,27 @@ def _walk(root: Path, declared: str) -> Iterable[str]:
                 yield posixpath.join(base, name)
 
 
+def owns_harness(spec: BenchmarkSpec) -> bool:
+    """Say whether the spec lists a file under `HARNESS_DIR`.
+
+    Parameters
+    ----------
+    spec : BenchmarkSpec
+        The spec in force; its ``harness``, ``inputs`` and ``config``
+        paths are read.
+
+    Returns
+    -------
+    bool
+        True if any of them is `HARNESS_DIR` or below it.
+    """
+    declared = (*spec.harness, *spec.inputs, *spec.config)
+    return any(
+        path == HARNESS_DIR or path.startswith(f"{HARNESS_DIR}/")
+        for path in declared
+    )
+
+
 def _collect(
     spec: BenchmarkSpec, root: Path
 ) -> tuple[dict[str, LockedFile], list[str]]:
@@ -410,6 +441,12 @@ def _collect(
                     )
                     raise LockError(msg)
                 files[rel] = _lock_file(root, rel, role)
+    if owns_harness(spec) and (root / HARNESS_DIR).is_dir():
+        # A helper beside a listed benchmark is code too; it is locked
+        # even though the spec never named it.
+        for rel in _walk(root, HARNESS_DIR):
+            if rel not in files:
+                files[rel] = _lock_file(root, rel, "harness")
     return files, missing
 
 

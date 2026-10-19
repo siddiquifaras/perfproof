@@ -145,6 +145,7 @@ __all__ = [
     "RuntimeKind",
     "Sample",
     "ServiceSpec",
+    "SetupSpec",
     "SkippedCalls",
     "SkippedEvent",
     "StaleEvent",
@@ -763,6 +764,25 @@ class ResetSpec(_Model):
     """Time limit for one reset, in seconds."""
 
 
+class SetupSpec(_Model):
+    """Commands run once in each tree before warmup to prepare it.
+
+    For example ``uv sync --frozen``, which gives each tree its own
+    virtual environment (and its own editable install). They run outside
+    the timed region, in order, with the benchmark's environment. A
+    command that fails in the baseline breaks the experiment; one that
+    fails only in the candidate rejects the candidate.
+    """
+
+    commands: Annotated[tuple[Argv, ...], Field(min_length=1)]
+    """Setup commands as argv lists, launched without a shell, in
+    order. Exit status 0 succeeds."""
+    cwd: RelDir = "."
+    """Working directory of every command, relative to the tree."""
+    timeout_seconds: Seconds
+    """Time limit for each command, in seconds."""
+
+
 class AbsoluteLimit(_Model):
     """A limit on a guardrail's own value in the candidate.
 
@@ -956,6 +976,10 @@ class BenchmarkSpec(_Model):
     guardrails: tuple[GuardrailSpec, ...] = ()
     """Guardrails, each applied or marked not applicable, one per
     metric. Their order is part of ``spec_hash``."""
+    setup: SetupSpec | None = None
+    """Per-tree preparation run before warmup; ``None`` when the trees
+    need none. Left out of ``spec_hash`` while ``None``, so a spec
+    written before this field existed keeps its hash."""
 
     @computed_field
     @property
@@ -963,11 +987,12 @@ class BenchmarkSpec(_Model):
         """SHA-256 of the spec's canonical JSON, 64 hex digits.
 
         Covers every field above, nested ones included, independent of
-        key order.
+        key order. An unset ``setup`` is left out of the hashed JSON.
         """
-        return _sha256_json(
-            self.model_dump(mode="json", exclude_computed_fields=True)
-        )
+        payload = self.model_dump(mode="json", exclude_computed_fields=True)
+        if self.setup is None:
+            del payload["setup"]
+        return _sha256_json(payload)
 
     @model_validator(mode="wrap")
     @classmethod

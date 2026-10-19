@@ -247,8 +247,20 @@
           "title": "Guardrails",
           "type": "array"
         },
+        "setup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SetupSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-tree preparation run before warmup; ``None`` when the trees\nneed none. Left out of ``spec_hash`` while ``None``, so a spec\nwritten before this field existed keeps its hash."
+        },
         "spec_hash": {
-          "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order.",
+          "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order. An unset ``setup`` is left out of the hashed JSON.",
           "readOnly": true,
           "title": "Spec Hash",
           "type": "string"
@@ -4032,6 +4044,44 @@
         "timeout_seconds"
       ],
       "title": "ServiceSpec",
+      "type": "object"
+    },
+    "SetupSpec": {
+      "additionalProperties": false,
+      "description": "Commands run once in each tree before warmup to prepare it.\n\nFor example ``uv sync --frozen``, which gives each tree its own\nvirtual environment (and its own editable install). They run outside\nthe timed region, in order, with the benchmark's environment. A\ncommand that fails in the baseline breaks the experiment; one that\nfails only in the candidate rejects the candidate.",
+      "properties": {
+        "commands": {
+          "description": "Setup commands as argv lists, launched without a shell, in\norder. Exit status 0 succeeds.",
+          "items": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "minItems": 1,
+          "title": "Commands",
+          "type": "array"
+        },
+        "cwd": {
+          "default": ".",
+          "description": "Working directory of every command, relative to the tree.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "Time limit for each command, in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "commands",
+        "timeout_seconds"
+      ],
+      "title": "SetupSpec",
       "type": "object"
     },
     "SkippedCalls": {

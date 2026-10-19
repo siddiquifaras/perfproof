@@ -130,6 +130,7 @@ from perfproof.bench.correctness import (
     clear_outputs,
     correctness_gate,
 )
+from perfproof.bench.harness import install_harness
 from perfproof.bench.journal import Journal, Resumed, RoundEntry
 from perfproof.bench.lock import (
     environment_warnings,
@@ -152,6 +153,12 @@ from perfproof.bench.side_effects import (
     side_effects_gate,
 )
 from perfproof.bench.spec import normalize_launch_path
+from perfproof.bench.tree_setup import (
+    SetupFailedError,
+    SetupHostError,
+    ignored_program_hint,
+    run_setup,
+)
 from perfproof.machine import fingerprint, machine_warnings
 from perfproof.report import write
 from perfproof.schema import (
@@ -170,6 +177,7 @@ from perfproof.schema import (
     RunRecord,
     RunWarning,
     Sample,
+    SetupSpec,
     TreeEnvironment,
     Verdict,
 )
@@ -294,6 +302,7 @@ def compare(
     run_dir: Path,
     process_env: Mapping[str, str],
     order_seed: int,
+    harness_root: Path | None = None,
     journal: Journal | None = None,
     resume: Resumed | None = None,
 ) -> CompareResult:
@@ -321,6 +330,12 @@ def compare(
         command.
     order_seed : int
         Seed of the in-round order, non-negative; recorded.
+    harness_root : Path, optional
+        Root of the main checkout, where the spec was defined. The
+        harness files the spec lists under ``.perfproof/harness/`` are
+        copied from it into both trees before anything runs, replacing
+        whatever a user-supplied candidate directory holds there.
+        ``None`` copies nothing.
     journal : perfproof.bench.journal.Journal, optional
         Where a detached run keeps its progress; each completed round
         is appended to it. ``run_dir`` may then exist already.
@@ -374,6 +389,7 @@ def compare(
         )
     run.baseline_commit = baseline_commit
     run.order_seed = order_seed
+    run.harness_root = harness_root
     run.wall_step = _wall_step()
     return run.execute()
 
@@ -400,6 +416,7 @@ class _Run:
         self.started = started
         self.baseline_commit = ""
         self.order_seed = 0
+        self.harness_root: Path | None = None
         self.wall_step = 0.0
         self.gates: dict[GateName, GateResult] = {}
         self.warnings: list[RunWarning] = list(machine_warnings(machine))
@@ -431,6 +448,7 @@ class _Run:
 
     def _execute(self) -> CompareResult:
         spec, trees = self.spec, self.trees
+        self._install_harness()
         self.gates["side_effects"] = _side_effects(spec, trees, self.env)
         if self._failed():
             return self._finish_gate()
@@ -443,6 +461,9 @@ class _Run:
         if self._failed():
             return self._finish_gate()
         self._refuse_unsupported()
+        self._setup()
+        if self._failed():
+            return self._finish_gate()
         self._refuse_unstartable_baseline()
         rounds_runner = self._runner(spec, trees, "rounds")
         for arm in _ARMS:
@@ -496,6 +517,101 @@ class _Run:
     def _failed(self) -> bool:
         return any(g.status == "failed" for g in self.gates.values())
 
+    def _install_harness(self) -> None:
+        """Copy perfproof's harness files into both trees."""
+        if self.harness_root is None:
+            return
+        for arm in _ARMS:
+            try:
+                install_harness(self.spec, self.harness_root, self.trees[arm])
+            except OSError as exc:
+                msg = f"could not install the harness in the {arm} tree: {exc}"
+                raise self.stop("harness_fault", msg) from exc
+
+    def _setup(self) -> None:
+        """Run the spec's setup in each tree, then lock it again.
+
+        A baseline failure stops the run as a broken baseline. A
+        candidate failure is run once more, because an idempotent setup
+        on a half-prepared tree can pass where a transient fault failed
+        it; if it fails again, the baseline's setup is run once more to
+        rule out a shared fault, and only then is it a correctness
+        REJECT recording both attempts. The lock gate is checked again
+        afterwards, because setup runs the candidate's own build.
+        """
+        setup, spec = self.spec.setup, self.spec
+        if setup is None:
+            return
+        logs = self.run_dir / "logs" / "setup"
+        baseline = self.trees["baseline"]
+        try:
+            self._run_setup(setup, baseline, logs, "baseline")
+        except SetupFailedError as exc:
+            msg = f"the baseline failed setup: {exc.reason}; logs: {exc.logs}"
+            raise self.stop("broken_baseline", msg) from exc
+        candidate = self.trees["candidate"]
+        try:
+            self._run_setup(setup, candidate, logs, "candidate")
+        except SetupFailedError as first:
+            self._retry_setup(setup, candidate, logs, first)
+        self.gates["lock"] = lock_gate(
+            spec,
+            self.lock,
+            baseline_root=baseline,
+            candidate_root=self.trees["candidate"],
+        )
+
+    def _run_setup(
+        self, setup: SetupSpec, tree: Path, logs: Path, arm: str
+    ) -> None:
+        """Run setup in one tree; a host fault stops with no verdict."""
+        try:
+            run_setup(setup, tree, self.env, logs, arm)
+        except SetupHostError as exc:
+            msg = f"setup ({arm}) hit a fault blamed on neither tree: {exc}"
+            raise self.stop("harness_fault", msg) from exc
+
+    def _retry_setup(
+        self,
+        setup: SetupSpec,
+        candidate: Path,
+        logs: Path,
+        first: SetupFailedError,
+    ) -> None:
+        """Rerun a failed candidate setup, then blame it or stop."""
+        try:
+            self._run_setup(setup, candidate, logs, "candidate-retry")
+        except SetupFailedError as second:
+            both = f"{first.reason}; again on a rerun: {second.reason}"
+            baseline = self.trees["baseline"]
+            try:
+                self._run_setup(setup, baseline, logs, "recheck")
+            except SetupFailedError as again:
+                msg = (
+                    f"the candidate failed setup twice ({both}); the "
+                    f"baseline failed it too when rerun ({again.reason}), "
+                    f"so the failure is shared, not the candidate's. "
+                    f"Logs: {first.logs}"
+                )
+                raise self.stop("broken_baseline", msg) from again
+            gate = GateResult(
+                gate="correctness",
+                status="failed",
+                detail=f"the candidate failed setup twice: {both}",
+                output=second.output,
+            )
+            raise _CandidateFailedError(gate) from second
+        self.warnings.append(
+            RunWarning(
+                code="setup_retried",
+                message=(
+                    f"the candidate's setup failed once ({first.reason}) "
+                    "and passed on a rerun; the first failure's logs are "
+                    f"in {first.logs}"
+                ),
+            )
+        )
+
     def _refuse_unsupported(self) -> None:
         """Refuse a spec the thin path can't run, before it executes."""
         spec = self.spec
@@ -546,6 +662,29 @@ class _Run:
                 f"the baseline can't be started: {program!r} is not an "
                 f"executable file {where}"
             )
+            hint = ignored_program_hint(
+                tree, spec.cwd, program, has_setup=spec.setup is not None
+            )
+            raise self.stop(
+                "broken_baseline", msg if hint is None else f"{msg}. {hint}"
+            )
+        self._refuse_ignored_test_program()
+
+    def _refuse_ignored_test_program(self) -> None:
+        """Stop when the test program is a missing ignored path."""
+        spec = self.spec
+        tree = self.trees["baseline"]
+        command = spec.correctness.command
+        if command is None or "/" not in command[0]:
+            return
+        cwd = spec.correctness.cwd
+        if (tree / cwd / command[0]).exists():
+            return
+        hint = ignored_program_hint(
+            tree, cwd, command[0], has_setup=spec.setup is not None
+        )
+        if hint is not None:
+            msg = f"the baseline's test command can't be started: {hint}"
             raise self.stop("broken_baseline", msg)
 
     def _recheck_unknown_baseline_runtime(self) -> None:

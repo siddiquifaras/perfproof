@@ -15,6 +15,11 @@ rounds, verdict, then ``record.json``, ``report.md`` and
   ``--candidate`` names one, else a revision, checked out like the
   baseline under ``.perfproof/worktrees/candidate-<sha12>/``.
 
+Harness files the spec lists below ``.perfproof/harness/`` are copied
+from this repository into both trees before anything runs, and the
+spec's ``setup`` commands run once in each tree (see "Integrity" in
+``docs/method.md``).
+
 Until the interval procedure is calibrated, a comparison that passes
 its gates is INCONCLUSIVE with ``procedure_uncalibrated``; only a gate
 gives REJECT.
@@ -229,6 +234,7 @@ def run(args: argparse.Namespace) -> Output:
             run_dir=run_dir,
             process_env=os.environ,
             order_seed=secrets.randbits(63),
+            harness_root=root,
         )
     except CompareStoppedError as exc:
         raise CommandError(

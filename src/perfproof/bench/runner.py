@@ -152,7 +152,11 @@ from typing import BinaryIO, Final, Literal, NoReturn, cast
 import numpy as np
 
 from perfproof.bench.lock import resolve_executable
-from perfproof.bench.side_effects import ResetError, run_reset
+from perfproof.bench.side_effects import (
+    PROGRAM_ERRNOS,
+    ResetError,
+    run_reset,
+)
 from perfproof.bench.spec import command_hash, normalize_launch_path
 from perfproof.schema import Arm, BenchmarkSpec, GateResult, Sample
 
@@ -178,22 +182,8 @@ _SKIP_CHUNK: Final = 1 << 16
 _PROBE_TIMEOUT_SECONDS: Final = 30.0
 _LABEL: Final = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 _SCHEDULED_LABEL: Final = re.compile(r"(?:warmup|round)-[0-9]+")
-_PROGRAM_ERRNOS: Final = frozenset(
-    {
-        errno.ENOENT,
-        errno.ENOEXEC,
-        errno.EACCES,
-        errno.ENOTDIR,
-        errno.ELOOP,
-        errno.EISDIR,
-        errno.ETXTBSY,
-        errno.ENAMETOOLONG,
-    }
-)
-"""``execve`` errors that point at the program in the tree. CPython puts
-the executable in ``filename`` for every ``execve`` error, so E2BIG,
-ENOMEM, ENFILE, EMFILE and EAGAIN carry it too, though they are faults
-of the spec's environment or the host, not of the tree."""
+_PROGRAM_ERRNOS: Final = PROGRAM_ERRNOS
+
 MAX_TIMEOUT_SECONDS: Final = 2_147_483.0
 """Longest execution timeout the runner accepts, in seconds (about 24.8
 days). ``poll`` takes its timeout as a C ``int`` of milliseconds, and

@@ -79,6 +79,18 @@ broken: the comparison stops with no verdict and reports the error.
 So does a fault in perfproof's own process, such as running out of
 file descriptors or processes: it is blamed on neither version.
 
+A `setup` command (see "Integrity") that fails follows the same rules.
+In the baseline the experiment is broken. When the candidate's setup
+fails, perfproof first runs it once more in the same tree, because an
+idempotent setup on a half-prepared tree can pass where a transient
+fault failed it. If the rerun passes, the run goes on and records a
+`setup_retried` warning that points at the first failure's logs. If the
+rerun fails too, the baseline's setup is run once more to rule out a
+shared fault: if that fails, the comparison stops as a broken baseline;
+if it passes, the candidate fails the `correctness` gate, with both
+failures' reasons and the second attempt's status and output tail in
+the record.
+
 **Test results.** perfproof judges tests one by one where the runner
 reports them: it asks pytest for a JUnit XML report and points other
 runners at the same path through `PERFPROOF_JUNIT_XML`. Where no
@@ -139,7 +151,7 @@ A benchmark that writes to a real database or calls a paid API is not
 safe to run blindly.
 
 **The benchmark's environment.** Every command perfproof runs for a
-comparison (benchmark, correctness check, reset) gets a small base
+comparison (benchmark, correctness check, reset, setup) gets a small base
 environment, not perfproof's own: `PATH`, `HOME`, `USER`, `LOGNAME`,
 `SHELL`, `TMPDIR`, `TERM`, `TZ`, `LANG` and the `LC_*` variables, plus
 the spec's own `env`. Anything else the benchmark needs, such as
@@ -170,7 +182,14 @@ itself.
 
 A spec can declare a reset command that perfproof runs before every
 execution, so a database starts each round in the same state. A reset
-that fails fails the `side_effects` gate, with its output recorded.
+that fails fails the `side_effects` gate, with its output recorded. A
+reset that cannot be started because of a fault of the host (not of its
+program or working directory: descriptors, processes or memory
+exhausted, an oversized environment) is a `harness_fault` stop with no
+verdict, as for setup, and blames neither tree.
+The arguments of the `setup` commands (see "Integrity") are checked like
+those of the benchmark, so a setup that names a remote package index or
+service is refused before anything runs.
 
 ## Integrity
 
@@ -183,7 +202,7 @@ classes.
 | Gate | What is compared |
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
-| `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
+| `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
 | `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails, including tools known to start other interpreters (tox, nox, poetry and the like). Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
 
@@ -196,6 +215,55 @@ state. Differences between the arms appear in the report as warnings.
 **Allowed only by explicit opt-in in the spec, and labelled in the
 verdict:** dependency or runtime changes (when upgrading a library is
 the optimization), and comparisons across hosts.
+
+**Harness files perfproof owns.** A benchmark the agent wrote for a
+repository is not part of either version of it. It is usually
+uncommitted, so a baseline checkout lacks it. Files the spec lists in
+`harness`, `inputs` or `config` below `.perfproof/harness/` belong to
+perfproof. Before anything runs, perfproof replaces that directory in
+both trees, at the same relative path, with a byte-identical copy of the
+one in the main checkout, where the lock manifest was taken. It replaces
+the whole directory, so a file a candidate adds beside the benchmark is
+removed and a symlink standing in its place is replaced, not followed.
+This holds for a candidate directory the user supplied too: whatever it
+has in `.perfproof/harness/` is deleted. As soon as the spec lists one
+file in that directory, the `lock` gate locks every file in it, listed
+or not, so a helper module beside the benchmark that is edited after the
+spec was frozen is refused. Only `.git` and `__pycache__` are ignored;
+any other file that appears or changes there after the freeze, such as a
+cache a benchmark writes beside itself or a `.DS_Store`, fails the
+`lock` gate. This is intended: it fails closed. The gate hashes both copies against the
+manifest: an edit to the main checkout after the freeze is refused, and
+a candidate's own changes can never reach these files.
+
+**Per-tree setup.** A spec may declare `setup`: argv commands, with a
+timeout for each, run once in each tree, baseline first, before warmup
+and outside the timed region, with the benchmark's environment. They
+prepare a tree the same way for both versions, for example
+`["uv", "sync", "--frozen"]`, which gives each tree its own virtual
+environment, with the project installed editable from that tree's own
+source. Run the benchmark with `uv run --frozen` (or `--no-sync`), so
+that it never re-resolves or re-installs mid-run, or with the
+tree-relative path of that environment's interpreter (`.venv/bin/python`).
+A path into the main checkout's environment would, with an editable
+install, import the main checkout's source in both trees and make the
+comparison meaningless. The `lock` gate is checked again after setup,
+which runs code from the candidate's tree.
+
+Limits to know. Setup runs in the candidate directory the user supplied,
+as given, so it can change that directory's environment, including the
+main checkout's `.venv` when the candidate is the main checkout. A
+dependency difference between the trees, such as a changed lockfile, is
+currently only a `dependency_lock_differs` warning, not a gate; so
+setup that installs different dependencies in the two trees is measured,
+and flagged, not refused. A launch error of setup that does not point at
+its program or working directory (descriptors, processes or memory
+exhausted, an oversized environment) is a fault of the host: the
+comparison stops with no verdict as a harness fault, for either tree.
+When a program or interpreter the benchmark or the test command names
+lives in an ignored directory such as `.venv/` that the baseline
+checkout does not have, the error says so and advises `setup`; the
+setup, reset and runtime-probe commands get no such explanation.
 
 Rules that follow:
 

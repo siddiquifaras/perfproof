@@ -1,3 +1,4 @@
+import errno
 import json
 import os
 import subprocess
@@ -524,6 +525,27 @@ def test_command_arguments_are_checked() -> None:
         "correctness command argument 1 points at pg.example.com, which "
         "is not local",
         "reset command argument 1 points at cache.example.com, which is "
+        "not local",
+    ]
+
+
+def test_setup_commands_are_checked_too() -> None:
+    spec = make_spec(
+        setup={
+            "commands": [
+                ["uv", "sync"],
+                ["pip", "install", "--index-url=https://pkgs.example.com"],
+                ["psql", "redis://cache.example.com:6379/0"],
+            ],
+            "timeout_seconds": 60.0,
+        },
+    )
+    result = side_effects_gate(spec, Path("."), {})
+    assert result.status == "failed"
+    assert result.detail.split("; ") == [
+        "setup command 1 argument 2 points at pkgs.example.com, which is "
+        "not local",
+        "setup command 2 argument 1 points at cache.example.com, which is "
         "not local",
     ]
 
@@ -1455,3 +1477,40 @@ def test_reset_that_cannot_start(tmp_path: Path) -> None:
     assert gate.output is not None
     assert gate.output.exit_code == 127
     assert "no-such-reset" in gate.output.stderr
+
+
+@pytest.mark.parametrize("code", [errno.EMFILE, errno.EAGAIN, errno.E2BIG])
+def test_reset_launch_fault_of_the_host_is_not_a_reset_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
+) -> None:
+    def popen(argv: list[str], **_kwargs: object) -> subprocess.Popen[bytes]:
+        raise OSError(code, os.strerror(code), argv[0])
+
+    monkeypatch.setattr("perfproof.bench.side_effects.subprocess.Popen", popen)
+    spec = reset_spec("pass")
+    with pytest.raises(OSError, match=os.strerror(code)):
+        run_reset(spec, tmp_path, dict(os.environ))
+
+
+def test_reset_program_that_cannot_be_found_is_a_reset_failure(
+    tmp_path: Path,
+) -> None:
+    spec = reset_spec("pass", command=["/no/such/program"])
+    with pytest.raises(ResetError) as caught:
+        run_reset(spec, tmp_path, dict(os.environ))
+    assert caught.value.gate.output is not None
+    assert caught.value.gate.output.exit_code == 127
+
+
+@pytest.mark.parametrize("kind", ["missing", "file"])
+def test_reset_working_directory_that_is_unusable_is_a_reset_failure(
+    tmp_path: Path, kind: str
+) -> None:
+    (tmp_path / "file").write_text("a file, not a directory")
+    spec = reset_spec(
+        "pass", cwd="no-such-dir" if kind == "missing" else "file"
+    )
+    with pytest.raises(ResetError) as caught:
+        run_reset(spec, tmp_path, dict(os.environ))
+    assert caught.value.gate.output is not None
+    assert caught.value.gate.output.exit_code == 127

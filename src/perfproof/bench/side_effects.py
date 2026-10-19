@@ -28,11 +28,11 @@ Where it looks:
   ``PG_DSN``). The value of any other variable is still searched for
   URLs whose scheme is one of `SERVICE_SCHEMES` or `WEB_SCHEMES`, so
   ``OPENAI_API_BASE=https://api.openai.com/v1`` is refused too.
-- The argv of the benchmark, correctness and reset commands: URLs with
-  a service or web scheme in any argument, keyword DSNs (``host=...``,
-  ``service=...``), ``NAME=value`` arguments whose name is a service
-  variable (``env PGHOST=h ...``), and ``--name=value`` options whose
-  name is one too or one of the config keys below.
+- The argv of the benchmark, correctness, reset and setup commands:
+  URLs with a service or web scheme in any argument, keyword DSNs
+  (``host=...``, ``service=...``), ``NAME=value`` arguments whose name
+  is a service variable (``env PGHOST=h ...``), and ``--name=value``
+  options whose name is one too or one of the config keys below.
 - The spec's declared ``config`` files, read as UTF-8 text line by
   line, a byte order mark ignored. A key is listed when it is a
   service variable name (``.`` and ``-`` read as ``_``) or one of
@@ -128,6 +128,7 @@ that fails stops the run: it raises `ResetError` carrying a failed
 """
 
 import contextlib
+import errno
 import ipaddress
 import os
 import re
@@ -138,7 +139,7 @@ import urllib.parse
 from collections.abc import Collection, Iterable, Iterator, Mapping
 from pathlib import Path
 from types import MappingProxyType
-from typing import IO, Final
+from typing import IO, Final, cast
 
 from perfproof.bench.lock import IGNORED_NAMES
 from perfproof.schema import BenchmarkSpec, CommandOutput, GateResult
@@ -147,6 +148,7 @@ __all__ = [
     "BASE_ENV_VARIABLES",
     "MAX_FINDINGS",
     "OUTPUT_TAIL_BYTES",
+    "PROGRAM_ERRNOS",
     "SERVICE_SCHEMES",
     "SERVICE_SUFFIXES",
     "SERVICE_VARIABLES",
@@ -154,9 +156,27 @@ __all__ = [
     "ResetError",
     "benchmark_environment",
     "is_service_variable",
+    "points_at_tree",
     "run_reset",
     "side_effects_gate",
 ]
+
+PROGRAM_ERRNOS: Final = frozenset(
+    {
+        errno.ENOENT,
+        errno.ENOEXEC,
+        errno.EACCES,
+        errno.ENOTDIR,
+        errno.ELOOP,
+        errno.EISDIR,
+        errno.ETXTBSY,
+        errno.ENAMETOOLONG,
+    }
+)
+"""``execve`` errors that point at the program in the tree. CPython puts
+the executable in ``filename`` for every ``execve`` error, so E2BIG,
+ENOMEM, ENFILE, EMFILE and EAGAIN carry it too, though they are faults
+of the spec's environment or the host, not of the tree."""
 
 BASE_ENV_VARIABLES: Final = frozenset(
     {
@@ -861,12 +881,17 @@ def _is_keyword_dsn(arg: str) -> bool:
 
 
 def _check_commands(findings: _Findings, spec: BenchmarkSpec) -> None:
-    """Check the argv of the benchmark, correctness and reset."""
+    """Check the argv of the benchmark, correctness, reset and setup."""
     commands = [("command", spec.command)]
     if spec.correctness.command is not None:
         commands.append(("correctness command", spec.correctness.command))
     if spec.reset is not None:
         commands.append(("reset command", spec.reset.command))
+    if spec.setup is not None:
+        commands.extend(
+            (f"setup command {i}", argv)
+            for i, argv in enumerate(spec.setup.commands)
+        )
     for label, argv in commands:
         for index, arg in enumerate(argv):
             where = f"{label} argument {index}"
@@ -1265,6 +1290,34 @@ def benchmark_environment(
     return {**base, **spec.env}
 
 
+def points_at_tree(exc: OSError, *names: str) -> bool:
+    """Say whether a launch error is the tree's fault, not the host's.
+
+    Only an error in `PROGRAM_ERRNOS` whose ``filename`` is the program
+    or the working directory points at the tree. Anything else (EMFILE,
+    EAGAIN, ENOMEM, E2BIG, a failed log file) is a fault of the host or
+    of perfproof's own process.
+
+    Parameters
+    ----------
+    exc : OSError
+        The error from starting the process.
+    *names : str
+        The program and working directory, as given to ``Popen``.
+
+    Returns
+    -------
+    bool
+        True if the error names one of ``names`` with a program errno.
+    """
+    # A failed chdir reports the object given as ``cwd=``, often a
+    # `Path`, not the string in ``names``.
+    filename: object = exc.filename
+    if isinstance(filename, os.PathLike):
+        filename = os.fspath(cast("os.PathLike[str]", filename))
+    return exc.errno in PROGRAM_ERRNOS and filename in names
+
+
 def run_reset(
     spec: BenchmarkSpec, tree_root: Path, process_env: Mapping[str, str]
 ) -> None:
@@ -1298,6 +1351,10 @@ def run_reset(
         killed). The error's ``gate`` is a failed `side_effects` gate
         with the argv, exit status and the last `OUTPUT_TAIL_BYTES` of
         each stream.
+    OSError
+        If perfproof's own process cannot start it (descriptors,
+        processes or memory exhausted, an oversized environment): a
+        host fault, blamed on neither tree, left to the caller.
     """
     reset = spec.reset
     if reset is None:
@@ -1317,6 +1374,8 @@ def run_reset(
                 start_new_session=True,
             )
         except OSError as exc:
+            if not points_at_tree(exc, argv[0], str(tree_root / reset.cwd)):
+                raise
             err.write(str(exc).encode("utf-8", errors="replace"))
             code = 127
             detail = (
