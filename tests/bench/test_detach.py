@@ -734,6 +734,25 @@ def test_resume_takes_no_benchmark_settings(
     assert doc["error"]["code"] == "usage"
 
 
+def test_timeout_above_the_alarm_limit_is_refused(
+    project: Project, cli: Cli
+) -> None:
+    for value in ("2147483648", "0"):
+        status, doc = cli(
+            "compare",
+            "work",
+            "--candidate",
+            str(project.candidate),
+            "--detach",
+            "--timeout",
+            value,
+            "--repo",
+            str(project.root),
+        )
+        assert status == 1
+        assert doc["error"]["code"] == "usage"
+
+
 def test_status_of_an_unknown_run_is_not_found(
     project: Project, cli: Cli
 ) -> None:

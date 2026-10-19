@@ -69,12 +69,126 @@ in its own session, and its run directory is the only state.
 
 | Piece | What it is |
 |---|---|
-| `runs/<id>/progress.json` | Written after each completed round, outside the timed region: rounds done, current look, state |
-| `runs/<id>/samples.jsonl` | One line per completed round, flushed after it is written |
+| `runs/<id>/job.json` | What to run: spec, trees, order seed, timeout and deadline, and when each resume happened |
+| `runs/<id>/progress.json` | Replaced after each completed round, outside the timed region: phase (`gates` or `rounds`), rounds done, looks, round budget |
+| `runs/<id>/samples.jsonl` | One line per completed round, appended after it is written; not fsynced, so no flush burst before the next round |
+| `runs/<id>/machine.json` | The machine fingerprint taken before anything ran, and the start time. A resume needs it |
+| `runs/<id>/trees.json` | A manifest of both trees' files at the start. A resume needs it |
+| `runs/<id>/run.lock` | Held while a resume decides and spawns |
 | `runs/<id>/pid` | Process ID and its start time, so a reused PID isn't mistaken for the run |
-| `status <id>` | Reads `progress.json` and checks the PID: `running`, `finished` (record written), `cancelled`, or `interrupted` (process gone, no record) |
-| `cancel <id>` | SIGTERM to the run's process group, SIGKILL after a grace period; state becomes `cancelled`; no verdict |
-| `compare --resume <id>` | Continues an `interrupted` run from its completed rounds, after re-checking every gate and the machine fingerprint. If the fingerprint changed, it refuses. The record marks where it resumed |
+| `runs/<id>/cancelled`, `timed_out`, `failed.json` | Written by `cancel`, by the timeout, and by a stop with no verdict (`code`, `message`) |
+| `runs/<id>/detached.log` | The process's stdout and stderr |
+
+A resume without `machine.json` or `trees.json` is `not_resumable`.
+
+`status <id>` and `cancel <id>` take a run id or a unique prefix of it
+or of its random part. `compare --resume <id>` takes the same.
+
+### Job states
+
+`status` reports exactly one state. It is decided in this order, first
+match wins:
+
+| State | Meaning |
+|---|---|
+| `finished` | `record.json` exists. Nothing else decides this. The `status` result then carries the verdict |
+| `cancelled` | The `cancelled` marker exists and there is no record. No verdict |
+| `timed_out` | The `timed_out` marker exists and there is no record: the hard timeout fired. No verdict |
+| `failed` | The compare stopped with no verdict (`broken_baseline`, `harness_fault`, `unsupported_spec`, `undeclared_guardrails`, `internal_fault` for a fault in perfproof, or any resume-time refusal the new process finds, such as `machine_changed` or `invalid_job`); `failed.json` has the code and message. No resume can help |
+| `running` | The process in `pid` exists, is not a zombie and has the start time written in `pid` |
+| `interrupted` | None of the above: the process is gone and left no record, as after `kill -9` or a reboot. The only state `--resume` accepts |
+| `unknown` | The process table could not be read, so whether the process lives is not known. Never resumable; a failed read is not "gone" |
+
+A reused PID is never taken for the run: a process counts only when its
+start time equals the one in `pid`.
+
+### Commands
+
+| Command | Behaviour |
+|---|---|
+| `compare --detach` | Does everything that can be refused (spec, revisions, trees), then starts the comparison in a process of its own session and returns at once with the run id. `--timeout SECONDS` is its hard total timeout |
+| `status <id>` | Reads the run directory and checks the process; changes nothing |
+| `cancel <id> [--grace SECONDS]` | Marks the run `cancelled`, then ends its process and every descendant: SIGTERM to the run's process group (the run leads its own), then SIGKILL for everything still alive, found by parent and by process group. `--grace` (default 10 s) is the longest it waits for the run's process to exit; the SIGKILL sweep starts as soon as it has, at once for an `interrupted` run. No verdict. An already `cancelled`, `timed_out` or `failed` run keeps its state but its processes are still ended. A `finished` run is refused |
+| `compare --resume <id>` | Continues an `interrupted` run from its completed rounds. Always detached: it returns at once with the run id and the same `--json` shape as `--detach`. `--baseline` and `--detach` are accepted and ignored |
+
+`--resume` takes no benchmark name, `--candidate`, `--spec-hash` or
+`--timeout`: they are the run's. Before anything starts it checks that
+the run is `interrupted`, that its journal is whole (a torn last line is cut and that round runs again; only a complete line that is not the next round makes the journal invalid), that both trees
+hold the files they held when it began, that the hard timeout has not
+passed, and that the machine is the one the run began on (the probes
+that identify a machine, not load or temperature). It ends any process
+of the run left by a `kill -9`, then the new process checks every gate
+again and continues from the journal. Two resumes at once are
+serialized by a lock; the second finds the first running and is
+refused. The record marks where it resumed.
+
+### Timeout
+
+`--timeout SECONDS` applies to `--detach` only (with a foreground
+`compare` it is a `usage` error). It must be above 0 and at most 2147483647, and is rounded up to whole
+seconds with a minimum of 1 s. The default is twice the spec's
+`budget.max_seconds` plus 3600 seconds. The default's factor and floor
+and the 10 s kill grace are chosen allowances, not measured values.
+The deadline is fixed when the run starts, so it covers the whole run
+including resumes. When it is hit the run's process and everything it
+started are killed (SIGALRM in the run's process, then SIGKILL of the
+tree if unwinding takes longer than 10 seconds), the `timed_out` marker
+is written, and the state is `timed_out`: no verdict, however many
+rounds completed. A `timed_out` run can't be resumed.
+
+### Results
+
+`compare --detach` and `compare --resume`, with `--json`:
+
+```json
+{"run_id": "str", "run_dir": "str", "state": "running", "pid": 0}
+```
+
+`status`, with `--json`:
+
+| Field | Type | |
+|---|---|---|
+| `run_id` | string | The full run id |
+| `state` | string | One of the states above |
+| `rounds_done` | integer | Completed rounds, counted in `samples.jsonl` |
+| `max_rounds`, `looks` | integer or null | From `progress.json`; null before it was written |
+| `phase` | string or null | `gates` or `rounds`; null before `progress.json` was written |
+| `verdict` | object | Only when `finished`: `outcome`, `reason`, `rule`, `gate`, `rounds`, `looks`, `estimate`, `interval` (`[lower, upper]` or null), `record_path`. The rest is in the record |
+| `error` | object | Only when `failed`: `code` and `message` strings |
+
+`cancel`, with `--json`: `{"run_id": "str", "state": "cancelled"}` when
+the run was cancelled. For a run that had already `timed_out` or
+`failed`, `state` is that state.
+
+### Error codes
+
+| Code | Command | When |
+|---|---|---|
+| `not_a_repository` | all three | `--repo` is in no git working tree |
+| `not_found` | `status`, `cancel`, `--resume` | No run, or more than one run, matches the id |
+| `not_found` | `compare` | No such benchmark, no spec matches (including a `--spec-hash` that is not hex), or `--candidate` is an existing path that is not a directory |
+| `invalid_record` | `status` | The record of a `finished` run does not read back |
+| `invalid_record` | `compare` | The spec directory can't be read or a spec does not load, foreground or `--detach` |
+| `ambiguous_hash` | `compare` | More than one spec of the benchmark matches |
+| `invalid_revision` | `compare` | A revision names no commit, or a worktree can't be made |
+| `already_finished` | `cancel` | The run has a record |
+| `cancel_incomplete` | `cancel` | A process of the run survived SIGKILL (`details.pids`), or the marker or process table could not be written or read |
+| `usage` | `cancel` | `--grace` is negative or not finite |
+| `usage` | `compare` | `--timeout` without `--detach`, or not above 0 or above 2147483647; a name or `--candidate` missing (both are required without `--resume`); `--resume` with a name, `--candidate`, `--spec-hash` or `--timeout` |
+| `not_resumable` | `--resume` | The state is not `interrupted` (`details.state`); the files a resume needs are missing; a tree is gone or its files changed since the run began; the hard timeout has passed |
+| `machine_changed` | `--resume` | The machine's identifying probes differ from the ones the run began on (`details.differs`). Rounds from two machines are never mixed; start a new compare. Also written to `failed.json` if the new process finds it |
+| `invalid_journal` | `--resume` | A complete line of `samples.jsonl` is not the next round, or is damaged. A torn last line is not this: it is cut and re-run |
+| `invalid_job` | `--resume` | `job.json` is missing or does not read back |
+| `orphan_running` | `--resume` | A process of the run left by a `kill -9` could not be ended; perfproof does not resume beside it (`details.pids`) |
+| `state_unknown` | `--resume` | The process table could not be read, so leftover processes can't be ruled out |
+| `spawn_failed` | `--detach`, `--resume` | The detached process did not start or could not be identified (`details.run_dir`; the message has the log tail) |
+
+`invalid_revision`, `ambiguous_hash`, `not_found` and `invalid_record`
+are raised before the run starts, so `--detach` returns them directly.
+`broken_baseline`, `harness_fault`, `unsupported_spec`,
+`undeclared_guardrails` and `internal_fault` come from the foreground
+compare (with `details.run_dir`) or sit in `failed.json` of a detached
+run.
 
 A run that never finishes never yields a verdict.
 

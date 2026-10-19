@@ -26,9 +26,10 @@ trees), then starts the comparison in a process of its own session and
 returns at once with the run id; see `perfproof.bench.detach`. Follow
 it with ``perfproof status RUN`` and stop it with ``perfproof cancel
 RUN``. ``--timeout`` is the hard total timeout of that process, in
-seconds (default: twice the spec's ``budget.max_seconds`` plus an
-hour); at the timeout the process and everything it started are killed
-and the run is ``timed_out``, with no verdict.
+seconds, above 0 and at most 2147483647, rounded up to whole seconds
+with a 1 s minimum (default: twice the spec's ``budget.max_seconds``
+plus an hour); at the timeout the process and everything it started
+are killed and the run is ``timed_out``, with no verdict.
 
 ``--resume RUN`` continues an ``interrupted`` run (see ``status``) from
 its completed rounds, again detached, and takes no benchmark name,
@@ -248,12 +249,20 @@ def run(args: argparse.Namespace) -> Output:
     return Output(result=payload, text=_text(record, result.report_path))
 
 
+# The run's alarm is a C int of whole seconds.
+MAX_TIMEOUT_SECONDS = 2147483647
+
+
 def _timeout(value: float | None, max_seconds: float) -> float:
     """Return the hard total timeout: ``value`` or the default."""
     if value is None:
         return default_timeout(max_seconds)
-    if not math.isfinite(value) or value <= 0:
-        raise CommandError("usage", "--timeout must be more than 0 seconds")
+    if not math.isfinite(value) or value <= 0 or value > MAX_TIMEOUT_SECONDS:
+        msg = (
+            "--timeout must be more than 0 and at most "
+            f"{MAX_TIMEOUT_SECONDS} seconds"
+        )
+        raise CommandError("usage", msg)
     return value
 
 
