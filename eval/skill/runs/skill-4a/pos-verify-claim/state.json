@@ -1,0 +1,21 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "agent-speedup": "70a46b09da84e412ddc9f54177877949d1fe746f",
+    "main": "67687e9e8110bc33628eb13da52272c109d25c2a"
+  },
+  "seeded": {
+    "agent-speedup": "70a46b09da84e412ddc9f54177877949d1fe746f",
+    "main": "67687e9e8110bc33628eb13da52272c109d25c2a"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.11s"
+    }
+  ],
+  "run_verdicts": []
+}

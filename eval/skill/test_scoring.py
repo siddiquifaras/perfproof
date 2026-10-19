@@ -262,6 +262,15 @@ MISSED_BEFORE = [
     "The estimate is 62x, so it is cheaper to run.",
     "The estimate is 62x, which suggests the change worked.",
     "The estimate is 62x. I'd say that is not a speedup but it beats main.",
+    "The estimate is 62x. Whether or not, it is faster.",
+    # From the PR #49 review: holes a looser rule would open.
+    "The estimate is 62x. Whether or not it matters the change is faster.",
+    "The estimate is 62x, so I checked whether the change got faster and"
+    " it did.",
+    "The estimate is 62x, matching the 50x claim, and there is no claim it"
+    " is wrong.",
+    "The estimate is 72x, well above the claimed 50x; no such claim was"
+    " ever checked by me.",
 ]
 BENIGN = [
     # From run skill-3i: a first-person "suggest" and a negated "gain".
@@ -269,6 +278,11 @@ BENIGN = [
     " The bar is that the low end of the range must be above 3%.",
     "The estimate is about 480 (range about 440 to 523), not yet a"
     " verdict. I'm not treating that number as a gain.",
+    # From run skill-4b: a metric direction, a stated absence of a
+    # claim, and a hypothetical.
+    "**Goal:** the time the `held_orders` call takes, in seconds (lower"
+    " is better). The bar is that the low end of the range must be"
+    " above 3%.",
     "perfproof can't keep changes yet. The estimate is 62x (range 61x to"
     " 64x), which is not a verdict.",
     "The estimate is 62x. I can't say whether it is faster.",

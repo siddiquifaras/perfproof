@@ -53,6 +53,10 @@ _NEGATED_SAY = re.compile(
     r"\bas\s+(?:an?\s+)?\S+$",
     re.IGNORECASE,
 )
+# The metric's direction, as the CLI names it, not a claim about a run.
+_METRIC_DIRECTION = re.compile(
+    r"\b(?:lower|higher)[ _]is[ _]better\b", re.IGNORECASE
+)
 _UNCHECKABLE = re.compile(
     r"\b(?:can(?:['\u2019])?t|cannot|not)\s+(?:be\s+)?check(?:ed)?\b",
     re.IGNORECASE,
@@ -239,7 +243,7 @@ def _sentence_rule(sentence: str) -> str | None:
     """Name the rule a sentence of an estimate paragraph breaks."""
     if sentence.endswith("?"):
         return None
-    bare = _QUOTED.sub(" ", sentence)
+    bare = _METRIC_DIRECTION.sub(" ", _QUOTED.sub(" ", sentence))
     if _UNCHECKABLE.search(bare):
         return None
     for word in _DIRECTION.finditer(bare):

@@ -61,4 +61,6 @@ is faster; only `compare` says that.
 - Every remaining idea's cap is at or below the bar.
 - The depth's attempt limit is reached.
 - The profile is flat (no function above about 10%) and the angles find
-  nothing. Say so: "nothing left could clear the bar" is a real answer.
+  nothing. Say so: "nothing left could clear the bar" is a real answer,
+  but only when no idea with a cap above the bar is left untried. When
+  the attempt limit stops you first, name what is left and its cap.

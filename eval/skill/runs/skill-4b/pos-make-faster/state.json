@@ -1,0 +1,19 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "5072f4b2d8abbfc6340f5a0a7b99c0dc09e2dcbc"
+  },
+  "seeded": {
+    "main": "5072f4b2d8abbfc6340f5a0a7b99c0dc09e2dcbc"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.23s"
+    }
+  ],
+  "run_verdicts": []
+}

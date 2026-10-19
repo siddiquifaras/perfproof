@@ -43,7 +43,10 @@ the user.
 - A cap from a profile ("the most this function could save") is a
   bound, never a promise: say "can save at most 10x", never "10x
   faster". See [discovery.md](discovery.md).
-- End the session with one last line. When `compare` returned a
+- A question you will go on from once it is answered (which workload,
+  the spec, a branch, a busy machine) gets no `Result:` line. A stop
+  that ends the session (not a git repository, uncommitted changes,
+  nothing to run) and every finished run end with one last line. When `compare` returned a
   verdict, copy it: `Result: <verdict.outcome> (<verdict.reason>)`,
   adding `, gate <verdict.gate>` when there is one, for example
   `Result: INCONCLUSIVE (insufficient_evidence)` or
@@ -55,9 +58,6 @@ the user.
   is "not yet a verdict" to the user, but `compare` did return one:
   its line is `Result: INCONCLUSIVE (<verdict.reason>)`, never NO
   VERDICT.
-- A question you need answered to go on (which workload, the spec,
-  whether to create a branch) is not the end: ask it and wait, with no
-  `Result:` line. That line tells the user you are finished.
 
 ## What the user asked for
 
@@ -196,9 +196,13 @@ No discovery. One candidate at a time, against its parent.
    hints at. Check `git log` for what was tried before.
 4. **Cheap test first.** Before writing a real change, test the idea
    cheaply (the cheapest check that would prove it wrong). Drop ideas
-   it refutes and say why. A cheap timing only decides what to try
-   next: never report it to the user. Report counts or a bound instead
-   ("the stage is 18% of the run, so it can save at most 1.2x").
+   it refutes and say why as a mechanism you read in the code or a
+   count you made ("the lookup rebuilds a dict on every call"), never
+   as a timing or a word
+   like "slower" or "no quicker". A cheap timing only decides what to
+   try next: never report it to the user. Report counts or a bound
+   instead ("the stage is 18% of the run, so it can save at most
+   1.2x").
 5. **Try.** Create the branch the user allowed in step 1 (ask now
    only if they did not) from the commit the user was on, write the
    change there, as small as the idea needs, commit it on that branch,
@@ -215,7 +219,10 @@ No discovery. One candidate at a time, against its parent.
    Never argue from the estimate.
 7. **Report** once at the end ([messages.md](messages.md)): each idea,
    its evidence, what happened, what was kept, what was not checked,
-   and what to try next or "nothing left could clear the bar".
+   and what to try next. Say "nothing left could clear the bar" only
+   when no idea with a cap above the bar is left untried; otherwise
+   say what this depth tried, which ideas remain with their caps, and
+   offer the next depth (at `full`, say what you would try next).
 
 Keep notes for the next session in `.perfproof/session.md`: each idea,
 its cap, its cheap test and its outcome, one line each. Read it before
