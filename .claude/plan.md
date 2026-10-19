@@ -1281,7 +1281,7 @@ claim is checked for speed, correctness and regressions elsewhere
     agent, gives the same verdict as through the skill.
   - Effort: high
 
-- [ ] **T3.19 Skill eval: score every skill change**
+- [x] **T3.19 Skill eval: score every skill change** (siddiquifaras/perfproof#45, `1433c1a`; real-repo tasks and Codex still to add)
   - Owns: `eval/skill/`
   - Needs: T3.8 (merged), T2.21 for the real-repo tasks
   - Do: a harness that runs the installed skill headless (`claude -p`,
