@@ -1,5 +1,5 @@
 extend = "../pyproject.toml"
-src = [".", "rolling", "membership"]
+src = [".", "rolling", "membership", "growth", "settings"]
 
 [lint.extend-per-file-ignores]
 "**/tests/**" = ["D", "S101"]

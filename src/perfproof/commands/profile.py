@@ -48,6 +48,16 @@ untouched.
     when unknown.
 ``side_effects``
     The `perfproof.schema.GateResult` of the ``side_effects`` gate.
+``summary``
+    `perfproof.profilers.summary` in its brief form, at most
+    `perfproof.profilers.summary.BRIEF_BYTES` bytes: the top frames with
+    their share and Amdahl cap (a bound, never a measured effect), and
+    wall against CPU time. An agent reads this, not ``hotspots``.
+``evidence``
+    ``{"path", "sha256"}`` of the summary stored as estimate evidence in
+    ``.perfproof/evidence/<name>/``, never as a verdict.
+``hypothesis``
+    The ID given with ``--hypothesis``, or ``null``.
 ``argv``
     The profiled run's argv.
 ``directory``, ``raw``, ``folded``, ``logs``
@@ -59,8 +69,10 @@ Error codes
 ``not_a_repository``, ``invalid_name``, ``not_found`` (no spec, or no
 spec with that hash), ``ambiguous_hash`` (a hash prefix, or no hash
 with several specs stored), ``invalid_record``, ``state_read_failed``,
-``state_write_failed``, ``invalid_command`` (a ``--profiler-command``
-that is not a JSON array of strings with ``{command}``), and the codes
+``state_write_failed``, ``invalid_result`` (the summary or its
+evidence record cannot be built), ``invalid_command`` (a
+``--profiler-command`` that is not a JSON array of strings with
+``{command}``), and the codes
 of `perfproof.profilers.run.ProfileError`: ``profiler_unavailable``,
 ``side_effects``, ``reset_failed``, ``workload_failed``,
 ``profiler_failed`` and ``invalid_profile``.
@@ -77,6 +89,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, cast
 
+from perfproof.bench.evidence import hypothesis_id, write_evidence
 from perfproof.bench.snapshot import (
     GIT_TIMEOUT_SECONDS,
     SnapshotError,
@@ -97,6 +110,7 @@ from perfproof.profilers.run import (
     default_profiler,
     profile_benchmark,
 )
+from perfproof.profilers.summary import brief, summarise_profile
 from perfproof.schema import BenchmarkSpec, Hotspot
 
 __all__ = ["add_arguments", "run"]
@@ -154,6 +168,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         type=_positive_seconds,
         metavar="SECONDS",
         help="time limit for each run (default: the spec's)",
+    )
+    parser.add_argument(
+        "--hypothesis",
+        type=hypothesis_id,
+        metavar="ID",
+        help="hypothesis this profile is evidence for",
     )
     parser.add_argument(
         "--own-module",
@@ -220,10 +240,43 @@ def run(args: argparse.Namespace) -> Output:
         if exc.gate is not None:
             details["gate"] = exc.gate.model_dump(mode="json")
         raise CommandError(exc.code, exc.message, details) from exc
-    return Output(
-        result=_result(spec, profile, out_dir),
-        text=_text(spec, profile, out_dir),
-    )
+    try:
+        summary = brief(
+            summarise_profile(
+                profile.hotspots,
+                basis=profile.basis,
+                weight_unit=profile.weight_unit,
+                wall_seconds=profile.unprofiled.wall_seconds,
+                cpu_seconds=profile.unprofiled.cpu_seconds,
+                load_average=profile.load_average,
+                cpu_count=profile.cpu_count,
+                min_effect=spec.min_effect,
+            )
+        )
+    except ValueError as exc:
+        msg = f"the profile could not be summarised: {exc}"
+        raise CommandError("invalid_result", msg) from exc
+    hypothesis = cast("str | None", args.hypothesis)
+    try:
+        ref = write_evidence(
+            root,
+            name,
+            "profile",
+            "estimate",
+            {"summary": summary, "profiler": profile.profiler},
+            hypothesis=hypothesis,
+            spec_hash=spec.spec_hash,
+        )
+    except OSError as exc:
+        raise _os_error("state_write_failed", exc, out_dir) from exc
+    except ValueError as exc:
+        msg = f"the profile could not be stored as evidence: {exc}"
+        raise CommandError("invalid_result", msg) from exc
+    result = dict(_result(spec, profile, out_dir))
+    result["summary"] = summary
+    result["evidence"] = {"path": str(ref.path), "sha256": ref.sha256}
+    result["hypothesis"] = hypothesis
+    return Output(result=result, text=_text(spec, profile, out_dir))
 
 
 def _positive_int(text: str) -> int:

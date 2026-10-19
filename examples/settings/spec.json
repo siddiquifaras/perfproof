@@ -1,0 +1,82 @@
+{
+  "schema_version": 3,
+  "name": "flush-writer",
+  "command": [
+    "python",
+    "bench.py",
+    "--output",
+    "output/sink.txt"
+  ],
+  "cwd": ".",
+  "env": {},
+  "metric": {
+    "kind": "reported",
+    "direction": "lower_is_better",
+    "unit": "s"
+  },
+  "objective": "wall_time",
+  "guardrails": [
+    {
+      "metric": "peak_memory",
+      "direction": "lower_is_better",
+      "unit": "bytes",
+      "allowance": 0.1,
+      "allowance_source": "default"
+    },
+    {
+      "metric": "peak_gpu_memory",
+      "direction": "lower_is_better",
+      "unit": "bytes",
+      "applicable": false,
+      "reason": "a CPU-only benchmark; no GPU is used"
+    },
+    {
+      "metric": "p99_latency",
+      "direction": "lower_is_better",
+      "unit": "s",
+      "applicable": false,
+      "reason": "serves no requests; the benchmark is one batch run"
+    }
+  ],
+  "correctness": {
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q"
+    ],
+    "cwd": ".",
+    "timeout_seconds": 120,
+    "outputs": [
+      {
+        "path": "output/sink.txt",
+        "compare": "text"
+      }
+    ]
+  },
+  "warmup": 1,
+  "budget": {
+    "max_rounds": 200,
+    "max_seconds": 900
+  },
+  "looks": {
+    "n0": 20,
+    "k": 20,
+    "max_looks": 10
+  },
+  "min_effect": 0.03,
+  "alpha": 0.05,
+  "timeout_seconds": 60,
+  "harness": [
+    "bench.py"
+  ],
+  "oracle": [
+    "tests/test_writer.py"
+  ],
+  "inputs": [],
+  "config": [
+    "pytest.ini"
+  ],
+  "allow_runtime_change": false,
+  "allow_cross_host": false
+}

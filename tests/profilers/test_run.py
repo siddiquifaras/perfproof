@@ -846,6 +846,9 @@ def test_cli_profiles_with_a_command_profiler(
         "load_average",
         "cpu_count",
         "side_effects",
+        "summary",
+        "evidence",
+        "hypothesis",
         "argv",
         "directory",
         "raw",
@@ -854,6 +857,20 @@ def test_cli_profiles_with_a_command_profiler(
     }
     assert result["profiler"] == "command"
     assert len(result["hotspots"]) == 3
+    summary = result["summary"]
+    assert summary["labels"]["cap"].startswith("bound")
+    assert len(json.dumps(summary, separators=(",", ":")).encode()) <= 1800
+    top = summary["frames"][0]
+    assert top["cap"] == pytest.approx(1 / (1 - top["total_fraction"]))
+    assert summary["time"]["wall_seconds"] == pytest.approx(
+        result["unprofiled"]["wall_seconds"]
+    )
+    evidence = Path(result["evidence"]["path"])
+    assert evidence.parent == repo / ".perfproof" / "evidence" / "rolling-sum"
+    stored = json.loads(evidence.read_text())
+    assert (stored["kind"], stored["claim"]) == ("profile", "estimate")
+    assert stored["result"]["summary"] == summary
+    assert result["hypothesis"] is None
     directory = Path(result["directory"])
     assert directory.parent == repo / ".perfproof" / "profiles" / "rolling-sum"
     assert Path(result["raw"]).parent == directory

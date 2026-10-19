@@ -10,6 +10,8 @@ real noise traces (T2.11).
 | `rolling/` | Python, NumPy | a pure-Python loop over a NumPy array | `np.cumsum` and one slice difference |
 | `membership/` | Python | `in` on a list inside a loop, O(n m) | build a `set` once, O(n + m) |
 | `colsum/` | C | column-by-column walk of a row-major matrix | walk it row by row |
+| `growth/` | Python | all-pairs loop, O(n^2) in the batch size | one pass with a counter, O(n) |
+| `settings/` | Python | a block write per record, each waiting on a simulated device | write every 100 records (the `FLUSH_EVERY` setting, and a code default) |
 
 ## Layout
 
@@ -130,6 +132,29 @@ row-major 4096 x 4096 matrix of doubles by walking down the column
 `candidates/fix/kernel.c` walks the matrix row by row and adds each row
 into the sums array. It is here for the native work in M4; it has a fix
 and no decoys.
+
+**`growth/` and `settings/`** are the planted cases for the discovery
+primitives of `perfproof measure` (T3.4). Each has a fix and no decoys.
+
+- `growth/`: `pairs.count_pairs(values, target)` counts index pairs that
+  sum to a target with two nested loops. The benchmark builds `--n`
+  readings, folds them into a checksum (a fixed linear workload), counts,
+  and renders a line; its timed region is all four
+  (`reported` metric). `--n` is the size knob: `perfproof measure
+  pair-count --sizes 1,2,4,8 --size-arg=--n=1000` fits the exponent
+  (about 2), and the fix in `candidates/fix/` fits about 1. It is also
+  the stub case: `--stub pairs:count_pairs`.
+- `settings/`: `writer.write_block` waits 0.4 ms per call to stand in
+  for a synchronous device write (`time.sleep`, so it uses no CPU), and
+  `Writer` calls it every `FLUSH_EVERY` records, 1 by default. Over
+  1,000 records the run is nearly all waiting, so `profile` shows wall
+  time far above CPU time. `--set FLUSH_EVERY=100` changes the setting;
+  `--stub writer:write_block` bounds what the waiting costs. The fix in
+  `candidates/fix/` changes the default to 100.
+
+Both ship a spec (`pair-count`, `flush-writer`) and a small suite, and
+neither is in `tests/test_examples.py`, which covers the three older
+examples and their decoys. Their timings are in the T3.4 pull request.
 
 ## Decoys
 
