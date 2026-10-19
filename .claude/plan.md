@@ -7,6 +7,24 @@ agent and developer see), `docs/method.md` (prove),
 (how we show it works) and `docs/targets.md` (per-class contracts).
 This file is the order of work.
 
+## Priority (Faras, 2026-10-19)
+
+The `/perfproof` skill is the product: it has to work end to end, in
+plain language, for beginners and experts on any plan
+(`docs/product.md`). Everything else exists to make it as good as
+possible. Order of work:
+
+1. The skill (T3.8), run headless on real repos after every change.
+2. Whatever the skill needs from the CLI, as the runs expose it:
+   gate details in `compare --json`, detach and status (T3.6), the
+   project model wired into compare (T3.2), the hypothesis log (T3.3),
+   `measure` (T3.4).
+3. Trustworthy KEEP: T1.6, T1.8, T1.7.
+4. Depth tiers measured (T3.14), short output (T3.15), install (T3.16),
+   the eval harness (T3.13).
+5. Everything else, including CLI commands no skill flow uses yet
+   (`confirm`, `load`, `replay`), waits.
+
 ## How to use this file
 
 - **Lead** (Faras, or the session he runs in the main checkout) owns
