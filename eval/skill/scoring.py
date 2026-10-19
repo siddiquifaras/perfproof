@@ -28,7 +28,9 @@ from taskset import Task, TaskSet
 _DIRECTION = re.compile(
     r"\b(faster|slower|quicker|shorter|longer|speed-?ups?|gains?|wins?"
     r"|better|worse|regress(?:ion|ions|ed)?|improv(?:es|ed|ement)"
-    r"|slows|didn't work|no benefit|points to|suggests?"
+    r"|slows|didn't work|no benefit|points to"
+    # "the estimate suggests", but not the agent's own "I suggest"
+    r"|(?<!\bI )(?<!I'd )(?<!\bwe )suggests?"
     # verb and paraphrase forms
     r"|sp[ae]ed(?:s|ed)? up|sped up|fraction of the time|less time"
     r"|(?:times|x) (?:as )?(?:fast|quick|slow)|as (?:fast|quick) as"
@@ -46,7 +48,9 @@ _ESTIMATE = re.compile(
 _NEGATED_SAY = re.compile(
     r"\b(?:can(?:['\u2019])?t|cannot|not|never|no)\s+(?:yet\s+)?"
     r"(?:say|claim|call|tell|state|show|conclude|decide)\b[^.]{0,40}$"
-    r"|\b(?:not|no)\s+(?:yet\s+)?(?:a|an)\s+\S+$",
+    r"|\b(?:not|no)\s+(?:yet\s+)?(?:a|an)\s+\S+$"
+    r"|\b(?:not|never)\s+(?:treat|count|read|take|see)\w*\b[^.]{0,40}"
+    r"\bas\s+(?:an?\s+)?\S+$",
     re.IGNORECASE,
 )
 _UNCHECKABLE = re.compile(

@@ -37,8 +37,12 @@ the user.
   `verdict.diagnostics.procedure_uncalibrated: true`. Say: "perfproof can't keep
   changes yet. The estimate is X (range A to B), not yet a verdict." Do
   not offer to rerun it: a rerun cannot change that.
+- Before anything is decided, name a goal by its metric ("the time
+  the `rolling_sum` calls take") and the bar as a line ("the low end of
+  the range must be above 3%"), never as "faster" or "beats".
 - A cap from a profile ("the most this function could save") is a
-  bound, never a promise. See [discovery.md](discovery.md).
+  bound, never a promise: say "can save at most 10x", never "10x
+  faster". See [discovery.md](discovery.md).
 - End the session with one last line. When `compare` returned a
   verdict, copy it: `Result: <verdict.outcome> (<verdict.reason>)`,
   adding `, gate <verdict.gate>` when there is one, for example
@@ -47,7 +51,13 @@ the user.
   (correctness, coverage, lock, side_effects, runtime, procedure,
   same_host) is a verdict: copy it. Use `Result: NO VERDICT (<plain
   reason>)` only when `compare` returned no verdict at all (you stopped
-  before it, or it answered `ok: false`).
+  before it, or it answered `ok: false`). An uncalibrated INCONCLUSIVE
+  is "not yet a verdict" to the user, but `compare` did return one:
+  its line is `Result: INCONCLUSIVE (<verdict.reason>)`, never NO
+  VERDICT.
+- A question you need answered to go on (which workload, the spec,
+  whether to create a branch) is not the end: ask it and wait, with no
+  `Result:` line. That line tells the user you are finished.
 
 ## What the user asked for
 
@@ -89,7 +99,9 @@ with one sentence and one next step:
    anything remote.
 4. `perfproof doctor --json` warns (`high_load`, `on_battery`,
    `low_power_mode`, `thermal_limit`, `non_performance_governor`): say
-   what it means in one sentence and ask whether to continue.
+   what it means in one sentence and ask whether to continue. When
+   finding speedups, put this in the one question of step 1 instead of
+   stopping here.
 5. The project has no tests or other check of the result: say a change
    can't be kept without one, and offer to write a check (the output on
    a fixed input) with the user's agreement.
@@ -98,7 +110,9 @@ Never set `allow_runtime_change`, `allow_cross_host` or any other
 opt-in in a spec without asking; each one turns a check off.
 
 You write only to `.perfproof/` and, once the checks pass and the user
-agrees, to one branch `perfproof/<name>` for kept changes. Before you
+agrees, to one branch `perfproof/<name>` for kept changes. Never commit
+to, rewrite or edit a branch the user named or owns; a fix you write for
+their change goes on a new `perfproof/<name>` branch. Before you
 finish, remove files your own runs created in the user's tree (outputs,
 caches) that were not there when you started, and leave `git status`
 as you found it apart from that branch.
@@ -112,60 +126,101 @@ No discovery. One candidate at a time, against its parent.
    directory for uncommitted changes). Show the diff stat. If commits
    the user did not write are in it, ask which to prove.
 2. List what the change claims (commit message, PR text): faster how
-   much, at what. You will check each claim or say it was not checked.
+   much, at what. Quote each claim word for word in quotation marks
+   rather than restating it. You will check each claim or say it was
+   not checked.
 3. Reuse a locked benchmark if one runs the changed code: each
    directory under `.perfproof/benchmarks/` is one, and
    `perfproof bench list <name> --json` shows its versions. Otherwise
    write one: a command that runs the changed code the way it is really
    used, plus the test command and the output files to compare
    ([spec.md](spec.md)), and lock it with
-   `perfproof bench define <name> --spec <file> --json`. If nothing
-   runs the changed lines, stop and say so.
+   `perfproof bench define <name> --spec <file> --json`. A script you
+   write for it goes in `.perfproof/harness/`, never in the user's
+   tree. If you can't find any command that runs the changed code,
+   stop and say so (nothing can be measured without one).
+   Never refuse a change on your own reading of the diff, even when it
+   plainly edits the benchmark or its tests: run `compare`, which
+   refuses such a change in seconds at its lock check and records why.
+   A refusal must come from perfproof, never from you.
 4. Run `perfproof compare <name> --candidate <rev or dir> --baseline
    <rev> --json`, adding `--spec-hash <hash>` when the benchmark has more
-   than one version (error `ambiguous_hash`). It can take minutes; say so before you start.
+   than one version (error `ambiguous_hash`). It can take minutes;
+   say so before you start.
 5. Report from the JSON with [messages.md](messages.md): what was
-   checked and passed, what failed, the estimate or verdict, what was
-   not checked, and where the run record is (`report_path`).
+   checked and passed (only gates in `gates[]` with their `status`),
+   what failed, the estimate (`verdict.estimate`, range
+   `verdict.interval.lower` to `verdict.interval.upper`; never
+   `diagnostics.wall_interval`) or verdict, what was not checked, and
+   where the run record is (`report_path`). Never say a check ran
+   unless `gates[]` shows it.
 
 ## Find speedups
 
-1. **Understand.** Find the workload the user cares about: an existing
-   benchmark, a slow test, an entry point, the code they named. Ask at
-   most three short questions in your first message: what they want
-   faster, what "faster" means (time, memory, startup), and what must
-   not change. Reuse a locked benchmark if one fits (one directory per
-   benchmark under `.perfproof/benchmarks/`). Otherwise write the spec
-   ([spec.md](spec.md)), show it
-   in one paragraph, lock it after they agree.
-2. **Profile.** `perfproof profile <name> --json`. Read the top
-   hotspots (`function`, `file`, `line`, `total_fraction`) and the wall
+1. **Understand, then ask once.** Run `perfproof init --json` (once
+   per repository; it writes only `.perfproof/`). It proposes
+   `targets[]`, `workloads[]` and goals, each with an `id` and its
+   evidence, and `questions[]` for what it could not find out. Prepare
+   everything before you ask: your suggested answer to each question
+   that matters (what "faster" means, what must not change), the spec
+   built on them ([spec.md](spec.md)) or a locked benchmark that fits
+   (one directory per benchmark under `.perfproof/benchmarks/`), and
+   the branch `perfproof/<name>` where attempts will go. Then ask in
+   one message, your suggestion first for each: the workload and
+   answers, the spec in one paragraph, permission for the branch, and
+   any machine warning from the checks above. On their yes, confirm in
+   this order, since each needs the one before:
+   `perfproof project confirm <target id> <workload id> --json`, then
+   `perfproof project goal <workload id> --metric <m> --confirm --json`
+   (`<m>` is `wall`, `cpu`, `p99`, `memory`, or the name of a metric
+   your benchmark reports, with `--direction` and `--unit`), then lock
+   the spec. Nothing is measured on a workload the user has not
+   confirmed. After that, don't stop again before the report unless
+   something comes up that only the user can decide.
+2. **Profile.** `perfproof profile <name> --json`. Print and read the
+   top entries of `result.hotspots[]` (`function`, `file`, `line`,
+   `total_fraction`), not a cut of the whole output, and the wall
    versus CPU time. If CPU is well below wall, the program is mostly
    waiting: look at I/O and services, not loops.
 3. **Ideas.** For each hotspot, work out the most a change there could
-   save (the cap in [discovery.md](discovery.md)). Drop any idea whose
-   cap is at or below `1 + min_effect` from the spec. Check the angles in discovery.md for ones
-   the profile hints at. Check `git log` for what was tried before.
+   save (the cap in [discovery.md](discovery.md)). For a Python
+   function, measure the cap rather than estimate it:
+   `perfproof measure <name> --stub <module>:<function> --json` gives
+   `result.stub.cap_bound`, or the reason no cap can be given in
+   `result.stub.cap_withheld`; then use the profile's share instead
+   and say the cap comes from the profile. For
+   growth with input size, `--sizes 1,2,4,8 --size-arg=--n=<base>`; for
+   one setting, `--set NAME=VALUE`. These are bounds and estimates, not
+   verdicts. Drop any idea whose cap is at or below `1 + min_effect`
+   from the spec. Check the angles in discovery.md for ones the profile
+   hints at. Check `git log` for what was tried before.
 4. **Cheap test first.** Before writing a real change, test the idea
    cheaply (the cheapest check that would prove it wrong). Drop ideas
    it refutes and say why. A cheap timing only decides what to try
    next: never report it to the user. Report counts or a bound instead
    ("the stage is 18% of the run, so it can save at most 1.2x").
-5. **Try.** Ask once before creating the branch `perfproof/<name>`;
-   then write the change there, as small as the idea needs, and prove
-   it exactly as above.
-6. **Keep or undo.** A KEEP stays on `perfproof/<name>`. Undo
-   everything else, touching only files the attempt changed. While
-   perfproof can't give verdicts yet, offer to leave a change whose
-   checks all passed on its branch for the user to judge, saying the
-   checks passed and the speed is not decided. Never argue from the
-   estimate.
+5. **Try.** Create the branch the user allowed in step 1 (ask now
+   only if they did not) from the commit the user was on, write the
+   change there, as small as the idea needs, commit it on that branch,
+   and prove it exactly as above with `--baseline <that commit>
+   --candidate perfproof/<name>`. Every attempt uses that same
+   baseline.
+6. **Keep or undo.** First switch back to the branch the user was on,
+   so their working tree is exactly as it was. A KEEP stays on
+   `perfproof/<name>`. An attempt whose checks failed is undone by
+   deleting its branch, which only you created; never touch anything
+   else. While perfproof can't give verdicts yet, an attempt whose
+   checks all passed stays on its branch for the user to judge: say the
+   checks passed and the speed is not decided, and offer to delete it.
+   Never argue from the estimate.
 7. **Report** once at the end ([messages.md](messages.md)): each idea,
    its evidence, what happened, what was kept, what was not checked,
    and what to try next or "nothing left could clear the bar".
 
 Keep notes for the next session in `.perfproof/session.md`: each idea,
-its cap, its cheap test and its outcome, one line each.
+its cap, its cheap test and its outcome, one line each. Read it before
+trying an idea: an idea refuted before on unchanged code is not retried
+without saying what differs.
 
 ## Spend the user's budget well
 

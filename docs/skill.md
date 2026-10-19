@@ -62,11 +62,18 @@ Every sentence the skill writes is a Fact, an Estimate or a Verdict.
   `Result: {OUTCOME} ({reason}[, gate {gate}])` copied from
   `verdict.outcome`, `verdict.reason`, `verdict.gate` when a verdict
   exists; otherwise `Result: NO VERDICT ({plain reason})`. Never
-  INCONCLUSIVE when no verdict exists.
+  INCONCLUSIVE when no verdict exists. A question the run waits on and
+  then goes on from (a workload to confirm, a spec to agree, a branch
+  to create, a read-only mix, an oracle or subset to agree, a machine
+  warning; BS-4c, BS-5b, BS-6a, BS-6b, BS-10) is not the end of the
+  session and carries no `Result:` line.
 - **Every stop says**, one sentence each: what happened; what it means
   for the user's code; the next step. The next step is one question or
   one command, at most two options, the recommended one first. One
-  question at a time, except the first message of a bare run (three).
+  question at a time, except that the find path asks everything it
+  needs once, in one message, before measuring: the workload and the
+  answers to `init`'s questions, the spec, the branch for attempts and
+  any machine warning, a suggested answer for each.
 - **Permission.** Ask in chat, and wait, before: creating a branch or
   committing; starting a container; setting a spec opt-in
   (`allow_remote_services`, `allow_runtime_change`, unchecked
@@ -76,8 +83,9 @@ Every sentence the skill writes is a Fact, an Estimate or a Verdict.
 - **Writes.** Only `.perfproof/`, `.git/info/exclude` (so
   `.perfproof/` is ignored), perfproof's own worktrees, and, after the
   checks pass and the user agrees, one branch `perfproof/{name}` for
-  harness files and kept changes. No branch exists before the checks
-  below pass.
+  attempts and kept changes. A harness the skill writes lives in
+  `.perfproof/harness/`, never in the user's tree or on a branch. No
+  branch exists before the checks below pass.
 - **Message IDs.** Each user-visible message has an ID in
   skill-messages.md; T3.8 snapshot-tests each.
 
@@ -108,9 +116,9 @@ parent. Does not need a clean tree.
 1. **PF-1** Resolve refs read-only (`git rev-parse`; `gh pr view`).
 2. **PF-2** Baseline is `git merge-base`; show the diff stat; name
    commits the author did not write and ask which to prove.
-3. **PF-3** Locked benchmark files missing from the candidate
-   (`git ls-tree`): cherry-pick onto the harness branch unchanged, name
-   both commits; conflict: stop and ask. Uncommitted work is proved as
+3. **PF-3** A harness the skill writes lives in `.perfproof/harness/`,
+   which perfproof installs identically into both trees, so nothing is
+   cherry-picked onto either version. Uncommitted work is proved as
    a directory (`--candidate DIR`); the record marks it dirty.
 4. **PF-4** List the claims in the commit or PR; flag mixed claims and
    claims the history contradicts; check each or mark it not checked.
@@ -130,12 +138,12 @@ parent. Does not need a clean tree.
 (`init`, `project`; nothing is measured on a `proposed` workload).
 3. Premise check: measure what the user named next to its siblings in
 one run. 4. `profile`. 5. `measure` angles. 6. Hypotheses with
-falsifiable predictions and caps (`log add`). 7. Cheap test before any
-code; refuted ideas are logged and dropped. 8. Candidate in its own
+falsifiable predictions and caps, noted in `.perfproof/session.md`.
+7. Cheap test before any code; refuted ideas are noted and dropped. 8. Candidate in its own
 worktree, `compare` (several: `confirm`). 9. One last `compare` of the
 kept stack against the start, then the report.
 
-Rules: history first (`git log -S`, the hypothesis log); do not remove
+Rules: history first (`git log -S`, `.perfproof/session.md`); do not remove
 code before testing that it is redundant; a profile whose top frame is a
 wait while children did the work is of the wrong process and ranks
 nothing; set every estimate beside its cap (FP-1); ask whether hidden
@@ -154,9 +162,9 @@ path.
 | BS-1 | Not a git repository or no commit (`git rev-parse`; `compare` error `not_a_repository`) | Stop. Ask the user to initialise and commit. | NO VERDICT (not a git repository) |
 | BS-2 | Find path only: `git status --porcelain` lists changes, ignoring `.perfproof/` and the declared outputs of confirmed specs | Stop; the skill does not stash, reset or commit. Ask the user to commit or set them aside, or to name a branch to prove (prove works as is). | NO VERDICT (uncommitted changes) |
 | BS-3 | A service in the project model fails a connect test from where the benchmark runs | Say a check did not run, never that the service is down. Offer a local copy or an address. | NO VERDICT (service not reachable) |
-| BS-4 | The config or environment points off this machine, or a local port belongs to something else (`lsof`, `docker ps`) | Never set `allow_remote_services`. Offer a local copy on a free port, with consent. A writing workload needs a reset (T2.19): offer a read-only mix. | NO VERDICT (benchmark would reach {host}) |
+| BS-4 | The config or environment points off this machine, or a local port belongs to something else (`lsof`, `docker ps`) | Never set `allow_remote_services`. Offer a local copy on a free port, with consent. A writing workload needs a reset (T2.19): offer a read-only mix. | NO VERDICT (benchmark would reach {host}); none for BS-4c, which waits |
 | BS-5 | No confirmed workload (`project`); only `proposed` ones | Nothing runs on a proposed workload: confirm it first, showing any script the skill wrote and what cannot be locked. Nothing runnable: stop. | NO VERDICT (no workload) |
-| BS-6 | No oracle, or `correctness` gate `not_available`, or the oracle is too slow | Propose an explicit oracle (output on a fixed input, not empty) or a subset, with the user's yes. No KEEP without one. List the rest as not run. | NO VERDICT (no way to check a change) |
+| BS-6 | No oracle, or `correctness` gate `not_available`, or the oracle is too slow | Propose an explicit oracle (output on a fixed input, not empty) or a subset, with the user's yes. No KEEP without one. List the rest as not run. | none: BS-6a and BS-6b wait for the user's yes |
 | BS-7 | `compare` error `broken_baseline`, or `profile` error `workload_failed`, on the baseline | No record exists. Show the command and a capped log tail; use the project's documented setup; no opt-in. | NO VERDICT (original code will not run) |
 | BS-8 | Two baseline runs differ in declared output; or the run did not do the work; or the timed part is tiny (C-02) | Normalise or fix before locking; ask only about shortening. | none (fixed, then continue) |
 | BS-9 | Merge-base differs, locked files missing, foreign commits (PF-2, PF-3) | Set the baseline or derive a branch, and say so. | none (fixed, then continue) |

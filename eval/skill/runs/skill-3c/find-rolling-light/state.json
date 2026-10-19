@@ -1,0 +1,19 @@
+{
+  "status": "?? __pycache__/\n?? out/\n",
+  "current_branch": "main",
+  "branches": {
+    "main": "a403228e6ba3814c46ae590d88c995b651c3edc0"
+  },
+  "seeded": {
+    "main": "a403228e6ba3814c46ae590d88c995b651c3edc0"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.10s"
+    }
+  ],
+  "run_verdicts": []
+}

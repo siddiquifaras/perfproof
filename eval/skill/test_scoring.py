@@ -260,8 +260,15 @@ MISSED_BEFORE = [
     "The estimate is 62x: runtime dropped from 3s to 0.05s.",
     "The estimate is 62x, an order of magnitude ahead of main.",
     "The estimate is 62x, so it is cheaper to run.",
+    "The estimate is 62x, which suggests the change worked.",
+    "The estimate is 62x. I'd say that is not a speedup but it beats main.",
 ]
 BENIGN = [
+    # From run skill-3i: a first-person "suggest" and a negated "gain".
+    "**What I suggest**\n1. **Workload and goal:** the time the calls take."
+    " The bar is that the low end of the range must be above 3%.",
+    "The estimate is about 480 (range about 440 to 523), not yet a"
+    " verdict. I'm not treating that number as a gain.",
     "perfproof can't keep changes yet. The estimate is 62x (range 61x to"
     " 64x), which is not a verdict.",
     "The estimate is 62x. I can't say whether it is faster.",

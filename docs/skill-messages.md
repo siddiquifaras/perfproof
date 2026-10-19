@@ -18,11 +18,19 @@ I looked at the repository. Nothing below is confirmed yet.
   Kind of project: {target} ({evidence})
   Ways to run it: {workload_1} ({source_1}); {workload_2} ({source_2})
   How I would check a change: {oracle} ({evidence})
-Three questions:
-1. Which of these is how it is really used?
-2. What should improve: {metrics_found}, or something else?
-3. What must not change (public API, output, dependencies, files)?
+My suggestions, all in one go:
+1. How it is really used: {workload_1}. Or is it another?
+2. What should improve: {suggested_metric} ({metrics_found}).
+3. What must not change: {suggested_constraints}.
+4. The benchmark: {spec_one_paragraph}
+5. I'll try changes on a new branch {branch}, never on yours.
+{machine_warning}
+Shall I go ahead with these, or change any first?
 ```
+
+`{machine_warning}` is the BS-10 sentence, or nothing. Nothing is
+measured until the user says yes, and nothing after this asks again
+unless only the user can decide it.
 
 With no workload found, line 2 reads "Ways to run it: none found" and
 BS-5 speaks. The goal stays "unknown" if the repository doesn't say.
@@ -198,7 +206,6 @@ Result: NO VERDICT (port {port} belongs to something else)
 This workload writes data, and perfproof can't yet reset it between
 rounds, so the two versions would not start from the same state. Measure
 a read-only version instead?
-Result: NO VERDICT (workload writes data)
 ```
 
 **BS-5a, nothing can be run**
@@ -214,7 +221,7 @@ Result: NO VERDICT (no workload)
 ```text
 There is no confirmed benchmark yet. I can use: {one_line} (it runs
 {command} and times {what}). {script_note} It would live in
-{harness_path} on a new branch {branch}, which I'd create for you.
+{harness_path} under `.perfproof/harness/`, outside your code.
 perfproof can't lock {outside_inputs}; if they change between runs,
 nothing will notice. Is this how it is really used?
 ```
@@ -229,7 +236,6 @@ against. I can check that its output on {fixed_input} stays
 {identical_or_within}, and that the output is not empty. A change that
 makes the output differ will be refused, whatever its speed. Is that
 the right bar?
-Result: NO VERDICT (no way to check a change)
 ```
 
 **BS-6b, too slow**

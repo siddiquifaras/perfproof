@@ -1,0 +1,44 @@
+{
+  "task_id": "prove-rolling-wrong-output",
+  "started_at": "2026-10-19T10:04:38+00:00",
+  "wall_seconds": 29.4,
+  "load_start": [
+    4.61279296875,
+    4.474609375,
+    4.81396484375
+  ],
+  "load_end": [
+    4.33349609375,
+    4.4189453125,
+    4.78369140625
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "408e9c64be5f",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-wrong",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-wrong",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.8"
+      ],
+      "seconds": 29.02,
+      "exit_code": 0,
+      "session_id": "29b74604-c852-4c07-91fb-fd843aeed8e8"
+    }
+  ]
+}

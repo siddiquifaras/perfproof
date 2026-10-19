@@ -324,7 +324,9 @@ def _top_hotspot(text: str) -> str | None:
 
     Reads each printed object (JSON or a Python dict repr) that has a
     ``function`` and a ``total_fraction``, and skips interpreter frames
-    (files in angle brackets).
+    (files in angle brackets) and code-object pseudo-functions such as
+    ``<module>``, whose total share covers the whole script and so
+    outranks every real function once printed.
     """
     best: tuple[float, str] | None = None
     for chunk in re.finditer(r"\{[^{}]*\}", text):
@@ -342,13 +344,41 @@ def _top_hotspot(text: str) -> str | None:
             continue
         if where is not None and where.group(2).startswith("<"):
             continue
+        if func.group(2).startswith("<"):
+            continue
         try:
             score = float(frac.group(1))
         except ValueError:
             continue
         if best is None or score > best[0]:
             best = (score, func.group(2))
+    if best is None:
+        best = _top_hotspot_lines(text)
     return None if best is None else best[1]
+
+
+_HOTSPOT_LINE = re.compile(
+    r"^\s*([A-Za-z_][\w.]*)\s+(\S+)(?:\s+\S+)*?\s+(0?\.\d+|1\.0+|1)\s*$"
+)
+
+
+def _top_hotspot_lines(text: str) -> tuple[float, str] | None:
+    """Read hotspots printed one per line: function, file, ..., share.
+
+    Agents often print ``result.hotspots[]`` compactly, for example
+    ``rolling_sum rolling.py 51 0.906``. The share is the last field;
+    lines whose file is an interpreter frame (angle brackets) are
+    skipped, as in the JSON reading.
+    """
+    best: tuple[float, str] | None = None
+    for line in text.splitlines():
+        match = _HOTSPOT_LINE.match(line)
+        if match is None or match.group(2).startswith("<"):
+            continue
+        score = float(match.group(3))
+        if best is None or score > best[0]:
+            best = (score, match.group(1))
+    return best
 
 
 def profile_evidence(turns: list[Turn]) -> tuple[str | None, list[str]]:

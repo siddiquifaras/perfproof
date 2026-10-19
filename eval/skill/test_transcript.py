@@ -110,3 +110,27 @@ def test_saved_lines_carry_no_thinking_blocks() -> None:
             )
             kinds = {b.get("type") for b in blocks if b is not None}
             assert "thinking" not in kinds
+
+
+def test_a_printed_module_frame_does_not_outrank_the_hotspot() -> None:
+    """The agent printed bench.py's ``<module>`` frame (total share near
+    1) beside ``held_orders`` (82%, ranked first by the profile)."""
+    run = HERE / "runs" / "skill-3e" / "find-membership-light"
+    top, _ = transcript.profile_evidence(transcript.load_turns(run))
+    assert top == "held_orders"
+
+
+@pytest.mark.parametrize(
+    ("task", "expected"),
+    [
+        ("find-rolling-light", "rolling_sum"),
+        ("find-membership-light", "held_orders"),
+    ],
+)
+def test_hotspots_printed_one_per_line_are_read(
+    task: str, expected: str
+) -> None:
+    """Both agents printed ``result.hotspots[]`` as plain lines."""
+    run = HERE / "runs" / "skill-3i" / task
+    top, _ = transcript.profile_evidence(transcript.load_turns(run))
+    assert top == expected
