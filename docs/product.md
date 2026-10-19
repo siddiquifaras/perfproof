@@ -5,6 +5,31 @@ about performance engineering, and how much agent usage they can
 spend. One `/perfproof` has to give each of them the most value for
 what they put in, without asking anyone to learn a new setup.
 
+## The bar
+
+Someone types "make this faster", "find inefficiencies", "why is this
+slow" or, helping an open-source project, "what's wrong here?", and
+the skill does what a strong performance engineer would: finds the
+real problem from evidence, finds the fix that removes it, applies it,
+proves it, keeps only what is real, and explains all of it in plain
+words. It is judged by measurement, not by impression:
+
+- **Starts on plain phrasing**, and only when it should (a trigger
+  test over phrasings).
+- **Finds the right problem**: on tasks with a known bottleneck, it
+  names that one.
+- **Finds the right fix** and applies it without breaking anything.
+- **Right verdict or refusal** on every known-answer task; never a
+  wrong KEEP.
+- **Tells everything**: what was slow and why, what changed, the
+  evidence, what was not checked; for open source, a PR-ready write-up
+  with the evidence maintainers ask for.
+- **Beats the agent alone**: more real wins and fewer false claims than
+  the same agent without perfproof, at a cost that fits a 5-hour window.
+
+Every change to the skill is scored on the skill eval (T3.19) before it
+merges.
+
 ## The two axes
 
 | | Knows little about performance | Knows performance engineering |

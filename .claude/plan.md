@@ -14,7 +14,8 @@ plain language, for beginners and experts on any plan
 (`docs/product.md`). Everything else exists to make it as good as
 possible. Order of work:
 
-1. The skill (T3.8), run headless on real repos after every change.
+1. The skill (T3.8), scored by the skill eval (T3.19) after every
+   change, on real repos as well as the examples.
 2. Whatever the skill needs from the CLI, as the runs expose it:
    gate details in `compare --json`, detach and status (T3.6), the
    project model wired into compare (T3.2), the hypothesis log (T3.3),
@@ -1278,6 +1279,27 @@ claim is checked for speed, correctness and regressions elsewhere
     known answers, with no wrong KEEP; scores are reproducible from the
     saved run records; proving a change through the CLI alone, with no
     agent, gives the same verdict as through the skill.
+  - Effort: high
+
+- [ ] **T3.19 Skill eval: score every skill change**
+  - Owns: `eval/skill/`
+  - Needs: T3.8 (merged), T2.21 for the real-repo tasks
+  - Do: a harness that runs the installed skill headless (`claude -p`,
+    later `codex exec`) over a fixed task set and scores each run by
+    code from its transcript and the repo afterwards: trigger (did the
+    skill start on the phrasing), hotspot found (the known one),
+    fix correct (tests and outputs), verdict or refusal correct,
+    tree left clean, wording rules (no direction words on an estimate,
+    correct `Result:` line), turns, cost, wall time. Task set: the
+    examples and their decoys, a trigger set of plain phrasings
+    ("make this faster", "what's wrong here", "is this PR actually
+    faster", and off-topic ones), then development tasks from T4.1 and
+    frames2py and picolm clones. A run of the whole set fits in about
+    an hour and a few dollars; results are saved and compared with the
+    previous run.
+  - Done when: the harness scores the current skill on the examples and
+    the trigger set, reproducibly from saved transcripts, and a
+    deliberately broken skill (a removed rule) scores worse.
   - Effort: high
 
 - [ ] **T3.14 Depth tiers: `/perfproof light`, `medium`, `full`**
