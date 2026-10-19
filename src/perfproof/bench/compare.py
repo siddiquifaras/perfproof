@@ -130,6 +130,7 @@ from perfproof.bench.correctness import (
     clear_outputs,
     correctness_gate,
 )
+from perfproof.bench.journal import Journal, Resumed, RoundEntry
 from perfproof.bench.lock import (
     environment_warnings,
     lock_gate,
@@ -266,14 +267,6 @@ class CompareResult:
 
 
 @dataclass(frozen=True, slots=True)
-class _Measured:
-    """One round with the resolution of each of its two values."""
-
-    round: Round
-    steps: Mapping[Arm, float]
-
-
-@dataclass(frozen=True, slots=True)
 class _Ended:
     """How the rounds ended: by a look, or with none taken."""
 
@@ -301,6 +294,8 @@ def compare(
     run_dir: Path,
     process_env: Mapping[str, str],
     order_seed: int,
+    journal: Journal | None = None,
+    resume: Resumed | None = None,
 ) -> CompareResult:
     """Prove a candidate tree against a baseline tree in the foreground.
 
@@ -326,6 +321,14 @@ def compare(
         command.
     order_seed : int
         Seed of the in-round order, non-negative; recorded.
+    journal : perfproof.bench.journal.Journal, optional
+        Where a detached run keeps its progress; each completed round
+        is appended to it. ``run_dir`` may then exist already.
+    resume : perfproof.bench.journal.Resumed, optional
+        Completed rounds of an interrupted run to continue from, with
+        its first fingerprint and start time. Every gate is checked
+        again; the rounds before are replayed through the looks, not
+        run again, so the same ``order_seed`` gives the same orders.
 
     Returns
     -------
@@ -340,17 +343,35 @@ def compare(
         If the comparison stops with no verdict; see the module
         docstring.
     FileExistsError
-        If ``run_dir`` already exists.
+        If ``run_dir`` already exists and ``journal`` is not given.
     """
-    run_dir.mkdir(parents=True)
-    started = datetime.now(UTC)
-    machine = fingerprint()
+    run_dir.mkdir(parents=True, exist_ok=journal is not None)
+    if resume is None:
+        started = datetime.now(UTC)
+        machine = fingerprint()
+        if journal is not None:
+            journal.begin(machine, started)
+    else:
+        started, machine = resume.started, resume.machine
     env = benchmark_environment(spec, process_env)
     trees: dict[Arm, Path] = {
         "baseline": baseline_root,
         "candidate": candidate_root,
     }
     run = _Run(spec, lock, trees, run_dir, env, machine, started)
+    run.journal = journal
+    run.resume = resume
+    if resume is not None:
+        run.warnings.append(
+            RunWarning(
+                code="resumed",
+                message=(
+                    f"resumed (attempt {resume.attempt}) after "
+                    f"{len(resume.rounds)} completed rounds; every gate was "
+                    "checked again and those rounds were not run again"
+                ),
+            )
+        )
     run.baseline_commit = baseline_commit
     run.order_seed = order_seed
     run.wall_step = _wall_step()
@@ -386,8 +407,10 @@ class _Run:
         self.environments: dict[Arm, TreeEnvironment] = {
             arm: _unprobed(arm, env, reason) for arm in _ARMS
         }
-        self.measured: list[_Measured] = []
+        self.measured: list[RoundEntry] = []
         self.looks = 0
+        self.journal: Journal | None = None
+        self.resume: Resumed | None = None
 
     def stop(self, code: str, message: str) -> CompareStoppedError:
         """Build the no-verdict stop for this run."""
@@ -395,6 +418,8 @@ class _Run:
 
     def execute(self) -> CompareResult:
         """Run the gates and rounds and write the record."""
+        if self.journal is not None:
+            self.journal.phase("gates")
         try:
             return self._execute()
         except _CandidateFailedError as failed:
@@ -461,7 +486,7 @@ class _Run:
             detail="the coverage gate is not built yet (plan task T2.14)",
         )
         ended = self._rounds(rounds_runner)
-        samples = [s for m in self.measured for s in m.round.samples]
+        samples = [s for m in self.measured for s in m.samples]
         self.gates["procedure"] = self._procedure(executables, samples)
         self.gates["same_host"] = _same_host_gate(self.machine, fingerprint())
         if self._failed():
@@ -549,7 +574,7 @@ class _Run:
             return Runner(
                 spec,
                 trees,
-                self.run_dir / "logs" / logs,
+                self._log_root() / logs,
                 order_seed=self.order_seed,
                 base_env=self.env,
             )
@@ -557,6 +582,17 @@ class _Run:
             raise self.stop("unsupported_spec", str(exc)) from exc
         except RunnerError as exc:
             raise self.stop("unsupported_spec", str(exc)) from exc
+
+    def _log_root(self) -> Path:
+        """Return the log directory of this attempt.
+
+        A resumed attempt keeps its logs apart, since the runner never
+        writes over a log.
+        """
+        logs = self.run_dir / "logs"
+        if self.resume is None:
+            return logs
+        return logs / f"resume-{self.resume.attempt}"
 
     def _executables(self) -> dict[Arm, str]:
         """Each tree's resolved benchmark executable, as hashed."""
@@ -663,18 +699,29 @@ class _Run:
         last: Look | None = None
         used = 0
         longest = 0.0
-        begun = time.monotonic()
+        restored = () if self.resume is None else self.resume.rounds
+        begun = time.monotonic() - (restored[-1].elapsed if restored else 0.0)
         for index in range(spec.budget.max_rounds):
-            start = time.monotonic()
-            done = self._guard(
-                functools.partial(runner.run_round, index), f"round {index}"
-            )
-            self.measured.append(_Measured(done, steps.of(done, self.stop)))
-            now = time.monotonic()
-            longest = max(longest, now - start)
+            if index < len(restored):
+                entry = restored[index]
+            else:
+                start = time.monotonic()
+                done = self._guard(
+                    functools.partial(runner.run_round, index),
+                    f"round {index}",
+                )
+                made = steps.of(done, self.stop)
+                now = time.monotonic()
+                entry = RoundEntry(
+                    done.samples, made, now - begun, now - start
+                )
+                if self.journal is not None:
+                    self.journal.round_done(index, entry)
+            self.measured.append(entry)
+            longest = max(longest, entry.duration)
             n = index + 1
             exhausted = n == spec.budget.max_rounds or (
-                now - begun + longest > spec.budget.max_seconds
+                entry.elapsed + longest > spec.budget.max_seconds
             )
             plan = plan_looks(
                 spec.looks,
@@ -694,6 +741,8 @@ class _Run:
                 used = int(plan.rounds[0, taken - 1])
                 final = bool(plan.final[0, taken - 1])
                 last = self._look(used, final, confidence, steps)
+                if self.journal is not None and index >= len(restored):
+                    self.journal.looks(self.looks)
                 if str(last.action[0]) != "CONTINUE":
                     break
             if exhausted:
@@ -735,7 +784,7 @@ class _Run:
         """Return both arms' values in the first ``used`` rounds."""
         out: dict[Arm, list[float]] = {arm: [] for arm in _ARMS}
         for m in self.measured[:used]:
-            for s in m.round.samples:
+            for s in m.samples:
                 out[s.version].append(field(s))
         return (
             np.array(out["baseline"], dtype=np.float64),
@@ -838,7 +887,7 @@ class _Run:
         ratios = b / c if spec.metric.direction == "lower_is_better" else c / b
         d = np.log(ratios)
         first = np.array(
-            [m.round.samples[0].version == "candidate" for m in self.measured]
+            [m.samples[0].version == "candidate" for m in self.measured]
         )[:n]
         lag1 = float(lag1_autocorrelation(d, first))
         self._shape_warnings(d, lag1)
@@ -1197,7 +1246,7 @@ def _literal_value(text: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _save_samples(path: Path, measured: Sequence[_Measured]) -> None:
+def _save_samples(path: Path, measured: Sequence[RoundEntry]) -> None:
     """Write every measured sample to ``samples.npz``.
 
     One entry per sample, in the order run: ``round``, ``position``,
@@ -1207,7 +1256,7 @@ def _save_samples(path: Path, measured: Sequence[_Measured]) -> None:
     Numeric and fixed-width text arrays only, so it loads with
     ``allow_pickle=False``.
     """
-    rows = [(m, s) for m in measured for s in m.round.samples]
+    rows = [(m, s) for m in measured for s in m.samples]
 
     def column(values: list[float]) -> NDArray[np.float64]:
         return np.array(values, dtype=np.float64)

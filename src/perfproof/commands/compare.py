@@ -17,8 +17,28 @@ rounds, verdict, then ``record.json``, ``report.md`` and
 
 Until the interval procedure is calibrated, a comparison that passes
 its gates is INCONCLUSIVE with ``procedure_uncalibrated``; only a gate
-gives REJECT. ``--detach`` and ``--resume`` are not built yet and fail
-with ``not_built``.
+gives REJECT.
+
+Long runs
+---------
+``--detach`` does everything that can be refused (spec, revisions,
+trees), then starts the comparison in a process of its own session and
+returns at once with the run id; see `perfproof.bench.detach`. Follow
+it with ``perfproof status RUN`` and stop it with ``perfproof cancel
+RUN``. ``--timeout`` is the hard total timeout of that process, in
+seconds (default: twice the spec's ``budget.max_seconds`` plus an
+hour); at the timeout the process and everything it started are killed
+and the run is ``timed_out``, with no verdict.
+
+``--resume RUN`` continues an ``interrupted`` run (see ``status``) from
+its completed rounds, again detached, and takes no benchmark name,
+candidate or baseline: they are the run's. Every gate is checked again
+first, and the resume is refused (``machine_changed``) if the machine
+is not the one the run began on.
+
+``--json`` result of ``--detach`` and ``--resume``
+--------------------------------------------------
+``{"run_id", "run_dir", "state", "pid"}``, with ``state`` ``running``.
 
 ``--json`` result
 -----------------
@@ -32,7 +52,11 @@ Error codes
 ``not_a_repository``, ``not_found`` (no such benchmark, spec or
 candidate), ``ambiguous_hash``, ``invalid_record``, ``invalid_revision``
 (a revision that names no commit, or a worktree that can't be made),
-``not_built`` (``--detach``, ``--resume``), and the codes of
+``usage`` (``--resume`` with a name or candidate, or neither without
+it; a bad ``--timeout``), the codes of
+`perfproof.bench.detach.DetachError` for ``--resume``
+(``not_found``, ``not_resumable``, ``machine_changed``,
+``invalid_journal``, ``spawn_failed``), and the codes of
 `perfproof.bench.compare.CompareStoppedError`, whose
 ``details.run_dir`` keeps the logs: ``broken_baseline``,
 ``harness_fault``, ``unsupported_spec``, ``undeclared_guardrails`` and
@@ -40,6 +64,7 @@ candidate), ``ambiguous_hash``, ``invalid_record``, ``invalid_revision``
 """
 
 import argparse
+import math
 import os
 import re
 import secrets
@@ -49,6 +74,14 @@ from pathlib import Path
 from typing import Final, cast
 
 from perfproof.bench.compare import CompareStoppedError, compare
+from perfproof.bench.detach import (
+    DetachError,
+    Identity,
+    Job,
+    default_timeout,
+    resume_run,
+    start_run,
+)
 from perfproof.bench.snapshot import (
     GIT_TIMEOUT_SECONDS,
     SnapshotError,
@@ -63,6 +96,7 @@ from perfproof.bench.spec import (
     spec_record_path,
 )
 from perfproof.commands import CommandError, JsonValue, Output
+from perfproof.commands._runs import as_command_error, run_directory
 from perfproof.schema import BenchmarkSpec, LockManifest, RunRecord
 
 __all__ = ["add_arguments", "run"]
@@ -85,10 +119,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "Prove a candidate against a baseline: gates, interleaved rounds, "
         "verdict, record."
     )
-    parser.add_argument("name", help="benchmark name")
+    parser.add_argument("name", nargs="?", help="benchmark name")
     parser.add_argument(
         "--candidate",
-        required=True,
         metavar="PATH_OR_REV",
         help="candidate tree directory, or a git revision",
     )
@@ -109,8 +142,22 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         default=Path(),
         help="any path in the repository (default: .)",
     )
-    parser.add_argument("--detach", action="store_true", help="not built yet")
-    parser.add_argument("--resume", metavar="RUN", help="not built yet")
+    parser.add_argument(
+        "--detach",
+        action="store_true",
+        help="return at once with a run id; follow with `status`",
+    )
+    parser.add_argument(
+        "--resume",
+        metavar="RUN",
+        help="continue an interrupted run, detached",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        metavar="SECONDS",
+        help="hard total timeout of a detached run",
+    )
 
 
 def run(args: argparse.Namespace) -> Output:
@@ -131,12 +178,13 @@ def run(args: argparse.Namespace) -> Output:
     CommandError
         With one of the codes in this module's docstring.
     """
-    if args.detach or args.resume is not None:
-        option = "--detach" if args.detach else "--resume"
-        msg = (
-            f"compare {option} is not built yet; run compare in the foreground"
-        )
-        raise CommandError("not_built", msg, {"option": option})
+    if args.resume is not None:
+        return _resume(args)
+    if args.name is None or args.candidate is None:
+        msg = "compare needs a benchmark name and --candidate"
+        raise CommandError("usage", msg)
+    if args.timeout is not None and not args.detach:
+        raise CommandError("usage", "--timeout applies to --detach only")
     root = _repo_root(cast("Path", args.repo))
     name = cast("str", args.name)
     spec, lock = _spec(root, name, cast("str | None", args.spec_hash))
@@ -151,6 +199,25 @@ def run(args: argparse.Namespace) -> Output:
         raise CommandError("invalid_revision", str(exc)) from exc
     run_id = _run_id()
     run_dir = root / STATE_DIR / "runs" / run_id
+    if args.detach:
+        timeout = _timeout(
+            cast("float | None", args.timeout), spec.budget.max_seconds
+        )
+        job = Job(
+            repo=str(root),
+            name=name,
+            spec_hash=spec.spec_hash,
+            baseline_root=str(baseline_root),
+            candidate_root=str(candidate_root),
+            baseline_commit=baseline_commit,
+            order_seed=secrets.randbits(63),
+            timeout_seconds=timeout,
+        )
+        try:
+            started = start_run(run_dir, job)
+        except DetachError as exc:
+            raise as_command_error(exc) from exc
+        return _started(run_dir, started)
     try:
         result = compare(
             spec,
@@ -179,6 +246,53 @@ def run(args: argparse.Namespace) -> Output:
         "gates": gates,
     }
     return Output(result=payload, text=_text(record, result.report_path))
+
+
+def _timeout(value: float | None, max_seconds: float) -> float:
+    """Return the hard total timeout: ``value`` or the default."""
+    if value is None:
+        return default_timeout(max_seconds)
+    if not math.isfinite(value) or value <= 0:
+        raise CommandError("usage", "--timeout must be more than 0 seconds")
+    return value
+
+
+def _started(run_dir: Path, process: Identity) -> Output:
+    """Report a detached run as started."""
+    run_id = run_dir.name
+    payload: dict[str, JsonValue] = {
+        "run_id": run_id,
+        "run_dir": str(run_dir),
+        "state": "running",
+        "pid": process.pid,
+    }
+    text = f"Started run {run_id}. Follow with `perfproof status {run_id}`."
+    return Output(result=payload, text=text)
+
+
+def _resume(args: argparse.Namespace) -> Output:
+    """Continue an interrupted run in a new detached process."""
+    given = [
+        flag
+        for flag, value in (
+            ("a benchmark name", args.name),
+            ("--candidate", args.candidate),
+            ("--spec-hash", args.spec_hash),
+            ("--timeout", args.timeout),
+        )
+        if value is not None
+    ]
+    if given:
+        msg = f"--resume takes the run's own settings, not {given[0]}"
+        raise CommandError("usage", msg)
+    directory = run_directory(
+        cast("Path", args.repo), cast("str", args.resume)
+    )
+    try:
+        process = resume_run(directory)
+    except DetachError as exc:
+        raise as_command_error(exc) from exc
+    return _started(directory, process)
 
 
 def _repo_root(repo: Path) -> Path:

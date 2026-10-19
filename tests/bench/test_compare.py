@@ -1018,13 +1018,12 @@ def test_cli_compares_against_a_revision(
 @pytest.mark.parametrize(
     ("extra", "code"),
     [
-        (["--candidate", ".", "--detach"], "not_built"),
-        (["--candidate", ".", "--resume", "run-1"], "not_built"),
+        (["--candidate", ".", "--resume", "run-1"], "usage"),
         (["--candidate", ".", "--spec-hash", "zz"], "not_found"),
         (["--candidate", "no-such-revision"], "invalid_revision"),
         ([], "usage"),
     ],
-    ids=["detach", "resume", "bad-hash", "bad-candidate", "no-candidate"],
+    ids=["resume", "bad-hash", "bad-candidate", "no-candidate"],
 )
 def test_cli_errors(
     rolling: tuple[Path, str, str], extra: list[str], code: str
