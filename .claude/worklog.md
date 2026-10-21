@@ -166,6 +166,9 @@ Resumed 2026-10-21 on Faras's "continue". Stop at the next 5-hour limit and do n
 | T2.21 audit notes | open | dependency stack per tree only warns; setup mutates main venv when candidate is main; oracle-only listing REJECTs at lock (spec.md says it installs); symlinked harness dir survives install |
 | CLI bug | open | `record.json` candidate_commit null for `--candidate <branch>`; gate details in `compare --json`; a simpler `log add` for agents |
 | Eval harness | | runner needs absolute paths (`--skill`, `--out`); run from the main checkout; `pgrep -f linux.sh` also matches old wait loops (use `pgrep -f "verify/linux.sh "` or no wait loop) |
+| Later: more machine variety | deferred by Faras 2026-10-22 | a shared-vCPU Hetzner VM (noisy-neighbour case, about $0.10) and GitHub's free public-repo runners (needs a tiny public repo with only the trace collector; Faras is low on private Actions minutes). The per-run self-check in T1.11 phase 2 keeps unseen machines safe regardless |
+| T1.11 phase 2 | started (Faras approved 2026-10-22) | real-data margin (rho up to 0.3) for traced CPU classes; per-run self-check on the lag-1 upper bound falls back to the full-range table; untraced classes (GPU, web, LLM serving, agents) full range until traced; gate removed from production; covariate adjustment dropped for now; then stats audit |
+| T2.11 extension | queued on Hetzner behind picolm, Mac after the real-repo eval | web (FastAPI + load generator), CPU LLM serving (Ollama, small model), deterministic agent loop replaying recorded responses; per-run load/CPU-time covariates; est. 8.5-10.5 h more on the box, about $1.50 total |
 
 Skill-eval and real-repo runs since resuming: $20.22 summed from each run's reported `total_cost_usd` (3b-find 0.91, 3c 2.76, 3d-find 0.56, 3e 2.55, 3f 0.59, 3g 0.63, 3h 0.66, 3i 2.37, 3j 1.48, 4a 2.79, 4b 2.86, frames2py 0.85 + 1.21); API-equivalent figures on plan usage, not billed.
 
