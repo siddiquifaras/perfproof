@@ -930,7 +930,7 @@ Mac and on Linux CI, with decoys that must be refused.
     0%". py-spy on native Linux hardware is unverified.
   - Effort: medium
 
-- [ ] **T2.22 Runtime gate: other runtimes**
+- [x] **T2.22 Runtime gate: other runtimes** (siddiquifaras/perfproof#53, `b803210`; Java verified on Linux only)
   - Owns: `src/perfproof/bench/lock.py` (`_Launch`), the `runtime` row
     of `docs/method.md`, `tests/bench/test_lock*.py`
   - Needs: T2.21
@@ -946,6 +946,46 @@ Mac and on Linux CI, with decoys that must be refused.
     gate unchanged and fail it when the runtime's version or binary
     differs between arms, with real tests (skip where the runtime is
     absent); stats-auditor passes.
+  - Effort: medium
+
+- [ ] **T2.23 Unknown is not wrong: measure, withhold only KEEP**
+  - Owns: `src/perfproof/bench/lock.py` (`runtime_gate` status for an
+    unidentified runtime), `src/perfproof/bench/compare.py`
+    (`_refuse_unsupported`, `_same_host_gate`, `_Steps.of`, timeout
+    end), `src/perfproof/bench/runner.py` (counter fallback),
+    `src/perfproof/schema.py` (CorrectnessSpec no-check rule, guardrail
+    declaration, gate status rules), `src/perfproof/stats/decision.py`
+    (precedence docs), `docs/method.md` (gates table, outcomes, guardrails
+    applicability, side-effects setup rule), `docs/cli.md`, their tests
+  - Needs: T1.10, T2.22 merged (same files)
+  - Owner rule (2026-10-21): the CLI never stops the skill for something
+    it merely can't verify; it measures, records what it couldn't
+    verify, and withholds only KEEP (INCONCLUSIVE naming the reason).
+    REJECT or a stop stays only for evidence (arms differ, output
+    changed, benchmark edited, measured slowdown, side effects seen) or
+    unsafe runs (remote or real services, data loss, credentials).
+  - Do (from the refusal audit, 2026-10-21):
+    1. Runtime unidentified: gate `not_available`, not `failed`; REJECT
+       only when both arms are identified and differ.
+    2. Guardrails not declared for the class: measure, mark them not
+       declared; no `undeclared_guardrails` stop.
+    3. Coverage: changed lines no passing check ran give `not_available`
+       (INCONCLUSIVE), never REJECT; decide before T2.14 wires it.
+    4. `bench define` accepts a spec with no checks; correctness
+       `not_available`. `same_host` unreadable identity:
+       `not_available`; a different identity stays REJECT.
+    5. `counter` metric where perf is missing: record the counter as
+       unavailable and keep the declared fallback; `reported`
+       resolution unreadable: "resolution unknown", can't keep.
+    6. Lead calls on the unclear ones: an unparseable service value stays
+       refused (unsafe); package-registry URLs are allowed in `setup`
+       only, never in the benchmark or test commands; a detached run that
+       hits its time limit ends INCONCLUSIVE from the rounds it has.
+  - Done when: `compare` on a Node, a Go-via-`go run`, a Rust-via-`cargo
+    run` and a C++-via-`make` benchmark each runs to a recorded estimate
+    with correctness checked and verdict INCONCLUSIVE naming what was not
+    verified; the identified-and-different runtime case still REJECTs;
+    stats-auditor and reviewer pass.
   - Effort: medium
 
 - [ ] **T2.11 Real noise traces, CPU**
