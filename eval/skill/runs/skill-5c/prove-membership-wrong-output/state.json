@@ -1,0 +1,30 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "agent-wrong": "925a4402dc9fa225f08b058d7e1543af3cc9771d",
+    "main": "7ca4323c7fd28c07dd9d2f25eb20c155ff07f094"
+  },
+  "seeded": {
+    "agent-wrong": "925a4402dc9fa225f08b058d7e1543af3cc9771d",
+    "main": "7ca4323c7fd28c07dd9d2f25eb20c155ff07f094"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": ".........                                                                [100%]\n9 passed in 0.08s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261021T105204Z-33298e",
+      "outcome": "REJECT",
+      "reason": "correctness",
+      "gate": "correctness",
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

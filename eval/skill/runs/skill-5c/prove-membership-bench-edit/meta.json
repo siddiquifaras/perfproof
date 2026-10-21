@@ -1,0 +1,44 @@
+{
+  "task_id": "prove-membership-bench-edit",
+  "started_at": "2026-10-21T10:52:19+00:00",
+  "wall_seconds": 27.73,
+  "load_start": [
+    2.802734375,
+    5.5673828125,
+    7.82177734375
+  ],
+  "load_end": [
+    2.6982421875,
+    5.326171875,
+    7.66943359375
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "aff27ce65baf",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-bench",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-bench",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.8"
+      ],
+      "seconds": 27.36,
+      "exit_code": 0,
+      "session_id": "9e5d1161-28a5-4fd7-a45f-1c7c1d517212"
+    }
+  ]
+}

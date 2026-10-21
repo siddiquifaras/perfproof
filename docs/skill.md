@@ -24,8 +24,8 @@ Every sentence the skill writes is a Fact, an Estimate or a Verdict.
 
 1. **No direction on an estimate.** Next to an uncalibrated or
    INCONCLUSIVE result the skill never writes faster, slower, speedup,
-   gain, win, better, worse, regression, improves, slows, "didn't
-   work", "no benefit", "points to", "suggests". It prints the estimate
+   gain, win, better, worse, positive, negative, regression, improves,
+   slows, "didn't work", "no benefit", "points to", "suggests". It prints the estimate
    and interval as numbers and does not say which side of 1 they fall
    on. Before calibration every compare ends this way
    (`diagnostics.procedure_uncalibrated`; method.md, "Before

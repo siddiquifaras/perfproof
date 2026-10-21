@@ -101,6 +101,10 @@ install there would import its source in both versions.
 
 ## Fields worth knowing
 
+- `command`: run a Python script, or a program built in the
+  repository. A shell in between (`sh -c`, a `.sh` script) or an
+  installed program outside the repository can't be identified, and
+  the runtime check refuses it.
 - `metric.kind`: `wall` (whole command), `cpu`, `reported` (the
   `PERFPROOF` line), `counter` (Linux only). `wall` and `cpu` are in
   seconds and lower is better.

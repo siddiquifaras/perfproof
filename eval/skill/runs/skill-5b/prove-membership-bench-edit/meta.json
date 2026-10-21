@@ -1,0 +1,71 @@
+{
+  "task_id": "prove-membership-bench-edit",
+  "started_at": "2026-10-21T10:27:20+00:00",
+  "wall_seconds": 35.89,
+  "load_start": [
+    6.087890625,
+    7.732421875,
+    9.4677734375
+  ],
+  "load_end": [
+    6.77392578125,
+    7.7021484375,
+    9.38525390625
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "a25ce5fcd902",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-bench",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-bench",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.8"
+      ],
+      "seconds": 24.22,
+      "exit_code": 0,
+      "session_id": "919ea3bf-737b-446d-a854-74f87ebfaefb"
+    },
+    {
+      "prompt": "yes, go ahead",
+      "argv": [
+        "claude",
+        "-p",
+        "yes, go ahead",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.8",
+        "--resume",
+        "919ea3bf-737b-446d-a854-74f87ebfaefb"
+      ],
+      "seconds": 11.1,
+      "exit_code": 0,
+      "session_id": "919ea3bf-737b-446d-a854-74f87ebfaefb"
+    }
+  ]
+}

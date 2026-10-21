@@ -1,0 +1,46 @@
+{
+  "task_id": "neg-add-test",
+  "started_at": "2026-10-21T10:56:42+00:00",
+  "wall_seconds": 6.34,
+  "load_start": [
+    2.06787109375,
+    3.865234375,
+    6.47314453125
+  ],
+  "load_end": [
+    1.98193359375,
+    3.8173828125,
+    6.44091796875
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "aff27ce65baf",
+  "turns": [
+    {
+      "prompt": "add a test for an empty blocklist",
+      "argv": [
+        "claude",
+        "-p",
+        "add a test for an empty blocklist",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.3",
+        "--max-turns",
+        "2"
+      ],
+      "seconds": 6.06,
+      "exit_code": 1,
+      "session_id": "964c9559-8df2-40b7-8184-08befdf8a8c5"
+    }
+  ]
+}

@@ -26,7 +26,7 @@ the user.
   - **Estimates**: any timing that is not a calibrated KEEP or REJECT.
     Give the number and its range and say "estimate". Never call an
     estimate faster, slower, quicker, shorter, longer, a speedup, a gain,
-    better or worse, never use it as a reason to keep a change, and
+    better, worse, positive or negative, never use it as a reason to keep a change, and
     never compare it with a claim ("larger than claimed", "matches the
     50x claim"). Say the claim can't be checked until perfproof can
     give a verdict.
@@ -46,7 +46,8 @@ the user.
 - A question you will go on from once it is answered (which workload,
   the spec, a branch, a busy machine) gets no `Result:` line. A stop
   that ends the session (not a git repository, uncommitted changes,
-  nothing to run) and every finished run end with one last line. When `compare` returned a
+  nothing to run) and every finished run end with one last line, the
+  only place the word `Result:` starts a line. When `compare` returned a
   verdict, copy it: `Result: <verdict.outcome> (<verdict.reason>)`,
   adding `, gate <verdict.gate>` when there is one, for example
   `Result: INCONCLUSIVE (insufficient_evidence)` or
@@ -181,7 +182,13 @@ No discovery. One candidate at a time, against its parent.
    top entries of `result.hotspots[]` (`function`, `file`, `line`,
    `total_fraction`), not a cut of the whole output, and the wall
    versus CPU time. If CPU is well below wall, the program is mostly
-   waiting: look at I/O and services, not loops.
+   waiting: look at I/O and services, not loops. For a native
+   program, give `profile` a profiler that writes folded stacks (samply
+   or perf) with `--profiler-command` and `--own-module <binary>`. If
+   none is installed, sample the program with the system sampler
+   instead (`sample` on macOS), call each function's share of the
+   samples an estimate, name the sampler, and say perfproof's profile
+   did not run.
 3. **Ideas.** For each hotspot, work out the most a change there could
    save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:
