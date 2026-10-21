@@ -7,14 +7,14 @@ the log ratios ``d = log(r)``, with a leading batch axis: inputs are
 shaped ``(..., n)`` with ``n`` rounds on the last axis, and every
 result has the batch shape ``(...)``.
 
-- `t_interval`, the primary procedure of ``docs/method.md``: the
-  Student t interval on the mean of ``d``, exponentiated to an interval
-  for the geometric-mean speedup ``S = exp(E[d])``. With ``block > 1``
-  it is the batch-means fallback: `batch_means` turns each run of
-  ``block`` consecutive rounds into one observation first.
-- `hodges_lehmann_interval`, a challenger: the Hodges-Lehmann estimate
-  and the Wilcoxon signed-rank interval, for ``exp`` of the
-  pseudo-median of ``d``.
+- `t_interval`: the Student t interval on the mean of ``d``,
+  exponentiated to an interval for the geometric-mean speedup
+  ``S = exp(E[d])``. With ``block > 1`` it is the batch-means interval,
+  the primary procedure of ``docs/method.md``: `batch_means` turns each
+  run of ``block`` consecutive rounds into one observation first. With
+  ``block = 1`` it is the plain t interval, which calibration showed
+  failing under autocorrelation, kept for estimates and as the
+  reference the batch-means interval is checked against.
 
 Numerics
 --------
@@ -87,19 +87,8 @@ sqrt(m (m - 1))`` and the exact log-scale bounds lie outside
 ``n + m + 20`` roundings, more than any path has, and moved up by
 `_up`.
 
-Hodges-Lehmann. A computed Walsh average
-``fl(d_i + d_j) * 0.5`` is within ``(u + c) max |d|`` of the exact
-one, and an order statistic moves by at most the largest move of its
-inputs, so each chosen order statistic is within
-``eps = (1 + 4 LIBM_ULPS) 2**-53 max |d|`` of its exact counterpart.
-The order statistics are picked by an integer index ``c`` that is
-never larger than the exact one: exact integer arithmetic for small
-``n``, and a margin that covers every rounding of the normal
-approximation above `WILCOXON_EXACT_MAX_N`, with a certified ``z``.
-A smaller index widens the interval.
-
 Back to the ratio scale. The log-scale bound ``t = mbar - W`` (or
-``+ W``, or an order statistic ``-/+ eps``) is rounded once to ``a``,
+``+ W``) is rounded once to ``a``,
 and ``exp`` adds up to ``LIBM_ULPS`` ulps. With ``eta = 2 LIBM_ULPS``,
 ``exp(t) >= exp(a)(1 - u |a| / (1 - u))`` and
 ``exp(a) >= fl(exp(a)) (1 - eta u)``; the lower bound is returned as
@@ -111,7 +100,7 @@ below about ``1e-289`` is returned as ``0.0`` and an upper bound beyond
 the float range as ``inf``, both still on the conservative side.
 
 The certified quantiles evaluate the exact two-sided mass of the t
-(or normal) distribution in 60-digit decimal arithmetic, from finite
+distribution in 60-digit decimal arithmetic, from finite
 series with positive terms, and step the SciPy quantile up until the
 mass is at least the confidence plus ``1e-40``; that margin exceeds
 the decimal rounding by many orders of magnitude for any degrees of
@@ -122,9 +111,8 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal, localcontext
-from fractions import Fraction
 from functools import lru_cache
-from typing import Final, NoReturn, cast
+from typing import Final, cast
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -134,12 +122,8 @@ from perfproof.schema import Direction, Procedure
 
 __all__ = [
     "LIBM_ULPS",
-    "MAX_HL_ROUNDS",
-    "WILCOXON_EXACT_MAX_N",
     "PairedInterval",
     "batch_means",
-    "hodges_lehmann_interval",
-    "normal_critical",
     "paired_ratios",
     "t_critical",
     "t_interval",
@@ -154,30 +138,12 @@ lists at most 1 ulp for double ``exp`` and ``log`` on every
 architecture; 4 leaves room for other libms and SIMD paths. It enters
 the widening linearly, at about ``1e-15`` relative, so a larger value
 costs nothing measurable."""
-WILCOXON_EXACT_MAX_N: Final = 50
-"""Largest ``n`` for which the Wilcoxon critical value comes from the
-exact null distribution; above it, the normal approximation with tie
-and continuity correction. The same cut-off as ``scipy.stats.wilcoxon``
-with ``method="auto"``."""
-MAX_HL_ROUNDS: Final = 2045
-"""Most rounds `hodges_lehmann_interval` takes: the largest ``n`` whose
-working set for one row, ``32 n (n + 1) / 2 + 64 n + 512`` bytes, fits
-the 64 MiB budget. Each of the ``n (n + 1) / 2`` Walsh averages needs
-16 bytes per row (the average and one gathered operand) and 16 bytes
-once (the two int64 index arrays); ``64 n + 512`` per row covers the
-rest of a row's work in its chunk (its logs, the tie counts of the
-normal approximation, and its per-row results)."""
 
 _U: Final = 2.0**-53
 _ULP1: Final = 2.0**-52
 _LOG_REL: Final = LIBM_ULPS * 2.0**-51
 _ETA: Final = 2 * LIBM_ULPS
 _TINY: Final = 2.0**-960
-_WALSH_BYTES: Final = 64 * 2**20
-_ROW_BYTES: Final = 16
-_INDEX_BYTES: Final = 16
-_ROUND_BYTES: Final = 64
-_ROW_FIXED_BYTES: Final = 512
 _PREC: Final = 60
 _MARGIN: Final = Decimal(10) ** -40
 _EXACT_FLOATS: Final = frozenset(
@@ -194,8 +160,7 @@ class PairedInterval:
     estimate : numpy.ndarray of float64
         Point estimate on the ratio scale, above 1 meaning the
         candidate is faster; shape ``(...)``, the batch shape. The
-        geometric mean of the ratios for the t interval, ``exp`` of
-        the Hodges-Lehmann estimate for the challenger.
+        geometric mean of the ratios.
     lower, upper : numpy.ndarray of float64
         ``L`` and ``U``, ratio scale, same shape,
         ``L <= estimate <= U``.
@@ -204,8 +169,8 @@ class PairedInterval:
     confidence : float
         Two-sided confidence level of each interval.
     procedure : str
-        ``"t_log_ratio"``, ``"t_log_ratio_batch_means"`` or
-        ``"hodges_lehmann_wilcoxon"``, as in `perfproof.schema`.
+        ``"t_log_ratio"`` or ``"t_log_ratio_batch_means"``, as in
+        `perfproof.schema`.
     rounds : int
         Rounds the interval used; batch means drops a trailing
         incomplete block.
@@ -342,7 +307,8 @@ def t_interval(
 ) -> PairedInterval:
     """Student t interval on the mean log ratio, on the ratio scale.
 
-    The primary procedure of ``docs/method.md``. With ``m``
+    With ``block > 1`` this is the batch-means interval, the primary
+    procedure of ``docs/method.md``. With ``m``
     observations ``y`` (the log ratios, or their block means when
     ``block > 1``), the interval for ``E[d]`` is
     ``mean(y) -/+ q s / sqrt(m)``, with ``s`` the sample standard
@@ -424,120 +390,6 @@ def t_interval(
     )
 
 
-def hodges_lehmann_interval(
-    baseline: ArrayLike,
-    candidate: ArrayLike,
-    *,
-    direction: Direction,
-    confidence: float,
-) -> PairedInterval:
-    """Hodges-Lehmann estimate and Wilcoxon signed-rank interval.
-
-    A challenger in ``docs/method.md``. With the ``N = n (n + 1) / 2``
-    Walsh averages ``(d_i + d_j) / 2``, ``i <= j``, sorted, the
-    estimate is their median and the interval is
-    ``[W_(c+1), W_(N-c)]``, where ``c`` is the largest count with
-    ``P(T+ <= c) <= (1 - confidence) / 2`` under the signed-rank null
-    distribution. That is the set of shifts the two-sided signed-rank
-    test does not reject, closed at its ends. Everything is then
-    exponentiated.
-
-    For ``n <= WILCOXON_EXACT_MAX_N``, ``c`` comes from the exact null
-    distribution, in integer arithmetic. Above it, from the normal
-    approximation with continuity correction and the tie correction
-    for groups of equal ratios, ``c = ceil(N/2 - z sigma - 1/2) - 1``
-    with ``sigma**2 = n(n+1)(2n+1)/24 - sum(t**3 - t)/48``; equal
-    ratios are the only ties ``|d - theta|`` has at a shift ``theta``
-    off the Walsh averages, so ``c`` differs per row only through
-    them. A row of identical ratios gives that ratio exactly; otherwise
-    the bounds are widened outward as in the module docstring.
-
-    O(n**2) memory and O(n**2 log n) time per row, for the Walsh
-    averages. Everything computed per row (critical index, logs, Walsh
-    averages, bounds) is computed in chunks of rows whose working set
-    stays within 64 MiB, with the per-row cost given under
-    `MAX_HL_ROUNDS`; ``n`` above it, where one row alone would not
-    fit, is refused once the inputs are validated, before any Walsh
-    average or other per-row work is allocated. On top of the chunk
-    budget, for ``R`` rows of float64 input in any memory order, come
-    the ratios (``8 R n`` bytes), the three results (``24 R``), and
-    while the inputs are validated, before any chunk runs, boolean
-    masks of up to ``3 R n`` more; other input dtypes add ``16 R n``
-    for their float64 copies.
-
-    Parameters
-    ----------
-    baseline, candidate : array_like
-        Measurements shaped ``(..., n)``; see `paired_ratios`.
-    direction : {"lower_is_better", "higher_is_better"}
-        The metric's direction.
-    confidence : float
-        Two-sided confidence level, ``0 < confidence < 1``.
-
-    Returns
-    -------
-    PairedInterval
-        Per batch row, procedure ``"hodges_lehmann_wilcoxon"``.
-
-    Raises
-    ------
-    ValueError
-        If the measurements are invalid (see `paired_ratios`),
-        ``confidence`` is not a float in ``(0, 1)``, ``n`` exceeds
-        `MAX_HL_ROUNDS`, or ``n`` is too small for any order statistic
-        to reach the confidence (``c < 0``).
-    """
-    ratios = paired_ratios(baseline, candidate, direction)
-    conf = _check_confidence(confidence)
-    n = ratios.shape[-1]
-    count = n * (n + 1) // 2
-    one_row = (_ROW_BYTES + _INDEX_BYTES) * count
-    if one_row + _ROUND_BYTES * n + _ROW_FIXED_BYTES > _WALSH_BYTES:
-        msg = (
-            f"hodges_lehmann_interval takes at most {MAX_HL_ROUNDS} rounds "
-            f"within its {_WALSH_BYTES // 2**20} MiB working set, got {n}"
-        )
-        raise ValueError(msg)
-    batch = ratios.shape[:-1]
-    rows = ratios.reshape(-1, n)
-    exact_crit = (
-        _exact_signed_rank_critical(n, conf)
-        if n <= WILCOXON_EXACT_MAX_N
-        else None
-    )
-    if rows.shape[0] and exact_crit is not None and exact_crit < 0:
-        _too_few_rounds(n, conf)
-
-    first, second = np.triu_indices(n)
-    estimate = np.empty(rows.shape[0])
-    lower = np.empty(rows.shape[0])
-    upper = np.empty(rows.shape[0])
-    per_row = _ROW_BYTES * count + _ROUND_BYTES * n + _ROW_FIXED_BYTES
-    chunk = (_WALSH_BYTES - _INDEX_BYTES * count) // per_row
-    for start in range(0, rows.shape[0], chunk):
-        stop = min(start + chunk, rows.shape[0])
-        part = rows[start:stop]
-        if exact_crit is None:
-            crit = _normal_signed_rank_critical(part, conf)
-            if int(crit.min()) < 0:
-                _too_few_rounds(n, conf)
-        else:
-            crit = np.full(stop - start, exact_crit)
-        est, lo, hi = _hl_chunk(part, crit, first, second)
-        estimate[start:stop] = est
-        lower[start:stop] = lo
-        upper[start:stop] = hi
-    return PairedInterval(
-        estimate=estimate.reshape(batch),
-        lower=lower.reshape(batch),
-        upper=upper.reshape(batch),
-        confidence=conf,
-        procedure="hodges_lehmann_wilcoxon",
-        rounds=n,
-        observations=n,
-    )
-
-
 @lru_cache(maxsize=1024)
 def t_critical(df: int, confidence: float) -> float:
     """Two-sided Student t critical value, certified not below exact.
@@ -582,40 +434,6 @@ def t_critical(df: int, confidence: float) -> float:
     )
     start = -float(stdtrit(df, (1.0 - conf) / 2))
     return _certify(start, conf, lambda q: _t_central_mass(df, q))
-
-
-@lru_cache(maxsize=256)
-def normal_critical(confidence: float) -> float:
-    """Two-sided normal critical value, certified not below exact.
-
-    Returns a float ``z`` with ``P(|Z| <= z) >= confidence``, verified
-    in 60-digit decimal arithmetic from ``erf(z / sqrt 2) =
-    2 phi(z) sum z**(2k+1) / (2k+1)!!``, all terms positive, as for
-    `t_critical`. Cached.
-
-    Parameters
-    ----------
-    confidence : float
-        Two-sided confidence level, ``0 < confidence < 1``.
-
-    Returns
-    -------
-    float
-        The critical value, positive.
-
-    Raises
-    ------
-    ValueError
-        If ``confidence`` is out of range or SciPy gives no finite
-        starting quantile.
-    """
-    conf = _check_confidence(confidence)
-    ndtri = cast(
-        "Callable[[float], float]",
-        special.ndtri,  # pyright: ignore[reportUnknownMemberType]
-    )
-    start = -float(ndtri((1.0 - conf) / 2))
-    return _certify(start, conf, _normal_central_mass)
 
 
 def _certify(
@@ -668,31 +486,6 @@ def _t_central_mass(df: int, q: float) -> Decimal:
         return 2 * (theta + sin * cos2.sqrt() * total) / _pi()
 
 
-def _normal_central_mass(z: float) -> Decimal:
-    """``P(|Z| <= z)`` for a standard normal ``Z``.
-
-    The series stops once the ratio of successive terms is below 1/2,
-    so the omitted tail is below the last term, and that term is below
-    ``1e-65`` of the sum.
-    """
-    with localcontext() as ctx:
-        ctx.prec = _PREC
-        x = Decimal(z)
-        x2 = x * x
-        term = x
-        total = x
-        k = 0
-        tiny = Decimal(10) ** -65
-        while True:
-            k += 1
-            term = term * x2 / (2 * k + 1)
-            total += term
-            if term < total * tiny and 2 * x2 < 2 * k + 3:
-                break
-        phi = (-x2 / 2).exp() / (2 * _pi()).sqrt()
-        return 2 * phi * total
-
-
 def _atan(y: Decimal) -> Decimal:
     """``atan(y)`` for ``y > 0`` in the current decimal context.
 
@@ -727,121 +520,6 @@ def _pi() -> Decimal:
     with localcontext() as ctx:
         ctx.prec = _PREC
         return 4 * _atan(Decimal(1))
-
-
-def _hl_chunk(
-    part: FloatArray,
-    crit: NDArray[np.int64],
-    first: NDArray[np.intp],
-    second: NDArray[np.intp],
-) -> tuple[FloatArray, FloatArray, FloatArray]:
-    """Return estimate, lower and upper bound for one chunk of rows.
-
-    A function of its own so that nothing it allocates (logs, Walsh
-    averages, temporaries) outlives the chunk; everything it returns
-    is a fresh array of one value per row, never a view of the Walsh
-    averages, which would keep the whole buffer alive into the next
-    chunk.
-    """
-    count = first.size
-    mid = count // 2
-    d = np.log(part)
-    walsh = d[:, first]
-    walsh += d[:, second]
-    walsh *= 0.5
-    walsh.sort(axis=-1)
-    lo_stat = np.take_along_axis(walsh, crit[:, None], axis=-1)[:, 0]
-    hi_stat = np.take_along_axis(walsh, count - 1 - crit[:, None], axis=-1)
-    hi_stat = hi_stat[:, 0]
-    median = (
-        walsh[:, mid].copy()
-        if count % 2
-        else (walsh[:, mid - 1] + walsh[:, mid]) * 0.5
-    )
-    del walsh
-    eps = _up((1 + 4 * LIBM_ULPS) * _U * np.max(np.abs(d), axis=-1), 1)
-    with np.errstate(over="ignore", under="ignore"):
-        est = np.exp(median)
-    return _exact_where_identical(
-        part, est, _exp_down(lo_stat - eps), _exp_up(hi_stat + eps)
-    )
-
-
-def _too_few_rounds(n: int, confidence: float) -> NoReturn:
-    """Raise the `ValueError` for a signed-rank interval out of reach.
-
-    Raises
-    ------
-    ValueError
-        Always.
-    """
-    msg = (
-        f"{n} rounds are too few for a signed-rank interval at "
-        f"confidence {confidence!r}"
-    )
-    raise ValueError(msg)
-
-
-@lru_cache(maxsize=128)
-def _exact_signed_rank_critical(n: int, confidence: float) -> int:
-    """Largest ``c`` with ``P(T+ <= c) <= (1 - confidence) / 2``, or -1.
-
-    The null distribution of ``T+`` on ``n`` untied, nonzero values is
-    the distribution of a sum of a uniformly random subset of
-    ``{1, ..., n}``; its counts come from the product of
-    ``(1 + x**i)``, in exact integers. O(n**3) integer operations.
-    """
-    total = n * (n + 1) // 2
-    counts = [1] + [0] * total
-    for i in range(1, n + 1):
-        for s in range(total, i - 1, -1):
-            counts[s] += counts[s - i]
-    tail = (1 - Fraction(confidence)) / 2 * 2**n
-    cumulative = 0
-    crit = -1
-    for c, k in enumerate(counts):
-        cumulative += k
-        if cumulative > tail:
-            break
-        crit = c
-    return crit
-
-
-def _normal_signed_rank_critical(
-    rows: FloatArray, confidence: float
-) -> NDArray[np.int64]:
-    """Per-row ``c`` from the tie- and continuity-corrected normal law.
-
-    ``x = N/2 - z sigma - 1/2`` is computed in float64 with five
-    roundings, each moving ``x`` by at most ``u M``, with
-    ``M = N/2 + z sigma + 1``; the margin ``M 2**-49 = 16 u M`` covers
-    them and the rounding of the subtraction that applies it, so
-    ``ceil(x - margin) - 1`` never exceeds the exact ``c``. ``z`` is
-    certified not below the exact quantile, which only lowers ``c``.
-    """
-    n = rows.shape[-1]
-    count = n * (n + 1) // 2
-    ties = _tie_sums(rows)
-    numerator = 2 * n * (n + 1) * (2 * n + 1) - ties
-    sigma = np.sqrt(numerator.astype(np.float64) / 48.0)
-    z = normal_critical(confidence)
-    x = count / 2 - z * sigma - 0.5
-    margin = (count / 2 + z * sigma + 1.0) * 2.0**-49
-    return np.ceil(x - margin).astype(np.int64) - 1
-
-
-def _tie_sums(rows: FloatArray) -> NDArray[np.int64]:
-    """Per row, ``sum(t**3 - t)`` over groups of ``t`` equal values."""
-    count, n = rows.shape
-    ordered = np.sort(rows, axis=-1)
-    new = np.ones(ordered.shape, dtype=np.bool_)
-    new[:, 1:] = ordered[:, 1:] != ordered[:, :-1]
-    offsets = (np.arange(count, dtype=np.int64) * n)[:, None]
-    group: NDArray[np.int64] = np.cumsum(new, axis=-1, dtype=np.int64)
-    group = group - 1 + offsets
-    sizes = np.bincount(group.ravel(), minlength=count * n)
-    sizes = sizes.reshape(count, n).astype(np.int64)
-    return np.sum(sizes**3 - sizes, axis=-1)
 
 
 def _centred_squares_upper(y: FloatArray, mean: FloatArray) -> FloatArray:

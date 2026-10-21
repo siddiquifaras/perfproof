@@ -3,11 +3,18 @@ import math
 import montecarlo as mc
 import numpy as np
 import pytest
+from exposed import EXPOSED
 from scipy import stats  # pyright: ignore[reportMissingTypeStubs]
 
-from perfproof.schema import Procedure
+from perfproof.stats import sequential
+from perfproof.stats.decision import interval_rules
 from perfproof.stats.intervals import t_interval
-from perfproof.stats.sequential import look_confidence, plan_looks, run_looks
+from perfproof.stats.sequential import (
+    decide_look,
+    look_confidence,
+    plan_looks,
+    run_looks,
+)
 from perfproof.stats.simulate import simulate
 
 
@@ -26,12 +33,18 @@ def test_cells_cover_every_scenario_mode_schedule_and_speedup() -> None:
     cells = mc.all_cells()
     names = [c.name for c in cells]
     assert len(set(names)) == len(names)
-    # 11 scenarios one host, 9 cross host (no drift, no order effect).
-    assert len(cells) == len(mc.SCHEDULES) * (11 + 9) * len(mc.SPEEDUPS)
+    # 11 development scenarios one host, 9 cross host (no drift, no
+    # order effect), and every exposed scenario in both.
+    expected = (11 + 9 + 2 * len(EXPOSED)) * len(mc.SCHEDULES)
+    assert len(cells) == expected * len(mc.SPEEDUPS)
     cross = mc.scenarios("cross_host")
     assert "drift" not in cross
     assert "order_effect" not in cross
+    assert set(EXPOSED) <= set(cross)
+    assert all(s.drift == 0 and s.order_effect == 0 for s in cross.values())
     assert all(s.session_offset_cv == 0.15 for s in cross.values())
+    one = mc.scenarios("one_host")
+    assert all(one[name] == EXPOSED[name] for name in EXPOSED)
     for cell in cells:
         assert mc.cell_by_name(cell.name) == cell
         expected = "KEEP" if cell.speedup in (0.95, 1.00, 1.03) else "REJECT"
@@ -79,16 +92,11 @@ def test_typical_rounds_spend_the_round_budget_not_the_time_budget() -> None:
 
 
 @pytest.mark.parametrize("mode", mc.MODES)
-@pytest.mark.parametrize(
-    ("name", "block", "procedure"),
-    [("t", 1, "t_log_ratio"), ("batch_means_5", 5, "t_log_ratio_batch_means")],
-)
 def test_drive_looks_decides_exactly_as_run_looks(
-    mode: mc.HostMode, name: str, block: int, procedure: Procedure
+    mode: mc.HostMode,
 ) -> None:
-    # The fallback with another block size goes through drive_looks; on
-    # the procedures run_looks can also run, every outcome and length
-    # must agree.
+    # The plain t interval has no gate, so the harness loop and the
+    # production driver must agree on every outcome and length.
     sched = mc.SCHEDULE_BY_NAME["llm_serving"]
     scenario = mc.scenarios(mode)["outliers"]
     rng = np.random.default_rng(11)
@@ -117,21 +125,19 @@ def test_drive_looks_decides_exactly_as_run_looks(
         resolution=None,
         exhausted=exhausted,
         rounds=rounds,
-        procedure=procedure,
+        procedure="t_log_ratio",
     )
 
     def bounds(
         rows: mc.NDArray[np.intp], n: int
     ) -> tuple[mc.FloatArray, mc.FloatArray]:
-        if block == 1:
-            found = t_interval(
-                b[rows, :n],
-                c[rows, :n],
-                direction="lower_is_better",
-                confidence=conf,
-            )
-            return found.lower, found.upper
-        return mc.batch_means_bounds(b[rows, :n], c[rows, :n], block, conf)
+        found = t_interval(
+            b[rows, :n],
+            c[rows, :n],
+            direction="lower_is_better",
+            confidence=conf,
+        )
+        return found.lower, found.upper
 
     plan = plan_looks(sched.looks, rounds, exhausted, mode=mode)
     n0 = sched.looks.n0 if mode == "cross_host" else None
@@ -176,14 +182,174 @@ def test_a_cell_is_reproducible_whatever_else_runs_with_it() -> None:
     for result in (first, again):
         del result["wall_seconds"]
     assert first == again
-    alone = mc.run_cell(cell, procedures=["t"], seed=5, replications=120)
+    only = [mc.PRIMARY]
+    alone = mc.run_cell(cell, procedures=only, seed=5, replications=120)
     procs = first["procedures"]
     assert isinstance(procs, dict)
-    t_alone = alone["procedures"]
-    assert isinstance(t_alone, dict)
-    assert t_alone["t"] == procs["t"]
-    reseeded = mc.run_cell(cell, procedures=["t"], seed=6, replications=120)
-    assert reseeded["procedures"] != t_alone
+    primary_alone = alone["procedures"]
+    assert isinstance(primary_alone, dict)
+    assert primary_alone[mc.PRIMARY] == procs[mc.PRIMARY]
+    reseeded = mc.run_cell(cell, procedures=only, seed=6, replications=120)
+    assert reseeded["procedures"] != primary_alone
+
+
+def test_the_harness_block_and_gate_are_the_methods() -> None:
+    assert mc.BATCH_BLOCK == sequential.BATCH_BLOCK == 6
+    assert mc.PRIMARY == "batch_means_6"
+    assert sequential.LAG1_LIMIT == 0.1
+    assert sequential.LAG1_MIN_BLOCKS == 20
+    assert sequential.OUTLIER_Z == 6.0
+    assert sequential.OUTLIER_SHARE == 0.03
+    assert sequential.OUTLIER_MIN_BLOCKS == 10
+
+
+def gated_draw(
+    name: str, mode: mc.HostMode, sched: mc.TargetSchedule, speedup: float
+) -> tuple[
+    mc.FloatArray,
+    mc.FloatArray,
+    mc.NDArray[np.bool_],
+    mc.NDArray[np.int64],
+]:
+    scenario = mc.scenarios(mode)[name]
+    drawn = simulate(
+        scenario,
+        speedup=speedup,
+        n=sched.max_rounds,
+        replications=400,
+        mode=mode,
+        rng=np.random.default_rng(23),
+    )
+    values = np.exp(drawn.log_times)
+    b = np.ascontiguousarray(values[..., 0])
+    c = np.ascontiguousarray(values[..., 1])
+    rounds = mc.collected_rounds(drawn.log_times, sched)
+    return b, c, drawn.candidate_first, rounds
+
+
+GATED_CASES = [
+    ("RHO0.7", "gpu_kernels", 1.03),
+    ("RHO0.6", "python_native", 1.04),
+    ("A00-outliers-only", "llm_serving", 1.03),
+    ("outliers", "web_agentic", 1.10),
+    ("lognormal_cv5", "python_native", 1.10),
+    ("A20261052-04", "gpu_kernels", 1.05),
+]
+
+
+@pytest.mark.parametrize("mode", mc.MODES)
+@pytest.mark.parametrize(("name", "schedule", "speedup"), GATED_CASES)
+def test_the_primary_is_the_harness_with_its_own_gate(
+    mode: mc.HostMode, name: str, schedule: str, speedup: float
+) -> None:
+    # Production run_looks (default procedure, with the order flags)
+    # and the harness loop with the harness's own diagnostics, on the
+    # same rounds: every outcome and length must agree, in cells where
+    # the gate acts.
+    sched = mc.SCHEDULE_BY_NAME[schedule]
+    b, c, first, rounds = gated_draw(name, mode, sched, speedup)
+    exhausted = np.ones(b.shape[0], dtype=np.bool_)
+    conf = look_confidence(0.05, sched.looks.max_looks)
+    expected = run_looks(
+        b,
+        c,
+        direction="lower_is_better",
+        schedule=sched.looks,
+        mode=mode,
+        min_effect=mc.MIN_EFFECT,
+        calibrated=True,
+        resolution=None,
+        exhausted=exhausted,
+        rounds=rounds,
+        candidate_first=first,
+    )
+
+    def bounds(
+        rows: mc.NDArray[np.intp], n: int
+    ) -> tuple[mc.FloatArray, mc.FloatArray]:
+        return mc.batch_means_bounds(
+            b[rows, :n], c[rows, :n], mc.BATCH_BLOCK, conf
+        )
+
+    def withhold(rows: mc.NDArray[np.intp], n: int) -> mc.NDArray[np.bool_]:
+        return mc.harness_withheld(
+            np.log(b[rows, :n] / c[rows, :n]), first[rows, :n]
+        )
+
+    plan = plan_looks(sched.looks, rounds, exhausted, mode=mode)
+    n0 = sched.looks.n0 if mode == "cross_host" else None
+    got = mc.drive_looks(plan, bounds, n0=n0, withhold=withhold)
+    np.testing.assert_array_equal(got.outcome, expected.outcome)
+    np.testing.assert_array_equal(got.rounds, expected.rounds_used)
+
+
+@pytest.mark.parametrize("final", [False, True])
+@pytest.mark.parametrize("mode", mc.MODES)
+def test_decide_look_at_block_six_equals_the_harness(
+    mode: mc.HostMode, final: bool
+) -> None:
+    # One look at a time over many lengths and rows from the scenarios
+    # the gate acts on: production decide_look against the harness's
+    # bounds, interval_rules and gate, bound for bound and outcome for
+    # outcome.
+    sched = mc.SCHEDULE_BY_NAME["gpu_kernels"]
+    parts = [
+        gated_draw(name, mode, sched, speedup)
+        for name, speedup in (
+            ("RHO0.7", 1.10),
+            ("lognormal_cv5", 1.10),
+            ("A00-outliers-only", 1.20),
+        )
+    ]
+    b = np.concatenate([p[0] for p in parts])
+    c = np.concatenate([p[1] for p in parts])
+    first = np.concatenate([p[2] for p in parts])
+    conf = look_confidence(0.05, sched.looks.max_looks)
+    n0 = 10 if mode == "cross_host" else None
+    withheld_seen = decided_seen = 0
+    for n in (10, 11, 12, 16, 22, 30, 41, 60, 90, 119, 120):
+        look = decide_look(
+            b[:, :n],
+            c[:, :n],
+            direction="lower_is_better",
+            confidence=conf,
+            min_effect=mc.MIN_EFFECT,
+            calibrated=True,
+            final=final,
+            resolution=None,
+            n0=n0,
+            candidate_first=first[:, :n],
+        )
+        lo, hi = mc.batch_means_bounds(
+            b[:, :n], c[:, :n], mc.BATCH_BLOCK, conf
+        )
+        defined = np.isfinite(lo)
+        np.testing.assert_array_equal(look.lower[defined], lo[defined])
+        np.testing.assert_array_equal(look.upper[defined], hi[defined])
+        assert np.isnan(look.lower[~defined]).all()
+        rule = np.full(b.shape[0], 5 if final else 4, dtype=np.int8)
+        if defined.any():
+            decided = interval_rules(
+                lo[defined],
+                hi[defined],
+                min_effect=mc.MIN_EFFECT,
+                budget_remains=not final,
+                calibrated=True,
+                session_pairs=(
+                    None if n0 is None else np.full(int(defined.sum()), n)
+                ),
+                n0=n0,
+            )
+            rule[defined] = decided.rule
+        wild = mc.harness_withheld(np.log(b[:, :n] / c[:, :n]), first[:, :n])
+        held = wild & ((rule == 2) | (rule == 3))
+        rule = np.where(held, 5 if final else 4, rule).astype(np.int8)
+        np.testing.assert_array_equal(look.rule, rule)
+        np.testing.assert_array_equal(look.withheld != "", held)
+        withheld_seen += int(held.sum())
+        decided_seen += int(((rule == 2) | (rule == 3)).sum())
+    assert withheld_seen > 0
+    assert decided_seen > 0
 
 
 def test_seed_comes_from_the_environment(

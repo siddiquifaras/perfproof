@@ -26,7 +26,6 @@ from perfproof.stats import decision, sequential
 from perfproof.stats.decision import IntervalRules, decide
 from perfproof.stats.intervals import (
     LIBM_ULPS,
-    hodges_lehmann_interval,
     t_interval,
 )
 from perfproof.stats.sequential import (
@@ -39,6 +38,7 @@ from perfproof.stats.sequential import (
     decide_look,
     lag1_autocorrelation,
     look_confidence,
+    outlier_share,
     plan_looks,
     round_error_bounds,
     run_looks,
@@ -1028,17 +1028,17 @@ class TestDriverModesAndProcedures:
     def test_widening_averages_only_the_rounds_the_interval_used(
         self,
     ) -> None:
-        # Batch means at a cut-off look of 14 rounds uses 10 (two blocks
-        # of 5). Identical ratios of 1.04766 give the exact interval at
-        # that ratio; the 10 used rounds have bounds of 0.0202 and the 4
-        # dropped have 0. Widening by their mean, 0.0202, gives
-        # L = 1.04766 exp(-0.0202) = 1.026710 <= 1.03: INCONCLUSIVE at
-        # the last look. Averaging over all 14 (0.01443) would give
-        # L = 1.032653 and a KEEP.
+        # Batch means at a cut-off look of 14 rounds uses 12 (two blocks
+        # of 6). Identical ratios of 1.04766 give the exact interval at
+        # that ratio; the 12 used rounds have bounds of 0.018 and the 2
+        # dropped have 0. Widening by their mean, 0.018, gives
+        # L = 1.04766 exp(-0.018) = 1.028971 <= 1.03: INCONCLUSIVE at
+        # the last look. Averaging over all 14 (0.015429) would give
+        # L = 1.031620 and a KEEP.
         b = np.full((1, 30), 1.04766)
         c = np.ones((1, 30))
         errors = np.zeros((1, 30))
-        errors[0, :10] = 0.0202
+        errors[0, :12] = 0.018
         look = decide_look(
             b[:, :14],
             c[:, :14],
@@ -1050,13 +1050,13 @@ class TestDriverModesAndProcedures:
             resolution=ObservationBounds(errors[:, :14]),
             procedure="t_log_ratio_batch_means",
         )
-        lo = 1.04766 * math.exp(-0.0202)
-        hi = 1.04766 * math.exp(0.0202)
+        lo = 1.04766 * math.exp(-0.018)
+        hi = 1.04766 * math.exp(0.018)
         assert float(look.lower[0]) <= lo
         assert float(look.upper[0]) >= hi
         assert float(look.lower[0]) == pytest.approx(lo, rel=1e-13)
         assert float(look.upper[0]) == pytest.approx(hi, rel=1e-13)
-        assert 1.026709 < lo < 1.026711
+        assert 1.028970 < lo < 1.028972
         assert look.rule.tolist() == [5]
         assert look.action.tolist() == ["INCONCLUSIVE"]
         res = drive(
@@ -1091,23 +1091,9 @@ class TestDriverModesAndProcedures:
             confidence=res.confidence,
             block=BATCH_BLOCK,
         )
-        assert found.rounds == 10
+        assert found.rounds == 12
         taken = res.rule[:, 1] > 0
         assert res.lower[taken, 1].tolist() == found.lower[taken].tolist()
-
-    def test_hodges_lehmann_challenger(self) -> None:
-        rng = np.random.default_rng(SEED)
-        b = np.exp(0.05 * rng.standard_normal((3, 30)))
-        c = b / np.exp(0.01 + 0.05 * rng.standard_normal((3, 30)))
-        res = drive(b, c, procedure="hodges_lehmann_wilcoxon")
-        found = hodges_lehmann_interval(
-            b[:, :10],
-            c[:, :10],
-            direction="lower_is_better",
-            confidence=res.confidence,
-        )
-        assert res.lower[:, 0].tolist() == found.lower.tolist()
-        assert res.upper[:, 0].tolist() == found.upper.tolist()
 
     def test_higher_is_better_inverts_the_ratio(self) -> None:
         d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
@@ -1122,6 +1108,7 @@ class TestDriverModesAndProcedures:
             calibrated=True,
             resolution=None,
             exhausted=True,
+            procedure="t_log_ratio",
         )
         assert res.rule[0].tolist() == [2, 0, 0]
 
@@ -1271,6 +1258,7 @@ class TestDecideLook:
             "calibrated": True,
             "final": False,
             "resolution": None,
+            "procedure": "t_log_ratio",
         }
         args.update(kwargs)
         return decide_look(b, c, **args)
@@ -1299,6 +1287,7 @@ class TestDecideLook:
             calibrated=True,
             final=False,
             resolution=resolution,
+            procedure="t_log_ratio",
         )
         assert look.lower.tolist() == res.lower[:, 0].tolist()
         assert look.upper.tolist() == res.upper[:, 0].tolist()
@@ -1532,6 +1521,7 @@ class TestCrossHostResolution:
             final=final,
             resolution=ObservationBounds(errors, coarse),
             n0=10,
+            procedure="t_log_ratio",
         )
         rule = 5 if final else 4
         assert look.rule.tolist() == [rule] * 3
@@ -1549,6 +1539,7 @@ class TestCrossHostResolution:
             final=final,
             resolution=None,
             n0=10,
+            procedure="t_log_ratio",
         )
         assert look.lower[2] < bare.lower[0]
         assert look.upper[2] > bare.upper[0]
@@ -1606,3 +1597,446 @@ class TestCrossHostResolution:
                 mode="cross_host",
                 resolution=ObservationBounds(errors, coarse),
             )
+
+
+def slow_wave(m: float, amplitude: float, n: int) -> FloatArray:
+    """Log ratios ``m`` plus a slow sine: strongly autocorrelated."""
+    return m + amplitude * np.sin(2 * np.pi * np.arange(n) / 40)
+
+
+def single_look(
+    d: FloatArray,
+    *,
+    procedure: Any = "t_log_ratio_batch_means",
+    final: bool = False,
+    first: Any = None,
+    n0: int | None = None,
+    keep_blocked: Any = False,
+    resolution: Any = None,
+) -> Any:
+    """Decide one look on one row of log ratios ``d``."""
+    b, c = arms(d[np.newaxis, :])
+    return decide_look(
+        b,
+        c,
+        direction="lower_is_better",
+        confidence=look_confidence(0.05, 3),
+        min_effect=MIN_EFFECT,
+        calibrated=True,
+        final=final,
+        resolution=resolution,
+        n0=n0,
+        keep_blocked=keep_blocked,
+        procedure=procedure,
+        candidate_first=None if first is None else first[np.newaxis, :],
+    )
+
+
+class TestOutlierShare:
+    def test_by_hand(self) -> None:
+        # Deviations from the median 0.1 are 0.01 for 8 rounds and
+        # 1.0 for 2, so the MAD is 0.01 and the robust sd 0.014826:
+        # the threshold is 6 sd = 0.0889, and the two large ones are
+        # outliers.
+        d = np.full(10, 0.1)
+        d[::2] += 0.01
+        d[1::2] -= 0.01
+        d[3] = 1.1
+        d[8] = -0.9
+        first = np.zeros(10, dtype=np.bool_)
+        assert float(outlier_share(d, first)) == pytest.approx(0.2)
+
+    def test_removes_each_orders_median(self) -> None:
+        # 20 rounds that differ only by the order effect (0.2 apart)
+        # have no outliers when each order has its own median, and
+        # would all be far from one common median.
+        first = np.arange(20) % 2 == 0
+        d = np.where(first, 0.3, 0.1) + 0.001 * np.arange(20) % 3
+        assert float(outlier_share(d, first)) == 0.0
+        assert float(outlier_share(d, np.zeros(20, dtype=np.bool_))) == 0.0
+        spread = np.where(first, 0.3, 0.1) + 0.001 * (np.arange(20) % 3)
+        one_order = outlier_share(spread, np.zeros(20, dtype=np.bool_))
+        assert float(one_order) == 0.0
+
+    def test_zero_scale_makes_any_deviation_an_outlier(self) -> None:
+        d = np.zeros(11)
+        d[4] = 0.5
+        first = np.zeros(11, dtype=np.bool_)
+        assert float(outlier_share(d, first)) == pytest.approx(1 / 11)
+        assert float(outlier_share(np.zeros(11), first)) == 0.0
+
+    def test_batch_axes_and_one_order_only(self) -> None:
+        rng = np.random.default_rng(SEED)
+        d = 0.05 * rng.standard_normal((3, 4, 40))
+        d[1, 2, 7] += 3.0
+        first = np.zeros(d.shape, dtype=np.bool_)
+        share = outlier_share(d, first)
+        assert share.shape == (3, 4)
+        assert share[1, 2] > 0
+        assert np.count_nonzero(share[share > 0]) >= 1
+        alone = outlier_share(d[1, 2], first[1, 2])
+        assert float(alone) == float(share[1, 2])
+
+    @given(
+        st.lists(
+            st.floats(-5, 5, allow_nan=False, allow_infinity=False),
+            min_size=1,
+            max_size=40,
+        ),
+        st.data(),
+    )
+    @SETTINGS
+    def test_matches_a_loop(self, values: list[float], data: Any) -> None:
+        n = len(values)
+        flags = data.draw(st.lists(st.booleans(), min_size=n, max_size=n))
+        d = np.array(values)
+        first = np.array(flags)
+        centred = d.copy()
+        for group in (True, False):
+            mask = first == group
+            if mask.any():
+                centred[mask] = d[mask] - np.median(d[mask])
+        scale = 1.482602218505602 * float(np.median(np.abs(centred)))
+        expected = float(np.mean(np.abs(centred) > 6.0 * scale))
+        assert float(outlier_share(d, first)) == expected
+
+    @pytest.mark.parametrize(
+        ("d", "first", "match"),
+        [
+            (np.ones(5), np.ones(4, dtype=np.bool_), "shape"),
+            (np.ones(5), np.ones(5), "boolean"),
+            (np.ones(0), np.ones(0, dtype=np.bool_), "at least 1"),
+            (np.array([1.0, math.nan]), np.zeros(2, dtype=np.bool_), "finite"),
+        ],
+    )
+    def test_refuses_bad_input(
+        self, d: FloatArray, first: Any, match: str
+    ) -> None:
+        with pytest.raises(ValueError, match=match):
+            outlier_share(d, first)
+
+
+class TestNoIntervalBelowTwoBlocks:
+    @pytest.mark.parametrize("n", [10, 11])
+    @pytest.mark.parametrize("final", [False, True])
+    def test_fewer_than_two_blocks_continue_or_end(
+        self, n: int, final: bool
+    ) -> None:
+        d = alternating(math.log(1.2), 0.01, n)
+        look = single_look(d, final=final)
+        assert n < 2 * BATCH_BLOCK
+        assert np.isnan(look.lower).all()
+        assert np.isnan(look.upper).all()
+        assert look.rule.tolist() == [5 if final else 4]
+        assert look.action.tolist() == [
+            "INCONCLUSIVE" if final else "CONTINUE"
+        ]
+        assert look.withheld.tolist() == [""]
+        assert look.regression.tolist() == [False]
+
+    def test_two_blocks_have_an_interval(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 2 * BATCH_BLOCK)
+        look = single_look(d)
+        assert np.isfinite(look.lower).all()
+        assert look.rule.tolist() == [2]
+
+    def test_the_plain_t_interval_still_needs_only_two_rounds(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 10)
+        look = single_look(d, procedure="t_log_ratio")
+        assert np.isfinite(look.lower).all()
+
+    def test_the_resolution_stop_still_applies(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 10)
+        errors = np.zeros((1, 10))
+        errors[0, 3] = math.inf
+        look = single_look(d, resolution=ObservationBounds(errors))
+        assert look.rule.tolist() == [1]
+        assert look.action.tolist() == ["INCONCLUSIVE"]
+
+    def test_cross_host_below_n0_never_decides(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 10)
+        look = single_look(d, n0=10)
+        assert look.rule.tolist() == [4]
+
+    def test_default_procedure_is_batch_means(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 12)
+        b, c = arms(d[np.newaxis, :])
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=look_confidence(0.05, 3),
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=False,
+            resolution=None,
+        )
+        found = t_interval(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=look_confidence(0.05, 3),
+            block=BATCH_BLOCK,
+        )
+        assert look.lower.tolist() == found.lower.tolist()
+        assert BATCH_BLOCK == 6
+
+    def test_run_looks_runs_the_looks_without_an_interval(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
+        b, c = arms(d)
+        res = run_looks(
+            b,
+            c,
+            direction="lower_is_better",
+            schedule=SHORT,
+            mode="one_host",
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            resolution=None,
+            exhausted=True,
+        )
+        assert res.procedure == "t_log_ratio_batch_means"
+        assert res.rounds[0].tolist() == [10, 20, 0]
+        assert np.isnan(res.lower[0, 0])
+        assert res.rule[0, 0] == 4
+        assert res.outcome.tolist() == ["KEEP"]
+        assert res.rounds_used.tolist() == [20]
+
+
+class TestDiagnosticGate:
+    def test_a_slow_wave_is_withheld_below_twenty_blocks(self) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 60)
+        row = np.log(np.exp(d))
+        assert float(lag1_autocorrelation(row, np.zeros(60, bool))) > 0.9
+        plain = single_look(d, procedure="t_log_ratio")
+        assert plain.rule.tolist() == [2]
+        going = single_look(d)
+        assert going.rule.tolist() == [4]
+        assert going.action.tolist() == ["CONTINUE"]
+        assert going.withheld.tolist() == ["autocorrelated_rounds"]
+        assert going.regression.tolist() == [False]
+        assert np.isfinite(going.lower).all()
+        ending = single_look(d, final=True)
+        assert ending.rule.tolist() == [5]
+        assert ending.action.tolist() == ["INCONCLUSIVE"]
+        assert ending.withheld.tolist() == ["autocorrelated_rounds"]
+
+    def test_twenty_blocks_are_decided_whatever_the_autocorrelation(
+        self,
+    ) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 120)
+        look = single_look(d)
+        assert look.rule.tolist() == [2]
+        assert look.action.tolist() == ["KEEP"]
+        assert look.withheld.tolist() == [""]
+        short = single_look(d[:114])
+        assert short.withheld.tolist() == ["autocorrelated_rounds"]
+
+    def test_a_withheld_reject_is_not_a_regression(self) -> None:
+        d = slow_wave(math.log(0.8), 0.01, 60)
+        plain = single_look(d, procedure="t_log_ratio")
+        assert plain.rule.tolist() == [3]
+        assert plain.regression.tolist() == [True]
+        look = single_look(d)
+        assert look.rule.tolist() == [4]
+        assert look.regression.tolist() == [False]
+        assert look.withheld.tolist() == ["autocorrelated_rounds"]
+
+    def test_outliers_are_withheld_below_ten_blocks(self) -> None:
+        d = alternating(math.log(3.0), 0.01, 30)
+        d[5] += 1.0
+        d[20] -= 1.0
+        plain = single_look(d, procedure="t_log_ratio")
+        assert plain.rule.tolist() == [2]
+        look = single_look(d)
+        assert look.rule.tolist() == [4]
+        assert look.withheld.tolist() == ["outlier_rounds"]
+        ending = single_look(d, final=True)
+        assert ending.action.tolist() == ["INCONCLUSIVE"]
+        assert ending.withheld.tolist() == ["outlier_rounds"]
+
+    def test_ten_blocks_are_decided_with_outliers(self) -> None:
+        d = alternating(math.log(3.0), 0.01, 60)
+        d[5] += 1.0
+        d[20] -= 1.0
+        look = single_look(d)
+        assert look.rule.tolist() == [2]
+        assert look.withheld.tolist() == [""]
+        short = single_look(d[:54])
+        assert short.withheld.tolist() == ["outlier_rounds"]
+
+    def test_the_share_must_exceed_three_percent(self) -> None:
+        # One outlier in 34 rounds is 2.9%; in 33 it is 3.03%.
+        for n, want in ((34, ""), (32, "outlier_rounds")):
+            d = alternating(math.log(3.0), 0.01, n)
+            d[7] += 1.0
+            assert single_look(d).withheld.tolist() == [want], n
+
+    def test_autocorrelation_is_named_first(self) -> None:
+        # One outlier in 30 rounds (3.3%), 0.08 beyond 6 robust sd of
+        # the wave, which still has a lag-1 autocorrelation above 0.1.
+        d = slow_wave(math.log(3.0), 0.01, 30)
+        d[5] += 0.08
+        first = np.zeros(30, dtype=np.bool_)
+        assert float(lag1_autocorrelation(d, first)) > 0.1
+        assert float(outlier_share(d, first)) > 0.03
+        look = single_look(d)
+        assert look.withheld.tolist() == ["autocorrelated_rounds"]
+
+    def test_only_rules_two_and_three_are_withheld(self) -> None:
+        d = slow_wave(0.0, 0.2, 30)
+        look = single_look(d)
+        assert look.rule.tolist() == [4]
+        assert look.withheld.tolist() == [""]
+        final = single_look(d, final=True)
+        assert final.rule.tolist() == [5]
+        assert final.withheld.tolist() == [""]
+
+    def test_the_plain_t_procedure_has_no_gate(self) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 30)
+        look = single_look(d, procedure="t_log_ratio")
+        assert look.withheld.tolist() == [""]
+        assert look.rule.tolist() == [2]
+
+    def test_a_withheld_keep_is_not_a_guardrail_hold(self) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 60)
+        look = single_look(d, keep_blocked=np.array([True]))
+        assert look.withheld.tolist() == ["autocorrelated_rounds"]
+        assert look.held.tolist() == [False]
+
+    def test_negative_autocorrelation_is_not_withheld(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 60)
+        look = single_look(d)
+        assert look.rule.tolist() == [2]
+        assert look.withheld.tolist() == [""]
+
+    def test_the_order_effect_is_not_read_as_autocorrelation(self) -> None:
+        # Pairs of rounds in opposite orders, with the order effect
+        # shifting d by +-0.03: removing each order's mean leaves the
+        # alternating noise, so lag-1 is negative and nothing is
+        # withheld; without the order flags the shift pairs up the
+        # rounds and the same data read as positively autocorrelated.
+        n = 60
+        pair = np.arange(n) // 2
+        flip = np.random.default_rng(SEED).integers(0, 2, n // 2)[pair]
+        first = (np.arange(n) % 2 == 0) == (flip == 1)
+        shift = np.where(first, 0.03, -0.03)
+        d = math.log(1.2) + shift + alternating(0.0, 0.002, n)
+        ordered = single_look(d, first=first)
+        assert ordered.withheld.tolist() == [""]
+        assert float(lag1_autocorrelation(d, first)) < 0.1
+        unordered = lag1_autocorrelation(d, np.zeros(n, dtype=np.bool_))
+        assert float(unordered) != float(lag1_autocorrelation(d, first))
+
+    def test_a_row_is_judged_alone(self) -> None:
+        wave = slow_wave(math.log(1.2), 0.01, 60)
+        calm = alternating(math.log(1.2), 0.01, 60)
+        b, c = arms(np.stack([wave, calm]))
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=look_confidence(0.05, 3),
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=False,
+            resolution=None,
+        )
+        assert look.withheld.tolist() == ["autocorrelated_rounds", ""]
+        assert look.action.tolist() == ["CONTINUE", "KEEP"]
+
+    def test_run_looks_lets_a_withheld_row_decide_later(self) -> None:
+        # Row 0 is KEEP-worthy from the second look but withheld until
+        # 20 blocks; row 1 has no gate and keeps at the same look.
+        schedule = LookSchedule(n0=20, k=20, max_looks=6)
+        wave = slow_wave(math.log(1.2), 0.01, 120)
+        calm = alternating(math.log(1.2), 0.01, 120)
+        b, c = arms(np.stack([wave, calm]))
+        res = run_looks(
+            b,
+            c,
+            direction="lower_is_better",
+            schedule=schedule,
+            mode="one_host",
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            resolution=None,
+            exhausted=True,
+        )
+        assert res.outcome.tolist() == ["KEEP", "KEEP"]
+        assert res.rounds_used.tolist() == [120, 20]
+        assert res.withheld[0].tolist() == [
+            "autocorrelated_rounds",
+            "autocorrelated_rounds",
+            "autocorrelated_rounds",
+            "autocorrelated_rounds",
+            "autocorrelated_rounds",
+            "",
+        ]
+        assert res.withheld[1].tolist() == [""] * 6
+        assert res.regression.sum() == 0
+
+    def test_run_looks_ends_inconclusive_when_the_gate_holds_to_the_end(
+        self,
+    ) -> None:
+        wave = slow_wave(math.log(1.2), 0.01, 60)
+        b, c = arms(wave[np.newaxis, :])
+        res = run_looks(
+            b,
+            c,
+            direction="lower_is_better",
+            schedule=SIX,
+            mode="one_host",
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            resolution=None,
+            exhausted=True,
+        )
+        assert res.outcome.tolist() == ["INCONCLUSIVE"]
+        assert res.final_rule.tolist() == [5]
+        assert res.withheld[0, 5] == "autocorrelated_rounds"
+
+    @pytest.mark.parametrize(
+        ("first", "match"),
+        [
+            (np.zeros((1, 59), dtype=np.bool_), "candidate_first"),
+            (np.zeros((1, 60), dtype=np.int64), "candidate_first"),
+        ],
+    )
+    def test_refuses_bad_order_flags(self, first: Any, match: str) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 60)
+        b, c = arms(d[np.newaxis, :])
+        with pytest.raises(ValueError, match=match):
+            decide_look(
+                b,
+                c,
+                direction="lower_is_better",
+                confidence=look_confidence(0.05, 3),
+                min_effect=MIN_EFFECT,
+                calibrated=True,
+                final=False,
+                resolution=None,
+                candidate_first=first,
+            )
+
+
+class TestIdenticalRatiosAreNotWithheld:
+    @pytest.mark.parametrize("ratio", [1.1, 1.2, 1.7, 2.9])
+    def test_exact_interval_is_decided_at_sixty_rounds(
+        self, ratio: float
+    ) -> None:
+        b = np.full((1, 60), ratio)
+        c = np.ones((1, 60))
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=look_confidence(0.05, 6),
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=True,
+            resolution=None,
+        )
+        assert look.withheld.tolist() == [""]
+        assert look.rule.tolist() == [2]
+        assert float(look.lower[0]) == ratio

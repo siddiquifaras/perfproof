@@ -2,7 +2,6 @@ import functools
 import math
 import time
 import tracemalloc
-from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -40,22 +39,18 @@ from perfproof.schema import (
 from perfproof.stats.decision import decide
 from perfproof.stats.intervals import (
     LIBM_ULPS,
-    MAX_HL_ROUNDS,
-    WILCOXON_EXACT_MAX_N,
     PairedInterval,
     _centred_squares_upper,  # pyright: ignore[reportPrivateUsage]
     _up,  # pyright: ignore[reportPrivateUsage]
     batch_means,
-    hodges_lehmann_interval,
-    normal_critical,
     paired_ratios,
     t_critical,
     t_interval,
 )
 
 FloatArray = NDArray[np.float64]
-Kind = Literal["t", "batch", "hl"]
-KINDS: tuple[Kind, ...] = ("t", "batch", "hl")
+Kind = Literal["t", "batch"]
+KINDS: tuple[Kind, ...] = ("t", "batch")
 BLOCK = 5
 FOUND_FALSE_KEEP = 0.4730308035801494
 NAMED_MIN_EFFECTS = (0.0, 0.03, 0.118, 0.124, FOUND_FALSE_KEEP)
@@ -93,10 +88,6 @@ def interval(
     confidence: float,
     direction: Direction = "lower_is_better",
 ) -> PairedInterval:
-    if kind == "hl":
-        return hodges_lehmann_interval(
-            baseline, candidate, direction=direction, confidence=confidence
-        )
     return t_interval(
         baseline,
         candidate,
@@ -176,23 +167,6 @@ def ref_t_mass(df: int, t: Decimal) -> Decimal:
         return 2 * inner / ref_pi()
 
 
-def ref_normal_mass(z: Decimal) -> Decimal:
-    """P(|Z| <= z) from erf's Taylor series, alternating form."""
-    with localcontext() as ctx:
-        ctx.prec = PREC + 20
-        total = Decimal(0)
-        k = 0
-        term = z
-        while True:
-            add = term / (2 * k + 1)
-            if abs(add) < Decimal(10) ** -80 and k > z * z:
-                break
-            total += add
-            k += 1
-            term = -term * z * z / (2 * k)
-        return 2 * total / (2 * ref_pi()).sqrt()
-
-
 def bisect(mass: Callable[[Decimal], Decimal], target: Decimal) -> Decimal:
     lo, hi = Decimal(0), Decimal(1)
     while mass(hi) < target:
@@ -210,57 +184,14 @@ def ref_t_quantile(df: int, confidence: float) -> Decimal:
     return bisect(lambda t: ref_t_mass(df, t), Decimal(confidence))
 
 
-@functools.cache
-def ref_normal_quantile(confidence: float) -> Decimal:
-    return bisect(ref_normal_mass, Decimal(confidence))
-
-
-@functools.cache
-def ref_signed_rank_counts(n: int) -> tuple[int, ...]:
-    """Subsets of {1..n} by sum, by repeated convolution."""
-    counts = [1]
-    for i in range(1, n + 1):
-        shifted = [0] * i + counts
-        counts = [
-            (counts[s] if s < len(counts) else 0) + shifted[s]
-            for s in range(len(shifted))
-        ]
-    return tuple(counts)
-
-
-def ref_critical(ratios: Sequence[float], confidence: float) -> int:
-    """Signed-rank critical count: exact, or normal in Decimal."""
-    n = len(ratios)
-    alpha_half = (1 - Fraction(confidence)) / 2
-    if n <= WILCOXON_EXACT_MAX_N:
-        counts = ref_signed_rank_counts(n)
-        cumulative, crit = 0, -1
-        for c, k in enumerate(counts):
-            cumulative += k
-            if Fraction(cumulative, 2**n) > alpha_half:
-                break
-            crit = c
-        return crit
-    ties = sum(t**3 - t for t in Counter(ratios).values())
-    with localcontext() as ctx:
-        ctx.prec = PREC
-        var = Decimal(n * (n + 1) * (2 * n + 1)) / 24 - Decimal(ties) / 48
-        x = Decimal(n * (n + 1)) / 4 - ref_normal_quantile(confidence) * (
-            var.sqrt()
-        )
-        x -= Decimal("0.5")
-        return int(x.to_integral_value(rounding="ROUND_CEILING")) - 1
-
-
 @dataclass(frozen=True)
 class Exact:
     """An exact bound, compared with floats without rounding error.
 
-    ``square`` holds the bound's exact square where it is rational: a
-    Hodges-Lehmann bound ``exp((log a + log b) / 2)`` is
-    ``sqrt(a b)``, and identical rounds give the ratio itself. A t
-    bound is transcendental and held to 60 digits in ``value``; a
-    comparison closer than 1e-45 would be undecided and fails.
+    ``square`` holds the bound's exact square where it is rational:
+    identical rounds give the ratio itself. A t bound is
+    transcendental and held to 60 digits in ``value``; a comparison
+    closer than 1e-45 would be undecided and fails.
     """
 
     value: Decimal | None = None
@@ -293,8 +224,6 @@ def exact_bounds(
     if len(set(ratios)) == 1:
         point = Exact(square=Fraction(ratios[0]) ** 2)
         return point, point
-    if kind == "hl":
-        return exact_hl(ratios, confidence)
     logs = [exact_log(r) for r in ratios]
     with localcontext() as ctx:
         ctx.prec = PREC
@@ -312,36 +241,6 @@ def exact_bounds(
             Exact(value=exact_exp(mean - half)),
             Exact(value=exact_exp(mean + half)),
         )
-
-
-def exact_hl(
-    ratios: Sequence[float], confidence: float
-) -> tuple[Exact, Exact]:
-    """Order statistics of the exact Walsh averages, as ``a b``.
-
-    ``(log a + log b) / 2`` orders like ``a b``, so the products of
-    the ratio pairs, in exact rationals, stand for the Walsh averages.
-    """
-    crit = ref_critical(ratios, confidence)
-    assert crit >= 0
-    tally = sorted(Counter(Fraction(r) for r in ratios).items())
-    walsh: Counter[Fraction] = Counter()
-    for i, (a, ca) in enumerate(tally):
-        walsh[a * a] += ca * (ca + 1) // 2
-        for b, cb in tally[i + 1 :]:
-            walsh[a * b] += ca * cb
-    ordered = sorted(walsh.items())
-    total = len(ratios) * (len(ratios) + 1) // 2
-
-    def order_stat(k: int) -> Exact:
-        seen = 0
-        for value, count in ordered:
-            seen += count
-            if seen > k:
-                return Exact(square=value)
-        raise AssertionError(k)
-
-    return order_stat(crit), order_stat(total - 1 - crit)
 
 
 # Records, as a caller would build them
@@ -555,8 +454,6 @@ def run_full_path(
     """
     groups: dict[tuple[int, float], list[Case]] = {}
     for case in cases:
-        if kind == "hl" and ref_critical(case.ratios, case.confidence) < 0:
-            continue
         groups.setdefault((len(case.ratios), case.confidence), []).append(case)
     keeps = rejects = 0
     false_keeps: list[str] = []
@@ -695,69 +592,6 @@ def test_batch_means_interval_matches_scipy(n: int, block: int) -> None:
     assert (res.rounds, res.observations) == (m * block, m)
 
 
-def wilcoxon_p(shifted: FloatArray) -> float:
-    exact = shifted.size <= WILCOXON_EXACT_MAX_N
-    result: Any = stats.wilcoxon(  # pyright: ignore[reportUnknownMemberType]
-        shifted,
-        method="exact" if exact else "approx",
-        correction=not exact,
-    )
-    return float(result.pvalue)
-
-
-@pytest.mark.parametrize(
-    ("n", "decimals"),
-    [
-        (10, None),
-        (20, None),
-        (50, None),
-        (51, None),
-        (80, None),
-        (150, None),
-        (150, 2),
-        (400, 2),
-    ],
-)
-@pytest.mark.parametrize("confidence", [0.9, 0.99])
-def test_hodges_lehmann_inverts_scipy_wilcoxon(
-    n: int, decimals: int | None, confidence: float
-) -> None:
-    rng = np.random.default_rng(n)
-    logs = rng.normal(0.04, 0.03, n)
-    if decimals is not None:
-        logs = np.round(logs, decimals)
-    # exp of equal floats gives equal ratios: real ties.
-    baseline = np.exp(logs)
-    candidate = np.ones(n)
-    res = hodges_lehmann_interval(
-        baseline,
-        candidate,
-        direction="lower_is_better",
-        confidence=confidence,
-    )
-    d = np.log(baseline)
-    i, j = np.triu_indices(n)
-    full = np.sort((d[i] + d[j]) / 2)
-    mid = full.size // 2
-    median = (
-        (full[mid - 1] + full[mid]) / 2 if full.size % 2 == 0 else full[mid]
-    )
-    assert rel(float(res.estimate), math.exp(median)) < 1e-12
-    # Walsh averages a few ulps apart (sums of tied logs in another
-    # order) are one value; shifts are taken in the gaps between them.
-    distinct = full[np.concatenate([[True], np.diff(full) > 1e-12])]
-    alpha = 1 - confidence
-    for bound, inside in ((res.lower, 1), (res.upper, -1)):
-        k = int(np.argmin(np.abs(distinct - math.log(float(bound)))))
-        assert rel(float(bound), math.exp(distinct[k])) < 1e-12
-        # Just inside the interval the test does not reject; just
-        # outside it does.
-        theta_in = (distinct[k] + distinct[k + inside]) / 2
-        theta_out = (distinct[k] + distinct[k - inside]) / 2
-        assert wilcoxon_p(d - theta_in) > alpha
-        assert wilcoxon_p(d - theta_out) <= alpha
-
-
 @pytest.mark.parametrize("df", [1, 2, 3, 4, 9, 39, 47, 199])
 @pytest.mark.parametrize("confidence", [0.5, 0.95, 0.99, 0.999, 0.99999])
 def test_t_critical_is_certified_and_matches_scipy(
@@ -768,26 +602,11 @@ def test_t_critical_is_certified_and_matches_scipy(
     assert Decimal(q) >= ref_t_quantile(df, confidence)
 
 
-@pytest.mark.parametrize("confidence", [0.5, 0.95, 0.99, 0.999, 0.99999])
-def test_normal_critical_is_certified_and_matches_scipy(
-    confidence: float,
-) -> None:
-    z = normal_critical(confidence)
-    assert rel(z, -ndtri((1 - confidence) / 2)) < 1e-12
-    assert Decimal(z) >= ref_normal_quantile(confidence)
-
-
 @pytest.mark.parametrize("df", [1, 2, 5, 40])
 def test_reference_t_mass_agrees_with_scipy(df: int) -> None:
     for t in (0.1, 1.0, 2.5, 7.0):
         ref = float(ref_t_mass(df, Decimal(t)))
         assert abs(ref - (2 * stdtr(df, t) - 1)) < 1e-14
-
-
-def test_reference_normal_mass_agrees_with_math_erf() -> None:
-    for z in (0.1, 1.0, 2.5, 5.0):
-        ref = float(ref_normal_mass(Decimal(z)))
-        assert abs(ref - math.erf(z / math.sqrt(2))) < 1e-15
 
 
 def test_libm_log_and_exp_are_within_the_assumed_ulps() -> None:
@@ -931,84 +750,6 @@ def test_ten_thousand_replications_in_one_call() -> None:
         )
         assert float(one.lower) == float(res.lower[row])
         assert float(one.upper) == float(res.upper[row])
-    hl = hodges_lehmann_interval(
-        baseline, candidate, direction="lower_is_better", confidence=0.99
-    )
-    assert hl.lower.shape == (10_000,)
-
-
-def test_hodges_lehmann_chunks_agree_with_one_row_at_a_time() -> None:
-    rng = np.random.default_rng(11)
-    baseline = np.exp(rng.normal(0.03, 0.05, (7, 300)))
-    candidate = np.ones_like(baseline)
-    batch = hodges_lehmann_interval(
-        baseline, candidate, direction="lower_is_better", confidence=0.99
-    )
-    for row in range(7):
-        one = hodges_lehmann_interval(
-            baseline[row],
-            candidate[row],
-            direction="lower_is_better",
-            confidence=0.99,
-        )
-        assert float(one.lower) == float(batch.lower[row])
-        assert float(one.upper) == float(batch.upper[row])
-        assert float(one.estimate) == float(batch.estimate[row])
-
-
-WALSH_BUDGET = 64 * 2**20
-
-
-def test_max_hl_rounds_is_the_largest_n_that_fits() -> None:
-    def one_row(n: int) -> int:
-        return 32 * (n * (n + 1) // 2) + 64 * n + 512
-
-    assert one_row(MAX_HL_ROUNDS) <= WALSH_BUDGET
-    assert one_row(MAX_HL_ROUNDS + 1) > WALSH_BUDGET
-
-
-@pytest.mark.parametrize(
-    ("shape", "ties", "order"),
-    [
-        ((1, MAX_HL_ROUNDS), False, "C"),
-        # Odd Walsh counts over two or more chunks: the median was a
-        # view that kept a chunk's Walsh buffer alive into the next.
-        ((14, 1001), False, "C"),
-        ((2, MAX_HL_ROUNDS), False, "C"),
-        ((4, 1449), False, "C"),
-        ((3, 1500), False, "C"),
-        ((40, 500), False, "C"),
-        ((10_000, 40), False, "C"),
-        ((20_000, 200), False, "C"),
-        ((100_000, 60), False, "C"),
-        ((100_000, 60), True, "F"),
-    ],
-)
-def test_hodges_lehmann_peak_memory_is_within_the_documented_bound(
-    shape: tuple[int, int], ties: bool, order: str
-) -> None:
-    # The docstring's bound for float64 input: the 64 MiB chunk budget,
-    # 8 R n for the ratios and 3 R n of validation masks, and 24 R of
-    # results.
-    rng = np.random.default_rng(13)
-    logs = rng.normal(0.03, 0.05, shape)
-    if ties:
-        logs = np.round(logs, 2)
-    baseline = np.exp(logs)
-    candidate = np.ones(shape)
-    if order == "F":
-        baseline = np.asfortranarray(baseline)
-        candidate = np.asfortranarray(candidate)
-    rows, n = shape
-    tracemalloc.start()
-    try:
-        hodges_lehmann_interval(
-            baseline, candidate, direction="lower_is_better", confidence=0.99
-        )
-        _, peak = tracemalloc.get_traced_memory()
-    finally:
-        tracemalloc.stop()
-    assert peak <= WALSH_BUDGET + 11 * rows * n + 24 * rows
 
 
 @pytest.mark.parametrize("order", ["C", "F"])
@@ -1031,69 +772,6 @@ def test_validation_memory_is_within_the_documented_bound(order: str) -> None:
         tracemalloc.stop()
     assert ratios.flags["C_CONTIGUOUS"]
     assert peak <= 11 * baseline.size + 4096
-
-
-def chunk_rows(n: int) -> int:
-    """Rows per chunk, from the per-row cost under `MAX_HL_ROUNDS`."""
-    count = n * (n + 1) // 2
-    per_row = 16 * count + 64 * n + 512
-    return (WALSH_BUDGET - 16 * count) // per_row
-
-
-def test_hodges_lehmann_rows_match_alone_across_chunk_boundaries() -> None:
-    # Three real chunks at n = 301 (normal branch). The row kind cycles
-    # with the chunk, so a row and the rows at its position in other
-    # chunks differ in kind: untied, tied, identical. Computing the
-    # critical index or the identical-row check from another chunk's
-    # rows changes some row's bounds.
-    n = 301
-    k = chunk_rows(n)
-    rows = 2 * k + 6
-    rng = np.random.default_rng(18)
-    ratios = np.empty((rows, n))
-    for j in range(rows):
-        kind = (j + j // k) % 3
-        logs = rng.normal(0.03, 0.05, n)
-        if kind == 0:
-            ratios[j] = np.exp(logs)
-        elif kind == 1:
-            ratios[j] = np.exp(np.round(logs, 2))
-        else:
-            ratios[j] = step(1.03, j % 3 - 1)
-    candidate = np.ones_like(ratios)
-    batch = hodges_lehmann_interval(
-        ratios, candidate, direction="lower_is_better", confidence=0.99
-    )
-    assert rows > 2 * k
-    for j in range(rows):
-        alone = hodges_lehmann_interval(
-            ratios[j],
-            candidate[j],
-            direction="lower_is_better",
-            confidence=0.99,
-        )
-        for got, want in zip(bounds(batch), bounds(alone), strict=True):
-            assert float(got[j]).hex() == float(want).hex(), j
-
-
-@pytest.mark.parametrize("n", [MAX_HL_ROUNDS + 1, 3_000, 6_000, 100_000])
-def test_hodges_lehmann_refuses_rows_too_big_before_allocating(
-    n: int,
-) -> None:
-    baseline = np.ones(n)
-    tracemalloc.start()
-    try:
-        with pytest.raises(ValueError, match=f"at most {MAX_HL_ROUNDS}"):
-            hodges_lehmann_interval(
-                baseline,
-                baseline,
-                direction="lower_is_better",
-                confidence=0.99,
-            )
-        _, peak = tracemalloc.get_traced_memory()
-    finally:
-        tracemalloc.stop()
-    assert peak < 4 * baseline.nbytes + 2**20
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -1137,64 +815,6 @@ def nearest_floats(exact: Exact) -> tuple[float, float]:
             return below, x
         x = below
     raise AssertionError("no float below the bound nearby")
-
-
-@pytest.mark.parametrize("log_size", [100.0, 600.0])
-@pytest.mark.parametrize("side", ["lower", "upper"])
-def test_hodges_lehmann_eps_covers_cancelling_walsh_averages(
-    log_size: float, side: str
-) -> None:
-    # 20 rounds with logs near -D and +D. The deciding bound is a
-    # cross-pair Walsh average near log 1.03, whose log errors scale
-    # with D, not with the result, so only eps covers them; the exp
-    # widening scales with the result. The ratios get random mantissas:
-    # the exact log of fl(exp(x)) sits within 1e-16 of x, which log
-    # would round to with almost no error.
-    rng = np.random.default_rng(int(log_size) + (side == "lower"))
-    few, many = 3, 17
-    minus_n, plus_n = (few, many) if side == "lower" else (many, few)
-    logs = np.concatenate(
-        [
-            -log_size + rng.uniform(-0.1, 0.1, (100, minus_n)),
-            log_size + rng.uniform(-0.05, 0.25, (100, plus_n)),
-        ],
-        axis=1,
-    )
-    ratios = np.exp(logs) * rng.uniform(1.0, 1.001, logs.shape)
-    res = hodges_lehmann_interval(
-        ratios,
-        np.ones_like(ratios),
-        direction="lower_is_better",
-        confidence=0.99,
-    )
-    decided = 0
-    for row in range(ratios.shape[0]):
-        lower, upper = float(res.lower[row]), float(res.upper[row])
-        exact_lo, exact_hi = exact_bounds(
-            "hl", [float(r) for r in ratios[row]], 0.99
-        )
-        assert exact_lo.cmp(lower) >= 0
-        assert exact_hi.cmp(upper) <= 0
-        # The bar one ulp from the exact bound, on the side where a
-        # bound tighter than exact decides wrongly.
-        if side == "lower":
-            bar = nearest_floats(exact_lo)[1]
-        else:
-            bar = nearest_floats(exact_hi)[0]
-        if not 1.0 < bar < 2.0:
-            continue
-        min_effect = bar - 1.0
-        assert 1.0 + min_effect == bar
-        d = decide(
-            PASSED,
-            (lower, upper),
-            min_effect=min_effect,
-            budget_remains=False,
-            calibrated=True,
-        )
-        assert d.rule != (2 if side == "lower" else 3)
-        decided += 1
-    assert decided >= 50
 
 
 def test_centred_squares_bound_is_not_below_exact() -> None:
@@ -1263,15 +883,6 @@ GOOD = np.ones(12)
         ),
         (
             lambda: t_interval(
-                np.ones(0),
-                np.ones(0),
-                direction="lower_is_better",
-                confidence=0.9,
-            ),
-            "at least one round",
-        ),
-        (
-            lambda: hodges_lehmann_interval(
                 np.ones(0),
                 np.ones(0),
                 direction="lower_is_better",
@@ -1381,19 +992,9 @@ GOOD = np.ones(12)
             ),
             "got 0",
         ),
-        (
-            lambda: hodges_lehmann_interval(
-                GOOD[:5],
-                GOOD[:5],
-                direction="lower_is_better",
-                confidence=0.99,
-            ),
-            "too few",
-        ),
         (lambda: batch_means(np.arange(4), 2), "int64"),
         (lambda: batch_means(np.ones(4), 5), "got 5"),
         (lambda: t_critical(0, 0.9), "got 0"),
-        (lambda: normal_critical(0.0), "0.0"),
     ],
 )
 def test_invalid_input_raises(call: Callable[[], object], named: str) -> None:

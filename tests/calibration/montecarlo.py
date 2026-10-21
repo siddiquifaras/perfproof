@@ -2,20 +2,30 @@
 
 "Calibration" in ``docs/method.md`` fixes what is run and how a cell
 passes; this module runs it. A cell is one look schedule (a target
-class's defaults), one development scenario, one host mode and one
-true speedup. Each of its ``R`` replications is one complete
-comparison: rounds drawn by `perfproof.stats.simulate.simulate` with
-balanced order on one host, the round and time budget of the schedule,
-the looks `perfproof.stats.sequential.plan_looks` places, and every
-look decided by `perfproof.stats.decision.interval_rules`.
+class's defaults), one scenario (a development scenario or one the T1.6
+audit exposed, `exposed.EXPOSED`), one host mode and one true speedup.
+Each of its ``R`` replications is one complete comparison: rounds drawn
+by `perfproof.stats.simulate.simulate` with balanced order on one host,
+the round and time budget of the schedule, and the looks
+`perfproof.stats.sequential.plan_looks` places.
 
-Two procedures run in every cell: the t primary of ``docs/method.md``,
-through `perfproof.stats.sequential.run_looks`, and batch means in
-blocks of `BATCH_BLOCK` rounds, the fallback with the block size that
-the page's N1 decision fixes. The other challengers (Hodges-Lehmann,
-the bootstrap of the ratio of medians with and without BCa, and blocks
-of 4, 5 and 10 rounds) lost everywhere, were deleted after the recorded
-runs, and are in the history at commit 8406d80 with their counts in
+Two procedures run in every cell, on the same simulated rounds:
+
+- `PRIMARY`, the primary of ``docs/method.md``: batch means in blocks
+  of 6 with the diagnostic gate, through
+  `perfproof.stats.sequential.run_looks`, the production code.
+- `UNGATED`, the same interval without the gate, through the harness's
+  own `drive_looks`, which decides every look with
+  `perfproof.stats.decision.interval_rules` and shares no code with
+  `run_looks` beyond the interval. It is the procedure before the gate,
+  kept so that the effect of the gate is measured in the same cells.
+
+`drive_looks` can also apply the gate, with diagnostics written here
+apart from the production ones (`harness_withheld`), and the tests hold
+`PRIMARY` and that harness procedure to identical outcomes. The plain t
+interval, Hodges-Lehmann, the bootstrap of the ratio of medians and
+blocks of 4, 5 and 10 rounds were run as challengers in T1.6, lost,
+and are in the history at commit 8406d80 with their counts in
 ``tests/calibration/results/``.
 
 Choices the method leaves open, fixed here before the run:
@@ -51,12 +61,14 @@ draws, and with them the counts, do not depend on the machine.
 import math
 import os
 import time
+import warnings
 import zlib
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Final, Literal
 
 import numpy as np
+from exposed import EXPOSED
 from numpy.typing import NDArray
 from scipy import stats  # pyright: ignore[reportMissingTypeStubs]
 
@@ -65,6 +77,11 @@ from perfproof.stats.decision import interval_rules
 from perfproof.stats.intervals import t_interval
 from perfproof.stats.sequential import (
     DEFAULT_ALPHA,
+    LAG1_LIMIT,
+    LAG1_MIN_BLOCKS,
+    OUTLIER_MIN_BLOCKS,
+    OUTLIER_SHARE,
+    OUTLIER_Z,
     LookPlan,
     look_confidence,
     plan_looks,
@@ -80,10 +97,10 @@ from perfproof.stats.simulate import (
 FloatArray = NDArray[np.float64]
 
 SEED_ENV: Final = "PERFPROOF_CALIBRATION_SEED"
-DEFAULT_SEED: Final = 844029934949031648
-"""Seed of the calibration of record, drawn before it ran. The run at
-seed 1652377851162723444 chose the batch-means block size; this one
-confirms it, whole, as ``docs/method.md`` requires after a change."""
+DEFAULT_SEED: Final = 3598798392042499920
+"""Seed of the T1.8 calibration of record, drawn before it ran. The T1.6
+runs at seeds 1652377851162723444 and 844029934949031648 chose and
+confirmed the batch-means block size without the gate."""
 SPEEDUPS: Final = (0.95, 1.00, 1.03, 1.04, 1.05, 1.10, 1.20)
 MIN_EFFECT: Final = 0.03
 BAR: Final = 1.0 + MIN_EFFECT
@@ -160,26 +177,35 @@ SCHEDULES: Final = (
 SCHEDULE_BY_NAME: Final = {s.name: s for s in SCHEDULES}
 
 BATCH_BLOCK: Final = 6
-"""Rounds per batch-means block: three order pairs (N1)."""
-PRIMARY: Final = "t"
-FALLBACK: Final = f"batch_means_{BATCH_BLOCK}"
-PROCEDURES: Final = (PRIMARY, FALLBACK)
+"""Rounds per batch-means block: three order pairs (N1). The harness
+keeps its own copy, and a test holds it equal to production's."""
+PRIMARY: Final = f"batch_means_{BATCH_BLOCK}"
+UNGATED: Final = f"batch_means_{BATCH_BLOCK}_ungated"
+PROCEDURES: Final = (PRIMARY, UNGATED)
 
 
 def scenarios(mode: HostMode) -> dict[str, NoiseScenario]:
-    """Return the development scenarios run in ``mode``.
+    """Return the scenarios run in ``mode``.
 
-    One host, every development scenario at `BASE_CV`. Cross host,
-    those the simulator allows there, each with a per-session offset
-    of `CROSS_HOST_OFFSET_CV`.
+    The development scenarios of ``docs/method.md`` at `BASE_CV`, then
+    the exposed ones (`exposed.EXPOSED`). One host, each as written.
+    Cross host, the development scenarios the simulator allows there,
+    and every exposed scenario without drift and the order effect (the
+    simulator refuses them there), each with a per-session offset of
+    `CROSS_HOST_OFFSET_CV`.
     """
-    found = development_scenarios(BASE_CV)
+    found = {**development_scenarios(BASE_CV), **EXPOSED}
     if mode == "one_host":
         return found
     return {
-        name: replace(s, session_offset_cv=CROSS_HOST_OFFSET_CV)
+        name: replace(
+            s,
+            drift=0.0,
+            order_effect=0.0,
+            session_offset_cv=CROSS_HOST_OFFSET_CV,
+        )
         for name, s in found.items()
-        if not s.one_host_only
+        if name in EXPOSED or not s.one_host_only
     }
 
 
@@ -322,8 +348,16 @@ class Ended:
     rounds: NDArray[np.int64]
 
 
+WithholdFn = Callable[[NDArray[np.intp], int], NDArray[np.bool_]]
+"""Which of the given rows' decisions the gate withholds at ``n``."""
+
+
 def drive_looks(
-    plan: LookPlan, interval_at: IntervalFn, *, n0: int | None
+    plan: LookPlan,
+    interval_at: IntervalFn,
+    *,
+    n0: int | None,
+    withhold: WithholdFn | None = None,
 ) -> Ended:
     """Run the looks of ``plan`` for a procedure given as bounds.
 
@@ -334,7 +368,9 @@ def drive_looks(
     at its first look whose action is not continue. A look with no
     interval (NaN bounds: too few blocks) neither keeps nor rejects: it
     continues, and is INCONCLUSIVE at its last look. ``n0`` is given
-    cross host only.
+    cross host only. With ``withhold``, a look whose rule is 2 or 3 and
+    which ``withhold`` names for its row becomes rule 4, or rule 5 at
+    its last look, as the diagnostic gate of ``docs/method.md`` says.
     """
     rows_total, looks = plan.rounds.shape
     running = np.ones(rows_total, dtype=np.bool_)
@@ -363,12 +399,62 @@ def drive_looks(
                     n0=n0,
                 )
                 rule[defined] = decided.rule
+            if withhold is not None:
+                held = withhold(r, n) & ((rule == 2) | (rule == 3))
+                rule = np.where(held, np.where(final, 5, 4), rule).astype(
+                    np.int8
+                )
             action = _ACTION_BY_RULE[rule]
             outcome[r] = np.where(action == "CONTINUE", "INCONCLUSIVE", action)
             used[r] = n
             running[r] = action == "CONTINUE"
         running &= here
     return Ended(outcome.astype(np.str_), used)
+
+
+def harness_withheld(
+    log_ratios: FloatArray, candidate_first: NDArray[np.bool_]
+) -> NDArray[np.bool_]:
+    """Whether the gate of ``docs/method.md`` withholds each row.
+
+    Written from the method's text, apart from the production
+    diagnostics: the lag-1 autocorrelation after removing each order's
+    mean, the share of rounds more than `OUTLIER_Z` robust standard
+    deviations from the median of their order, and the number of blocks
+    of `BATCH_BLOCK` rounds. ``log_ratios`` and ``candidate_first`` are
+    shaped ``(R, n)``.
+    """
+    n = log_ratios.shape[1]
+    blocks = n // BATCH_BLOCK
+    out = np.zeros(log_ratios.shape[0], dtype=np.bool_)
+    if blocks >= LAG1_MIN_BLOCKS:
+        return out
+    x = np.zeros_like(log_ratios)
+    deviation = np.zeros_like(log_ratios)
+    for order in (True, False):
+        mask = candidate_first == order
+        count = mask.sum(axis=1, keepdims=True)
+        mean = np.where(mask, log_ratios, 0.0).sum(axis=1, keepdims=True)
+        x = np.where(mask, log_ratios - mean / np.maximum(count, 1), x)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            median = np.nanmedian(
+                np.where(mask, log_ratios, np.nan), axis=1, keepdims=True
+            )
+        deviation = np.where(
+            mask, log_ratios - np.nan_to_num(median), deviation
+        )
+    top = (x[:, 1:] * x[:, :-1]).sum(axis=1)
+    bottom = (x * x).sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        lag1 = np.where(bottom > 0, top / bottom, 0.0)
+    out |= lag1 > LAG1_LIMIT
+    if blocks < OUTLIER_MIN_BLOCKS:
+        spread = np.abs(deviation)
+        scale = 1.482602218505602 * np.median(spread, axis=1)
+        wild = (spread > OUTLIER_Z * scale[:, np.newaxis]).mean(axis=1)
+        out |= wild > OUTLIER_SHARE
+    return out
 
 
 def _nan_bounds(rows: int) -> tuple[FloatArray, FloatArray]:
@@ -528,7 +614,7 @@ def run_cell(
         )
         rounds = collected_rounds(drawn.log_times, sched)
         cut_by_time += int(np.count_nonzero(rounds < sched.max_rounds))
-        _run_chunk(run, drawn.log_times, rounds)
+        _run_chunk(run, drawn.log_times, drawn.candidate_first, rounds)
     return {
         "cell": cell.name,
         "schedule": sched.name,
@@ -549,6 +635,7 @@ def run_cell(
 def _run_chunk(
     run: _CellRun,
     log_times: FloatArray,
+    first: NDArray[np.bool_],
     rounds: NDArray[np.int64],
 ) -> None:
     """Run every procedure on one chunk of replications."""
@@ -573,23 +660,13 @@ def _run_chunk(
             resolution=None,
             exhausted=exhausted,
             rounds=rounds,
-            procedure="t_log_ratio",
+            candidate_first=first,
         )
         if np.any(result.outcome == "CONTINUE"):
             msg = f"{cell.name}: {PRIMARY} ended with CONTINUE"
             raise ValueError(msg)
         tallies[PRIMARY].add(Ended(result.outcome, result.rounds_used))
-        for n in run.fixed_n:
-            found = t_interval(
-                b[:, :n],
-                c[:, :n],
-                direction="lower_is_better",
-                confidence=conf,
-            )
-            tallies[PRIMARY].add_coverage(
-                n, found.lower, found.upper, cell.speedup
-            )
-    if FALLBACK in tallies:
+    if UNGATED in tallies:
         plan = plan_looks(sched.looks, rounds, exhausted, mode=cell.mode)
 
         def blocked(
@@ -599,8 +676,9 @@ def _run_chunk(
                 b[rows, :n], c[rows, :n], BATCH_BLOCK, conf
             )
 
-        tallies[FALLBACK].add(drive_looks(plan, blocked, n0=run.cross_n0))
+        tallies[UNGATED].add(drive_looks(plan, blocked, n0=run.cross_n0))
+    for name in tallies:
         for n in run.fixed_n:
             lo, hi = batch_means_bounds(b[:, :n], c[:, :n], BATCH_BLOCK, conf)
             if np.all(np.isfinite(lo)):
-                tallies[FALLBACK].add_coverage(n, lo, hi, cell.speedup)
+                tallies[name].add_coverage(n, lo, hi, cell.speedup)

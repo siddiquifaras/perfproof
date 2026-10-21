@@ -32,9 +32,25 @@ is one real comparison.
   arm has fewer distinct values than half its rounds
   (`continuity_fails`). Both apply in both host modes.
 
+- **Interval.** The primary is batch means: the mean log ratios of
+  blocks of `BATCH_BLOCK` consecutive rounds (cross host, session
+  pairs) are the observations of a Student t interval. Fewer than two
+  complete blocks give no interval: the look neither keeps nor
+  rejects, it continues, and at its last look it is INCONCLUSIVE.
+- **Diagnostic gate.** Two diagnostics of the log ratios withhold a
+  KEEP or a performance REJECT, with the look continuing (or
+  INCONCLUSIVE at the last look), while the look has fewer blocks
+  than the diagnostic needs: a lag-1 autocorrelation above
+  `LAG1_LIMIT` (fewer than `LAG1_MIN_BLOCKS` blocks) and an outlier
+  share above `OUTLIER_SHARE` (fewer than `OUTLIER_MIN_BLOCKS`
+  blocks). Where the interval's coverage is not shown, the decision
+  waits for the length at which calibration showed it holds. See
+  `Look.withheld`.
+
 Every look is decided by `decide_look`, in the order of the decision
 rule in ``docs/method.md``: the resolution stop, then the widening,
-then rules 2 to 5, decided only by
+then rules 2 to 5 (and the diagnostic gate on rules 2 and 3), decided
+only by
 `perfproof.stats.decision.interval_rules` with the look's widened
 bounds; the bar comparison is never repeated here. `run_looks` drives
 the looks over a batch; a runner that takes its own looks calls
@@ -108,7 +124,7 @@ from perfproof.stats.decision import interval_rules
 from perfproof.stats.intervals import (
     LIBM_ULPS,
     PairedInterval,
-    hodges_lehmann_interval,
+    paired_ratios,
     t_interval,
 )
 from perfproof.stats.simulate import HostMode
@@ -116,7 +132,12 @@ from perfproof.stats.simulate import HostMode
 __all__ = [
     "BATCH_BLOCK",
     "DEFAULT_ALPHA",
+    "LAG1_LIMIT",
+    "LAG1_MIN_BLOCKS",
     "OUTCOMES",
+    "OUTLIER_MIN_BLOCKS",
+    "OUTLIER_SHARE",
+    "OUTLIER_Z",
     "Look",
     "LookPlan",
     "ObservationBounds",
@@ -126,6 +147,7 @@ __all__ = [
     "decide_look",
     "lag1_autocorrelation",
     "look_confidence",
+    "outlier_share",
     "plan_looks",
     "round_error_bounds",
     "run_looks",
@@ -137,9 +159,28 @@ FloatArray = NDArray[np.float64]
 
 DEFAULT_ALPHA: Final = 0.05
 """``alpha`` of ``docs/method.md``: the error the promise allows."""
-BATCH_BLOCK: Final = 5
-"""Rounds per block of the batch-means fallback of ``docs/method.md``.
-"""
+BATCH_BLOCK: Final = 6
+"""Rounds per block of the primary, batch means, in ``docs/method.md``:
+three order pairs on one host, six session pairs cross host."""
+LAG1_LIMIT: Final = 0.1
+"""Lag-1 autocorrelation of the log ratios above which a KEEP or a
+performance REJECT needs `LAG1_MIN_BLOCKS` blocks. Fixed in
+``docs/method.md`` ("Diagnostic gate"); lower than the 0.3 at which
+the record warns, because cross host the session offsets dilute the
+autocorrelation the log ratios show."""
+LAG1_MIN_BLOCKS: Final = 20
+"""Blocks of `BATCH_BLOCK` rounds a look needs to decide when the
+lag-1 autocorrelation is above `LAG1_LIMIT`."""
+OUTLIER_Z: Final = 6.0
+"""A round is an outlier when its log ratio is more than this many
+robust standard deviations (1.4826 times the median absolute deviation)
+from the median of its order."""
+OUTLIER_SHARE: Final = 0.03
+"""Share of outlier rounds above which a KEEP or a performance REJECT
+needs `OUTLIER_MIN_BLOCKS` blocks."""
+OUTLIER_MIN_BLOCKS: Final = 10
+"""Blocks of `BATCH_BLOCK` rounds a look needs to decide when the
+outlier share is above `OUTLIER_SHARE`."""
 OUTCOMES: Final = ("KEEP", "REJECT", "INCONCLUSIVE", "CONTINUE")
 """The values `SequentialResult.outcome` takes."""
 
@@ -153,11 +194,9 @@ _TINY_NORMAL: Final = float(np.finfo(np.float64).tiny)
 _MIN_N0: Final = 10
 _MODES: Final = ("one_host", "cross_host")
 _DIRECTIONS: Final = ("lower_is_better", "higher_is_better")
-_PROCEDURES: Final = (
-    "t_log_ratio",
-    "t_log_ratio_batch_means",
-    "hodges_lehmann_wilcoxon",
-)
+_PROCEDURES: Final = ("t_log_ratio", "t_log_ratio_batch_means")
+_MAD_TO_SD: Final = 1.482602218505602
+_WITHHELD: Final = np.array(["", "autocorrelated_rounds", "outlier_rounds"])
 _EXACT_FLOATS: Final = frozenset(
     np.dtype(t) for t in (np.float16, np.float32, np.float64)
 )
@@ -262,6 +301,13 @@ class Look:
         A performance REJECT with ``U < 1``.
     held : numpy.ndarray of bool, shape (R,)
         Rule 2 fired but ``keep_blocked`` held it back from KEEP.
+    withheld : numpy.ndarray of str, shape (R,)
+        ``""`` where no diagnostic withheld the look's decision;
+        ``"autocorrelated_rounds"`` or ``"outlier_rounds"`` where the
+        interval would have given rule 2 or 3 but the diagnostic gate
+        (module docstring) held the look to rule 4, or 5 at its last
+        look. A withheld look records the interval it computed, and
+        its ``regression`` flag is False.
     action : numpy.ndarray of str, shape (R,)
         One of `OUTCOMES`: what the comparison does after this look.
     """
@@ -271,6 +317,7 @@ class Look:
     rule: NDArray[np.int8]
     regression: NDArray[np.bool_]
     held: NDArray[np.bool_]
+    withheld: NDArray[np.str_]
     action: NDArray[np.str_]
 
 
@@ -307,6 +354,8 @@ class SequentialResult:
         ``U < 1``.
     held : numpy.ndarray of bool, shape (R, K)
         Where rule 2 fired but ``keep_blocked`` held it back.
+    withheld : numpy.ndarray of str, shape (R, K)
+        Each look's `Look.withheld`; empty where no look was taken.
     action : numpy.ndarray of str, shape (R, K)
         Each look's `Look.action`; empty where no look was taken.
     outcome : numpy.ndarray of str, shape (R,)
@@ -332,6 +381,7 @@ class SequentialResult:
     rule: NDArray[np.int8]
     regression: NDArray[np.bool_]
     held: NDArray[np.bool_]
+    withheld: NDArray[np.str_]
     action: NDArray[np.str_]
     outcome: NDArray[np.str_]
     final_rule: NDArray[np.int8]
@@ -653,6 +703,75 @@ def lag1_autocorrelation(
     return np.where(den > 0, ratio, np.nan)
 
 
+def outlier_share(
+    log_ratios: ArrayLike, candidate_first: ArrayLike
+) -> FloatArray:
+    """Share of rounds whose log ratio is an outlier.
+
+    The diagnostic of the gate in ``docs/method.md``. Each round's
+    deviation is taken from the median of the rounds that ran in the
+    same order, as for `lag1_autocorrelation`, so an order effect is not
+    read as outliers. A round is an outlier when its deviation exceeds
+    `OUTLIER_Z` robust standard deviations: ``1.4826`` times the median
+    absolute deviation over all rounds. When more than half the
+    deviations are 0 the robust scale is 0 and every nonzero deviation
+    is an outlier. O(R n log n).
+
+    Parameters
+    ----------
+    log_ratios : array_like of float
+        ``d = log(r)`` shaped ``(..., n)``, ``n >= 1``, finite.
+    candidate_first : array_like of bool
+        Same shape: True where the candidate ran first. All False cross
+        host.
+
+    Returns
+    -------
+    numpy.ndarray of float64
+        Shape ``(...)``, in ``[0, 1]``.
+
+    Raises
+    ------
+    ValueError
+        If the shapes differ, ``n < 1``, ``d`` is not finite, or
+        ``candidate_first`` is not boolean.
+    """
+    d = np.asarray(log_ratios, dtype=np.float64)
+    first = np.asarray(candidate_first)
+    if first.dtype != np.bool_:
+        msg = f"candidate_first must be boolean, got dtype {first.dtype}"
+        raise ValueError(msg)
+    if d.shape != first.shape or d.ndim < 1 or d.shape[-1] < 1:
+        msg = (
+            f"log_ratios shape {d.shape} and candidate_first shape "
+            f"{first.shape} must match, with at least 1 round"
+        )
+        raise ValueError(msg)
+    if not np.all(np.isfinite(d)):
+        msg = "log_ratios must be finite"
+        raise ValueError(msg)
+    centred = d - np.where(
+        first, _median_where(d, first), _median_where(d, ~first)
+    )
+    spread = np.abs(centred)
+    scale = _MAD_TO_SD * np.median(spread, axis=-1, keepdims=True)
+    return np.mean(spread > OUTLIER_Z * scale, axis=-1)
+
+
+def _median_where(d: FloatArray, mask: NDArray[np.bool_]) -> FloatArray:
+    """Median of ``d`` over the masked rounds, shape ``(..., 1)``.
+
+    0 where the mask is empty, so callers can broadcast it unused.
+    """
+    count = np.sum(mask, axis=-1, keepdims=True)
+    ordered = np.sort(np.where(mask, d, np.inf), axis=-1)
+    low = np.take_along_axis(ordered, np.maximum(count - 1, 0) // 2, axis=-1)
+    high = np.take_along_axis(ordered, count // 2, axis=-1)
+    with np.errstate(invalid="ignore"):
+        middle = (low + high) / 2
+    return np.where(count > 0, middle, 0.0)
+
+
 def session_pair_error(
     baseline: ArrayLike,
     candidate: ArrayLike,
@@ -724,7 +843,8 @@ def decide_look(
     resolution: Resolution | ObservationBounds | None,
     n0: int | None = None,
     keep_blocked: ArrayLike = False,
-    procedure: Procedure = "t_log_ratio",
+    procedure: Procedure = "t_log_ratio_batch_means",
+    candidate_first: ArrayLike | None = None,
 ) -> Look:
     """Decide one look, for rows that share its length.
 
@@ -740,7 +860,9 @@ def decide_look(
     (gates, decided before any round):
 
     1. the interval of ``procedure`` at ``confidence`` on the ``n``
-       observations given;
+       observations given; batch means with fewer than two complete
+       blocks has no interval (NaN bounds), and the look goes to
+       rule 4, or 5 at its last look, unless the resolution stop fires;
     2. the resolution stop (rule 1 here, ``coarse_resolution``,
        INCONCLUSIVE), except cross host below ``n0`` pairs, where speed
        never decides: there the look continues while budget remains
@@ -753,7 +875,14 @@ def decide_look(
        with budget remaining exactly where ``final`` is False; cross
        host (``n0`` given) the ``n`` observations are passed as
        completed session pairs;
-    5. where rule 2 fires and ``keep_blocked`` is True (a guardrail
+    5. for ``procedure`` batch means only, the diagnostic gate: where
+       rule 2 or 3 fired and the look has fewer blocks of
+       `BATCH_BLOCK` observations than a diagnostic needs (lag-1
+       autocorrelation above `LAG1_LIMIT` with fewer than
+       `LAG1_MIN_BLOCKS`, outlier share above `OUTLIER_SHARE` with
+       fewer than `OUTLIER_MIN_BLOCKS`), the look is rule 4, or rule 5
+       at its last look, and `Look.withheld` names the diagnostic;
+    6. where rule 2 fires and ``keep_blocked`` is True (a guardrail
        ``not_established`` or ``unmeasurable``, per "Guardrails" in
        ``docs/method.md``), the look continues while budget remains
        and is INCONCLUSIVE at the last look, instead of KEEP.
@@ -784,15 +913,21 @@ def decide_look(
         schedule's ``n0``, at least 10. ``None`` means one host.
     keep_blocked : array_like of bool, default False
         Broadcast to ``(R,)``: where True, rule 2 does not keep.
-    procedure : str, default "t_log_ratio"
-        ``"t_log_ratio"``, ``"t_log_ratio_batch_means"`` (blocks of
-        `BATCH_BLOCK`) or ``"hodges_lehmann_wilcoxon"``.
+    procedure : str, default "t_log_ratio_batch_means"
+        ``"t_log_ratio_batch_means"`` (the primary, blocks of
+        `BATCH_BLOCK`) or ``"t_log_ratio"`` (plain t, blocks of 1).
+    candidate_first : array_like of bool, optional
+        Shape ``(R, n)``: True where the candidate ran first in the
+        round, which the diagnostics need to remove the order effect
+        (`lag1_autocorrelation`, `outlier_share`). ``None`` treats
+        every round as the same order, as cross host.
 
     Returns
     -------
     Look
         Bounds, rule, regression flag, whether rule 2 was held back,
-        and the action, per row.
+        which diagnostic withheld the decision, and the action, per
+        row.
 
     Raises
     ------
@@ -801,7 +936,8 @@ def decide_look(
         and positive; the procedure or direction is unknown;
         ``min_effect``, ``calibrated``, ``final`` or ``keep_blocked``
         is invalid; a `Resolution` is given cross host; the bounds are
-        invalid (see `ObservationBounds`); or an interval bound is not
+        invalid (see `ObservationBounds`); ``candidate_first`` is not
+        boolean or not shaped ``(R, n)``; or an interval bound is not
         finite and positive where the decision needs it.
     """
     b, c = _measurement_pair(baseline, candidate)
@@ -811,8 +947,14 @@ def decide_look(
         _check_int("n0", n0, _MIN_N0)
     last = _bool_array("final", final, (rows,))
     blocked = _bool_array("keep_blocked", keep_blocked, (rows,))
-    found = _interval_procedure(procedure, direction, confidence)(b, c)
-    lo, hi = found.lower, found.upper
+    first = _candidate_first(candidate_first, (rows, n))
+    has_interval = procedure == "t_log_ratio" or n // BATCH_BLOCK >= 2
+    if has_interval:
+        found = _interval_procedure(procedure, direction, confidence)(b, c)
+        lo, hi, used = found.lower, found.upper, found.rounds
+    else:
+        lo = hi = np.full(rows, np.nan)
+        used = 0
     coarse = np.zeros(rows, dtype=np.bool_)
     unbounded = np.zeros(rows, dtype=np.bool_)
     errors = _look_errors(b, c, resolution, cross=n0 is not None)
@@ -826,14 +968,13 @@ def decide_look(
             coarse = unbounded
         # The interval may drop a trailing incomplete block; the
         # widening is the mean bound over the observations it used.
-        spent = np.where(
-            unbounded[:, np.newaxis], 0.0, bound[:, : found.rounds]
-        )
-        lo, hi = widen(lo, hi, _mean_up(spent))
+        if has_interval:
+            spent = np.where(unbounded[:, np.newaxis], 0.0, bound[:, :used])
+            lo, hi = widen(lo, hi, _mean_up(spent))
     rule = np.ones(rows, dtype=np.int8)
     regression = np.zeros(rows, dtype=np.bool_)
     clear = ~coarse
-    if clear.any():
+    if clear.any() and has_interval:
         pairs = None if n0 is None else np.full(int(clear.sum()), n)
         decided = interval_rules(
             lo[clear],
@@ -846,6 +987,14 @@ def decide_look(
         )
         rule[clear] = decided.rule
         regression[clear] = decided.regression
+    elif clear.any():
+        rule[clear] = np.where(last[clear], 5, 4)
+    why = np.zeros(rows, dtype=np.intp)
+    if procedure == "t_log_ratio_batch_means":
+        why = _withheld_codes(b, c, direction, first, rule)
+    withheld = why > 0
+    rule = np.where(withheld, np.where(last, 5, 4), rule).astype(np.int8)
+    regression &= ~withheld
     held = (rule == 2) & blocked
     action = _ACTION_BY_RULE[rule]
     action = np.where(held & ~last, "CONTINUE", action)
@@ -859,6 +1008,7 @@ def decide_look(
         rule=rule,
         regression=regression,
         held=held,
+        withheld=_WITHHELD[why].astype(np.str_),
         action=action.astype(np.str_),
     )
 
@@ -876,8 +1026,9 @@ def run_looks(
     exhausted: ArrayLike,
     rounds: ArrayLike | None = None,
     alpha: float = DEFAULT_ALPHA,
-    procedure: Procedure = "t_log_ratio",
+    procedure: Procedure = "t_log_ratio_batch_means",
     keep_blocked: ArrayLike = False,
+    candidate_first: ArrayLike | None = None,
 ) -> SequentialResult:
     """Run the sequential procedure over a batch of comparisons.
 
@@ -893,10 +1044,8 @@ def run_looks(
     Work per look is one `decide_look` call per distinct look length
     among the replications still running (one for the scheduled looks,
     plus one per distinct budget cut-off), on copies of their rounds,
-    so memory beyond the inputs is a small multiple of ``R n`` floats
-    (and the Hodges-Lehmann working set of
-    `perfproof.stats.intervals.hodges_lehmann_interval`). Time is
-    O(K R n) for the t intervals.
+    so memory beyond the inputs is a small multiple of ``R n`` floats.
+    Time is O(K R n log n) for the intervals and diagnostics.
 
     Parameters
     ----------
@@ -937,13 +1086,17 @@ def run_looks(
         most ``n``; default ``n`` for every row.
     alpha : float, default 0.05
         Total error the promise allows.
-    procedure : str, default "t_log_ratio"
-        ``"t_log_ratio"`` (the primary), ``"t_log_ratio_batch_means"``
-        (blocks of `BATCH_BLOCK`), or ``"hodges_lehmann_wilcoxon"``.
+    procedure : str, default "t_log_ratio_batch_means"
+        ``"t_log_ratio_batch_means"`` (the primary, blocks of
+        `BATCH_BLOCK`) or ``"t_log_ratio"``.
     keep_blocked : array_like of bool, default False
         Shape ``(R,)`` (the same at every look) or ``(R, K)`` (per
         look): where True, a guardrail not yet established holds back
         rule 2, as `decide_look` describes.
+    candidate_first : array_like of bool, optional
+        Shape ``(R, n)`` like the measurements: True where the
+        candidate ran first in the round, for the diagnostics of
+        `decide_look`. ``None``: every round the same order.
 
     Returns
     -------
@@ -977,6 +1130,7 @@ def run_looks(
         )
         raise ValueError(msg)
     blocked = _blocked_per_look(keep_blocked, replications, looks)
+    first = _candidate_first(candidate_first, b.shape)
     full = _full_resolution(resolution, b.shape, cross=mode == "cross_host")
     n0 = schedule.n0 if mode == "cross_host" else None
     lower = np.full((replications, looks), np.nan)
@@ -984,6 +1138,7 @@ def run_looks(
     rule = np.zeros((replications, looks), dtype=np.int8)
     regression = np.zeros((replications, looks), dtype=np.bool_)
     held = np.zeros((replications, looks), dtype=np.bool_)
+    withheld = np.full((replications, looks), "", dtype="<U24")
     action = np.full((replications, looks), "", dtype="<U12")
     used = np.zeros((replications, looks), dtype=np.int64)
     running = np.ones(replications, dtype=np.bool_)
@@ -1005,7 +1160,9 @@ def run_looks(
                 n0=n0,
                 keep_blocked=blocked[rows, j],
                 procedure=procedure,
+                candidate_first=first[rows, :n],
             )
+            withheld[rows, j] = look.withheld
             lower[rows, j] = look.lower
             upper[rows, j] = look.upper
             rule[rows, j] = look.rule
@@ -1021,6 +1178,7 @@ def run_looks(
         rule,
         regression,
         held,
+        withheld,
         action,
         plan.exhausted,
         conf,
@@ -1035,6 +1193,7 @@ def _summary(
     rule: NDArray[np.int8],
     regression: NDArray[np.bool_],
     held: NDArray[np.bool_],
+    withheld: NDArray[np.str_],
     action: NDArray[np.str_],
     exhausted: NDArray[np.bool_],
     confidence: float,
@@ -1056,6 +1215,7 @@ def _summary(
         rule=rule,
         regression=regression,
         held=held,
+        withheld=withheld.astype(np.str_),
         action=action.astype(np.str_),
         outcome=outcome.astype(np.str_),
         final_rule=final_rule.astype(np.int8),
@@ -1242,14 +1402,6 @@ def _interval_procedure(
     procedure: Procedure, direction: Direction, confidence: float
 ) -> Callable[[FloatArray, FloatArray], PairedInterval]:
     """Return the interval of ``procedure`` as a function of data."""
-    if procedure == "hodges_lehmann_wilcoxon":
-
-        def signed_rank(b: FloatArray, c: FloatArray) -> PairedInterval:
-            return hodges_lehmann_interval(
-                b, c, direction=direction, confidence=confidence
-            )
-
-        return signed_rank
     block = BATCH_BLOCK if procedure == "t_log_ratio_batch_means" else 1
 
     def student(b: FloatArray, c: FloatArray) -> PairedInterval:
@@ -1258,6 +1410,61 @@ def _interval_procedure(
         )
 
     return student
+
+
+def _candidate_first(
+    value: ArrayLike | None, shape: tuple[int, int]
+) -> NDArray[np.bool_]:
+    """Return the order flags as a boolean array of ``shape``.
+
+    ``None`` is every round in the same order.
+    """
+    if value is None:
+        return np.zeros(shape, dtype=np.bool_)
+    given = np.asarray(value)
+    if given.dtype != np.bool_ or given.shape != shape:
+        msg = (
+            f"candidate_first must be a boolean array shaped {shape}, got "
+            f"dtype {given.dtype}, shape {given.shape}"
+        )
+        raise ValueError(msg)
+    return given
+
+
+def _withheld_codes(
+    b: FloatArray,
+    c: FloatArray,
+    direction: Direction,
+    first: NDArray[np.bool_],
+    rule: NDArray[np.int8],
+) -> NDArray[np.intp]:
+    """Which diagnostic withholds each row's decision, 0 for none.
+
+    Only rows at rule 2 or 3 are examined: 1 where the lag-1
+    autocorrelation is above `LAG1_LIMIT` with fewer than
+    `LAG1_MIN_BLOCKS` blocks, 2 where the outlier share is above
+    `OUTLIER_SHARE` with fewer than `OUTLIER_MIN_BLOCKS` (the first
+    when both). A look with `LAG1_MIN_BLOCKS` blocks or more is never
+    withheld, which relies on `OUTLIER_MIN_BLOCKS` being the smaller.
+    """
+    codes = np.zeros(rule.shape, dtype=np.intp)
+    rows = np.flatnonzero((rule == 2) | (rule == 3))
+    n = b.shape[1]
+    blocks = n // BATCH_BLOCK
+    if rows.size == 0 or n < 2 or blocks >= LAG1_MIN_BLOCKS:
+        return codes
+    d = np.log(paired_ratios(b[rows], c[rows], direction))
+    f = first[rows]
+    lag = lag1_autocorrelation(d, f)
+    # Identical log ratios have no autocorrelation, whatever residue
+    # the mean leaves; the exact interval of identical ratios stays
+    # decidable ("Numerics" in docs/method.md).
+    varies = np.ptp(d, axis=-1) > 0
+    codes[rows] = np.where((lag > LAG1_LIMIT) & varies, 1, 0)
+    if blocks < OUTLIER_MIN_BLOCKS:
+        wild = outlier_share(d, f) > OUTLIER_SHARE
+        codes[rows] = np.where((codes[rows] == 0) & wild, 2, codes[rows])
+    return codes
 
 
 def _schedule_values(schedule: object, mode: object) -> tuple[int, int, int]:

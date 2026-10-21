@@ -5,7 +5,7 @@ Usage::
     uv run python tests/calibration/run_calibration.py run \\
         --out scratch/calibration/run.jsonl --workers 4
     uv run python tests/calibration/run_calibration.py report \\
-        scratch/calibration/run.jsonl --procedure t
+        scratch/calibration/run.jsonl --procedure batch_means_6
 
 ``run`` writes one JSON line per cell, after a first line describing
 the run (seed, ``R``, workers, platform, load average). A cell already
@@ -28,13 +28,25 @@ import platform
 import sys
 import time
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, cast
 
 import montecarlo as mc
 import numpy as np
+from exposed import EXPOSED
 
 MAX_WORKERS: Final = 4
+
+
+@dataclass(frozen=True, slots=True)
+class Entry:
+    """One cell of one procedure, as the tables use it."""
+
+    cell: str
+    errors: int
+    cp_upper: float
+    passes: bool
 
 
 def _work(args: tuple[str, int, tuple[str, ...], int]) -> str:
@@ -145,16 +157,59 @@ def load(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return meta, [cells[n] for n in order if n in cells]
 
 
+def _read_results(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="") as source:
+        return list(csv.DictReader(source))
+
+
+def _entries(path: Path, procedure: str) -> tuple[str, list[Entry]]:
+    """Read the seed and the cells of one procedure from a run or CSV.
+
+    A ``.csv`` is a results file (``seed-<seed>.csv``); anything else is
+    the run file `run` writes. Entries are in canonical cell order.
+    """
+    if path.suffix == ".csv":
+        seed = path.stem.removeprefix("seed-")
+        found = {
+            r["cell"]: Entry(
+                r["cell"],
+                int(r["errors"]),
+                float(r["cp_upper"]),
+                r["passes"] == "1",
+            )
+            for r in _read_results(path)
+            if r["procedure"] == procedure
+        }
+    else:
+        meta, cells = load(path)
+        seed = str(meta["seed"])
+        found = {
+            c["cell"]: Entry(
+                c["cell"],
+                c["procedures"][procedure]["errors"],
+                c["procedures"][procedure]["cp_upper"],
+                bool(c["procedures"][procedure]["passes"]),
+            )
+            for c in cells
+            if procedure in c["procedures"]
+        }
+    order = [c.name for c in mc.all_cells()]
+    return seed, [found[n] for n in order if n in found]
+
+
 def report(argv: Sequence[str]) -> int:
-    """Print the per-cell table of one procedure, and its failures."""
+    """Print the per-cell table of one procedure, and its failures.
+
+    ``path`` is a run file or a results CSV.
+    """
     parser = argparse.ArgumentParser(prog="run_calibration.py report")
     parser.add_argument("path", type=Path)
-    parser.add_argument("--procedure", default="t")
+    parser.add_argument("--procedure", default=mc.PRIMARY)
     args = parser.parse_args(argv)
-    meta, cells = load(args.path)
     proc: str = args.procedure
+    seed, entries = _entries(args.path, proc)
     write = sys.stdout.write
-    write(f"seed {meta['seed']}, procedure {proc}\n\n")
+    write(f"seed {seed}, procedure {proc}\n\n")
     head = "| Schedule | Scenario | Host | " + " | ".join(
         f"{s:.2f}" for s in mc.SPEEDUPS
     )
@@ -162,17 +217,14 @@ def report(argv: Sequence[str]) -> int:
     write("|---" * (3 + len(mc.SPEEDUPS)) + "|\n")
     rows: dict[tuple[str, str, str], dict[float, str]] = {}
     failing: list[str] = []
-    for cell in cells:
-        found = cell["procedures"].get(proc)
-        if found is None:
-            continue
-        key = (cell["schedule"], cell["scenario"], cell["mode"])
-        mark = "" if found["passes"] else " **FAIL**"
-        rows.setdefault(key, {})[cell["speedup"]] = (
-            f"{found['errors']} ({100 * found['cp_upper']:.2f}%){mark}"
+    for entry in entries:
+        schedule, scenario, mode, speedup = entry.cell.split("/")
+        mark = "" if entry.passes else " **FAIL**"
+        rows.setdefault((schedule, scenario, mode), {})[float(speedup)] = (
+            f"{entry.errors} ({100 * entry.cp_upper:.2f}%){mark}"
         )
-        if not found["passes"]:
-            failing.append(cell["cell"])
+        if not entry.passes:
+            failing.append(entry.cell)
     for (schedule, scenario, mode), by_speedup in rows.items():
         values = " | ".join(by_speedup.get(s, "") for s in mc.SPEEDUPS)
         write(f"| {schedule} | {scenario} | {mode} | {values} |\n")
@@ -250,9 +302,89 @@ def table(argv: Sequence[str]) -> int:
     return 0
 
 
+def _rate(rows: Sequence[dict[str, str]], column: str) -> float:
+    return sum(int(r[column]) / int(r["replications"]) for r in rows) / len(
+        rows
+    )
+
+
+def summary(argv: Sequence[str]) -> int:
+    """Summarise a results CSV: acceptance and what the gate costs.
+
+    Prints, per procedure, the cells run, the failing cells and the
+    largest error count, for the development scenarios and the exposed
+    ones; then, per schedule and host mode, the mean KEEP rate at true
+    speedups 1.05 and 1.10 and the mean INCONCLUSIVE rate at 1.04 over
+    the development scenarios, for the AR(1) one and for the others, so
+    that two procedures run on the same cells can be set side by side.
+    """
+    parser = argparse.ArgumentParser(prog="run_calibration.py summary")
+    parser.add_argument("path", type=Path)
+    args = parser.parse_args(argv)
+    rows = _read_results(args.path)
+    write = sys.stdout.write
+    exposed_names = set(EXPOSED)
+    group = {
+        True: "exposed",
+        False: "development",
+    }
+    for procedure in mc.PROCEDURES:
+        mine = [r for r in rows if r["procedure"] == procedure]
+        write(f"procedure {procedure}\n")
+        for is_exposed in (False, True):
+            part = [
+                r
+                for r in mine
+                if (r["cell"].split("/")[1] in exposed_names) == is_exposed
+            ]
+            if not part:
+                continue
+            failing = [r for r in part if r["passes"] != "1"]
+            worst = max(part, key=lambda r: int(r["errors"]))
+            write(
+                f"  {group[is_exposed]}: {len(part)} cells, "
+                f"{len(failing)} failing, largest error count "
+                f"{worst['errors']} ({worst['cell']})\n"
+            )
+    write("\nschedule, host, scenarios: KEEP 1.05, KEEP 1.10, ")
+    write("INCONCLUSIVE 1.04 (percent), per procedure\n")
+    for sched in mc.SCHEDULES:
+        for mode in mc.MODES:
+            for label, only_ar1 in (("ar1", True), ("others", False)):
+                line = f"{sched.name} {mode} {label}:"
+                for procedure in mc.PROCEDURES:
+                    cells = [
+                        r
+                        for r in rows
+                        if r["procedure"] == procedure
+                        and r["cell"].startswith(f"{sched.name}/")
+                        and r["cell"].split("/")[2] == mode
+                        and (r["cell"].split("/")[1] == "ar1") == only_ar1
+                        and r["cell"].split("/")[1] not in exposed_names
+                    ]
+                    parts: list[str] = []
+                    for speed, column in (
+                        ("1.05", "keep"),
+                        ("1.10", "keep"),
+                        ("1.04", "inconclusive"),
+                    ):
+                        sel = [
+                            r for r in cells if r["cell"].endswith("/" + speed)
+                        ]
+                        parts.append(f"{100 * _rate(sel, column):.1f}")
+                    line += f" {procedure}: " + ", ".join(parts) + ";"
+                write(line + "\n")
+    return 0
+
+
 def main() -> int:
-    """Dispatch to ``run``, ``report`` or ``csv``."""
-    commands = {"run": run, "report": report, "csv": table}
+    """Dispatch to ``run``, ``report``, ``csv`` or ``summary``."""
+    commands = {
+        "run": run,
+        "report": report,
+        "csv": table,
+        "summary": summary,
+    }
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         sys.stderr.write(__doc__ or "")
         return 2
