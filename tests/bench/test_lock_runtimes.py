@@ -19,7 +19,12 @@ from pathlib import Path
 
 import pytest
 
-from perfproof.bench.lock import probe_environment, runtime_gate
+from perfproof.bench.lock import (
+    fetching_launch,
+    probe_environment,
+    runtime_gate,
+    unwrap_launch,
+)
 from perfproof.schema import Arm, BenchmarkSpec, GateResult, TreeEnvironment
 
 
@@ -337,7 +342,7 @@ def test_shim_written_in_sh_stays_unknown(tmp_path: Path, node: Path) -> None:
 
     result = gate(spec, base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "is a shell" in result.detail
 
 
@@ -453,8 +458,8 @@ def test_npx_that_would_fetch_is_refused_unless_told_not_to(
         make_spec((npx, "--no-install", "left-pad")), base, cand, path=path
     )
 
-    assert "would be fetched and run" in fetch.detail
-    assert "would be fetched" not in no_fetch.detail
+    assert "may download code at run time" in fetch.detail
+    assert "may download code" not in no_fetch.detail
     assert "is not an executable file" in no_fetch.detail
 
 
@@ -477,7 +482,7 @@ def test_script_shell_in_npmrc_cannot_swap_the_node_unseen(
     (cand / ".npmrc").write_text(f"script-shell={shell}\n")
     spec = make_spec((str(npm_tool(node, "npx")), "tsx", "bench.js"))
     result = gate(spec, base, cand, path=with_node(node.parent))
-    assert result.status == "failed"
+    assert result.status == "not_available"
 
 
 @pytest.mark.parametrize(
@@ -508,8 +513,11 @@ def test_launchers_that_pick_their_own_node_are_refused(
 
     result = gate(spec, base, cand, path=path)
 
-    assert result.status == "failed"
-    assert "launcher that picks its own runtime" in result.detail
+    assert result.status == "not_available"
+    assert (
+        "launcher that picks its own runtime" in result.detail
+        or "may download code at run time" in result.detail
+    )
 
 
 @pytest.mark.parametrize(
@@ -531,7 +539,7 @@ def test_npm_forms_that_are_not_followed_are_refused(
 
     result = gate(spec, base, cand, path=with_node(node.parent))
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert reason in result.detail
 
 
@@ -628,7 +636,7 @@ def test_a_shell_stays_unknown(tmp_path: Path) -> None:
     result = gate(spec, base, cand)
 
     assert env.runtime_kind is None
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "is a shell" in result.detail
 
 
@@ -644,7 +652,7 @@ def test_node_that_does_not_answer_in_time_is_unknown(
 
     result = gate(make_spec(NODE_COMMAND), base, cand, timeout=0.5)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "could not report its node version" in result.detail
 
 
@@ -657,7 +665,7 @@ def test_node_that_exits_non_zero_is_unknown(tmp_path: Path) -> None:
 
     result = gate(make_spec(NODE_COMMAND), base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "could not report its node version" in result.detail
     assert "exited 3: broken" in result.detail
 
@@ -732,7 +740,7 @@ def test_java_stub_without_a_jdk_is_unknown(tmp_path: Path) -> None:
 
     result = gate(spec, base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "could not report its java version" in result.detail
     assert f"exited {status}" in result.detail
 
@@ -783,7 +791,7 @@ def test_node_that_prints_too_much_is_unknown(tmp_path: Path) -> None:
 
     result = gate(make_spec(NODE_COMMAND), base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "more than a version report" in result.detail
 
 
@@ -818,7 +826,7 @@ def test_bin_script_with_its_own_node_shebang_is_refused_under_npx(
 
     result = gate(spec, base, cand, path=with_node(node.parent))
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "the command runs" in result.detail
     assert str(other_node) in result.detail
 
@@ -885,7 +893,7 @@ def test_malformed_node_reports_are_refused(
 
     result = gate(make_spec(NODE_COMMAND), base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "did not report an executable and a version" in result.detail
 
 
@@ -903,7 +911,7 @@ def test_node_report_with_stderr_overflow_is_refused(
 
     result = gate(make_spec(NODE_COMMAND), base, cand)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "more than a version report" in result.detail
 
 
@@ -943,3 +951,265 @@ def test_a_node_preload_that_prints_does_not_spoil_the_report(
     result = gate(spec, base, cand, base_extra=options, cand_extra=options)
 
     assert result.status == "passed", result.detail
+
+
+# Launchers that would fetch code are an unsafe run, not an unknown one.
+# Nothing here runs a launcher: fetching_launch reads argv and files.
+
+
+@pytest.fixture
+def launchers(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+    """A working directory and a PATH of inert programs."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    for name in (
+        "bun",
+        "bunx",
+        "corepack",
+        "deno",
+        "env",
+        "npm",
+        "npx",
+        "pipx",
+        "pnpm",
+        "pnpx",
+        "uv",
+        "uvx",
+        "yarn",
+        "tsc",
+    ):
+        exe = bin_dir / name
+        exe.write_text("#!/bin/sh\nexit 1\n")
+        exe.chmod(0o755)
+    cwd = tmp_path / "work"
+    cwd.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    return cwd, {"PATH": str(bin_dir), "HOME": str(home)}
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["npx", "some-tool"],
+        ["npx", "@angular/cli", "build"],
+        ["npx", "user/repo"],
+        ["npx", "https://example.com/x.tgz"],
+        ["npx", "--yes", "@scope/pkg"],
+        ["npm", "exec", "--", "@scope/pkg"],
+        ["npm", "--silent", "install"],
+        ["npm", "-g", "install", "x"],
+        ["npm", "--prefix", "x", "install"],
+        ["pnpm", "--dir", "x", "install"],
+        ["pnpm", "--silent", "dlx", "x"],
+        ["yarn", "--silent", "add", "x"],
+        ["uv", "--quiet", "tool", "run", "x"],
+        ["npx", "-y", "some-tool", "--flag"],
+        ["npx", "-p", "typescript", "tsc"],
+        ["npm", "exec", "some-tool"],
+        ["npm", "x", "some-tool"],
+        ["npm", "install"],
+        ["npm", "ci"],
+        ["pnpm", "dlx", "some-tool"],
+        ["pnpm", "add", "left-pad"],
+        ["pnpx", "some-tool"],
+        ["yarn", "dlx", "some-tool"],
+        ["yarn"],
+        ["yarn", "install"],
+        ["bunx", "some-tool"],
+        ["bun", "x", "some-tool"],
+        ["bun", "install"],
+        ["deno", "run", "https://example.com/x.ts"],
+        ["deno", "run", "npm:some-tool"],
+        ["corepack", "pnpm", "--version"],
+        ["uvx", "ruff"],
+        ["uv", "tool", "run", "ruff"],
+        ["pipx", "run", "ruff"],
+        ["env", "FOO=1", "npx", "some-tool"],
+        ["env", "-u", "BAR", "pnpx", "some-tool"],
+    ],
+)
+def test_forms_that_fetch_code_are_named(
+    launchers: tuple[Path, dict[str, str]], argv: list[str]
+) -> None:
+    cwd, env = launchers
+    assert fetching_launch(argv, env, cwd) is not None
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["npx", "--no-install", "some-tool"],
+        ["npx", "--no", "some-tool"],
+        ["npx", "tsc"],
+        ["npm", "exec", "--no", "--", "some-tool"],
+        ["npm", "run", "bench"],
+        ["npm", "test"],
+        ["pnpm", "exec", "tsc"],
+        ["pnpm", "run", "bench"],
+        ["yarn", "run", "bench"],
+        ["bun", "run", "bench.ts"],
+        ["deno", "run", "bench.ts"],
+        ["deno", "task", "bench"],
+        ["uv", "run", "bench.py"],
+        ["pipx", "list"],
+        ["env", "FOO=1", "tsc"],
+        ["cargo", "run"],
+        ["go", "run", "."],
+        ["make", "run"],
+        ["python", "bench.py"],
+    ],
+)
+def test_forms_that_run_what_is_installed_are_not_named(
+    launchers: tuple[Path, dict[str, str]], argv: list[str]
+) -> None:
+    cwd, env = launchers
+    bins = cwd / "node_modules" / ".bin"
+    bins.mkdir(parents=True)
+    for name in ("tsc",):
+        (bins / name).write_text("#!/usr/bin/env node\n")
+        (bins / name).chmod(0o755)
+    assert fetching_launch(argv, env, cwd) is None
+
+
+def test_a_command_installed_in_node_modules_is_local_for_npx(
+    launchers: tuple[Path, dict[str, str]],
+) -> None:
+    cwd, env = launchers
+    assert fetching_launch(["npx", "mytool"], env, cwd) is not None
+    bins = cwd.parent / "node_modules" / ".bin"
+    bins.mkdir(parents=True)
+    (bins / "mytool").write_text("#!/usr/bin/env node\n")
+    (bins / "mytool").chmod(0o755)
+    assert fetching_launch(["npx", "mytool"], env, cwd) is None
+    assert fetching_launch(["npm", "exec", "mytool"], env, cwd) is None
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["timeout", "10", "npx", "some-tool"],
+        ["timeout", "-s", "KILL", "--foreground", "10", "npx", "some-tool"],
+        ["nice", "-n", "5", "pnpx", "some-tool"],
+        ["nice", "-5", "pnpx", "some-tool"],
+        ["nohup", "pnpx", "some-tool"],
+        ["command", "npx", "some-tool"],
+        ["exec", "npx", "some-tool"],
+        ["time", "-p", "npx", "some-tool"],
+        ["stdbuf", "-oL", "npx", "some-tool"],
+        ["stdbuf", "-o", "L", "npx", "some-tool"],
+        ["setsid", "-w", "npx", "some-tool"],
+        ["env", "-S", "npx some-tool"],
+        ["nice", "-n", "5", "timeout", "10", "env", "A=1", "npx", "some-tool"],
+    ],
+)
+def test_wrappers_do_not_hide_a_launcher_that_fetches(
+    launchers: tuple[Path, dict[str, str]], argv: list[str]
+) -> None:
+    cwd, env = launchers
+    bin_dir = Path(env["PATH"])
+    for name in (
+        "timeout",
+        "nice",
+        "nohup",
+        "command",
+        "exec",
+        "time",
+        "stdbuf",
+        "setsid",
+    ):
+        exe = bin_dir / name
+        exe.write_text("#!/bin/sh\nexit 1\n")
+        exe.chmod(0o755)
+    assert fetching_launch(argv, env, cwd) is not None
+
+
+def test_unwrap_launch_peels_wrappers_and_leaves_the_rest() -> None:
+    assert unwrap_launch(["timeout", "10", "node", "x.js"]) == ["node", "x.js"]
+    assert unwrap_launch(["nice", "-n", "5", "node", "x.js"]) == [
+        "node",
+        "x.js",
+    ]
+    assert unwrap_launch(["nohup", "node", "x.js"]) == ["node", "x.js"]
+    assert unwrap_launch(["stdbuf", "-oL", "-eL", "node"]) == ["node"]
+    assert unwrap_launch(["time", "-p", "nice", "node"]) == ["node"]
+    assert unwrap_launch(["node", "x.js"]) == ["node", "x.js"]
+    assert unwrap_launch(["timeout"]) == ["timeout"]
+    assert unwrap_launch([]) == []
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["yarn", "--version"],
+        ["yarn", "-v"],
+        ["yarn", "--help"],
+        ["yarn", "-h"],
+        ["npx", "--offline", "some-tool"],
+        ["npm", "exec", "--offline", "some-tool"],
+        ["corepack", "enable"],
+        ["corepack", "disable"],
+        ["corepack", "--version"],
+    ],
+)
+def test_forms_that_cannot_fetch_are_not_named(
+    launchers: tuple[Path, dict[str, str]], argv: list[str]
+) -> None:
+    cwd, env = launchers
+    assert fetching_launch(argv, env, cwd) is None
+
+
+def test_corepack_shim_for_a_cached_package_manager_does_not_fetch(
+    launchers: tuple[Path, dict[str, str]],
+) -> None:
+    cwd, env = launchers
+    assert fetching_launch(["corepack", "pnpm", "run", "x"], env, cwd)
+    cached = Path(env["HOME"]) / ".cache/node/corepack/v1/pnpm/9.0.0"
+    cached.mkdir(parents=True)
+    (cached / "bin").write_text("x")
+    assert fetching_launch(["corepack", "pnpm", "run", "x"], env, cwd) is None
+    assert fetching_launch(["corepack", "yarn", "run", "x"], env, cwd)
+    assert fetching_launch(["corepack", "prepare", "pnpm@9"], env, cwd)
+    offline = {**env, "COREPACK_ENABLE_NETWORK": "0"}
+    assert (
+        fetching_launch(["corepack", "yarn", "run", "x"], offline, cwd) is None
+    )
+    home = {**env, "COREPACK_HOME": str(Path(env["HOME"]) / "elsewhere")}
+    assert fetching_launch(["corepack", "pnpm", "run", "x"], home, cwd)
+
+
+@pytest.mark.skipif(
+    os.geteuid() == 0, reason="root reads a directory without permission"
+)
+def test_an_unreadable_corepack_cache_is_may_download_not_a_crash(
+    launchers: tuple[Path, dict[str, str]],
+) -> None:
+    cwd, env = launchers
+    cache = Path(env["HOME"]) / ".cache/node/corepack/v1/pnpm"
+    (cache / "9.0.0").mkdir(parents=True)
+    (cache / "9.0.0" / "bin").write_text("x")
+    cache.chmod(0)
+    try:
+        reason = fetching_launch(["corepack", "pnpm", "run", "x"], env, cwd)
+    finally:
+        cache.chmod(0o755)
+    assert reason is not None
+    assert "may download" in reason
+
+
+def test_a_corepack_shim_is_looked_up_by_the_tool_it_stands_for(
+    launchers: tuple[Path, dict[str, str]],
+) -> None:
+    cwd, env = launchers
+    bin_dir = Path(env["PATH"])
+    (bin_dir / "pnpm").unlink()
+    (bin_dir / "pnpm").symlink_to(bin_dir / "corepack")
+    root = Path(env["HOME"]) / ".cache/node/corepack/v1"
+    # A cache entry named for the subcommand is not the package manager.
+    (root / "run").mkdir(parents=True)
+    (root / "run" / "x").write_text("x")
+    assert fetching_launch(["pnpm", "run", "bench"], env, cwd)
+    (root / "pnpm" / "9.0.0").mkdir(parents=True)
+    (root / "pnpm" / "9.0.0" / "bin").write_text("x")
+    assert fetching_launch(["pnpm", "run", "bench"], env, cwd) is None
+    assert fetching_launch(["pnpm", "test"], env, cwd) is None

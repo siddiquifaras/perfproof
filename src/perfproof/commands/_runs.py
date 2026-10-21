@@ -7,8 +7,74 @@ from typing import cast
 from perfproof.bench.detach import DetachError, find_run
 from perfproof.bench.snapshot import GIT_TIMEOUT_SECONDS
 from perfproof.commands import CommandError, JsonValue
+from perfproof.schema import KEEP_BLOCKING_WARNINGS, RunRecord
 
-__all__ = ["as_command_error", "repo_root", "run_directory"]
+__all__ = [
+    "as_command_error",
+    "not_verified",
+    "repo_root",
+    "run_directory",
+    "warnings_json",
+]
+
+
+def not_verified(record: RunRecord) -> list[JsonValue]:
+    """List what a record could not verify, for the skill to relay.
+
+    The skill reads only the ``--json`` result, so what withholds a
+    KEEP is spelled out there: gates ``not_available`` with their
+    reasons, guardrails ``not_declared``, ``unmeasurable`` or
+    ``not_established``, and the warnings that withhold a KEEP (a
+    counter measured as wall time, a value of unknown resolution).
+
+    Parameters
+    ----------
+    record : RunRecord
+        The record of a finished comparison.
+
+    Returns
+    -------
+    list of JsonValue
+        Objects ``{"kind", "name", "status", "reason"}`` with ``kind``
+        ``gate``, ``guardrail`` or ``warning``; empty when nothing was
+        left unverified.
+    """
+    gates: list[JsonValue] = [
+        {
+            "kind": "gate",
+            "name": g.gate,
+            "status": g.status,
+            "reason": g.detail,
+        }
+        for g in record.gates
+        if g.status == "not_available"
+    ]
+    guardrails: list[JsonValue] = [
+        {
+            "kind": "guardrail",
+            "name": r.metric,
+            "status": r.status,
+            "reason": r.reason or "measured, but the data can't tell yet",
+        }
+        for r in record.guardrails
+        if r.status in ("not_declared", "unmeasurable", "not_established")
+    ]
+    warnings: list[JsonValue] = [
+        {
+            "kind": "warning",
+            "name": w.code,
+            "status": "withholds_keep",
+            "reason": w.message,
+        }
+        for w in record.warnings
+        if w.code in KEEP_BLOCKING_WARNINGS
+    ]
+    return [*gates, *guardrails, *warnings]
+
+
+def warnings_json(record: RunRecord) -> list[JsonValue]:
+    """Return the warnings as ``{"code", "message"}`` objects."""
+    return [{"code": w.code, "message": w.message} for w in record.warnings]
 
 
 def as_command_error(exc: DetachError) -> CommandError:

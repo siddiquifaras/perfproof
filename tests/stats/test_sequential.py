@@ -117,6 +117,11 @@ def drive(
         rounds=rounds,
         procedure=procedure,
         keep_blocked=keep_blocked,
+        candidate_first=(
+            np.zeros(np.shape(baseline), dtype=np.bool_)
+            if mode == "one_host"
+            else None
+        ),
     )
 
 
@@ -1049,6 +1054,7 @@ class TestDriverModesAndProcedures:
             final=True,
             resolution=ObservationBounds(errors[:, :14]),
             procedure="t_log_ratio_batch_means",
+            candidate_first=np.zeros(np.shape(b[:, :14]), dtype=np.bool_),
         )
         lo = 1.04766 * math.exp(-0.018)
         hi = 1.04766 * math.exp(0.018)
@@ -1109,6 +1115,7 @@ class TestDriverModesAndProcedures:
             resolution=None,
             exhausted=True,
             procedure="t_log_ratio",
+            candidate_first=np.zeros(np.shape(c), dtype=np.bool_),
         )
         assert res.rule[0].tolist() == [2, 0, 0]
 
@@ -1171,6 +1178,7 @@ class TestDriverValidation:
             "calibrated": True,
             "resolution": None,
             "exhausted": True,
+            "candidate_first": np.zeros((1, 9), dtype=np.bool_),
             name: value,
         }
         with pytest.raises(ValueError, match=name):
@@ -1260,6 +1268,9 @@ class TestDecideLook:
             "resolution": None,
             "procedure": "t_log_ratio",
         }
+        args["candidate_first"] = (
+            None if "n0" in kwargs else np.zeros(b.shape, dtype=np.bool_)
+        )
         args.update(kwargs)
         return decide_look(b, c, **args)
 
@@ -1288,6 +1299,7 @@ class TestDecideLook:
             final=False,
             resolution=resolution,
             procedure="t_log_ratio",
+            candidate_first=np.zeros(np.shape(b[:, :10]), dtype=np.bool_),
         )
         assert look.lower.tolist() == res.lower[:, 0].tolist()
         assert look.upper.tolist() == res.upper[:, 0].tolist()
@@ -1522,6 +1534,7 @@ class TestCrossHostResolution:
             resolution=ObservationBounds(errors, coarse),
             n0=10,
             procedure="t_log_ratio",
+            candidate_first=None,
         )
         rule = 5 if final else 4
         assert look.rule.tolist() == [rule] * 3
@@ -1540,6 +1553,7 @@ class TestCrossHostResolution:
             resolution=None,
             n0=10,
             procedure="t_log_ratio",
+            candidate_first=None,
         )
         assert look.lower[2] < bare.lower[0]
         assert look.upper[2] > bare.upper[0]
@@ -1559,6 +1573,7 @@ class TestCrossHostResolution:
             final=False,
             resolution=ObservationBounds(errors),
             n0=10,
+            candidate_first=None,
         )
         assert look.rule.tolist() == [1]
         assert look.action.tolist() == ["INCONCLUSIVE"]
@@ -1628,7 +1643,11 @@ def single_look(
         n0=n0,
         keep_blocked=keep_blocked,
         procedure=procedure,
-        candidate_first=None if first is None else first[np.newaxis, :],
+        candidate_first=(
+            (None if n0 is not None else np.zeros(b.shape, dtype=np.bool_))
+            if first is None
+            else first[np.newaxis, :]
+        ),
     )
 
 
@@ -1770,6 +1789,7 @@ class TestNoIntervalBelowTwoBlocks:
             calibrated=True,
             final=False,
             resolution=None,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         found = t_interval(
             b,
@@ -1794,6 +1814,7 @@ class TestNoIntervalBelowTwoBlocks:
             calibrated=True,
             resolution=None,
             exhausted=True,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         assert res.procedure == "t_log_ratio_batch_means"
         assert res.rounds[0].tolist() == [10, 20, 0]
@@ -1941,6 +1962,7 @@ class TestDiagnosticGate:
             calibrated=True,
             final=False,
             resolution=None,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         assert look.withheld.tolist() == ["autocorrelated_rounds", ""]
         assert look.action.tolist() == ["CONTINUE", "KEEP"]
@@ -1962,6 +1984,7 @@ class TestDiagnosticGate:
             calibrated=True,
             resolution=None,
             exhausted=True,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         assert res.outcome.tolist() == ["KEEP", "KEEP"]
         assert res.rounds_used.tolist() == [120, 20]
@@ -1991,6 +2014,7 @@ class TestDiagnosticGate:
             calibrated=True,
             resolution=None,
             exhausted=True,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         assert res.outcome.tolist() == ["INCONCLUSIVE"]
         assert res.final_rule.tolist() == [5]
@@ -2036,7 +2060,273 @@ class TestIdenticalRatiosAreNotWithheld:
             calibrated=True,
             final=True,
             resolution=None,
+            candidate_first=np.zeros(np.shape(b), dtype=np.bool_),
         )
         assert look.withheld.tolist() == [""]
         assert look.rule.tolist() == [2]
         assert float(look.lower[0]) == ratio
+
+
+def one_row_look(
+    d: FloatArray,
+    *,
+    calibrated: bool,
+    final: bool = False,
+    resolution: Any = None,
+    first: Any,
+) -> Any:
+    b, c = arms(d[np.newaxis, :])
+    return decide_look(
+        b,
+        c,
+        direction="lower_is_better",
+        confidence=look_confidence(0.05, 3),
+        min_effect=MIN_EFFECT,
+        calibrated=calibrated,
+        final=final,
+        resolution=resolution,
+        candidate_first=first,
+    )
+
+
+class TestCandidateFirstIsRequired:
+    def order_effect(self) -> tuple[FloatArray, Any]:
+        # Runs of three rounds with the candidate first, then three
+        # without: an order effect of 0.02 on top of independent noise
+        # reads as lag-1 autocorrelation of about 0.3 unless the order
+        # means are removed first.
+        n = 60
+        flags = (np.arange(n) // 3) % 2 == 0
+        noise = np.random.default_rng(1).normal(0.0, 0.004, n)
+        return math.log(1.5) + 0.02 * flags + noise, flags[np.newaxis, :]
+
+    def test_the_order_flags_remove_the_order_effect(self) -> None:
+        d, flags = self.order_effect()
+        ignored = one_row_look(d, calibrated=True, first=np.zeros_like(flags))
+        assert ignored.withheld.tolist() == ["autocorrelated_rounds"]
+        centred = one_row_look(d, calibrated=True, first=flags)
+        assert centred.withheld.tolist() == [""]
+        assert centred.rule.tolist() == [2]
+
+    def test_decide_look_needs_it(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
+        b, c = arms(d)
+        with pytest.raises(TypeError, match="candidate_first"):
+            decide_look(  # pyright: ignore[reportCallIssue]
+                b,
+                c,
+                direction="lower_is_better",
+                confidence=look_confidence(0.05, 3),
+                min_effect=MIN_EFFECT,
+                calibrated=True,
+                final=False,
+                resolution=None,
+            )
+
+    def test_run_looks_needs_it(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
+        b, c = arms(d)
+        with pytest.raises(TypeError, match="candidate_first"):
+            run_looks(  # pyright: ignore[reportCallIssue]
+                b,
+                c,
+                direction="lower_is_better",
+                schedule=SHORT,
+                mode="one_host",
+                min_effect=MIN_EFFECT,
+                calibrated=True,
+                resolution=None,
+                exhausted=True,
+            )
+
+    def test_none_is_refused_on_one_host(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)
+        with pytest.raises(ValueError, match="required on one host"):
+            one_row_look(d, calibrated=True, first=None)
+
+    def test_none_is_cross_host_only(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
+        b, c = arms(d)
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=look_confidence(0.05, 3),
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=False,
+            resolution=None,
+            n0=10,
+            candidate_first=None,
+        )
+        assert look.rule.tolist() == [2]
+
+
+class TestUncalibratedLooksRecordTheGate:
+    def test_the_reason_is_recorded_though_no_rule_could_decide(self) -> None:
+        d = slow_wave(math.log(1.2), 0.01, 60)
+        flags = np.zeros((1, 60), dtype=np.bool_)
+        for final in (False, True):
+            look = one_row_look(d, calibrated=False, final=final, first=flags)
+            assert look.rule.tolist() == [5 if final else 4]
+            assert look.withheld.tolist() == ["autocorrelated_rounds"]
+            assert np.isfinite(look.lower).all()
+
+    def test_an_interval_the_gate_does_not_touch_has_no_reason(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 60)
+        flags = np.zeros((1, 60), dtype=np.bool_)
+        look = one_row_look(d, calibrated=False, first=flags)
+        assert look.rule.tolist() == [4]
+        assert look.withheld.tolist() == [""]
+
+    def test_a_straddling_interval_is_not_withheld(self) -> None:
+        # Autocorrelated as in the first test, but the interval would
+        # not have decided, so the gate has nothing to withhold.
+        d = slow_wave(math.log(1.0), 0.3, 60)
+        flags = np.zeros((1, 60), dtype=np.bool_)
+        look = one_row_look(d, calibrated=False, first=flags)
+        assert look.withheld.tolist() == [""]
+
+
+class TestUnrepresentableBounds:
+    """A bound that underflows to 0 or overflows is no decision."""
+
+    @pytest.mark.parametrize("centre", [-575.0, 575.0])
+    @pytest.mark.parametrize("final", [False, True])
+    @pytest.mark.parametrize("widened", [False, True])
+    @pytest.mark.parametrize("calibrated", [False, True])
+    def test_gives_rule_4_or_5_and_no_interval(
+        self, centre: float, final: bool, widened: bool, calibrated: bool
+    ) -> None:
+        # Log ratios near +-575 (ratios near 1e250) with a spread of
+        # 40: the conservative lower bound underflows to 0.0 for the
+        # small ratios, the upper bound overflows to inf for the large.
+        d = centre + np.random.default_rng(SEED).normal(0.0, 40.0, 12)
+        b, c = arms(d[np.newaxis, :])
+        found = t_interval(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=0.99,
+            block=BATCH_BLOCK,
+        )
+        assert float(found.lower[0]) == 0.0 or math.isinf(
+            float(found.upper[0])
+        )
+        step = np.full((1, 12), 1e-300)
+        resolution = Resolution(step, step, False) if widened else None
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=0.99,
+            min_effect=MIN_EFFECT,
+            calibrated=calibrated,
+            final=final,
+            resolution=resolution,
+            candidate_first=np.zeros((1, 12), dtype=np.bool_),
+        )
+        assert look.rule.tolist() == [5 if final else 4]
+        assert look.action.tolist() == [
+            "INCONCLUSIVE" if final else "CONTINUE"
+        ]
+        assert np.isnan(look.lower).all()
+        assert np.isnan(look.upper).all()
+        assert look.regression.tolist() == [False]
+        assert look.withheld.tolist() == [""]
+
+    def test_other_rows_in_the_batch_still_decide(self) -> None:
+        wild = -575.0 + np.random.default_rng(SEED).normal(0.0, 40.0, 12)
+        calm = alternating(math.log(1.2), 0.01, 12)
+        b, c = arms(np.stack([wild, calm]))
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=0.99,
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=False,
+            resolution=None,
+            candidate_first=np.zeros((2, 12), dtype=np.bool_),
+        )
+        assert look.rule.tolist() == [4, 2]
+        assert np.isnan(look.lower[0])
+        assert np.isfinite(look.lower[1])
+
+    @pytest.mark.parametrize("final", [False, True])
+    def test_a_bound_pushed_out_of_range_by_the_widening(
+        self, final: bool
+    ) -> None:
+        # The interval is finite (about 1e-285); steps a hair under the
+        # values widen it by exp(-72), below the smallest normal float.
+        b = 1e-285 * (1 + 0.01 * np.random.default_rng(1).normal(size=(1, 12)))
+        c = np.ones((1, 12))
+        found = t_interval(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=0.99,
+            block=BATCH_BLOCK,
+        )
+        assert 0.0 < float(found.lower[0]) < float(found.upper[0]) < 1.0
+        scale = 1 - 8.8e-16
+        look = decide_look(
+            b,
+            c,
+            direction="lower_is_better",
+            confidence=0.99,
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=final,
+            resolution=Resolution(b * scale, c * scale, False),
+            candidate_first=np.zeros((1, 12), dtype=np.bool_),
+        )
+        assert look.rule.tolist() == [5 if final else 4]
+        assert np.isnan(look.lower).all()
+
+
+class TestRatioOutsideTheFloatRange:
+    @pytest.mark.parametrize("final", [False, True])
+    @pytest.mark.parametrize(
+        "direction", ["lower_is_better", "higher_is_better"]
+    )
+    def test_the_row_has_no_interval_and_the_others_decide(
+        self, final: bool, direction: Any
+    ) -> None:
+        calm = alternating(math.log(1.2), 0.01, 12)
+        b, c = arms(np.stack([calm, calm]))
+        small, big = (1e-300, 1e300)
+        b[0, 0], c[0, 0] = (
+            (small, big) if direction == "lower_is_better" else (big, small)
+        )
+        look = decide_look(
+            b,
+            c,
+            direction=direction,
+            confidence=0.99,
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            final=final,
+            resolution=None,
+            candidate_first=np.zeros((2, 12), dtype=np.bool_),
+        )
+        assert look.rule[0] == (5 if final else 4)
+        assert np.isnan(look.lower[0])
+        assert np.isfinite(look.lower[1])
+
+    def test_run_looks_takes_none_only_cross_host(self) -> None:
+        d = alternating(math.log(1.2), 0.01, 30)[np.newaxis, :]
+        b, c = arms(d)
+        kwargs: dict[str, Any] = {
+            "direction": "lower_is_better",
+            "schedule": SHORT,
+            "min_effect": MIN_EFFECT,
+            "calibrated": True,
+            "resolution": None,
+            "exhausted": True,
+            "candidate_first": None,
+        }
+        with pytest.raises(ValueError, match="required on one host"):
+            run_looks(b, c, mode="one_host", **kwargs)
+        run_looks(b, c, mode="cross_host", **kwargs)

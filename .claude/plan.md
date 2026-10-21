@@ -628,7 +628,7 @@ by `stats-auditor` before its PR opens.
     unsupported procedure use another fixture; schema.json regenerated.
   - Effort: low
 
-- [ ] **T1.10 Wire batch means and the gate into compare**
+- [x] **T1.10 Wire batch means and the gate into compare** (siddiquifaras/perfproof#54, `a34c781`)
   - Owns: `src/perfproof/bench/compare.py`, `src/perfproof/stats/sequential.py`
     (the `candidate_first` default), `src/perfproof/stats/decision.py`
     (underflow), their tests
@@ -948,7 +948,7 @@ Mac and on Linux CI, with decoys that must be refused.
     absent); stats-auditor passes.
   - Effort: medium
 
-- [ ] **T2.23 Unknown is not wrong: measure, withhold only KEEP**
+- [x] **T2.23 Unknown is not wrong: measure, withhold only KEEP** (siddiquifaras/perfproof#55, `bc26eca`)
   - Owns: `src/perfproof/bench/lock.py` (`runtime_gate` status for an
     unidentified runtime), `src/perfproof/bench/compare.py`
     (`_refuse_unsupported`, `_same_host_gate`, `_Steps.of`, timeout

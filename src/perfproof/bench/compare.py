@@ -22,10 +22,16 @@ have passed:
    (see below), still before anything executes.
 5. The `runtime` gate, after probing both trees' interpreters (the
    probe may run ``uv run`` in a tree), and the `procedure` and
-   `same_host` gates on what is known before any round.
+   `same_host` gates on what is known before any round. A runtime
+   perfproof can't identify, and a host identity it can't read, make
+   their gates ``not_available``, never failed: "Unknown is not wrong"
+   in ``docs/method.md``. A benchmark or test command that would fetch
+   code from the network is the one refusal here, after setup (which
+   may install what it needs).
 6. One output-producing execution of the benchmark in each tree, then
    the `correctness` gate (tests three times on the baseline, outputs
-   compared). The `coverage` gate is ``not_available``: it is not
+   compared); a spec with no check leaves the gate ``not_available``.
+   The `coverage` gate is ``not_available``: it is not
    built yet (T2.14), and that blocks KEEP. Differential checks
    (T2.13) are not built either; a warning says so.
 7. Warmup, then rounds, with a look wherever
@@ -73,9 +79,17 @@ Before calibration
 T1.7). Rules 2 and 3 then never fire: every comparison that passes
 its gates runs to the end of its budget, or to its ``K``-th look, and
 ends INCONCLUSIVE (``insufficient_evidence``) with the diagnostic
-``procedure_uncalibrated`` and its interval recorded. Only a gate
-REJECT can end it otherwise, and the resolution stop can end it early
-as INCONCLUSIVE.
+``procedure_uncalibrated``. The interval is the batch-means interval
+of ``docs/method.md`` and is recorded when the last look has one: not
+below two complete blocks (12 rounds), and not when a ratio or a bound
+falls outside the float range, which records the warning
+``interval_unrepresentable``. The diagnostic gate is still evaluated
+as if calibrated, so a look it would have withheld records
+``autocorrelated_rounds`` or ``outlier_rounds``. A schedule that can
+take more than one look at 120 rounds or more runs, records the warning
+``schedule_uncalibrated`` and can never KEEP. Only a gate REJECT can
+end a comparison otherwise, and the resolution stop can end it early as
+INCONCLUSIVE.
 
 Resolution
 ----------
@@ -99,6 +113,18 @@ The resolution stop is recorded as rule 5 INCONCLUSIVE
 (``insufficient_evidence``) with a ``coarse_resolution`` warning. The
 schema now has the ``coarse_resolution`` diagnostic and its rule 1
 INCONCLUSIVE, but compare doesn't use them yet (T2.5).
+
+Withheld, not refused
+----------------------
+Per "Unknown is not wrong" in ``docs/method.md``, what perfproof cannot
+verify never stops the comparison. It is measured and recorded, and a
+KEEP is withheld (`keep_blocked`, `_Run._keep_blocked`): a gate
+``not_available``, a default guardrail the spec doesn't declare
+(``not_declared``), a ``counter`` metric whose ``perf`` is unusable
+(wall time is measured instead, warning ``counter_unavailable``), a
+``reported`` value whose resolution can't be read back (step 0, warning
+``resolution_unknown``). A detached run's deadline ends the rounds
+before it, as a budget end, with the warning ``time_limit_reached``.
 
 What the thin path does not do yet
 ----------------------------------
@@ -134,6 +160,7 @@ from perfproof.bench.harness import install_harness
 from perfproof.bench.journal import Journal, Resumed, RoundEntry
 from perfproof.bench.lock import (
     environment_warnings,
+    fetching_launch,
     lock_gate,
     probe_environment,
     procedure_gate,
@@ -147,6 +174,7 @@ from perfproof.bench.runner import (
     Round,
     Runner,
     RunnerError,
+    counter_unavailable_reason,
 )
 from perfproof.bench.side_effects import (
     benchmark_environment,
@@ -167,12 +195,15 @@ from perfproof.schema import (
     BenchmarkSpec,
     CommandOutput,
     Diagnostics,
+    Difference,
     GateName,
     GateResult,
     GuardrailResult,
     Interval,
     LockManifest,
     MachineFingerprint,
+    MetricKind,
+    MetricSpec,
     Procedure,
     RunRecord,
     RunWarning,
@@ -184,6 +215,8 @@ from perfproof.schema import (
 from perfproof.stats.decision import GATE_PRECEDENCE, decide
 from perfproof.stats.intervals import t_interval
 from perfproof.stats.sequential import (
+    BATCH_BLOCK,
+    LAG1_MIN_BLOCKS,
     Look,
     Resolution,
     decide_look,
@@ -199,13 +232,16 @@ __all__ = [
     "CompareResult",
     "CompareStoppedError",
     "compare",
+    "keep_blocked",
+    "late_looks",
+    "undeclared_guardrails",
 ]
 
 CALIBRATED: Final = False
 """Whether the interval procedure has passed calibration. False until
 the M1 exit (T1.6 and T1.7): no KEEP and no performance REJECT."""
-PROCEDURE: Final[Procedure] = "t_log_ratio"
-"""The primary interval procedure of ``docs/method.md``."""
+PROCEDURE: Final[Procedure] = "t_log_ratio_batch_means"
+"""The primary interval procedure of ``docs/method.md``: batch means."""
 SAMPLES_NAME: Final = "samples.npz"
 """File name of the raw samples in a run directory."""
 
@@ -224,6 +260,19 @@ _SKEW_WARN: Final = 2.0
 _GUARDRAILS_NOT_BUILT: Final = (
     "guardrails are not measured yet (plan task T2.15)"
 )
+_NO_CHECK: Final = (
+    "the spec declares no correctness check (no test command and no "
+    "output to compare), so nothing was checked and a KEEP is withheld"
+)
+_DEADLINE_MARGIN_SECONDS: Final = 10.0
+"""Seconds before a detached run's deadline at which no round that
+could not finish is started: the kill grace of
+`perfproof.bench.detach.DEFAULT_GRACE_SECONDS`, a chosen allowance."""
+_FALLBACK_METRIC: Final = MetricSpec(
+    kind="wall", direction="lower_is_better", unit="s"
+)
+"""The measure a ``counter`` metric falls back to when ``perf`` can't
+count its event."""
 
 
 class CompareStoppedError(Exception):
@@ -235,9 +284,8 @@ class CompareStoppedError(Exception):
         Stable snake_case identifier: ``broken_baseline`` (the baseline
         failed, alone or together with the candidate),
         ``harness_fault`` (perfproof's own process or the host failed),
-        ``unsupported_spec`` (the thin path can't run this spec) or
-        ``undeclared_guardrails`` (the spec omits a default guardrail,
-        so no verdict but a gate REJECT could be recorded) or
+        ``unsupported_spec`` (the thin path can't run this spec, or a
+        benchmark or test command would fetch code from the network) or
         ``internal_fault`` (perfproof reached a state its own rules
         exclude, such as a comparison ending on a look that says
         continue; a bug, reported without a traceback).
@@ -305,6 +353,7 @@ def compare(
     harness_root: Path | None = None,
     journal: Journal | None = None,
     resume: Resumed | None = None,
+    deadline: float | None = None,
 ) -> CompareResult:
     """Prove a candidate tree against a baseline tree in the foreground.
 
@@ -344,6 +393,14 @@ def compare(
         its first fingerprint and start time. Every gate is checked
         again; the rounds before are replayed through the looks, not
         run again, so the same ``order_seed`` gives the same orders.
+    deadline : float, optional
+        Unix time of a detached run's hard timeout. Before starting a
+        round that, with the kill grace, could not finish by then, the
+        rounds end as at a ``max_seconds`` budget end, and the record
+        carries a ``time_limit_reached`` warning. ``None``: no limit.
+        Positive and finite; anything else raises `ValueError`
+        (`perfproof.bench.detach` stores 0.0 for "no deadline" and
+        passes ``None``).
 
     Returns
     -------
@@ -359,7 +416,15 @@ def compare(
         docstring.
     FileExistsError
         If ``run_dir`` already exists and ``journal`` is not given.
+    ValueError
+        If ``deadline`` is not positive and finite.
     """
+    if deadline is not None and not (0 < deadline < math.inf):
+        msg = (
+            "deadline is a positive, finite Unix time, or None for no "
+            f"limit, not {deadline!r}"
+        )
+        raise ValueError(msg)
     run_dir.mkdir(parents=True, exist_ok=journal is not None)
     if resume is None:
         started = datetime.now(UTC)
@@ -391,6 +456,7 @@ def compare(
     run.order_seed = order_seed
     run.harness_root = harness_root
     run.wall_step = _wall_step()
+    run.deadline = deadline
     return run.execute()
 
 
@@ -428,6 +494,9 @@ class _Run:
         self.looks = 0
         self.journal: Journal | None = None
         self.resume: Resumed | None = None
+        self.deadline: float | None = None
+        self.time_limit_hit = False
+        self.fallback_reason: str | None = None
 
     def stop(self, code: str, message: str) -> CompareStoppedError:
         """Build the no-verdict stop for this run."""
@@ -440,7 +509,7 @@ class _Run:
         try:
             return self._execute()
         except _CandidateFailedError as failed:
-            self.gates["correctness"] = failed.gate
+            self.gates[failed.gate.gate] = failed.gate
             return self._finish_gate()
         except ResetFailedError as failed:
             self.gates["side_effects"] = failed.gate
@@ -465,6 +534,7 @@ class _Run:
         if self._failed():
             return self._finish_gate()
         self._refuse_unstartable_baseline()
+        self._check_counter()
         rounds_runner = self._runner(spec, trees, "rounds")
         for arm in _ARMS:
             self.environments[arm] = probe_environment(
@@ -475,14 +545,15 @@ class _Run:
                 self.environments["baseline"], self.environments["candidate"]
             )
         )
-        self.gates["runtime"] = runtime_gate(
-            spec,
-            self.environments["baseline"],
-            self.environments["candidate"],
-            baseline_root=trees["baseline"],
-            candidate_root=trees["candidate"],
+        self.gates["runtime"] = self._test_launcher(
+            runtime_gate(
+                spec,
+                self.environments["baseline"],
+                self.environments["candidate"],
+                baseline_root=trees["baseline"],
+                candidate_root=trees["candidate"],
+            )
         )
-        self._recheck_unknown_baseline_runtime()
         executables = self._executables()
         self.gates["procedure"] = self._procedure(executables, ())
         self.gates["same_host"] = _same_host_gate(self.machine, None)
@@ -507,6 +578,7 @@ class _Run:
             detail="the coverage gate is not built yet (plan task T2.14)",
         )
         ended = self._rounds(rounds_runner)
+        self._note_resolution_unknown()
         samples = [s for m in self.measured for s in m.samples]
         self.gates["procedure"] = self._procedure(executables, samples)
         self.gates["same_host"] = _same_host_gate(self.machine, fingerprint())
@@ -625,28 +697,112 @@ class _Run:
         except ValueError as exc:
             msg = f"the look schedule can't run on one host: {exc}"
             raise self.stop("unsupported_spec", msg) from exc
-        declared = {g.metric for g in spec.guardrails}
-        missing = sorted(
-            set(DEFAULT_GUARDRAILS[None]) - declared - {spec.objective}
-        )
-        if missing:
-            msg = (
-                f"the spec does not declare the default guardrails "
-                f"{', '.join(missing)}; the target class is unknown, so "
-                "each must be declared, applied or not applicable with a "
-                "reason, before a verdict other than a gate REJECT can be "
-                "recorded. Define a new spec with them and an objective."
+        if late_looks(spec) > 1:
+            self.warnings.append(
+                RunWarning(
+                    code="schedule_uncalibrated",
+                    message=(
+                        f"the look schedule (n0 {spec.looks.n0}, k "
+                        f"{spec.looks.k}, {spec.looks.max_looks} looks, up "
+                        f"to {spec.budget.max_rounds} rounds) can take "
+                        "more than one look at "
+                        f"{LAG1_MIN_BLOCKS * BATCH_BLOCK} rounds or more, "
+                        "outside the schedules the procedure was "
+                        "calibrated on: the comparison runs, but this "
+                        "verdict can never be a KEEP"
+                    ),
+                )
             )
-            raise self.stop("undeclared_guardrails", msg)
+
+    def _test_launcher(self, gate: GateResult) -> GateResult:
+        """Add a test launcher that may download code to the gate.
+
+        The benchmark's launcher is judged by the probe; the test
+        command is not probed, so a launcher in it that may fetch code
+        at run time (`fetching_launch`) is recorded here. It makes a
+        passed gate ``not_available``: measured, not kept. A failed or
+        waived gate is left as it is.
+        """
+        command = self.spec.correctness.command
+        if command is None or gate.status != "passed":
+            return gate
+        for arm in _ARMS:
+            cwd = (self.trees[arm] / self.spec.correctness.cwd).absolute()
+            reason = fetching_launch(
+                command, self.env, cwd, tree=self.trees[arm]
+            )
+            if reason is not None:
+                return GateResult(
+                    gate="runtime",
+                    status="not_available",
+                    detail=(
+                        "the test command's launcher may download code at "
+                        f"run time, so the runtime was not verified: {reason}"
+                    ),
+                )
+        return gate
+
+    def _check_counter(self) -> None:
+        """Fall back to wall time when ``perf`` can't count the event.
+
+        "Metrics" in ``docs/method.md``: the comparison measures the
+        command's wall time instead, records why, and withholds a KEEP.
+        """
+        metric = self.spec.metric
+        if metric.kind == "counter" and metric.event is not None:
+            reason = counter_unavailable_reason(metric.event, env=self.env)
+            if reason is not None:
+                self._fall_back(reason)
+        self._journal_metric()
+
+    def _journal_metric(self) -> None:
+        """Journal the measured kind; refuse a resume that would mix.
+
+        Whether ``perf`` works is decided afresh in every attempt, so a
+        resume could continue wall-time rounds with counts, or the other
+        way, and the interval would mix units. The kind the first
+        attempt measured is journaled, and a resume that would measure
+        another is not resumable.
+        """
+        kind = self._metric_kind()
+        if self.journal is None:
+            return
+        resume = self.resume
+        if resume is None or not resume.rounds:
+            # No round is kept from an earlier attempt, so this
+            # attempt decides the kind the journal will hold.
+            self.journal.metric(kind)
+        elif resume.metric_kind not in (None, kind):
+            msg = (
+                f"the first attempt measured the {resume.metric_kind} metric "
+                f"and this one would measure {kind} (perf was usable in one "
+                "and not the other), so the rounds already taken can't be "
+                "continued; start a new compare"
+            )
+            raise self.stop("not_resumable", msg)
+
+    def _fall_back(self, reason: str) -> None:
+        """Record that the counter was measured as wall time."""
+        metric = self.spec.metric
+        self.fallback_reason = reason
+        self.warnings.append(
+            RunWarning(
+                code="counter_unavailable",
+                message=(
+                    f"the counter {metric.event} can't be measured here "
+                    f"({reason}); the command's wall time in seconds was "
+                    "measured instead, and a KEEP is withheld"
+                ),
+            )
+        )
 
     def _refuse_unstartable_baseline(self) -> None:
         """Stop as a broken baseline when its program can't be found.
 
         Per "Failed executions" in ``docs/method.md``, a baseline that
         can't be started is a broken experiment, never a REJECT of the
-        candidate. The runtime gate would fail closed on the unknown
-        executable and blame the candidate, so this comes first; it
-        covers a program missing from both trees too. A program missing
+        candidate. It comes before anything runs and covers a program
+        missing from both trees too. A program missing
         only from the candidate tree stays the candidate's failure.
         """
         spec = self.spec
@@ -687,28 +843,12 @@ class _Run:
             msg = f"the baseline's test command can't be started: {hint}"
             raise self.stop("broken_baseline", msg)
 
-    def _recheck_unknown_baseline_runtime(self) -> None:
-        """Run the baseline before an unknown runtime fails the gate.
-
-        The runtime gate fails closed when it can't identify the
-        baseline's runtime, which is also what a bad interpreter line
-        or a missing interpreter behind ``env`` looks like. Those are a
-        broken baseline, per "Failed executions" in ``docs/method.md``,
-        so the baseline runs once; if it fails, the comparison stops
-        with no verdict. If it runs, the REJECT stands: an unidentified
-        runtime fails closed.
-        """
-        runtime = self.gates["runtime"]
-        if runtime.status != "failed":
-            return
-        if "the baseline runtime is unknown" not in runtime.detail:
-            return
-        self._recheck_baseline("runtime", runtime.detail)
-
     def _runner(
         self, spec: BenchmarkSpec, trees: Mapping[Arm, Path], logs: str
     ) -> Runner:
         """Build a runner whose logs go to ``logs`` in the run dir."""
+        if self.fallback_reason is not None:
+            spec = spec.model_copy(update={"metric": _FALLBACK_METRIC})
         try:
             return Runner(
                 spec,
@@ -765,6 +905,11 @@ class _Run:
         Raises `_CandidateFailedError` when a candidate execution fails.
         """
         spec, trees = self.spec, self.trees
+        if spec.correctness.command is None and not spec.correctness.outputs:
+            self.gates["correctness"] = GateResult(
+                gate="correctness", status="not_available", detail=_NO_CHECK
+            )
+            return
         try:
             for arm in _ARMS:
                 clear_outputs(spec.correctness.outputs, trees[arm])
@@ -799,6 +944,10 @@ class _Run:
             self._recheck_baseline(
                 exc.label, f"the candidate failed: {exc.reason}"
             )
+            if exc.cause == "launch" and not self.spec.allow_runtime_change:
+                raise _CandidateFailedError(
+                    _launch_gate(exc, self.spec.command, what)
+                ) from exc
             gate = _execution_gate(exc, self.spec.command, what)
             raise _CandidateFailedError(gate) from exc
         except ResetFailedError:
@@ -833,7 +982,7 @@ class _Run:
         """Run warmup and rounds until a look ends the comparison."""
         spec = self.spec
         self._guard(runner.warmup, "a warmup execution")
-        steps = _Steps(spec, self.wall_step)
+        steps = _Steps(spec, self.wall_step, self._metric_kind())
         confidence = look_confidence(spec.alpha, spec.looks.max_looks)
         last: Look | None = None
         used = 0
@@ -849,7 +998,7 @@ class _Run:
                     functools.partial(runner.run_round, index),
                     f"round {index}",
                 )
-                made = steps.of(done, self.stop)
+                made = steps.of(done)
                 now = time.monotonic()
                 entry = RoundEntry(
                     done.samples, made, now - begun, now - start
@@ -862,6 +1011,15 @@ class _Run:
             exhausted = n == spec.budget.max_rounds or (
                 entry.elapsed + longest > spec.budget.max_seconds
             )
+            if (
+                not exhausted
+                and index >= len(restored)
+                and self.deadline is not None
+                and time.time() + longest + _DEADLINE_MARGIN_SECONDS
+                >= self.deadline
+            ):
+                exhausted = True
+                self.time_limit_hit = True
             plan = plan_looks(
                 spec.looks,
                 np.array([n], dtype=np.int64),
@@ -882,7 +1040,10 @@ class _Run:
                 last = self._look(used, final, confidence, steps)
                 if self.journal is not None and index >= len(restored):
                     self.journal.looks(self.looks)
-                if str(last.action[0]) != "CONTINUE":
+                if str(last.action[0]) != "CONTINUE" or bool(last.held[0]):
+                    # A held rule 2 can't become a KEEP by more rounds
+                    # (what withholds it is fixed for this run), so it
+                    # ends here, INCONCLUSIVE, as "Decision rule" says.
                     break
             if exhausted:
                 break
@@ -911,11 +1072,70 @@ class _Run:
             ),
             keep_blocked=np.array([self._keep_blocked()]),
             procedure=PROCEDURE,
+            candidate_first=self._candidate_first(used)[np.newaxis, :],
+        )
+
+    def _candidate_first(self, used: int) -> NDArray[np.bool_]:
+        """Whether the candidate ran first in each of ``used`` rounds.
+
+        Read from each sample's recorded ``position`` (0 ran first), not
+        from the seeded plan, so it is what actually ran, including for
+        rounds restored from a journal.
+        """
+        return np.array(
+            [
+                next(s for s in m.samples if s.position == 0).version
+                == "candidate"
+                for m in self.measured[:used]
+            ],
+            dtype=np.bool_,
         )
 
     def _keep_blocked(self) -> bool:
-        """Whether a guardrail can't be shown compliant yet."""
-        return any(g.applicable for g in self.spec.guardrails)
+        """Whether a KEEP is withheld, for any reason known so far.
+
+        `keep_blocked` on the spec, and what this run found out: a gate
+        ``not_available``, a counter that fell back to wall time, a
+        value of unknown resolution.
+        """
+        return (
+            keep_blocked(self.spec)
+            or self.fallback_reason is not None
+            or self._resolution_unknown()
+            or any(g.status == "not_available" for g in self.gates.values())
+        )
+
+    def _metric_kind(self) -> MetricKind:
+        """Return the kind of value produced: wall on a fallback."""
+        if self.fallback_reason is not None:
+            return _FALLBACK_METRIC.kind
+        return self.spec.metric.kind
+
+    def _resolution_unknown(self) -> bool:
+        """Whether a ``reported`` value's resolution could not be read.
+
+        A printed step is always positive, so a recorded step of 0 for
+        a metric whose steps are read back marks one that could not be.
+        """
+        return self.spec.metric.kind == "reported" and any(
+            step == 0.0 for m in self.measured for step in m.steps.values()
+        )
+
+    def _note_resolution_unknown(self) -> None:
+        """Warn once when a value's resolution was unknown."""
+        if self._resolution_unknown():
+            self.warnings.append(
+                RunWarning(
+                    code="resolution_unknown",
+                    message=(
+                        "the resolution of a reported value could not be "
+                        "read back from the benchmark's output, so its "
+                        "interval is not widened for it and a KEEP is "
+                        "withheld; print a fixed number of digits or "
+                        "declare a resolution"
+                    ),
+                )
+            )
 
     def _values(
         self, used: int, field: Callable[[Sample], float]
@@ -985,16 +1205,19 @@ class _Run:
                         ),
                     )
                 )
+            elif rule == 2 and self._keep_blocked():
+                pass
             elif rule != 5:
                 msg = (
-                    f"the last look gave rule {rule}; an uncalibrated "
-                    "comparison can only end on rule 1 (resolution) or 5"
+                    f"the last look gave rule {rule}; the thin path can "
+                    "only end on rule 1 (resolution), 5, or a rule 2 "
+                    "that a blocker holds back from KEEP"
                 )
                 raise self.stop("internal_fault", msg)
         verdict = Verdict(
             outcome="INCONCLUSIVE",
             reason="insufficient_evidence",
-            rule=5,
+            rule=2 if look is not None and int(look.rule[0]) == 2 else 5,
             estimate=estimate,
             interval=interval,
             rounds=len(self.measured),
@@ -1003,6 +1226,22 @@ class _Run:
             calibration="uncalibrated",
             diagnostics=diagnostics,
         )
+        if self.time_limit_hit:
+            self.warnings.append(
+                RunWarning(
+                    code="time_limit_reached",
+                    message=(
+                        f"the run's time limit came before its budget; it "
+                        f"ended after {len(self.measured)} rounds"
+                        + (
+                            f", and its final look used {ended.used} of "
+                            "them (complete order pairs only)"
+                            if ended.look is not None
+                            else ", too few for any look"
+                        )
+                    ),
+                )
+            )
         guardrails = tuple(
             GuardrailResult(
                 metric=g.metric,
@@ -1010,6 +1249,17 @@ class _Run:
                 reason=_GUARDRAILS_NOT_BUILT if g.applicable else g.reason,
             )
             for g in self.spec.guardrails
+        ) + tuple(
+            GuardrailResult(
+                metric=metric,
+                status="not_declared",
+                reason=(
+                    f"the spec does not declare {metric}, so nothing was "
+                    "checked and a KEEP is withheld; declare it, with an "
+                    "allowance, in a new spec"
+                ),
+            )
+            for metric in undeclared_guardrails(self.spec)
         )
         return self._write(verdict, self._listed_gates(), guardrails)
 
@@ -1020,20 +1270,40 @@ class _Run:
         look, used = ended.look, ended.used
         n = used if look is not None else len(self.measured)
         if n < 2:
-            return Diagnostics(procedure_uncalibrated=True), None, None
+            return (
+                Diagnostics(procedure_uncalibrated=not CALIBRATED),
+                None,
+                None,
+            )
         spec = self.spec
         b, c = self._values(n, lambda s: s.value)
-        ratios = b / c if spec.metric.direction == "lower_is_better" else c / b
-        d = np.log(ratios)
-        first = np.array(
-            [m.samples[0].version == "candidate" for m in self.measured]
-        )[:n]
-        lag1 = float(lag1_autocorrelation(d, first))
-        self._shape_warnings(d, lag1)
+        with np.errstate(over="ignore", under="ignore"):
+            ratios = (
+                b / c if spec.metric.direction == "lower_is_better" else c / b
+            )
+        in_range = bool(
+            np.all(np.isfinite(ratios) & (ratios >= np.finfo(np.float64).tiny))
+        )
+        first = self._candidate_first(n)
+        d = np.log(ratios) if in_range else None
+        # Identical log ratios have no autocorrelation, whatever residue
+        # the mean leaves, as in the gate of `decide_look`.
+        lag1 = (
+            float(lag1_autocorrelation(d, first))
+            if d is not None and np.ptp(d) > 0
+            else math.nan
+        )
+        if d is not None:
+            self._shape_warnings(d, lag1)
         confidence = ended.confidence
         interval: Interval | None = None
         estimate: float | None = None
-        if look is not None and int(look.rule[0]) == 5:
+        if (
+            look is not None
+            and int(look.rule[0]) in (2, 5)
+            and np.isfinite(look.lower[0])
+            and np.isfinite(look.upper[0])
+        ):
             interval = Interval(
                 lower=float(look.lower[0]),
                 upper=float(look.upper[0]),
@@ -1045,17 +1315,38 @@ class _Run:
                     c,
                     direction=spec.metric.direction,
                     confidence=confidence,
+                    block=BATCH_BLOCK,
                 ).estimate
+            )
+        if (
+            interval is None
+            and look is not None
+            and int(look.rule[0]) == 5
+            and n // BATCH_BLOCK >= 2
+        ):
+            self.warnings.append(
+                RunWarning(
+                    code="interval_unrepresentable",
+                    message=(
+                        "a ratio or an interval bound of the last look "
+                        "fell outside the range of a float (underflowed to "
+                        "0 or overflowed), so no interval is recorded and "
+                        "the look decides nothing; the values are extreme "
+                        "or spread over hundreds of orders of magnitude"
+                    ),
+                )
             )
         wall, disagree = self._wall(n, confidence, interval)
         diagnostics = Diagnostics(
-            procedure_uncalibrated=True,
+            procedure_uncalibrated=not CALIBRATED,
             metric_disagreement=disagree,
             wall_interval=wall,
             lag1_autocorrelation=None if math.isnan(lag1) else lag1,
-            cv_baseline=float(np.std(b, ddof=1) / np.mean(b)),
-            cv_candidate=float(np.std(c, ddof=1) / np.mean(c)),
-            sd_log_ratio=float(np.std(d, ddof=1)),
+            autocorrelated_rounds=_gate_flag(look, "autocorrelated_rounds"),
+            outlier_rounds=_gate_flag(look, "outlier_rounds"),
+            cv_baseline=_cv(b),
+            cv_candidate=_cv(c),
+            sd_log_ratio=None if d is None else float(np.std(d, ddof=1)),
         )
         return diagnostics, interval, estimate
 
@@ -1087,8 +1378,11 @@ class _Run:
                 baseline_step=step, candidate_step=step, check_continuity=False
             ),
             procedure=PROCEDURE,
+            candidate_first=self._candidate_first(n)[np.newaxis, :],
         )
-        if int(look.rule[0]) == 1:
+        if int(look.rule[0]) == 1 or not (
+            np.isfinite(look.lower[0]) and np.isfinite(look.upper[0])
+        ):
             return None, None
         wall = Interval(
             lower=float(look.lower[0]),
@@ -1155,6 +1449,9 @@ class _Run:
             environments=tuple(self.environments[arm] for arm in _ARMS),
             warnings=tuple(self.warnings),
             samples_path=samples_path,
+            measured_metric=(
+                None if self.fallback_reason is None else _FALLBACK_METRIC
+            ),
         )
         record_path, report_path = write(record, self.run_dir)
         return CompareResult(
@@ -1168,8 +1465,10 @@ class _Run:
 class _Steps:
     """The resolution step of each value, per "Resolution"."""
 
-    def __init__(self, spec: BenchmarkSpec, wall_step: float) -> None:
-        self.kind = spec.metric.kind
+    def __init__(
+        self, spec: BenchmarkSpec, wall_step: float, kind: MetricKind
+    ) -> None:
+        self.kind = kind
         self.continuity = self.kind == "reported"
         self.fixed: float | None = {
             "wall": wall_step,
@@ -1178,23 +1477,21 @@ class _Steps:
             "reported": None,
         }[self.kind]
 
-    def of(
-        self, done: Round, stop: Callable[[str, str], CompareStoppedError]
-    ) -> dict[Arm, float]:
-        """Return each arm's step in one finished round."""
+    def of(self, done: Round) -> dict[Arm, float]:
+        """Return each arm's step in one finished round.
+
+        A ``reported`` value whose printed digits can't be read back
+        has an unknown resolution: its step is 0, which no readable
+        value has, and `_Run` records ``resolution_unknown`` and
+        withholds a KEEP.
+        """
         steps: dict[Arm, float] = {}
         for ex in done.executions:
             if self.fixed is not None:
                 steps[ex.arm] = self.fixed
                 continue
             step = _printed_step(ex)
-            if step is None:
-                msg = (
-                    f"the PERFPROOF value of {ex.label} {ex.arm} could not be "
-                    f"read back from {ex.stdout} to find its resolution"
-                )
-                raise stop("harness_fault", msg)
-            steps[ex.arm] = step
+            steps[ex.arm] = 0.0 if step is None else step
         return steps
 
 
@@ -1221,16 +1518,19 @@ def _same_host_gate(
 ) -> GateResult:
     """Check every round ran on the host fingerprinted at the start.
 
-    Fails closed: a host identity that could not be probed fails the
-    gate, as does a different identity at the end (on Linux a reboot
-    changes it).
+    A host identity that could not be read is ``not_available``, not
+    a failure: nothing shows the host changed. A readable identity that
+    differs at the end fails the gate (on Linux a reboot changes it).
     """
     if first.host_id is None:
         reason = first.missing.get("host_id", "no reason recorded")
         return GateResult(
             gate="same_host",
-            status="failed",
-            detail=f"the host identity is unknown: {reason}",
+            status="not_available",
+            detail=(
+                f"the host identity could not be read ({reason}), so "
+                "whether every round ran on one host was not verified"
+            ),
         )
     if last is None:
         return GateResult(
@@ -1238,14 +1538,24 @@ def _same_host_gate(
             status="passed",
             detail=f"host {first.host_id} before the first round",
         )
+    if last.host_id is None:
+        reason = last.missing.get("host_id", "no reason recorded")
+        return GateResult(
+            gate="same_host",
+            status="not_available",
+            detail=(
+                f"the host identity could not be read after the last round "
+                f"({reason}), so whether it stayed {first.host_id} was not "
+                "verified"
+            ),
+        )
     if last.host_id != first.host_id:
-        found = last.host_id or last.missing.get("host_id", "unknown")
         return GateResult(
             gate="same_host",
             status="failed",
             detail=(
                 f"the host was {first.host_id} before the first round and "
-                f"{found} after the last"
+                f"{last.host_id} after the last"
             ),
         )
     return GateResult(
@@ -1301,6 +1611,35 @@ def _execution_gate(
     )
 
 
+def _launch_gate(
+    failure: ExecutionError, argv: tuple[str, ...], what: str
+) -> GateResult:
+    """Fail the runtime gate for a candidate that could not be started.
+
+    The baseline ran the program and the candidate's tree could not
+    start it (a missing program or interpreter, a bad interpreter
+    line), so the two arms do not run the same program: integrity, as
+    "Integrity" in ``docs/method.md`` says. A program that started and
+    then exited non-zero is the correctness gate's, not this one.
+    """
+    return GateResult(
+        gate="runtime",
+        status="failed",
+        detail=(
+            f"the arms do not run the same program: the baseline ran "
+            f"{argv[0]!r} and the candidate could not start it from its "
+            f"tree during {what} ({failure.label}): {failure.reason}"
+        ),
+        differences=(
+            Difference(
+                item="launch",
+                baseline="started",
+                candidate=failure.reason,
+            ),
+        ),
+    )
+
+
 def _tail(path: Path) -> tuple[str, bool]:
     """Return a log's last `OUTPUT_TAIL_BYTES` and if it was cut."""
     try:
@@ -1311,6 +1650,117 @@ def _tail(path: Path) -> tuple[str, bool]:
     except OSError:
         return "", False
     return data.decode("utf-8", errors="replace"), size > OUTPUT_TAIL_BYTES
+
+
+def _cv(values: NDArray[np.float64]) -> float | None:
+    """Coefficient of variation, ``None`` if not a finite float.
+
+    Scaled by the largest value first, so a value near the float
+    maximum cannot overflow the variance. The result is unchanged by
+    the scale.
+    """
+    scaled = values / np.max(values)
+    cv = float(np.std(scaled, ddof=1) / np.mean(scaled))
+    return cv if math.isfinite(cv) else None
+
+
+def _gate_flag(look: Look | None, name: str) -> bool | None:
+    """Whether the diagnostic gate named ``name`` at ``look``.
+
+    ``None`` when no look was taken, so the gate was not evaluated.
+    """
+    if look is None:
+        return None
+    return str(look.withheld[0]) == name
+
+
+def keep_blocked(spec: BenchmarkSpec) -> bool:
+    """Whether the spec rules out a KEEP, whatever the interval shows.
+
+    True when a guardrail can't be shown compliant yet (applicable and
+    unmeasured, or a default one left undeclared), or when the
+    look schedule is outside the calibrated ones (more than one look at
+    120 observations or more, see `late_looks`). Rule 2 then continues,
+    or is INCONCLUSIVE at the last look; REJECTs are unaffected.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec being compared.
+
+    Returns
+    -------
+    bool
+        Whether rule 2 must not keep.
+    """
+    return (
+        any(g.applicable for g in spec.guardrails)
+        or bool(undeclared_guardrails(spec))
+        or late_looks(spec) > 1
+    )
+
+
+def undeclared_guardrails(spec: BenchmarkSpec) -> tuple[str, ...]:
+    """List the default guardrails the spec leaves out.
+
+    The target class is unknown here, so the defaults are those of
+    `perfproof.schema.DEFAULT_GUARDRAILS` for ``None``, less the ones
+    the spec declares and the primary objective. Each is recorded
+    ``not_declared`` instead of stopping the comparison.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec being compared.
+
+    Returns
+    -------
+    tuple of str
+        Metric names, in the order of the defaults.
+    """
+    declared = {g.metric for g in spec.guardrails}
+    return tuple(
+        m
+        for m in DEFAULT_GUARDRAILS[None]
+        if m not in declared and m != spec.objective
+    )
+
+
+def late_looks(spec: BenchmarkSpec) -> int:
+    """Count the looks the budget can take at 120 observations or more.
+
+    "Stopping" in ``docs/method.md``: the scheduled looks at
+    ``n0 + j k`` for ``j < K`` from 120 up to ``max_rounds``, plus one
+    when exactly one is that long, it is not the ``K``-th, and the
+    budget runs at least 2 rounds past it, since a budget that ends
+    there takes a final look that replaces the remaining ones.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec whose look schedule and budget are counted, in rounds
+        (one host).
+
+    Returns
+    -------
+    int
+        The looks at 120 observations or more. Exact for whether it is
+        above 1, which is what the warning and the KEEP block use; a
+        lower bound on the true count above that.
+    """
+    sched = spec.looks
+    late = [
+        n
+        for j in range(sched.max_looks)
+        if LAG1_MIN_BLOCKS * BATCH_BLOCK
+        <= (n := sched.n0 + j * sched.k)
+        <= spec.budget.max_rounds
+    ]
+    if len(late) != 1:
+        return len(late)
+    j = (late[0] - sched.n0) // sched.k
+    cut = j + 1 < sched.max_looks and spec.budget.max_rounds >= late[0] + 2
+    return 1 + int(cut)
 
 
 def _wall_step() -> float:

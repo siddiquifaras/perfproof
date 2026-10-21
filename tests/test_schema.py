@@ -89,9 +89,10 @@ HASH_B = "b" * 64
 # objective or guardrails. Version 2 added both to the fixture and
 # pinned 98398968.... Version 3 changes schema_version and adds the
 # metric's resolution and the differential tolerances, at their
-# defaults, to the canonical form.
+# defaults, to the canonical form. Version 4 changes only
+# schema_version, so it pins 4c8b008b....
 PINNED_SPEC_HASH = (
-    "18b92a8e3582909ea75028680ca1b408f945c55f134d3aae4a8dae0f00373a19"
+    "4c8b008bc23295f09d3ba40f537d085194483fd98c560789fffdc0389405077c"
 )
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
@@ -1228,10 +1229,17 @@ def test_mapping_fields_are_read_only(mapping: Any) -> None:
 def test_root_documents_carry_schema_version() -> None:
     for model in (spec(), EXAMPLES["lock_manifest"], record()):
         assert as_json(model)["schema_version"] == schema.SCHEMA_VERSION
-    for version in (1, 2, 4):
-        data = with_value(as_json(record()), "schema_version", version)
+    assert schema.SCHEMA_VERSION == 4
+
+
+@pytest.mark.parametrize("version", [1, 2, 3, 5])
+def test_other_schema_versions_are_refused_not_migrated(
+    version: int,
+) -> None:
+    for model in (spec(), EXAMPLES["lock_manifest"], record()):
+        data = with_value(as_json(model), "schema_version", version)
         with pytest.raises(ValidationError):
-            RunRecord.model_validate(data)
+            type(model).model_validate(data)
 
 
 # Rejections: each case takes a valid example, changes one value through
@@ -1288,7 +1296,7 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("verdict_keep", "rule", 2.0),
     ("verdict_keep", "rule", True),
     ("spec", "schema_version", True),
-    ("record", "schema_version", 3.0),
+    ("record", "schema_version", 4.0),
     # malformed identifiers and paths
     ("sample", "command_hash", "ABC"),
     ("record", "baseline_commit", "main"),
@@ -2472,7 +2480,7 @@ def test_guardrail_floor_for_a_higher_is_better_metric() -> None:
 @pytest.mark.parametrize(
     ("guardrails", "message"),
     [
-        ((memory_result(),), "must match the spec's guardrails"),
+        ((memory_result(),), "must be the spec's guardrails"),
         (
             (memory_result(), latency_result(), memory_result()),
             "listed more than once",
@@ -2485,7 +2493,7 @@ def test_guardrail_floor_for_a_higher_is_better_metric() -> None:
                     metric="peak_gpu_memory", status="unmeasurable", reason="x"
                 ),
             ),
-            "must match the spec's guardrails",
+            "must be the spec's guardrails",
         ),
         (
             (
@@ -2886,7 +2894,7 @@ def test_wall_metric_cannot_name_a_default_guardrail_away(
     with pytest.raises(ValidationError, match="cannot measure"):
         BenchmarkSpec.model_validate(data)
     v = Verdict.model_validate({**as_json(keep()), "target_class": target})
-    with pytest.raises(ValidationError, match="default guardrails"):
+    with pytest.raises(ValidationError, match="not_declared result"):
         record(verdict=v, spec=declared("wall_time"), guardrails=())
 
 
@@ -3676,7 +3684,7 @@ def test_new_models_reject_invalid_value(
 
 
 def test_new_documents_do_not_bump_schema_version() -> None:
-    assert schema.SCHEMA_VERSION == 3
+    assert schema.SCHEMA_VERSION == 4
     assert as_json(project_model())["schema_version"] == 1
     assert as_json(EXAMPLES["project_history"])["schema_version"] == 1
     assert as_json(event("observation"))["schema_version"] == 1
@@ -4363,3 +4371,171 @@ def test_new_models_are_in_the_json_schema() -> None:
     assert "upper_bound" in defs["Cap"]["properties"]
     assert "estimate" not in defs["Cap"]["properties"]
     assert "upper_bound" not in defs["MeasuredSpeedup"]["properties"]
+
+
+# Unknown is not wrong: what can't be verified is recorded, not refused
+
+
+def undeclared_result(metric: str = "peak_memory") -> GuardrailResult:
+    return GuardrailResult(
+        metric=metric, status="not_declared", reason="not in the spec"
+    )
+
+
+def unsure() -> Verdict:
+    return inconclusive().model_copy(update={"diagnostics": calibrated()})
+
+
+def test_undeclared_default_guardrail_is_recorded_not_declared() -> None:
+    rec = record(
+        verdict=unsure(),
+        spec=declared("wall_time"),
+        guardrails=(undeclared_result(),),
+    )
+    assert rec.guardrails[0].status == "not_declared"
+
+
+def test_not_declared_needs_a_reason_and_no_measurement() -> None:
+    with pytest.raises(ValidationError, match="say why"):
+        GuardrailResult(metric="peak_memory", status="not_declared")
+    with pytest.raises(ValidationError, match="no measurement"):
+        GuardrailResult(
+            metric="peak_memory",
+            status="not_declared",
+            reason="x",
+            estimate=1.0,
+            worsening=Interval(lower=0.9, upper=1.1, confidence=0.99),
+        )
+
+
+def test_declared_guardrail_is_never_not_declared() -> None:
+    with pytest.raises(ValidationError, match="is not not_declared"):
+        record(verdict=unsure(), guardrails=(undeclared_result(),))
+
+
+def test_an_omitted_default_cannot_have_another_status() -> None:
+    wrong = GuardrailResult(
+        metric="peak_memory", status="unmeasurable", reason="x"
+    )
+    with pytest.raises(ValidationError, match="is not declared in the spec"):
+        record(
+            verdict=unsure(),
+            spec=declared("wall_time"),
+            guardrails=(wrong,),
+        )
+
+
+def test_keep_is_refused_with_a_not_declared_guardrail() -> None:
+    with pytest.raises(ValidationError, match="not shown"):
+        record(
+            verdict=keep(),
+            spec=declared("wall_time"),
+            guardrails=(undeclared_result(),),
+        )
+
+
+def test_spec_with_no_correctness_check_is_valid() -> None:
+    data = as_json(spec())
+    data["correctness"] = {}
+    no_check = BenchmarkSpec.model_validate(data)
+    assert no_check.correctness.command is None
+    assert not no_check.correctness.outputs
+    unavailable = with_gate(
+        gates_passed(),
+        "correctness",
+        "not_available",
+        detail="the spec declares no correctness check",
+    )
+    record(spec=no_check, gates=unavailable, verdict=unsure())
+    with pytest.raises(ValidationError, match="checked nothing"):
+        record(spec=no_check)
+
+
+def test_unverified_lines_may_leave_coverage_not_available() -> None:
+    lines = (UnverifiedLines(path="a.py", lines=(3, 4)),)
+    ok = with_gate(
+        gates_passed(),
+        "coverage",
+        "not_available",
+        detail="2 changed lines ran under no passing check",
+        unverified=lines,
+    )
+    record(gates=ok, verdict=unsure())
+    with pytest.raises(ValidationError, match="failed or not_available"):
+        with_gate(gates_passed(), "coverage", "passed", unverified=lines)
+
+
+@pytest.mark.parametrize("gate", ["runtime", "same_host"])
+def test_runtime_and_host_gates_can_be_not_available(gate: GateName) -> None:
+    unavailable = with_gate(gates_passed(), gate, "not_available", detail="x")
+    record(gates=unavailable, verdict=unsure())
+    with pytest.raises(ValidationError, match="needs every gate checked"):
+        record(gates=unavailable)
+
+
+def withheld_keep() -> Verdict:
+    """A rule 2 look that would have kept, ended INCONCLUSIVE."""
+    return keep().model_copy(
+        update={"outcome": "INCONCLUSIVE", "reason": "insufficient_evidence"}
+    )
+
+
+@pytest.mark.parametrize(
+    "code",
+    ["counter_unavailable", "resolution_unknown", "schedule_uncalibrated"],
+)
+def test_a_keep_cannot_carry_a_warning_that_withholds_it(code: str) -> None:
+    warned = (RunWarning(code=code, message="x"),)
+    with pytest.raises(ValidationError, match="warnings that withhold it"):
+        record(verdict=keep(), warnings=warned)
+    record(verdict=withheld_keep(), warnings=warned)
+
+
+def test_other_warnings_do_not_withhold_a_keep() -> None:
+    record(
+        verdict=keep(),
+        warnings=(RunWarning(code="high_load", message="load 3"),),
+    )
+
+
+def test_a_rule_2_inconclusive_needs_some_blocker() -> None:
+    with pytest.raises(ValidationError, match="blocked KEEP"):
+        record(
+            verdict=withheld_keep(),
+            warnings=(RunWarning(code="high_load", message="load 3"),),
+        )
+
+
+def test_a_withheld_look_may_have_an_interval_that_clears_the_bar() -> None:
+    v = withheld(outlier_rounds=True).model_copy(
+        update={
+            "interval": Interval(lower=1.5, upper=2.0, confidence=0.99),
+            "estimate": 1.7,
+        }
+    )
+    record(verdict=v)
+
+
+def test_measured_metric_is_only_the_counter_wall_fallback() -> None:
+    wall = MetricSpec(kind="wall", direction="lower_is_better", unit="s")
+    counter = {
+        "kind": "counter",
+        "direction": "lower_is_better",
+        "unit": "instructions",
+        "event": "instructions",
+    }
+    data = as_json(spec())
+    data["metric"] = counter
+    data["objective"] = "instructions"
+    counted = BenchmarkSpec.model_validate(data)
+    note = (RunWarning(code="counter_unavailable", message="no perf"),)
+    record(
+        spec=counted,
+        measured_metric=wall,
+        warnings=note,
+        verdict=withheld_keep(),
+    )
+    with pytest.raises(ValidationError, match="wall-time fallback"):
+        record(spec=counted, measured_metric=wall, verdict=withheld_keep())
+    with pytest.raises(ValidationError, match="wall-time fallback"):
+        record(measured_metric=wall, warnings=note, verdict=withheld_keep())

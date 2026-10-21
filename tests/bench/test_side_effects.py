@@ -1514,3 +1514,84 @@ def test_reset_working_directory_that_is_unusable_is_a_reset_failure(
         run_reset(spec, tmp_path, dict(os.environ))
     assert caught.value.gate.output is not None
     assert caught.value.gate.output.exit_code == 127
+
+
+REGISTRY_ARGS = [
+    ["pip", "install", "--index-url=https://pypi.org/simple", "pkg"],
+    ["pip", "install", "--index-url", "https://pypi.org/simple/", "pkg"],
+    ["pip", "download", "https://files.pythonhosted.org/packages/x.whl"],
+    ["npm", "install", "--registry=https://registry.npmjs.org/"],
+    ["env", "UV_INDEX_URL=https://pypi.org/simple", "uv", "sync"],
+    ["cargo", "fetch", "--registry-url", "https://index.crates.io/"],
+]
+
+
+@pytest.mark.parametrize("argv", REGISTRY_ARGS)
+def test_a_package_registry_url_is_allowed_in_setup_only(
+    argv: list[str],
+) -> None:
+    in_setup = make_spec(setup={"commands": [argv], "timeout_seconds": 60.0})
+    assert side_effects_gate(in_setup, Path("."), {}).status == "passed"
+    in_benchmark = make_spec(command=argv)
+    assert side_effects_gate(in_benchmark, Path("."), {}).status == "failed"
+    in_test = make_spec(correctness={"command": argv, "timeout_seconds": 60.0})
+    assert side_effects_gate(in_test, Path("."), {}).status == "failed"
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["pip", "install", "--index-url=https://mirror.example.com/simple"],
+        ["pip", "install", "--index-url=http://pypi.org/simple"],
+        ["pip", "install", "--index-url=https://user:tok@pypi.org/simple"],
+        ["pip", "install", "https://pypi.org.example.com/simple"],
+        ["pip", "install", "--index-url=https://pypi.org:8443/simple"],
+        ["pip", "install", "--index-url=https://pypi.org\\@evil.example/"],
+        ["curl", "https://api.openai.com/v1/models"],
+    ],
+)
+def test_other_remote_hosts_stay_refused_in_setup(argv: list[str]) -> None:
+    spec = make_spec(setup={"commands": [argv], "timeout_seconds": 60.0})
+    assert side_effects_gate(spec, Path("."), {}).status == "failed"
+
+
+def test_an_unparseable_value_stays_refused_in_setup() -> None:
+    spec = make_spec(
+        setup={
+            "commands": [["tool", "--host=http:/pypi.org"]],
+            "timeout_seconds": 60.0,
+        }
+    )
+    assert side_effects_gate(spec, Path("."), {}).status == "failed"
+
+
+@pytest.mark.parametrize(
+    "sep", ["\t", "\n", "\r", " ", "\x00", "\x0b", "\x0c"]
+)
+@pytest.mark.parametrize(
+    "template",
+    [
+        "https://pypi.org{sep}.attacker.example/simple",
+        "--index-url=https://pypi.org{sep}.attacker.example/simple",
+        "https://pypi.org/simple{sep}",
+        "{sep}https://pypi.org/simple",
+    ],
+)
+def test_a_registry_url_with_anything_around_it_is_not_exempt(
+    sep: str, template: str
+) -> None:
+    arg = template.format(sep=sep)
+    spec = make_spec(
+        setup={"commands": [["pip", "install", arg]], "timeout_seconds": 60.0}
+    )
+    assert side_effects_gate(spec, Path("."), {}).status == "failed"
+
+
+def test_a_registry_url_in_the_reset_command_stays_refused() -> None:
+    spec = make_spec(
+        reset={
+            "command": ["pip", "download", "https://pypi.org/simple/x"],
+            "timeout_seconds": 10.0,
+        }
+    )
+    assert side_effects_gate(spec, Path("."), {}).status == "failed"

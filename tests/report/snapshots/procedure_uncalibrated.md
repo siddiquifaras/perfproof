@@ -6,6 +6,12 @@
 
 The interval procedure had not passed calibration when this verdict was given, so rules 2 and 3 could not decide: the comparison ran to the end of its budget and is INCONCLUSIVE whatever its interval shows. Nothing is kept.
 
+Not verified, so a KEEP would be withheld whatever the interval shows:
+
+- Gate `side_effects`: not available (not built yet)
+- Gate `coverage`: not available (not built yet)
+- Guardrail `peak_gpu_memory`: unmeasurable (nvidia-smi is not installed on this host)
+
 Labels:
 
 - Procedure not calibrated: the interval procedure had not passed calibration when this verdict was given.
@@ -15,7 +21,7 @@ Labels:
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `a5b5e3866ce5537c1cfaf9dabffe710e56278fa58bc9ef43be00ab61d2e90ebb`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `e49e48ccc78cefaeba634069c19a0bc82bdd3b8d45b32d48581ac4fa73b9dc95`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -75,7 +81,7 @@ Not recorded: the repository and the candidate's commit.
 
 - Interval procedure: `t_log_ratio`
 - Procedure uncalibrated when this verdict was given: yes
-- Target class: unknown, so every default guardrail had to be declared
+- Target class: unknown, so every default guardrail is declared or not declared
 - Calibration for the target class: `uncalibrated`
 - Not calibrated for this target class.
 
@@ -132,8 +138,8 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `a5b5e3866ce5537c1cfaf9dabffe710e56278fa58bc9ef43be00ab61d2e90ebb`
-- schema_version: 3
+- spec_hash: `e49e48ccc78cefaeba634069c19a0bc82bdd3b8d45b32d48581ac4fa73b9dc95`
+- schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -183,7 +189,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 3
+- schema_version: 4
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

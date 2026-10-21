@@ -159,8 +159,18 @@ __all__ = [
     "json_schema_text",
 ]
 
-SCHEMA_VERSION: Final = 3
+SCHEMA_VERSION: Final = 4
 """Version of the on-disk format; bumped on any incompatible change.
+
+Version 4 follows unknown-is-not-wrong: a guardrail's status can be
+``not_declared``; a record always serializes a ``measured_metric`` key
+(null unless a counter fell back to wall time); a spec may declare no
+check; coverage may be ``not_available`` with the unverified lines
+recorded. A version 4 reader refuses a version 3 document, and a
+version 3 reader refuses a version 4 one, because their models forbid
+extra fields. Every version 3 document is refused whatever its content,
+and none is migrated: a stored spec, manifest or record must be written
+again under version 4.
 
 Version 3 follows the method changes: a one-host look schedule needs
 even ``n0`` and ``k``; values carry a resolution, and a verdict the
@@ -168,9 +178,8 @@ resolution stop, its widening and the calibration conditions it rests
 on; a tree's runtime has a kind and its native build's outside-tree
 libraries; a record names its repository and candidate commit;
 differential checks declare a numeric tolerance and record their
-capture limit. Every version 2 document is refused, whatever its
-content, and none is migrated: a stored spec, manifest or record must
-be written again under version 3.
+capture limit. Every version 2 document was refused, whatever its
+content, and none was migrated.
 
 Version 2 added the safety checks: the `side_effects` and `coverage`
 gates, guardrails, the `guardrail` reason, the reset command, the
@@ -209,7 +218,7 @@ Rule = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_exact_int)]
 
 Rule 4 (continue) never ends a comparison, so no verdict carries it.
 """
-SchemaVersion = Annotated[Literal[3], BeforeValidator(_exact_int)]
+SchemaVersion = Annotated[Literal[4], BeforeValidator(_exact_int)]
 GateName = Literal[
     "side_effects",
     "lock",
@@ -221,10 +230,18 @@ GateName = Literal[
 ]
 GateStatus = Literal["passed", "failed", "waived", "not_available"]
 """``not_available``: the gate could not be checked in this run, because
-it is not built yet or the target gives it nothing to check with. It
-never counts as passed and blocks KEEP."""
+it is not built yet, the target gives it nothing to check with, or what
+it would compare could not be identified or read (a runtime, a host
+identity, a correctness check the spec does not declare). A gate fails
+only on evidence, so this is never ``failed``. It never counts as passed
+and blocks KEEP."""
 GuardrailStatus = Literal[
-    "passed", "breached", "not_established", "unmeasurable", "not_applicable"
+    "passed",
+    "breached",
+    "not_established",
+    "unmeasurable",
+    "not_declared",
+    "not_applicable",
 ]
 AllowanceSource = Literal["default", "target_class", "project"]
 LockRole = Literal["harness", "oracle", "input", "config"]
@@ -295,8 +312,18 @@ _NOT_APPLICABLE: Final[Mapping[RuntimeKind | None, frozenset[str]]] = (
     )
 )
 """`TreeEnvironment` fields that don't apply to each runtime kind."""
-_UNSHOWN: Final = frozenset({"not_established", "unmeasurable"})
+_UNSHOWN: Final = frozenset(
+    {"not_established", "unmeasurable", "not_declared"}
+)
 _MEASURED: Final = frozenset({"passed", "breached", "not_established"})
+KEEP_BLOCKING_WARNINGS: Final = frozenset(
+    {"counter_unavailable", "resolution_unknown", "schedule_uncalibrated"}
+)
+"""`RunWarning` codes naming a reason a KEEP is withheld that is
+neither a gate nor a guardrail: a counter metric measured as wall time,
+a value of unknown resolution, a look schedule outside the calibrated
+ones. A KEEP cannot carry one, and a rule 2 INCONCLUSIVE may rest on
+one."""
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
 _OBJECTIVE_KINDS: Final[Mapping[str, frozenset[MetricKind]]] = (
     MappingProxyType(
@@ -355,11 +382,13 @@ DEFAULT_GUARDRAILS: Final[Mapping[TargetClass | None, tuple[str, ...]]] = (
 )
 """Guardrails ``docs/method.md`` applies by default, per target class.
 
-Each must be declared in the spec, applied or not applicable with a
-reason, unless it is the primary objective. ``p99_latency`` is a
-default only when it isn't the objective, and an agentic app that
-serves no requests marks it not applicable. An unknown target class
-(``None``) fails closed: every default in the table is required.
+Each is declared in the spec, applied or not applicable with a
+reason, unless it is the primary objective; one the spec leaves out is
+recorded `not_declared`, which blocks KEEP but never stops a
+comparison. ``p99_latency`` is a default only when it isn't the
+objective, and an agentic app that serves no requests marks it not
+applicable. An unknown target class (``None``) requires every default
+in the table, declared or recorded `not_declared`.
 Allowances and overrides are not here; they belong to the guardrail
 step."""
 
@@ -666,15 +695,17 @@ class OutputCheck(_Model):
 class CorrectnessSpec(_Model):
     """How the correctness gate decides the candidate is right.
 
-    At least one check is required: a gate that checks nothing would
-    pass every candidate.
+    A spec may declare no check at all, for a project that has no test
+    command and no output to compare. The gate is then
+    ``not_available``, never passed (`RunRecord` refuses a record that
+    passes it), so a KEEP is withheld while the comparison still
+    measures.
 
     Raises
     ------
     pydantic.ValidationError
-        If there is neither a command nor an output, if a command has no
-        timeout or a timeout has no command, or if an output path
-        repeats.
+        If a command has no timeout or a timeout has no command, or if
+        an output path repeats.
     """
 
     command: Argv | None = None
@@ -697,10 +728,7 @@ class CorrectnessSpec(_Model):
     units."""
 
     @model_validator(mode="after")
-    def _check_has_checks(self) -> Self:
-        if self.command is None and not self.outputs:
-            msg = "correctness needs a command, outputs, or both"
-            raise ValueError(msg)
+    def _check_command_and_outputs(self) -> Self:
         if (self.command is None) != (self.timeout_seconds is None):
             msg = "timeout_seconds is required with command and only with it"
             raise ValueError(msg)
@@ -1349,9 +1377,9 @@ class GateResult(_Model):
         `side_effects`, `runtime`, `same_host` or `coverage` is waived;
         ``quarantined`` or ``differential`` is set on a gate other than
         `correctness`, or ``unverified`` on one other than `coverage`;
-        unverified lines, a differential mismatch or ``output`` come
-        with a gate that did not fail; or a test, function or path
-        repeats.
+        unverified lines come with a gate that neither failed nor is
+        `not_available`; a differential mismatch or ``output`` come with
+        a gate that did not fail; or a test, function or path repeats.
     """
 
     gate: GateName
@@ -1372,7 +1400,10 @@ class GateResult(_Model):
     """`correctness` only: differential checks, one per changed
     function."""
     unverified: tuple[UnverifiedLines, ...] = ()
-    """`coverage` only: changed lines no check ran, by file."""
+    """`coverage` only: changed lines no check ran, by file. Lines that
+    ran under no passing check make the gate `not_available`, never
+    failed: the change may be right, and perfproof only can't show it
+    (``docs/method.md``, "Coverage gate")."""
     output: CommandOutput | None = None
     """For a failed gate, the output of the command whose failure
     failed it, such as a reset; ``None`` otherwise."""
@@ -1401,8 +1432,11 @@ class GateResult(_Model):
         """Check evidence of a failure only comes with a failed gate."""
         if self.status == "failed":
             return
-        if self.unverified:
-            msg = "unverified lines fail the coverage gate"
+        if self.unverified and self.status != "not_available":
+            msg = (
+                "unverified lines make the coverage gate failed or "
+                f"not_available, not {self.status}"
+            )
             raise ValueError(msg)
         if any(d.mismatches for d in self.differential):
             msg = "a differential mismatch fails the correctness gate"
@@ -1583,7 +1617,8 @@ class Verdict(_Model):
     observations of the cross-host design; ``None`` on one host."""
     target_class: TargetClass | None = None
     """Target class judged under; ``None`` when unknown, in which case
-    every default guardrail of `DEFAULT_GUARDRAILS` must be declared."""
+    every default guardrail of `DEFAULT_GUARDRAILS` is declared or
+    recorded `not_declared`."""
     calibration: CalibrationStatus
     """Whether the procedure is calibrated for ``target_class``."""
     calibration_conditions: tuple[Text, ...] = ()
@@ -1755,8 +1790,9 @@ class GuardrailResult(_Model):
     Raises
     ------
     pydantic.ValidationError
-        If an `unmeasurable` or `not_applicable` guardrail has no reason
-        or carries a measurement, ``estimate`` and ``worsening`` are not
+        If an `unmeasurable`, `not_declared` or `not_applicable`
+        guardrail has no reason or carries a measurement, ``estimate``
+        and ``worsening`` are not
         set together, or a `passed`, `breached` or `not_established`
         guardrail has no interval. A guardrail with no interval at all
         is `unmeasurable`, with its reason.
@@ -1765,8 +1801,10 @@ class GuardrailResult(_Model):
     metric: Code
     """`GuardrailSpec.metric` of the guardrail."""
     status: GuardrailStatus
-    """`passed`, `breached`, `not_established`, `unmeasurable` or
-    `not_applicable`, as defined in ``docs/method.md``."""
+    """`passed`, `breached`, `not_established`, `unmeasurable`,
+    `not_declared` or `not_applicable`, as defined in
+    ``docs/method.md``. `not_declared` is a default guardrail the spec
+    does not declare; it has no `GuardrailSpec`."""
     estimate: Ratio | None = None
     """Point estimate of the worsening ratio; above 1 means the
     candidate is worse. Reported for every measured guardrail, so a
@@ -1778,8 +1816,8 @@ class GuardrailResult(_Model):
     """Interval on the candidate's own value, in the guardrail's unit,
     at the same confidence; checked against the absolute limits."""
     reason: Str = ""
-    """Why the guardrail is `unmeasurable` or `not_applicable`;
-    required for those two."""
+    """Why the guardrail is `unmeasurable`, `not_declared` or
+    `not_applicable`; required for those three."""
 
     @model_validator(mode="after")
     def _check_status(self) -> Self:
@@ -1788,7 +1826,7 @@ class GuardrailResult(_Model):
             or self.worsening is not None
             or self.candidate is not None
         )
-        if self.status in ("unmeasurable", "not_applicable"):
+        if self.status in ("unmeasurable", "not_declared", "not_applicable"):
             if not self.reason:
                 msg = f"guardrail {self.metric} is {self.status}: say why"
                 raise ValueError(msg)
@@ -2188,6 +2226,12 @@ def _check_guardrail_status(
     `unmeasurable` carries no measurement, which `GuardrailResult`
     checks.
     """
+    if result.status == "not_declared":
+        msg = (
+            f"guardrail {spec.metric} is declared in the spec, so it is "
+            "not not_declared"
+        )
+        raise ValueError(msg)
     if spec.applicable == (result.status == "not_applicable"):
         msg = (
             f"guardrail {spec.metric} is {result.status}, but the spec "
@@ -2238,11 +2282,13 @@ class RunRecord(_Model):
         appears for a metric other than ``reported``, ``finished_at``
         precedes ``started_at``, or ``candidate_commit`` and
         ``candidate_dirty`` are not set together. Also if the
-        guardrail results do not match the spec's guardrails one to one
-        (none for a gate verdict), the spec of any other verdict omits
-        a default guardrail of ``docs/method.md`` (peak memory, and the
-        target class's own) that is not the objective, a status
-        disagrees with its intervals, allowance and limits, a KEEP has
+        guardrail results do not match the spec's guardrails, plus one
+        `not_declared` result for each default guardrail of
+        ``docs/method.md`` (peak memory, and the target class's own)
+        that the spec omits and that is not the objective (none for a
+        gate verdict), a status disagrees with its intervals, allowance
+        and limits, a spec with no correctness check records the
+        `correctness` gate `passed`, a KEEP has
         a gate `not_available` or a guardrail other than `passed` or
         `not_applicable`, a guardrail REJECT has no `breached`
         guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing
@@ -2299,6 +2345,12 @@ class RunRecord(_Model):
     samples_path: RelPath | None
     """Raw samples file, relative to the run directory; ``None`` when no
     round ran."""
+    measured_metric: MetricSpec | None = None
+    """The metric actually measured when it is not ``spec.metric``: a
+    ``counter`` metric whose ``perf`` was unusable is measured as wall
+    time in seconds (``docs/method.md``, "Metrics"). ``None`` when the
+    spec's metric was measured. Every sample's value is in this metric's
+    unit."""
     profile_paths: tuple[RelPath, ...] = ()
     """Profiler outputs, relative to the run directory."""
 
@@ -2361,10 +2413,12 @@ class RunRecord(_Model):
         give against the guardrail's allowance and limits, compared
         exactly as `_guardrail_checks` describes.
 
-        Nothing is left implicit: the spec must declare, applied or not
-        applicable with a reason, peak memory for every target class
-        and the defaults of the verdict's target class, except the one
-        that is the primary objective.
+        Nothing is left implicit, and nothing stops a comparison: peak
+        memory for every target class and the defaults of the verdict's
+        target class, except the one that is the primary objective, are
+        each either declared in the spec (applied, or not applicable
+        with a reason) or recorded as a `not_declared` result with its
+        reason. A declared guardrail is never `not_declared`.
         """
         results = self.guardrails
         metrics = [r.metric for r in results]
@@ -2379,21 +2433,27 @@ class RunRecord(_Model):
         specs = {g.metric: g for g in self.spec.guardrails}
         target = self.verdict.target_class
         defaults = set(DEFAULT_GUARDRAILS[target])
-        undeclared = sorted(defaults - set(specs) - {self.spec.objective})
-        if undeclared:
+        undeclared = defaults - set(specs) - {self.spec.objective}
+        expected = set(specs) | undeclared
+        if set(metrics) != expected:
             msg = (
-                f"default guardrails {undeclared} for target class {target} "
-                "must be declared, applied or not applicable with a reason"
-            )
-            raise ValueError(msg)
-        if set(metrics) != set(specs):
-            msg = (
-                f"guardrail results {sorted(metrics)} must match the spec's "
-                f"guardrails {sorted(specs)}"
+                f"guardrail results {sorted(metrics)} must be the spec's "
+                f"guardrails {sorted(specs)} and a not_declared result for "
+                f"each default guardrail it omits {sorted(undeclared)} for "
+                f"target class {target}"
             )
             raise ValueError(msg)
         for result in results:
-            _check_guardrail_status(specs[result.metric], result)
+            if result.metric in undeclared:
+                if result.status != "not_declared":
+                    msg = (
+                        f"default guardrail {result.metric} is not declared "
+                        f"in the spec, so it is not_declared, not "
+                        f"{result.status}"
+                    )
+                    raise ValueError(msg)
+            else:
+                _check_guardrail_status(specs[result.metric], result)
 
     def _check_keep_blockers(self, status: Mapping[str, str]) -> None:
         """Check rule 2's outcome against the gates and guardrails.
@@ -2401,8 +2461,9 @@ class RunRecord(_Model):
         A KEEP needs every gate checked and every guardrail shown
         compliant. A guardrail REJECT needs a breach. A rule 2
         INCONCLUSIVE needs no breach and something that blocked the
-        KEEP: a gate `not_available`, or a guardrail `not_established`
-        or `unmeasurable`.
+        KEEP: a gate `not_available`, a guardrail `not_established`,
+        `unmeasurable` or `not_declared`, or a warning in
+        `KEEP_BLOCKING_WARNINGS`.
         """
         v = self.verdict
         unavailable = sorted(
@@ -2411,11 +2472,17 @@ class RunRecord(_Model):
         states = {r.metric: r.status for r in self.guardrails}
         breached = sorted(m for m, s in states.items() if s == "breached")
         unshown = sorted(m for m, s in states.items() if s in _UNSHOWN)
-        if v.outcome == "KEEP" and (unavailable or breached or unshown):
+        warned = sorted(
+            {w.code for w in self.warnings if w.code in KEEP_BLOCKING_WARNINGS}
+        )
+        if v.outcome == "KEEP" and (
+            unavailable or breached or unshown or warned
+        ):
             msg = (
                 f"a KEEP needs every gate checked and every guardrail passed "
                 f"or not_applicable; gates not available {unavailable}, "
-                f"guardrails breached {breached}, not shown {unshown}"
+                f"guardrails breached {breached}, not shown {unshown}, "
+                f"warnings that withhold it {warned}"
             )
             raise ValueError(msg)
         if v.reason == "guardrail" and not breached:
@@ -2425,7 +2492,7 @@ class RunRecord(_Model):
             if breached:
                 msg = f"guardrails {breached} are breached, so this is REJECT"
                 raise ValueError(msg)
-            if not (unavailable or unshown):
+            if not (unavailable or unshown or warned):
                 msg = "a rule 2 INCONCLUSIVE needs something that blocked KEEP"
                 raise ValueError(msg)
 
@@ -2473,7 +2540,12 @@ class RunRecord(_Model):
         bar = 1 + self.spec.min_effect
         keep = v.interval.lower > bar
         reject = v.interval.upper <= bar
-        exempt = too_few_pairs or v.diagnostics.procedure_uncalibrated
+        withheld = (
+            v.diagnostics.autocorrelated_rounds or v.diagnostics.outlier_rounds
+        )
+        exempt = (
+            too_few_pairs or v.diagnostics.procedure_uncalibrated or withheld
+        )
         if (
             (v.rule == 2 and not keep)
             or (v.rule == 3 and not reject)
@@ -2506,6 +2578,29 @@ class RunRecord(_Model):
         """Check the verdict fits the spec's budget, metric and bar."""
         v, spec = self.verdict, self.spec
         self._check_bar()
+        measured = self.measured_metric
+        if measured is not None and not (
+            spec.metric.kind == "counter"
+            and measured.kind == "wall"
+            and any(w.code == "counter_unavailable" for w in self.warnings)
+        ):
+            msg = (
+                "measured_metric is only the wall-time fallback of a "
+                "counter metric, recorded with a counter_unavailable warning"
+            )
+            raise ValueError(msg)
+        no_check = spec.correctness.command is None and not (
+            spec.correctness.outputs
+        )
+        if no_check and any(
+            g.gate == "correctness" and g.status == "passed"
+            for g in self.gates
+        ):
+            msg = (
+                "the spec declares no correctness check, so the "
+                "correctness gate checked nothing and cannot be passed"
+            )
+            raise ValueError(msg)
         if v.rounds > spec.budget.max_rounds:
             msg = (
                 f"{v.rounds} rounds exceed max_rounds = "

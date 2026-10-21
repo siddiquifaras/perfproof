@@ -126,6 +126,7 @@ def test_drive_looks_decides_exactly_as_run_looks(
         exhausted=exhausted,
         rounds=rounds,
         procedure="t_log_ratio",
+        candidate_first=drawn.candidate_first,
     )
 
     def bounds(

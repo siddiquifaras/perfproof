@@ -74,6 +74,7 @@ _STATUS_TEXT: Final[Mapping[str, str]] = {
     "breached": "breached",
     "not_established": "not established",
     "unmeasurable": "unmeasurable",
+    "not_declared": "not declared",
     "not_applicable": "not applicable",
 }
 
@@ -322,6 +323,9 @@ def _meaning(record: RunRecord) -> str:
                 "than the baseline, flagged as a regression."
             )
         return text
+    withheld = _withheld(v)
+    if withheld is not None:
+        return withheld
     if v.diagnostics.procedure_uncalibrated:
         return (
             "The interval procedure had not passed calibration when this "
@@ -353,8 +357,20 @@ def _meaning(record: RunRecord) -> str:
     )
 
 
+_WARNING_BLOCKERS: Final[Mapping[str, str]] = {
+    "counter_unavailable": (
+        "The counter metric could not be measured; wall time was measured "
+        "instead"
+    ),
+    "resolution_unknown": (
+        "The resolution of a reported value could not be read back"
+    ),
+}
+"""Warning codes that name something not verified, with plain words."""
+
+
 def _blockers(record: RunRecord) -> list[str]:
-    """List what blocked a rule 2 KEEP, read from recorded statuses."""
+    """List what blocked a KEEP, read from recorded fields."""
     lines: list[str] = []
     gates = _gate_status(record)
     for name in _GATE_ORDER:
@@ -369,11 +385,15 @@ def _blockers(record: RunRecord) -> list[str]:
                 f"Guardrail `{result.metric}`: not established (measured, "
                 "but the data can't tell yet)"
             )
-        elif result.status == "unmeasurable":
+        elif result.status in ("unmeasurable", "not_declared"):
             lines.append(
-                f"Guardrail `{result.metric}`: unmeasurable "
-                f"({_text(result.reason)})"
+                f"Guardrail `{result.metric}`: "
+                f"{_STATUS_TEXT[result.status]} ({_text(result.reason)})"
             )
+    for warning in record.warnings:
+        text = _WARNING_BLOCKERS.get(warning.code)
+        if text is not None:
+            lines.append(f"{text} (`{warning.code}`).")
     return lines
 
 
@@ -421,6 +441,14 @@ def _verdict(record: RunRecord) -> str:
     lines += ["", _meaning(record)]
     if v.rule == 2 and v.outcome == "INCONCLUSIVE":
         lines += ["", "Blocked by:", "", *_bullets(_blockers(record))]
+    elif v.outcome == "INCONCLUSIVE" and (blockers := _blockers(record)):
+        lines += [
+            "",
+            "Not verified, so a KEEP would be withheld whatever the "
+            "interval shows:",
+            "",
+            *_bullets(blockers),
+        ]
     if v.reason == "guardrail":
         breached = [
             f"`{r.metric}`"
@@ -436,7 +464,7 @@ def _verdict(record: RunRecord) -> str:
 
 def _claim(record: RunRecord) -> str:
     v, spec = record.verdict, record.spec
-    metric = spec.metric
+    metric = record.measured_metric or spec.metric
     scope = (
         f"Benchmark {_code(spec.name)} at spec hash `{spec.spec_hash}`, "
         f"baseline commit `{record.baseline_commit}`. Metric "
@@ -446,6 +474,11 @@ def _claim(record: RunRecord) -> str:
     if spec.objective is not None:
         scope += f", objective `{spec.objective}`"
     scope += f"; min_effect = {_num(spec.min_effect)} as stored."
+    if record.measured_metric is not None:
+        scope += (
+            f" The spec names the `{spec.metric.kind}` metric, which could "
+            "not be measured here; the metric above is what was measured."
+        )
     if v.gate is not None:
         claim = (
             f"The `{v.gate}` gate failed. No claim about speed."
@@ -506,6 +539,41 @@ def _provenance(record: RunRecord) -> str:
     if unrecorded:
         parts.append(f"Not recorded: {' and '.join(unrecorded)}.")
     return " ".join(parts)
+
+
+def _withheld(v: Verdict) -> str | None:
+    """Say why the diagnostic gate withheld the last look, if it did."""
+    d = v.diagnostics
+    if d.autocorrelated_rounds:
+        what = (
+            "the lag-1 autocorrelation of the log ratios was above the "
+            "gate's limit, and a look this short cannot show that the "
+            "interval covers (`autocorrelated_rounds`)"
+        )
+    elif d.outlier_rounds:
+        what = (
+            "the share of outlier rounds was above the gate's limit, and a "
+            "look this short cannot show that the interval covers "
+            "(`outlier_rounds`)"
+        )
+    else:
+        return None
+    text = (
+        "The diagnostic gate withheld the decision at the last look: "
+        f"{what}. The interval is recorded but decides nothing. Nothing "
+        "is kept."
+    )
+    if d.procedure_uncalibrated:
+        return text + (
+            " Two things stand in the way: the gate's reason, which more "
+            "rounds or less dependence between rounds would lift, and the "
+            "interval procedure not having passed calibration, which no "
+            "number of rounds can change, so this comparison is "
+            "INCONCLUSIVE until it has."
+        )
+    return text + (
+        " More rounds, or less dependence between rounds, can resolve it."
+    )
 
 
 def _measured(record: RunRecord) -> str:
@@ -576,6 +644,12 @@ def _measured(record: RunRecord) -> str:
             else _flag(d.coarse_resolution)
         ),
     ]
+    for name, flagged in (
+        ("autocorrelated_rounds", d.autocorrelated_rounds),
+        ("outlier_rounds", d.outlier_rounds),
+    ):
+        if flagged:
+            diagnostics.append(f"{name}: {_flag(flagged)} (decision withheld)")
     for name, value in (
         ("lag1_autocorrelation", d.lag1_autocorrelation),
         ("cv_baseline", d.cv_baseline),
@@ -707,12 +781,14 @@ def _gates(record: RunRecord) -> str:
 
 
 def _guardrail_lines(
-    spec: GuardrailSpec, result: GuardrailResult
+    spec: GuardrailSpec | None, result: GuardrailResult
 ) -> list[str]:
     head = f"`{result.metric}`: {_STATUS_TEXT[result.status]}"
     items: list[str] = []
     if result.reason:
         items.append(f"Reason: {_text(result.reason)}")
+    if spec is None:
+        return [*_bullets([head]), *_bullets(items, 2)]
     if spec.applicable:
         items.append(
             f"Unit {_code(spec.unit)}, {spec.direction.replace('_', ' ')}"
@@ -770,14 +846,14 @@ def _guardrails(record: RunRecord) -> str:
         return "\n".join(lines)
     specs = {g.metric: g for g in record.spec.guardrails}
     for result in record.guardrails:
-        lines += _guardrail_lines(specs[result.metric], result)
+        lines += _guardrail_lines(specs.get(result.metric), result)
     return "\n".join(lines)
 
 
 def _calibration(record: RunRecord) -> str:
     v = record.verdict
     target = (
-        "unknown, so every default guardrail had to be declared"
+        "unknown, so every default guardrail is declared or not declared"
         if v.target_class is None
         else f"`{v.target_class}`"
     )

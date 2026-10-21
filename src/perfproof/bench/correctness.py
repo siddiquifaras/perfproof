@@ -1311,6 +1311,9 @@ def correctness_gate(
         failures are listed before output differences, at most
         `MAX_DIFFERENCES` in all.
 
+        A spec with no test command and no declared output has
+        nothing to check: ``not_available``, never passed.
+
     Raises
     ------
     BaselineBrokenError
@@ -1321,6 +1324,16 @@ def correctness_gate(
         If a process cannot be created for a reason that is
         perfproof's own.
     """
+    if spec.correctness.command is None and not spec.correctness.outputs:
+        return GateResult(
+            gate="correctness",
+            status="not_available",
+            detail=(
+                "the spec declares no correctness check (no test command "
+                "and no output to compare), so nothing was checked and a "
+                "KEEP is withheld"
+            ),
+        )
     outputs = compare_outputs(
         spec.correctness.outputs,
         baseline_root=baseline_root,

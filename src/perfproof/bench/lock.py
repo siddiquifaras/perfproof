@@ -12,10 +12,11 @@ two arms of one comparison:
 - `runtime_gate`: both trees run the same interpreter or runtime,
   unless the spec allows runtime changes. `probe_environment` finds
   the interpreter behind launchers (shebangs, ``env``, ``uv run`` and
-  the command it runs); a runtime it cannot identify fails the gate,
-  never passes it. A native executable built in the tree is judged by
-  the libraries it links outside the tree and, when git tracks it, by
-  its bytes (see `runtime_gate` for the rule and its stated limit).
+  the command it runs); a runtime it cannot identify makes the gate
+  ``not_available``, never passed. A native executable built in the
+  tree is judged by the libraries it links outside the tree and, when
+  git tracks it, by its bytes (see `runtime_gate` for the rule and its
+  stated limit).
 - `environment_warnings`: everything recorded but not gated (the
   environment variable list, values of variables known to affect
   performance, dependency lockfiles) becomes a warning when the arms
@@ -77,6 +78,7 @@ __all__ = [
     "LockError",
     "build_manifest",
     "environment_warnings",
+    "fetching_launch",
     "hash_file",
     "lock_gate",
     "owns_harness",
@@ -1068,21 +1070,23 @@ def _compare_native(
     spec: BenchmarkSpec,
     envs: Mapping[Arm, TreeEnvironment],
     roots: Mapping[Arm, Path],
-) -> tuple[list[str], list[Difference], str]:
+) -> tuple[list[str], list[str], list[Difference], str]:
     """Compare a native executable built at ``rel`` in each tree.
 
     Returns
     -------
-    tuple of (list of str, list of Difference, str)
-        Problems, differences, and the detail to report if none.
+    tuple of (list of str, list of str, list of Difference, str)
+        Problems (evidence the trees differ), what could not be read,
+        differences, and the detail to report if neither.
     """
     problems: list[str] = []
+    unverified: list[str] = []
     differences: list[Difference] = []
     paths = {arm: Path(str(envs[arm].runtime_executable)) for arm in _ARMS}
     status = {arm: _is_tracked(paths[arm]) for arm in _ARMS}
     for arm, state in status.items():
         if isinstance(state, str):
-            problems.append(
+            unverified.append(
                 f"whether git tracks the {arm} {rel} is unknown: {state}"
             )
     tracked = any(state is True for state in status.values())
@@ -1091,7 +1095,7 @@ def _compare_native(
             shas = {arm: hash_file(paths[arm])[0] for arm in _ARMS}
         except OSError as exc:
             shas = {}
-            problems.append(f"{rel} cannot be read: {exc}")
+            unverified.append(f"{rel} cannot be read: {exc}")
         if shas and shas["baseline"] != shas["candidate"]:
             problems.append(
                 f"{rel} is tracked by git and differs between the trees: a "
@@ -1109,7 +1113,7 @@ def _compare_native(
         cwd = (roots[arm] / spec.cwd).absolute()
         listed = _outside_libraries(paths[arm], roots[arm], cwd, envs[arm])
         if isinstance(listed, str):
-            problems.append(
+            unverified.append(
                 f"the libraries the {arm} {rel} links cannot be listed: "
                 f"{listed}"
             )
@@ -1147,7 +1151,7 @@ def _compare_native(
         "no interpreter to compare; libraries outside the tree match: "
         f"{shared or 'none'}"
     )
-    return problems, differences, detail
+    return problems, unverified, differences, detail
 
 
 def runtime_gate(
@@ -1178,17 +1182,23 @@ def runtime_gate(
     -------
     GateResult
         Gate ``runtime``. Passed when both trees run the same
-        interpreter at the same version. Failed when they differ, with
-        differences ``runtime_executable`` and ``runtime_version``, and
-        failed closed when either tree's executable or version is
-        unknown, with the launcher and reason in the detail.
+        interpreter at the same version. Failed only on evidence: both
+        trees' runtimes identified and different, with differences
+        ``runtime_executable`` and ``runtime_version``, or (for native
+        builds) a tracked binary that differs or different outside
+        libraries. ``not_available``, with the launcher and reason in
+        the detail, when either tree's runtime is unknown or something
+        a native build is compared by could not be read: perfproof
+        can't tell, which is not a difference ("Unknown is not wrong"
+        in ``docs/method.md``).
 
         Only positively identified runtimes pass. The kind comes from
         the probe's record, never from where the file sits: a known
         launcher (``uv`` other than ``uv run``, ``uvx``, ``poetry``
-        and the like), or a native executable installed into the tree
-        (inside a virtualenv, ``site-packages`` or ``node_modules``),
-        is unknown and fails closed.
+        and the like), a build tool or toolchain (``cargo``, ``go``,
+        ``make``), a shell, or a native executable installed into the
+        tree (inside a virtualenv, ``site-packages`` or
+        ``node_modules``), is unknown, so the gate is ``not_available``.
 
         A native executable built at the same path inside each tree
         has no interpreter, so it is judged by what it runs on:
@@ -1201,16 +1211,17 @@ def runtime_gate(
           ``@rpath`` per loader, up to `_MAX_IMAGES` images; on Linux
           ``ldd`` reports it, run in the benchmark's working directory.
           macOS system libraries present only in the dyld shared cache
-          are compared by path. A closure that cannot be listed fails
-          closed.
+          are compared by path. A closure that cannot be listed is
+          ``not_available``.
         - any loader variable (``DYLD_*``, ``LD_*``) in the benchmark's
           environment, or an environment whose names were not recorded,
-          fails closed: their effect on resolution is not followed.
+          makes the gate ``not_available``: their effect on resolution
+          is not followed.
         - if git tracks the executable in either tree (asked from the
           file's own directory, so submodules count), its bytes must be
           identical: a tracked binary that differs is a swap, not a
           build of the code under test. Any git answer other than a
-          clear tracked or untracked fails closed.
+          clear tracked or untracked is ``not_available``.
         - an untracked executable is taken to be a build of the code
           under test and its own bytes are not compared. This is a
           stated limit: a different untracked interpreter copied into
@@ -1218,8 +1229,9 @@ def runtime_gate(
           outside libraries, and the detail says the binary was not
           compared.
 
-        Under the spec's ``allow_runtime_change`` every failure is
-        waived instead, with the same detail.
+        Under the spec's ``allow_runtime_change`` every failure and
+        every runtime that could not be identified is waived instead,
+        with the same detail.
 
         What the gate covers is what perfproof launches, followed
         through the launch forms above. A stated limit remains: a
@@ -1242,38 +1254,62 @@ def runtime_gate(
         raise ValueError(msg)
     b_exe, b_ver, b_unknown, b_native = _arm_runtime(baseline, baseline_root)
     c_exe, c_ver, c_unknown, c_native = _arm_runtime(candidate, candidate_root)
-    differences = [
-        Difference(item=item, baseline=b, candidate=c)
-        for item, b, c in (
-            ("runtime_executable", b_exe, c_exe),
-            ("runtime_version", b_ver, c_ver),
-        )
-        if b != c
-    ]
     problems: list[str] = []
-    if differences:
-        problems.append("the trees run different runtimes")
-    for arm, unknown in (("baseline", b_unknown), ("candidate", c_unknown)):
-        if unknown is not None:
-            problems.append(f"the {arm} runtime is unknown: {unknown}")
+    unverified: list[str] = [
+        f"the {arm} runtime is unknown: {unknown}"
+        for arm, unknown in (("baseline", b_unknown), ("candidate", c_unknown))
+        if unknown is not None
+    ]
+    differences: list[Difference] = []
+    if not unverified:
+        differences = [
+            Difference(item=item, baseline=b, candidate=c)
+            for item, b, c in (
+                ("runtime_executable", b_exe, c_exe),
+                ("runtime_version", b_ver, c_ver),
+            )
+            if b != c
+        ]
+        if differences:
+            problems.append("the trees run different runtimes")
     passed = f"both trees run {b_exe}, version {b_ver}"
-    if b_native and c_native and b_exe == c_exe and b_exe is not None:
-        native_problems, native_differences, passed = _compare_native(
-            b_exe,
-            spec,
-            {"baseline": baseline, "candidate": candidate},
-            {"baseline": baseline_root, "candidate": candidate_root},
+    if (
+        not unverified
+        and b_native
+        and c_native
+        and b_exe == c_exe
+        and b_exe is not None
+    ):
+        native_problems, native_unverified, native_differences, passed = (
+            _compare_native(
+                b_exe,
+                spec,
+                {"baseline": baseline, "candidate": candidate},
+                {"baseline": baseline_root, "candidate": candidate_root},
+            )
         )
         problems.extend(native_problems)
+        unverified.extend(native_unverified)
         differences.extend(native_differences)
-    if problems and spec.allow_runtime_change:
+    if (problems or unverified) and spec.allow_runtime_change:
         return GateResult(
             gate="runtime",
             status="waived",
-            detail="allow_runtime_change: " + "; ".join(problems),
+            detail="allow_runtime_change: " + "; ".join(problems + unverified),
             differences=tuple(differences),
         )
-    return _gate("runtime", problems, differences, passed_detail=passed)
+    if problems:
+        return _gate("runtime", problems + unverified, differences)
+    if unverified:
+        return GateResult(
+            gate="runtime",
+            status="not_available",
+            detail=(
+                "the runtime was not verified, so a KEEP is withheld: "
+                + "; ".join(unverified)
+            ),
+        )
+    return _gate("runtime", [], [], passed_detail=passed)
 
 
 def _python_module(args: Sequence[str]) -> str | None:
@@ -1368,6 +1404,313 @@ def _which(program: str, env: Mapping[str, str], cwd: Path) -> Path | None:
     return None
 
 
+_COREPACK_DOWNLOADS: Final = frozenset(
+    {"prepare", "install", "up", "use", "pack"}
+)
+_FETCH_ALWAYS: Final = frozenset({"bunx", "pnpx", "pnx", "uvx"})
+_FETCH_SUBCOMMANDS: Final = frozenset(
+    {"add", "ci", "create", "i", "install", "up", "update", "upgrade"}
+)
+_FETCH_TOOLS: Final = frozenset(
+    {
+        "bun",
+        "corepack",
+        "deno",
+        "npm",
+        "npx",
+        "pipx",
+        "pnpm",
+        "uv",
+        "yarn",
+        "yarnpkg",
+    }
+)
+_ENV_VALUE_OPTIONS: Final = frozenset(
+    {"-C", "-S", "-u", "--chdir", "--split-string", "--unset"}
+)
+_REMOTE_SPECIFIER: Final = re.compile(r"(?:https?|npm|jsr):", re.IGNORECASE)
+_VALUE_OPTIONS: Final = frozenset(
+    {
+        "-C",
+        "-F",
+        "-w",
+        "--cwd",
+        "--dir",
+        "--filter",
+        "--prefix",
+        "--registry",
+        "--workspace",
+        "--userconfig",
+        "-c",
+        "--call",
+    }
+)
+_PATH_PREFIXES: Final = ("./", "../", "/")
+
+
+def fetching_launch(
+    argv: Sequence[str],
+    env: Mapping[str, str],
+    cwd: Path,
+    *,
+    tree: Path | None = None,
+) -> str | None:
+    """Say why starting ``argv`` would fetch code from the network.
+
+    "Integrity" in ``docs/method.md`` makes these an unsafe run, not an
+    unknown one: ``npx`` and ``npm exec`` with no command installed in
+    a ``node_modules/.bin`` and no ``--no-install`` (or with ``-p``),
+    ``pnpm dlx``, ``pnpx``, ``pnx``, ``yarn dlx``, ``bunx``, ``bun x``,
+    ``uvx``, ``pipx run``, ``uv tool run``, ``deno run`` on a URL or an
+    ``npm:`` or ``jsr:`` specifier, ``corepack``, and the install forms
+    of ``npm``, ``pnpm``, ``yarn`` and ``bun``. Nothing is run: the
+    answer comes from the argument list and the files in ``cwd``.
+    ``env`` wrappers are followed.
+
+    Parameters
+    ----------
+    argv : sequence of str
+        The command, program first.
+    env : Mapping of str to str
+        Environment whose ``PATH`` resolves the program.
+    cwd : Path
+        Working directory the command starts in.
+    tree : Path, optional
+        Root of the tree the command runs in; a wrapper that lives in
+        it is not peeled (see `unwrap_launch`).
+
+    Returns
+    -------
+    str or None
+        The reason, or ``None`` when the form is not one of those.
+    """
+    args = unwrap_launch(argv, env, cwd, tree)
+    for _ in range(_MAX_LAUNCH_DEPTH):
+        if not args:
+            return None
+        found = _which(args[0], env, cwd)
+        names = {_canonical(Path(args[0]).name)}
+        if found is not None:
+            names |= {_canonical(found.name), _canonical(found.resolve().name)}
+        if "env" not in names:
+            invoked = _canonical(Path(args[0]).name)
+            return _fetch_reason(names, args[1:], cwd, env, invoked)
+        args = args[1:]
+        while args and (args[0].startswith("-") or "=" in args[0]):
+            if args[0] in ("-S", "--split-string") and len(args) > 1:
+                args = [*args[1].split(), *args[2:]]
+                break
+            args = args[2 if args[0] in _ENV_VALUE_OPTIONS else 1 :]
+    return None
+
+
+def _fetch_reason(
+    names: set[str],
+    rest: Sequence[str],
+    cwd: Path,
+    env: Mapping[str, str],
+    invoked: str,
+) -> str | None:
+    """Return why one program with ``rest`` fetches, or ``None``."""
+    always = sorted(names & _FETCH_ALWAYS)
+    if always:
+        return f"{always[0]} downloads a package and runs it"
+    known = sorted(names & _FETCH_TOOLS)
+    if not known:
+        return None
+    if "corepack" in names and invoked != "corepack":
+        # A package manager that is a corepack shim.
+        return _corepack_reason(rest, env, shim=invoked)
+    tool = invoked if invoked in known else known[0]
+    raw = rest
+    rest = _without_options(rest)
+    sub = rest[0] if rest else ""
+    if tool == "corepack":
+        return _corepack_reason(rest, env)
+    if tool == "npx" or (tool == "npm" and sub in {"exec", "x"}):
+        return _npx_reason(tool, raw if tool == "npx" else rest[1:], cwd)
+    if tool == "deno":
+        remote = any(_REMOTE_SPECIFIER.match(a) for a in rest[1:])
+        if sub in {"install", "add"} or (sub == "run" and remote):
+            return f"deno {sub} fetches from a URL or a registry"
+        return None
+    if tool == "pipx":
+        return "pipx run downloads a package" if sub == "run" else None
+    if tool == "uv":
+        if sub == "tool" and rest[1:2] == ["run"]:
+            return "uv tool run downloads a tool and runs it"
+        return None
+    if sub == "dlx" or (tool == "bun" and sub == "x"):
+        return f"{tool} {sub} downloads a package and runs it"
+    if sub in _FETCH_SUBCOMMANDS or (tool in {"yarn", "yarnpkg"} and not raw):
+        return f"{tool} {sub or 'with no command'} installs from a registry"
+    return None
+
+
+def _corepack_reason(
+    rest: Sequence[str], env: Mapping[str, str], shim: str | None = None
+) -> str | None:
+    """Return why a ``corepack`` command may download, or ``None``.
+
+    ``corepack enable`` and ``disable`` only write shims. A command
+    that runs a package manager (``corepack pnpm ...``) downloads it
+    only when it is not in corepack's cache, and never with
+    ``COREPACK_ENABLE_NETWORK=0``. ``prepare``, ``install``, ``up``,
+    ``use`` and ``pack`` download.
+    """
+    if env.get("COREPACK_ENABLE_NETWORK") == "0":
+        return None
+    words = [a for a in rest if not a.startswith("-")]
+    sub = shim or (words[0] if words else "")
+    if shim is None and sub in {"enable", "disable", ""}:
+        return None
+    if shim is not None or sub not in _COREPACK_DOWNLOADS:
+        home = env.get("COREPACK_HOME") or str(
+            Path(env.get("HOME", "~")).expanduser() / ".cache/node/corepack"
+        )
+        name = "yarn" if sub == "yarnpkg" else sub
+        try:
+            cache = Path(home) / "v1" / name
+            if cache.is_dir() and any(cache.iterdir()):
+                return None
+        except OSError:
+            pass
+    return (
+        f"corepack {sub} may download the package manager, which is not "
+        "in corepack's cache"
+    )
+
+
+def _without_options(args: Sequence[str]) -> Sequence[str]:
+    """Drop the options in front of a subcommand and their values."""
+    i = 0
+    while i < len(args) and args[i].startswith("-") and args[i] != "--":
+        i += 2 if args[i] in _VALUE_OPTIONS else 1
+    return args[i:]
+
+
+def _npx_reason(tool: str, rest: Sequence[str], cwd: Path) -> str | None:
+    """Return why ``npx`` or ``npm exec`` would fetch, or ``None``."""
+    no_fetch = False
+    command: list[str] = []
+    skip = False
+    for i, arg in enumerate(rest):
+        if skip:
+            skip = False
+            continue
+        if arg == "--":
+            command = list(rest[i + 1 :])
+            break
+        if arg in {"--no", "--no-install", "--offline"}:
+            no_fetch = True
+        elif arg in {"-p", "--package"} or arg.startswith("--package="):
+            return f"{tool} -p names a package to download"
+        elif arg in _VALUE_OPTIONS:
+            skip = True
+        elif not arg.startswith("-"):
+            command = list(rest[i:])
+            break
+    if no_fetch or not command or command[0].startswith(_PATH_PREFIXES):
+        return None
+    bins = [
+        str(directory / "node_modules" / ".bin")
+        for directory in (cwd, *cwd.parents)
+    ]
+    if _which(command[0], {"PATH": os.pathsep.join(bins)}, cwd) is not None:
+        return None
+    return (
+        f"{tool} {command[0]} is not installed in any node_modules/.bin, so "
+        "it would be downloaded and run"
+    )
+
+
+_WRAP_VALUE_OPTIONS: Final[Mapping[str, frozenset[str]]] = {
+    "exec": frozenset({"-a"}),
+    "time": frozenset({"-f", "--format", "-o", "--output"}),
+    "nice": frozenset({"-n", "--adjustment"}),
+    "stdbuf": frozenset({"-i", "-o", "-e", "--input", "--output", "--error"}),
+    "timeout": frozenset({"-s", "--signal", "-k", "--kill-after"}),
+}
+_PASS_THROUGH: Final = frozenset(
+    {"command", "exec", "nice", "nohup", "setsid", "stdbuf", "time", "timeout"}
+)
+
+
+def _in_tree(path: Path, tree: Path | None) -> bool:
+    """Whether a file, as spelled or once resolved, is in the tree."""
+    if tree is None:
+        return False
+    root = tree.resolve()
+    return path.absolute().is_relative_to(
+        root
+    ) or path.resolve().is_relative_to(root)
+
+
+def unwrap_launch(
+    argv: Sequence[str],
+    env: Mapping[str, str] | None = None,
+    cwd: Path | None = None,
+    tree: Path | None = None,
+) -> list[str]:
+    """Strip simple wrappers in front of the command that really runs.
+
+    ``timeout``, ``nice``, ``nohup``, ``command``, ``exec``, ``time``,
+    ``stdbuf`` and ``setsid`` start another program with their own
+    options in front of it; ``timeout`` also takes a duration. They are
+    peeled off, outermost first, so the runtime gate identifies the
+    program that runs, not the wrapper. ``env`` is followed by the
+    launch chain itself. A wrapper is peeled only when it resolves, on
+    ``env``'s ``PATH`` from ``cwd``, to a file outside ``tree``: a file
+    in the tree is code under test, so it is identified as the program
+    it is (a script, hence unknown), never skipped. ``command -v``,
+    ``-V`` and ``-p`` are not peeled. A wrapper whose options are not
+    understood is left as it is.
+
+    Parameters
+    ----------
+    argv : sequence of str
+        The launch argv.
+    env : Mapping of str to str, optional
+        Environment whose ``PATH`` resolves each wrapper. With no
+        ``env`` and ``cwd`` nothing is resolved and wrappers are
+        peeled by name.
+    cwd : Path, optional
+        Working directory the command starts in.
+    tree : Path, optional
+        Root of the tree the command runs in.
+
+    Returns
+    -------
+    list of str
+        The inner argv, or a copy of ``argv`` when nothing was peeled.
+    """
+    args = list(argv)
+    for _ in range(_MAX_LAUNCH_DEPTH):
+        name = _canonical(Path(args[0]).name) if args else ""
+        if name not in _PASS_THROUGH:
+            break
+        if env is not None and cwd is not None:
+            found = _which(args[0], env, cwd)
+            if found is None or _in_tree(found, tree):
+                break
+        if name == "command" and any(
+            a in ("-v", "-V", "-p") for a in args[1:3]
+        ):
+            break
+        values = _WRAP_VALUE_OPTIONS.get(name, frozenset())
+        i = 1
+        while i < len(args) and args[i].startswith("-") and args[i] != "--":
+            i += 2 if args[i] in values else 1
+        if i < len(args) and args[i] == "--":
+            i += 1
+        if name == "timeout":
+            i += 1
+        if i >= len(args):
+            break
+        args = args[i:]
+    return args
+
+
 def resolve_executable(
     spec: BenchmarkSpec, tree_root: Path, env: Mapping[str, str]
 ) -> Path | None:
@@ -1419,12 +1762,19 @@ class _Launch:
         in the tree is a native build; every other case, including
         launchers this does not follow, is unknown.
         """
+        argv = unwrap_launch(argv, env, self.cwd, self.tree)
         exe = _which(argv[0], env, self.cwd)
         if exe is None:
             return _Runtime.unknown(
                 None, f"{argv[0]!r} is not an executable file"
             )
         real = exe.resolve()
+        fetch = fetching_launch(argv, env, self.cwd, tree=self.tree)
+        if fetch is not None:
+            return _Runtime.unknown(
+                real,
+                f"this launcher may download code at run time: {fetch}",
+            )
         names = {exe.name, real.name}
         if any(_is_python_name(name) for name in names):
             return self.python([str(exe)], argv[1:], env, label=str(exe))

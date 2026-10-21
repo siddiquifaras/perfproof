@@ -17,7 +17,7 @@ Labels:
 
 The candidate is faster than the baseline by a ratio above 1 + min_effect on this benchmark's metric, on the machines recorded under Machines, with the checks under Gates and Guardrails. The claim covers this benchmark command and its declared inputs only. The labels under Verdict qualify it.
 
-Benchmark `sum-loop` at spec hash `adc5af3628984e755ac274de84de557cba57bb06805d5cec4298d6e84b84faa2`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `7938e704347063fa954b68d120e9b10f2fa0088fbb971c51c7655ad8f073ebe1`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -129,8 +129,8 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `adc5af3628984e755ac274de84de557cba57bb06805d5cec4298d6e84b84faa2`
-- schema_version: 3
+- spec_hash: `7938e704347063fa954b68d120e9b10f2fa0088fbb971c51c7655ad8f073ebe1`
+- schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -174,7 +174,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 3
+- schema_version: 4
 - started_at: 2026-10-15T17:30:00+05:30
 - finished_at: 2026-10-15T17:34:05+05:30
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

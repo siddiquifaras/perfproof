@@ -619,6 +619,48 @@ def procedure_uncalibrated() -> RunRecord:
     )
 
 
+def inconclusive_not_verified() -> RunRecord:
+    """Measured, with a runtime and a guardrail not verified."""
+    return record(
+        spec=spec(guardrails=[memory_guardrail(), latency_not_applicable()]),
+        verdict=keep_verdict(
+            outcome="INCONCLUSIVE",
+            reason="insufficient_evidence",
+            rule=5,
+            rounds=200,
+            looks=5,
+            target_class=None,
+            calibration="uncalibrated",
+            diagnostics=diagnostics(procedure_uncalibrated=True),
+        ),
+        gates=all_gates(
+            runtime={
+                "gate": "runtime",
+                "status": "not_available",
+                "detail": (
+                    "the runtime was not verified, so a KEEP is withheld: "
+                    "the baseline runtime is unknown: /usr/bin/make is a "
+                    "native executable outside the tree"
+                ),
+            },
+            coverage={
+                "gate": "coverage",
+                "status": "not_available",
+                "detail": "not built yet",
+            },
+        ),
+        guardrails=[
+            memory_result(),
+            {
+                "metric": "peak_gpu_memory",
+                "status": "not_declared",
+                "reason": "the spec does not declare peak_gpu_memory",
+            },
+            latency_result(),
+        ],
+    )
+
+
 def cross_host() -> RunRecord:
     gpu = {
         "name": "NVIDIA L4",
@@ -762,6 +804,7 @@ CASES: dict[str, Callable[[], RunRecord]] = {
         inconclusive_gate_not_available,
         inconclusive_guardrail,
         procedure_uncalibrated,
+        inconclusive_not_verified,
         cross_host,
         inconclusive_resolution_stop,
         keep_native_build,
@@ -1328,3 +1371,13 @@ def test_report_never_calls_an_uncalibrated_estimate_a_speedup() -> None:
     text = render(procedure_uncalibrated())
     assert "Speedup estimate" not in text
     assert "Uncalibrated estimate: 1.08" in text
+
+
+def test_not_verified_things_are_named_on_an_uncalibrated_inconclusive() -> (
+    None
+):
+    text = render(inconclusive_not_verified())
+    assert "Not verified, so a KEEP would be withheld" in text
+    assert "- Gate `runtime`: not available (" in text
+    assert "- Guardrail `peak_gpu_memory`: not declared (" in text
+    assert "`peak_gpu_memory`: not declared" in text.split("## Guardrails")[1]

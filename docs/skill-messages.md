@@ -336,7 +336,6 @@ recognise went wrong".
 | a command not built, or an option unknown to this version (`not_built`, `usage`) | "this version of perfproof can't {step} yet"; next: the step done another way, or stop |
 | `ambiguous_hash` | "two saved versions of this benchmark match"; next: "I'll use the newest ({hash})" |
 | `spec_conflict` | "this benchmark's definition changed after it was frozen"; next: "I'll save it under a new name" |
-| `undeclared_guardrails` | "a limit this kind of project needs was not declared"; next: show the one to declare |
 | `unsupported_spec`, `invalid_spec`, `harness_fault`, `internal_*` | "the benchmark definition or perfproof itself failed"; next: stop |
 
 ## Results after a run
@@ -396,13 +395,16 @@ The changed lines {file}:{a}-{b} never ran under any check, so
 perfproof can't tell whether they broke anything. Your code is back as
 it was. Add a test that reaches them (it must fail on the original), or
 skip this change?
-Result: REJECT (correctness, gate coverage)
+Result: INCONCLUSIVE (insufficient_evidence)
 ```
 
-When coverage is `not_available` the result is not R-5 but R-11; the
-reason line reads "perfproof can't see which {language} lines ran, so it
-can't keep a change here"; if the user's spec opted out of coverage it
-adds "coverage was switched off by this benchmark's settings".
+Lines that ran under no passing check are not a failure of the change,
+so this is not a REJECT: the `coverage` gate is `not_available` and the
+result is INCONCLUSIVE. When coverage can't be measured at all, the
+result is R-11; the reason line reads "perfproof can't see which
+{language} lines ran, so it can't keep a change here"; if the user's
+spec opted out of coverage it adds "coverage was switched off by this
+benchmark's settings".
 
 **R-6, edits a locked file**
 
@@ -456,6 +458,21 @@ Undecided on {candidate}: {what} could not be checked ({label}), so
 perfproof can't keep it. Nothing was kept. {fix}
 Result: INCONCLUSIVE (insufficient_evidence)
 ```
+
+The measurement ran and is in the record; only the keep is withheld.
+`{what}` and `{fix}` come from what the record names:
+
+| Record | `{what}` and `{fix}` |
+|---|---|
+| gate `runtime` `not_available` | "which program runs each version ({launcher})"; fix: run the benchmark through a runtime perfproof can identify, or accept that this kind of benchmark can be measured but not kept |
+| gate `same_host` `not_available` | "which machine each round ran on"; fix: none needed on one machine, name the probe that failed |
+| gate `correctness` `not_available`, no check declared | "whether the change still gives the same results (the benchmark has no test or output to compare)"; fix: a new spec with a test command or a declared output, which is a new baseline |
+| gate `coverage` `not_available` | "whether any check ran the changed code"; fix: see R-5 |
+| guardrail `not_declared` | "whether it costs more {metric}"; fix: declare it, with an allowance, in a new spec |
+| warning `counter_unavailable` | "the instruction count (`perf` is not usable here)"; the speed was timed on the clock instead; fix: run on Linux with `perf`, or use a time metric |
+| warning `resolution_unknown` | "how finely the benchmark's number is known"; fix: print a fixed number of digits or declare a resolution |
+| gate `runtime` `not_available`, "may download code at run time" | "whether the benchmark's launcher ({launcher}) fetches code when it runs"; fix: install what it needs in the spec's setup and run the installed command |
+| warning `time_limit_reached` (a budget end, not a blocker) | "the run hit its time limit after {rounds} rounds"; fix: allow a longer time limit |
 
 **R-12, undecided after calibration**
 

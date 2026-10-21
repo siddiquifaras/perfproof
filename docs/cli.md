@@ -94,7 +94,7 @@ match wins:
 | `finished` | `record.json` exists. Nothing else decides this. The `status` result then carries the verdict |
 | `cancelled` | The `cancelled` marker exists and there is no record. No verdict |
 | `timed_out` | The `timed_out` marker exists and there is no record: the hard timeout fired. No verdict |
-| `failed` | The compare stopped with no verdict (`broken_baseline`, `harness_fault`, `unsupported_spec`, `undeclared_guardrails`, `internal_fault` for a fault in perfproof, or any resume-time refusal the new process finds, such as `machine_changed` or `invalid_job`); `failed.json` has the code and message. No resume can help |
+| `failed` | The compare stopped with no verdict (`broken_baseline`, `harness_fault`, `unsupported_spec`, `internal_fault` for a fault in perfproof, or any resume-time refusal the new process finds, such as `machine_changed` or `invalid_job`); `failed.json` has the code and message. No resume can help |
 | `running` | The process in `pid` exists, is not a zombie and has the start time written in `pid` |
 | `interrupted` | None of the above: the process is gone and left no record, as after `kill -9` or a reboot. The only state `--resume` accepts |
 | `unknown` | The process table could not be read, so whether the process lives is not known. Never resumable; a failed read is not "gone" |
@@ -130,11 +130,18 @@ seconds with a minimum of 1 s. The default is twice the spec's
 `budget.max_seconds` plus 3600 seconds. The default's factor and floor
 and the 10 s kill grace are chosen allowances, not measured values.
 The deadline is fixed when the run starts, so it covers the whole run
-including resumes. When it is hit the run's process and everything it
-started are killed (SIGALRM in the run's process, then SIGKILL of the
-tree if unwinding takes longer than 10 seconds), the `timed_out` marker
-is written, and the state is `timed_out`: no verdict, however many
-rounds completed. A `timed_out` run can't be resumed.
+including resumes. The run ends itself first when it can: before it
+starts a round that could not finish, with the 10 s grace, before the
+deadline, it takes its final look on the rounds it has, as at the end
+of `budget.max_seconds`, and writes its record with a
+`time_limit_reached` warning. That is the state `finished`, with an
+INCONCLUSIVE verdict (always, while the procedure is uncalibrated)
+from the rounds it has. When the deadline is hit with no such end
+(the run is inside a round or the gates) the run's process and
+everything it started are killed (SIGALRM in the run's process, then
+SIGKILL of the tree if unwinding takes longer than 10 seconds), the
+`timed_out` marker is written, and the state is `timed_out`: no
+verdict. A `timed_out` run can't be resumed.
 
 ### Results
 
@@ -143,6 +150,20 @@ rounds completed. A `timed_out` run can't be resumed.
 ```json
 {"run_id": "str", "run_dir": "str", "state": "running", "pid": 0}
 ```
+
+`compare` in the foreground, with `--json`:
+
+| Field | Type | |
+|---|---|---|
+| `run_id`, `run_dir`, `record_path`, `report_path` | string | Absolute paths |
+| `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `diagnostics` and the rest |
+| `gates` | array | `{"gate", "status"}` in the record's order |
+| `warnings` | array | `{"code", "message"}` for every warning in the record |
+| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown` and `schedule_uncalibrated`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
+| `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
+
+`status` carries the same `not_verified` and `warnings` in its `verdict`
+object for a finished detached run.
 
 `status`, with `--json`:
 
@@ -185,12 +206,18 @@ the run was cancelled. For a run that had already `timed_out` or
 
 `invalid_revision`, `ambiguous_hash`, `not_found` and `invalid_record`
 are raised before the run starts, so `--detach` returns them directly.
-`broken_baseline`, `harness_fault`, `unsupported_spec`,
-`undeclared_guardrails` and `internal_fault` come from the foreground
-compare (with `details.run_dir`) or sit in `failed.json` of a detached
-run.
+`broken_baseline`, `harness_fault`, `unsupported_spec` and
+`internal_fault` come from the foreground compare (with
+`details.run_dir`) or sit in `failed.json` of a detached run.
+A thing perfproof merely cannot verify is never a stop, a launcher
+that may download code included: it is a gate `not_available` or a
+guardrail `not_declared` in the record, and the verdict is INCONCLUSIVE
+naming it. A resume that would measure another metric kind than the
+first attempt (perf usable in one and not the other) is stopped with
+`not_resumable` in `failed.json`, with a plain reason, because the
+rounds already taken would mix units.
 
-A run that never finishes never yields a verdict.
+A run that is killed before it finishes never yields a verdict.
 
 ## A session
 
@@ -264,9 +291,9 @@ for three years. The obvious hotspots are long fixed. They type
 
 ● [writes a candidate for H2: batch fsync per level]
 ● perfproof compare bench-tile --candidate .perfproof/worktrees/h2 --json
-  REJECT  correctness  gate coverage
-  Changed lines tilekit/io.py:152-158 never ran under any check.
-  Undone.
+  INCONCLUSIVE  insufficient_evidence  gate coverage not available
+  Changed lines tilekit/io.py:152-158 never ran under any check, so
+  this can't be kept. Undone.
 
   H2 needs a test that reaches io.py:152-158. tests/ is locked for this
   spec, so a new test means a new spec and a new baseline, which is

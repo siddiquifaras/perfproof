@@ -120,7 +120,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from perfproof.schema import Direction, LookSchedule, Procedure
-from perfproof.stats.decision import interval_rules
+from perfproof.stats.decision import IntervalRules, interval_rules
 from perfproof.stats.intervals import (
     LIBM_ULPS,
     PairedInterval,
@@ -844,7 +844,7 @@ def decide_look(
     n0: int | None = None,
     keep_blocked: ArrayLike = False,
     procedure: Procedure = "t_log_ratio_batch_means",
-    candidate_first: ArrayLike | None = None,
+    candidate_first: ArrayLike | None,
 ) -> Look:
     """Decide one look, for rows that share its length.
 
@@ -862,7 +862,13 @@ def decide_look(
     1. the interval of ``procedure`` at ``confidence`` on the ``n``
        observations given; batch means with fewer than two complete
        blocks has no interval (NaN bounds), and the look goes to
-       rule 4, or 5 at its last look, unless the resolution stop fires;
+       rule 4, or 5 at its last look, unless the resolution stop fires.
+       A bound that is not finite and positive, before or after the
+       widening in item 3 (the conservative 0.0 and inf of an
+       underflowed or overflowed bound, or NaN), or a ratio outside the
+       normal float range, is the same: no
+       interval is recorded and the look is rule 4, or 5 at its last
+       look;
     2. the resolution stop (rule 1 here, ``coarse_resolution``,
        INCONCLUSIVE), except cross host below ``n0`` pairs, where speed
        never decides: there the look continues while budget remains
@@ -881,7 +887,10 @@ def decide_look(
        autocorrelation above `LAG1_LIMIT` with fewer than
        `LAG1_MIN_BLOCKS`, outlier share above `OUTLIER_SHARE` with
        fewer than `OUTLIER_MIN_BLOCKS`), the look is rule 4, or rule 5
-       at its last look, and `Look.withheld` names the diagnostic;
+       at its last look, and `Look.withheld` names the diagnostic. The
+       gate looks at the rule the interval gives as if calibrated, so an
+       uncalibrated look (rule 4 or 5 whatever its interval) still
+       records the diagnostic that would have withheld it;
     6. where rule 2 fires and ``keep_blocked`` is True (a guardrail
        ``not_established`` or ``unmeasurable``, per "Guardrails" in
        ``docs/method.md``), the look continues while budget remains
@@ -916,11 +925,14 @@ def decide_look(
     procedure : str, default "t_log_ratio_batch_means"
         ``"t_log_ratio_batch_means"`` (the primary, blocks of
         `BATCH_BLOCK`) or ``"t_log_ratio"`` (plain t, blocks of 1).
-    candidate_first : array_like of bool, optional
-        Shape ``(R, n)``: True where the candidate ran first in the
-        round, which the diagnostics need to remove the order effect
-        (`lag1_autocorrelation`, `outlier_share`). ``None`` treats
-        every round as the same order, as cross host.
+    candidate_first : array_like of bool or None
+        Required, with no default, so no caller loses the order
+        centring by leaving it out. Shape ``(R, n)``: True where the
+        candidate ran first in the round, which the diagnostics need to
+        remove the order effect (`lag1_autocorrelation`,
+        `outlier_share`). ``None`` is accepted cross host only (``n0``
+        given), where a session pair has no order to remove; one host
+        it raises.
 
     Returns
     -------
@@ -937,8 +949,11 @@ def decide_look(
         ``min_effect``, ``calibrated``, ``final`` or ``keep_blocked``
         is invalid; a `Resolution` is given cross host; the bounds are
         invalid (see `ObservationBounds`); ``candidate_first`` is not
-        boolean or not shaped ``(R, n)``; or an interval bound is not
-        finite and positive where the decision needs it.
+        boolean or not shaped ``(R, n)``, or ``None`` on one host. An
+        interval bound that is not finite and positive (underflowed to
+        0, overflowed to inf, or NaN), or a ratio outside the normal
+        float range, raises nothing: the row has no decision, as in
+        item 1.
     """
     b, c = _measurement_pair(baseline, candidate)
     rows, n = b.shape
@@ -947,14 +962,26 @@ def decide_look(
         _check_int("n0", n0, _MIN_N0)
     last = _bool_array("final", final, (rows,))
     blocked = _bool_array("keep_blocked", keep_blocked, (rows,))
-    first = _candidate_first(candidate_first, (rows, n))
+    first = _candidate_first(candidate_first, (rows, n), cross=n0 is not None)
     has_interval = procedure == "t_log_ratio" or n // BATCH_BLOCK >= 2
+    # A ratio outside the normal float range has no log ratio, so its
+    # row has no interval; the 1.0 stand-ins keep it through the batch.
+    out_of_range = _ratio_out_of_range(b, c, direction)
     if has_interval:
-        found = _interval_procedure(procedure, direction, confidence)(b, c)
+        found = _interval_procedure(procedure, direction, confidence)(
+            np.where(out_of_range[:, np.newaxis], 1.0, b),
+            np.where(out_of_range[:, np.newaxis], 1.0, c),
+        )
         lo, hi, used = found.lower, found.upper, found.rounds
     else:
         lo = hi = np.full(rows, np.nan)
         used = 0
+    # A bound the arithmetic could not represent is no interval; the
+    # placeholder keeps the row through `widen`, which needs finite
+    # positive bounds, and its result is discarded below.
+    degenerate = has_interval & (out_of_range | ~_usable(lo, hi))
+    lo = np.where(degenerate, 1.0, lo)
+    hi = np.where(degenerate, 1.0, hi)
     coarse = np.zeros(rows, dtype=np.bool_)
     unbounded = np.zeros(rows, dtype=np.bool_)
     errors = _look_errors(b, c, resolution, cross=n0 is not None)
@@ -971,27 +998,39 @@ def decide_look(
         if has_interval:
             spent = np.where(unbounded[:, np.newaxis], 0.0, bound[:, :used])
             lo, hi = widen(lo, hi, _mean_up(spent))
+        degenerate |= has_interval & ~_usable(lo, hi)
     rule = np.ones(rows, dtype=np.int8)
     regression = np.zeros(rows, dtype=np.bool_)
     clear = ~coarse
-    if clear.any() and has_interval:
-        pairs = None if n0 is None else np.full(int(clear.sum()), n)
-        decided = interval_rules(
-            lo[clear],
-            hi[clear],
-            min_effect=min_effect,
-            budget_remains=~last[clear],
-            calibrated=calibrated,
-            session_pairs=pairs,
-            n0=n0,
-        )
-        rule[clear] = decided.rule
-        regression[clear] = decided.regression
-    elif clear.any():
-        rule[clear] = np.where(last[clear], 5, 4)
+    decide = clear & ~degenerate & has_interval
+    # What the interval gives if calibrated: the gate names the
+    # diagnostic that would have withheld it, so an uncalibrated record
+    # carries the reason too.
+    gated = rule.copy()
+    if decide.any():
+        pairs = None if n0 is None else np.full(int(decide.sum()), n)
+
+        def apply(ready: bool) -> IntervalRules:
+            return interval_rules(
+                lo[decide],
+                hi[decide],
+                min_effect=min_effect,
+                budget_remains=~last[decide],
+                calibrated=ready,
+                session_pairs=pairs,
+                n0=n0,
+            )
+
+        decided = apply(calibrated)
+        rule[decide] = decided.rule
+        regression[decide] = decided.regression
+        gated[decide] = decided.rule if calibrated else apply(True).rule
+    nothing = clear & ~decide
+    rule[nothing] = np.where(last[nothing], 5, 4)
+    gated[nothing] = rule[nothing]
     why = np.zeros(rows, dtype=np.intp)
     if procedure == "t_log_ratio_batch_means":
-        why = _withheld_codes(b, c, direction, first, rule)
+        why = _withheld_codes(b, c, direction, first, gated)
     withheld = why > 0
     rule = np.where(withheld, np.where(last, 5, 4), rule).astype(np.int8)
     regression &= ~withheld
@@ -1003,8 +1042,8 @@ def decide_look(
     # cannot decide there (rules 4 and 5 only); it has no valid widened
     # interval to record.
     return Look(
-        lower=np.where(unbounded, np.nan, lo),
-        upper=np.where(unbounded, np.nan, hi),
+        lower=np.where(unbounded | degenerate, np.nan, lo),
+        upper=np.where(unbounded | degenerate, np.nan, hi),
         rule=rule,
         regression=regression,
         held=held,
@@ -1028,7 +1067,7 @@ def run_looks(
     alpha: float = DEFAULT_ALPHA,
     procedure: Procedure = "t_log_ratio_batch_means",
     keep_blocked: ArrayLike = False,
-    candidate_first: ArrayLike | None = None,
+    candidate_first: ArrayLike | None,
 ) -> SequentialResult:
     """Run the sequential procedure over a batch of comparisons.
 
@@ -1093,10 +1132,11 @@ def run_looks(
         Shape ``(R,)`` (the same at every look) or ``(R, K)`` (per
         look): where True, a guardrail not yet established holds back
         rule 2, as `decide_look` describes.
-    candidate_first : array_like of bool, optional
-        Shape ``(R, n)`` like the measurements: True where the
-        candidate ran first in the round, for the diagnostics of
-        `decide_look`. ``None``: every round the same order.
+    candidate_first : array_like of bool or None
+        Required, with no default. Shape ``(R, n)`` like the
+        measurements: True where the candidate ran first in the round,
+        for the diagnostics of `decide_look`. ``None`` is accepted cross
+        host only.
 
     Returns
     -------
@@ -1130,7 +1170,9 @@ def run_looks(
         )
         raise ValueError(msg)
     blocked = _blocked_per_look(keep_blocked, replications, looks)
-    first = _candidate_first(candidate_first, b.shape)
+    first = _candidate_first(
+        candidate_first, b.shape, cross=mode == "cross_host"
+    )
     full = _full_resolution(resolution, b.shape, cross=mode == "cross_host")
     n0 = schedule.n0 if mode == "cross_host" else None
     lower = np.full((replications, looks), np.nan)
@@ -1412,14 +1454,38 @@ def _interval_procedure(
     return student
 
 
+def _ratio_out_of_range(
+    b: FloatArray, c: FloatArray, direction: Direction
+) -> NDArray[np.bool_]:
+    """Whether a row has a ratio that is not a normal positive float."""
+    num, den = (b, c) if direction == "lower_is_better" else (c, b)
+    with np.errstate(over="ignore", under="ignore"):
+        ratio = num / den
+    ok = np.isfinite(ratio) & (ratio >= np.finfo(np.float64).tiny)
+    return ~np.all(ok, axis=-1)
+
+
+def _usable(lower: FloatArray, upper: FloatArray) -> NDArray[np.bool_]:
+    """Whether both bounds are finite and positive, per row."""
+    ok = np.isfinite(lower) & np.isfinite(upper)
+    return ok & (lower > 0) & (upper > 0)
+
+
 def _candidate_first(
-    value: ArrayLike | None, shape: tuple[int, int]
+    value: ArrayLike | None, shape: tuple[int, int], *, cross: bool
 ) -> NDArray[np.bool_]:
     """Return the order flags as a boolean array of ``shape``.
 
-    ``None`` is every round in the same order.
+    ``None`` is every round in the same order, which only cross host
+    is: one host it would silently skip the order centring.
     """
     if value is None:
+        if not cross:
+            msg = (
+                "candidate_first is required on one host: without it the "
+                "order effect is not removed"
+            )
+            raise ValueError(msg)
         return np.zeros(shape, dtype=np.bool_)
     given = np.asarray(value)
     if given.dtype != np.bool_ or given.shape != shape:

@@ -34,6 +34,7 @@ from perfproof.schema import Arm, MachineFingerprint, Sample
 __all__ = [
     "JOURNAL_NAME",
     "MACHINE_NAME",
+    "METRIC_NAME",
     "PROGRESS_NAME",
     "Journal",
     "JournalError",
@@ -50,6 +51,8 @@ PROGRESS_NAME: Final = "progress.json"
 """Phase and counts, replaced after each round."""
 MACHINE_NAME: Final = "machine.json"
 """The first fingerprint and the start time of the run."""
+METRIC_NAME: Final = "metric.json"
+"""Run-directory file naming the metric kind the run measured."""
 
 _ARMS: Final[tuple[Arm, Arm]] = ("baseline", "candidate")
 
@@ -103,6 +106,9 @@ class Resumed:
     machine: MachineFingerprint
     started: datetime
     attempt: int
+    metric_kind: str | None = None
+    """The metric kind the first attempt measured (``wall`` where a
+    ``counter`` fell back), or ``None`` when it was not recorded."""
 
 
 def write_json(path: Path, document: Mapping[str, object]) -> None:
@@ -201,6 +207,17 @@ class Journal:
                 "machine": machine.model_dump(mode="json"),
             },
         )
+
+    def metric(self, kind: str) -> None:
+        """Keep the metric kind measured, so a resume can't mix units.
+
+        Parameters
+        ----------
+        kind : str
+            ``wall``, ``cpu``, ``reported`` or ``counter``: what the
+            samples of this run are.
+        """
+        write_json(self._dir / METRIC_NAME, {"kind": kind})
 
     def phase(self, phase: str) -> None:
         """Record the phase the run is in: ``gates`` or ``rounds``."""
