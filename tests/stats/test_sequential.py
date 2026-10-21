@@ -1132,7 +1132,7 @@ class TestDriverValidation:
     @pytest.mark.parametrize(
         ("kwargs", "match"),
         [
-            ({"procedure": "bootstrap_median_ratio"}, "procedure"),
+            ({"procedure": "wilcoxon"}, "procedure"),
             ({"rounds": np.array([31])}, "at most"),
             ({"rounds": np.array([10, 10])}, "shape"),
             ({"exhausted": "yes"}, "exhausted"),
@@ -1345,7 +1345,7 @@ class TestDecideLook:
             ({"n0": 10, "resolution": Resolution(0.0, 0.0, False)}, "Bounds"),
             ({"final": np.array([True, False, True])}, "final"),
             ({"keep_blocked": 1}, "keep_blocked"),
-            ({"procedure": "bootstrap_median_ratio"}, "procedure"),
+            ({"procedure": "wilcoxon"}, "procedure"),
             ({"min_effect": 0}, "min_effect"),
             ({"resolution": 0.001}, "resolution"),
         ],

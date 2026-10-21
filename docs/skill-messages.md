@@ -493,7 +493,7 @@ warning's `message` unchanged:
 |---|---|
 | `high_load` | the machine was busy (load {x}) |
 | `order_not_balanced` | the new version ran first in {k} of {n} rounds |
-| `autocorrelated_rounds` | neighbouring rounds were not independent |
+| `lag1_autocorrelation_high` | neighbouring rounds were not independent |
 | `differential_checks_not_run` | old and new code were not run on the same recorded calls |
 | `on_battery`, `low_power_mode`, `thermal_limit`, `non_performance_governor` | the BS-10 sentence for that code |
 

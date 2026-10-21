@@ -1105,7 +1105,7 @@ class _Run:
         if not math.isnan(lag1) and lag1 > _AUTOCORRELATION_WARN:
             self.warnings.append(
                 RunWarning(
-                    code="autocorrelated_rounds",
+                    code="lag1_autocorrelation_high",
                     message=(
                         f"lag-1 autocorrelation of the log ratios is "
                         f"{lag1:.3f}, above {_AUTOCORRELATION_WARN}"

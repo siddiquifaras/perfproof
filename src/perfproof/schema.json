@@ -718,7 +718,7 @@
     },
     "Diagnostics": {
       "additionalProperties": false,
-      "description": "Measurements that qualify a verdict without deciding it.\n\n``None`` means not computed.\n\nRaises\n------\npydantic.ValidationError\n    If ``metric_disagreement`` is set without ``wall_interval``.",
+      "description": "Measurements that qualify a verdict without deciding it.\n\n``None`` means not computed.\n\nRaises\n------\npydantic.ValidationError\n    If ``metric_disagreement`` is set without ``wall_interval``, or\n    both ``autocorrelated_rounds`` and ``outlier_rounds`` are true:\n    the gate of ``docs/method.md`` names one diagnostic per look.",
       "properties": {
         "procedure_uncalibrated": {
           "description": "Required, with no default, so no writer gets a calibrated\nverdict by leaving it out. Whether the interval procedure had not\nyet passed calibration\nwhen this verdict was given (the thin path before the M1 exit).\nSuch a verdict is INCONCLUSIVE whatever its interval, or a gate\nREJECT; never KEEP or a performance or guardrail REJECT.",
@@ -762,7 +762,7 @@
             }
           ],
           "default": null,
-          "description": "Lag-1 autocorrelation of the log ratios; above 0.3 is warned.",
+          "description": "Lag-1 autocorrelation of the log ratios; above 0.3 is warned\n(`RunWarning` code ``lag1_autocorrelation_high``).",
           "title": "Lag1 Autocorrelation"
         },
         "cv_baseline": {
@@ -819,6 +819,32 @@
           "default": null,
           "description": "Whether the resolution stop of ``docs/method.md`` ended the\ncomparison: a value no larger than its own step, or a `reported`\nmetric with no declared resolution that failed the continuity\ncheck. ``True`` only on a rule 1 verdict: the INCONCLUSIVE the stop\ngives, or a gate REJECT decided after it.",
           "title": "Coarse Resolution"
+        },
+        "autocorrelated_rounds": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the diagnostic gate of ``docs/method.md`` withheld the\ndecision because the lag-1 autocorrelation of the log ratios was\nabove the gate's threshold at a look too short to show coverage.\n``True`` only on a rule 5 INCONCLUSIVE of the batch-means procedure\nthat records the interval the gate held back. It is not the\n`RunWarning` ``lag1_autocorrelation_high``, which only warns.",
+          "title": "Autocorrelated Rounds"
+        },
+        "outlier_rounds": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the gate withheld the decision because the share of\noutlier rounds was above its threshold at a look too short to show\ncoverage; the conditions of ``autocorrelated_rounds`` apply.",
+          "title": "Outlier Rounds"
         },
         "resolution_widening": {
           "anyOf": [
@@ -4717,9 +4743,7 @@
           "description": "Interval procedure in force.",
           "enum": [
             "t_log_ratio",
-            "t_log_ratio_batch_means",
-            "hodges_lehmann_wilcoxon",
-            "bootstrap_median_ratio"
+            "t_log_ratio_batch_means"
           ],
           "title": "Procedure",
           "type": "string"

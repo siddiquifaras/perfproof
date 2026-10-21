@@ -228,12 +228,7 @@ GuardrailStatus = Literal[
 ]
 AllowanceSource = Literal["default", "target_class", "project"]
 LockRole = Literal["harness", "oracle", "input", "config"]
-Procedure = Literal[
-    "t_log_ratio",
-    "t_log_ratio_batch_means",
-    "hodges_lehmann_wilcoxon",
-    "bootstrap_median_ratio",
-]
+Procedure = Literal["t_log_ratio", "t_log_ratio_batch_means"]
 TargetClass = Literal[
     "python_cpu",
     "native",
@@ -1464,7 +1459,9 @@ class Diagnostics(_Model):
     Raises
     ------
     pydantic.ValidationError
-        If ``metric_disagreement`` is set without ``wall_interval``.
+        If ``metric_disagreement`` is set without ``wall_interval``, or
+        both ``autocorrelated_rounds`` and ``outlier_rounds`` are true:
+        the gate of ``docs/method.md`` names one diagnostic per look.
     """
 
     procedure_uncalibrated: Flag
@@ -1483,7 +1480,8 @@ class Diagnostics(_Model):
     lag1_autocorrelation: (
         Annotated[float, Strict(), Field(ge=-1, le=1)] | None
     ) = None
-    """Lag-1 autocorrelation of the log ratios; above 0.3 is warned."""
+    """Lag-1 autocorrelation of the log ratios; above 0.3 is warned
+    (`RunWarning` code ``lag1_autocorrelation_high``)."""
     cv_baseline: NonNegative | None = None
     """Coefficient of variation of the baseline's values."""
     cv_candidate: NonNegative | None = None
@@ -1496,6 +1494,17 @@ class Diagnostics(_Model):
     metric with no declared resolution that failed the continuity
     check. ``True`` only on a rule 1 verdict: the INCONCLUSIVE the stop
     gives, or a gate REJECT decided after it."""
+    autocorrelated_rounds: Flag | None = None
+    """Whether the diagnostic gate of ``docs/method.md`` withheld the
+    decision because the lag-1 autocorrelation of the log ratios was
+    above the gate's threshold at a look too short to show coverage.
+    ``True`` only on a rule 5 INCONCLUSIVE of the batch-means procedure
+    that records the interval the gate held back. It is not the
+    `RunWarning` ``lag1_autocorrelation_high``, which only warns."""
+    outlier_rounds: Flag | None = None
+    """Whether the gate withheld the decision because the share of
+    outlier rounds was above its threshold at a look too short to show
+    coverage; the conditions of ``autocorrelated_rounds`` apply."""
     resolution_widening: NonNegative | None = None
     """How far the resolution moved both bounds of the deciding look's
     interval outward, on the log scale: the mean ``w`` over its rounds
@@ -1506,6 +1515,12 @@ class Diagnostics(_Model):
     def _check_disagreement(self) -> Self:
         if self.metric_disagreement is not None and self.wall_interval is None:
             msg = "metric_disagreement needs the wall_interval it came from"
+            raise ValueError(msg)
+        if self.autocorrelated_rounds and self.outlier_rounds:
+            msg = (
+                "a withheld look names one diagnostic, not both "
+                "autocorrelated_rounds and outlier_rounds"
+            )
             raise ValueError(msg)
         return self
 
@@ -1608,6 +1623,7 @@ class Verdict(_Model):
         ):
             msg = f"a rule {self.rule} verdict needs an estimate and interval"
             raise ValueError(msg)
+        self._check_withheld()
         if self.diagnostics.procedure_uncalibrated and self.rule not in (1, 5):
             msg = (
                 "under an uncalibrated procedure only a rule 1 verdict or a "
@@ -1648,6 +1664,32 @@ class Verdict(_Model):
             )
             raise ValueError(msg)
         return self
+
+    def _check_withheld(self) -> None:
+        """Check a withheld look is a rule 5 batch-means INCONCLUSIVE.
+
+        The gate holds a rule 2 or 3 interval back to rule 4, which is
+        no verdict, or to rule 5 at the last look; the interval it
+        computed stays on the record, and only batch means has a gate.
+        """
+        d = self.diagnostics
+        if not (d.autocorrelated_rounds or d.outlier_rounds):
+            return
+        if self.rule != 5:
+            msg = (
+                "a withheld look ends as a rule 5 INCONCLUSIVE, not rule "
+                f"{self.rule}"
+            )
+            raise ValueError(msg)
+        if self.procedure != "t_log_ratio_batch_means":
+            msg = (
+                "only the batch-means procedure has the diagnostic gate, "
+                f"not {self.procedure}"
+            )
+            raise ValueError(msg)
+        if self.interval is None:
+            msg = "a withheld look records the interval it held back"
+            raise ValueError(msg)
 
     def _check_resolution_stop(self) -> None:
         """Check a rule 1 INCONCLUSIVE is the resolution stop.

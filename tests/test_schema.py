@@ -225,6 +225,23 @@ def inconclusive() -> Verdict:
     )
 
 
+def withheld(**flags: bool) -> Verdict:
+    """A rule 5 INCONCLUSIVE where the gate held a look back."""
+    return Verdict(
+        outcome="INCONCLUSIVE",
+        reason="insufficient_evidence",
+        rule=5,
+        estimate=1.05,
+        interval=Interval(lower=1.02, upper=1.08, confidence=0.99),
+        rounds=60,
+        looks=3,
+        procedure="t_log_ratio_batch_means",
+        target_class="python_cpu",
+        calibration="uncalibrated",
+        diagnostics=calibrated(**flags),
+    )
+
+
 def integrity() -> Verdict:
     return Verdict(
         outcome="REJECT",
@@ -700,6 +717,8 @@ EXAMPLES: dict[str, BaseModel] = {
     "verdict_keep": keep(),
     "verdict_regression": regression(),
     "verdict_inconclusive": inconclusive(),
+    "verdict_withheld_autocorrelated": withheld(autocorrelated_rounds=True),
+    "verdict_withheld_outliers": withheld(outlier_rounds=True),
     "verdict_integrity": integrity(),
     "verdict_correctness": correctness_reject(),
     "hotspot": Hotspot(
@@ -1236,6 +1255,7 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("verdict_keep", "outcome", "MAYBE"),
     ("verdict_keep", "reason", "speed"),
     ("verdict_keep", "procedure", "eyeball"),
+    ("verdict_withheld_outliers", "diagnostics.outlier_rounds", "true"),
     ("verdict_integrity", "gate", "vibes"),
     ("sample", "version", "both"),
     ("sample", "position", 2),
@@ -3112,6 +3132,53 @@ def test_resolution_stop_carries_no_speedup_claim(
     data = with_value(as_json(resolution_stop()), path, value)
     with pytest.raises(ValidationError, match=f"speedup claim, so no {name}"):
         Verdict.model_validate(data)
+
+
+@pytest.mark.parametrize("flag", ["autocorrelated_rounds", "outlier_rounds"])
+def test_withheld_look_validates_in_a_record(flag: str) -> None:
+    v = withheld(**{flag: True})
+    assert getattr(v.diagnostics, flag) is True
+    assert record(verdict=v).verdict.rule == 5
+    again = Verdict.model_validate_json(v.model_dump_json())
+    assert getattr(again.diagnostics, flag) is True
+
+
+@pytest.mark.parametrize("flag", ["autocorrelated_rounds", "outlier_rounds"])
+@pytest.mark.parametrize(
+    ("changes", "match"),
+    [
+        ({"rule": 2}, "ends as a rule 5"),
+        (
+            {"rule": 3, "outcome": "REJECT", "reason": "performance"},
+            "ends as a rule 5",
+        ),
+        ({"procedure": "t_log_ratio"}, "only the batch-means"),
+        ({"interval": None, "estimate": None}, "records the interval"),
+    ],
+)
+def test_withheld_flag_needs_a_rule_5_batch_means_interval(
+    flag: str, changes: dict[str, Any], match: str
+) -> None:
+    data = {**as_json(withheld(**{flag: True})), **changes}
+    with pytest.raises(ValidationError, match=match):
+        Verdict.model_validate(data)
+
+
+def test_withheld_look_names_one_diagnostic() -> None:
+    with pytest.raises(ValidationError, match="names one diagnostic"):
+        withheld(autocorrelated_rounds=True, outlier_rounds=True)
+    v = withheld(autocorrelated_rounds=False, outlier_rounds=False)
+    assert v.diagnostics.outlier_rounds is False
+
+
+@pytest.mark.parametrize(
+    "procedure", ["hodges_lehmann_wilcoxon", "bootstrap_median_ratio"]
+)
+def test_deleted_procedures_are_refused(procedure: str) -> None:
+    data = {**as_json(keep()), "procedure": procedure}
+    with pytest.raises(ValidationError, match="procedure"):
+        Verdict.model_validate(data)
+    assert procedure not in SCHEMA_FILE.read_text(encoding="utf-8")
 
 
 def test_gate_reject_may_follow_a_resolution_stop() -> None:
