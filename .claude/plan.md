@@ -615,7 +615,7 @@ by `stats-auditor` before its PR opens.
     set, and the next audit draws new ones.
   - Effort: max
 
-- [ ] **T1.9 Schema for the batch-means gate** (schema task)
+- [x] **T1.9 Schema for the batch-means gate** (siddiquifaras/perfproof#52, `9513b04`)
   - Owns: `src/perfproof/schema.py`, `schema.json`, their tests
   - Needs: T1.8
   - Do: drop `hodges_lehmann_wilcoxon` and `bootstrap_median_ratio`
