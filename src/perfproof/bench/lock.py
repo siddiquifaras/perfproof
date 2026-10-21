@@ -177,6 +177,7 @@ _LAUNCHER_NAMES: Final = frozenset(
     {
         "bun",
         "conda",
+        "corepack",
         "deno",
         "hatch",
         "invoke",
@@ -190,12 +191,16 @@ _LAUNCHER_NAMES: Final = frozenset(
         "pipenv",
         "pipx",
         "pixi",
+        "pn",
         "pnpm",
+        "pnpx",
+        "pnx",
         "poetry",
         "rye",
         "tox",
         "uvx",
         "yarn",
+        "yarnpkg",
     }
 )
 """Tools that pick and start another runtime, which the probe does not
@@ -206,6 +211,21 @@ and ``-m uv`` is unknown too."""
 _INSTALL_DIRS: Final = frozenset(
     {"dist-packages", "node_modules", "site-packages"}
 )
+_NODE_NAMES: Final = frozenset({"node", "nodejs"})
+_SHELL_NAMES: Final = frozenset(
+    {"ash", "bash", "csh", "dash", "fish", "ksh", "sh", "tcsh", "zsh"}
+)
+_NODE_LAUNCHERS: Final = frozenset({"npm", "npx"})
+_NO_FETCH_FLAGS: Final = frozenset({"--no", "--no-install"})
+_NODE_PROBE: Final = (
+    "const fs = require('fs');"
+    "console.log(fs.realpathSync(process.execPath));"
+    "console.log(process.version);"
+)
+"""What a Node probe prints: its executable's real path, then its
+version, one per line."""
+_PROBE_OUTPUT_CHARS: Final = 4096
+"""Longest probe output taken as a report."""
 _SHEBANG_BYTES: Final = 512
 _MAX_LAUNCH_DEPTH: Final = 4
 _MACHO_MAGIC: Final = frozenset(
@@ -291,6 +311,7 @@ class _Runtime:
     executable: Path | None
     version: str | None = None
     reason: str | None = None
+    family: str | None = None
 
     @classmethod
     def unknown(cls, executable: Path | None, reason: str) -> "_Runtime":
@@ -1390,9 +1411,11 @@ class _Launch:
     ) -> _Runtime:
         """Follow ``argv`` through launchers to the runtime that runs.
 
-        Python interpreters are asked for their version. Scripts are
-        followed through their shebang, ``env`` through its arguments,
-        and ``uv run`` into uv's environment. A native executable built
+        Python, Node and Java interpreters are asked for their version
+        (Node and Java also hashed); ``npx`` and ``npm exec`` are
+        followed to their command. Scripts are followed through their
+        shebang, ``env`` through its arguments, and ``uv run`` into
+        uv's environment. A native executable built
         in the tree is a native build; every other case, including
         launchers this does not follow, is unknown.
         """
@@ -1405,10 +1428,24 @@ class _Launch:
         names = {exe.name, real.name}
         if any(_is_python_name(name) for name in names):
             return self.python([str(exe)], argv[1:], env, label=str(exe))
+        canon = {_canonical(name) for name in names}
+        if canon & _NODE_NAMES:
+            return self.node([str(exe)], env, str(exe))
+        if "java" in canon:
+            return self.java(exe, real, env)
+        if canon & _SHELL_NAMES:
+            return _Runtime.unknown(
+                real,
+                f"{exe} is a shell; the program it runs is not the one "
+                "launched",
+            )
         if "uv" in names:
             return self.uv(exe, argv, env, depth)
         if "env" in names:
             return self.env(argv[1:], env, depth, label=str(exe))
+        launcher = _canonical(exe.name)
+        if launcher in _NODE_LAUNCHERS:
+            return self.node_launcher(exe, launcher, argv[1:], env, depth)
         if any(_is_launcher_name(name) for name in names):
             return _Runtime.unknown(
                 real,
@@ -1444,6 +1481,212 @@ class _Launch:
                 f"tree ({installed}), not built from it",
             )
         return _Runtime("native_build", real)
+
+    def report(
+        self, argv: Sequence[str], env: Mapping[str, str]
+    ) -> tuple[str, str, str | None]:
+        """Run a version probe and return its stdout, stderr, failure.
+
+        The probe runs in the benchmark's directory and environment,
+        with stdin closed and a timeout, so a program that reads input
+        or never answers fails instead of hanging. Output over
+        `_PROBE_OUTPUT_CHARS` is a failure.
+        """
+        try:
+            done = subprocess.run(
+                list(argv),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                env=dict(env),
+                cwd=self.cwd,
+                stdin=subprocess.DEVNULL,
+                check=False,
+            )
+        except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+            return "", "", f"{' '.join(argv[:1])} could not run: {exc}"
+        if max(len(done.stdout), len(done.stderr)) > _PROBE_OUTPUT_CHARS:
+            return "", "", f"{argv[0]} printed more than a version report"
+        if done.returncode != 0:
+            tail = (done.stderr or done.stdout).strip()[-200:]
+            return "", "", f"{argv[0]} exited {done.returncode}: {tail}"
+        return done.stdout, done.stderr, None
+
+    def node(
+        self, prefix: Sequence[str], env: Mapping[str, str], label: str
+    ) -> _Runtime:
+        """Ask the launch chain which Node it runs.
+
+        ``prefix`` is the launcher (just ``node``, or ``npx
+        --no-install`` and the like) up to and including the point
+        where a command goes; ``node -e`` is appended, so whatever
+        shim, version manager or launcher sits in front is the one
+        asked. Node prints the real path of its own executable and its
+        version; the version is followed by the SHA-256 of that file.
+        The runtime is the executable that answered, not the one named.
+        ``NODE_OPTIONS`` is removed from the probe's environment: a
+        ``--require`` in it could print a forged report, or a
+        harmless one could print an extra line. It is recorded
+        separately as environment.
+
+        Returns
+        -------
+        _Runtime
+            An ``interpreter`` with family ``node``, or unknown with
+            the reason: the probe could not run, timed out, failed,
+            printed more than a report, or its executable cannot be
+            read.
+        """
+        clean = {k: v for k, v in env.items() if k != "NODE_OPTIONS"}
+        out, _, failure = self.report([*prefix, "-e", _NODE_PROBE], clean)
+        if failure is not None:
+            return _Runtime.unknown(
+                None, f"{label} could not report its node version: {failure}"
+            )
+        lines = [line for line in out.split("\n") if line.strip()]
+        if len(lines) != 2 or not Path(lines[0]).is_absolute():
+            return _Runtime.unknown(
+                None,
+                f"{label} did not report an executable and a version: "
+                f"{out.strip()[:200]!r}",
+            )
+        real = Path(lines[0])
+        try:
+            digest, _ = hash_file(real)
+        except OSError as exc:
+            return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
+        return _Runtime(
+            "interpreter",
+            real,
+            f"{lines[1].strip()}; sha256 {digest}",
+            None,
+            "node",
+        )
+
+    def java(self, exe: Path, real: Path, env: Mapping[str, str]) -> _Runtime:
+        """Identify a Java runtime by ``java -version`` and a hash.
+
+        ``java -version`` reports on stderr; its ``Picked up ...``
+        lines (from ``JAVA_TOOL_OPTIONS``) are dropped. The version is
+        followed by the SHA-256 of the resolved launcher. The JDK's
+        ``libjvm`` is not hashed.
+        """
+        out, err, failure = self.report([str(exe), "-version"], env)
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not report its java version: {failure}"
+            )
+        lines = [
+            line.strip()
+            for line in (err + out).split("\n")
+            if line.strip() and not line.startswith("Picked up ")
+        ]
+        if not lines:
+            return _Runtime.unknown(
+                real, f"{exe} -version exited 0 without reporting a version"
+            )
+        try:
+            digest, _ = hash_file(real)
+        except OSError as exc:
+            return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
+        version = f"{' / '.join(lines)}; sha256 {digest}"
+        return _Runtime("interpreter", real, version, None, "java")
+
+    def node_launcher(
+        self,
+        exe: Path,
+        tool: str,
+        args: Sequence[str],
+        env: Mapping[str, str],
+        depth: int,
+    ) -> _Runtime:
+        """Follow ``npx`` and ``npm exec`` to the Node they run.
+
+        The command is first identified on a ``PATH`` with every
+        ``node_modules/.bin`` from the working directory upward in
+        front, to learn what it is (a Node script, a Python script,
+        a native program). When it is Node, the Node is not derived
+        from that: the launcher itself is asked, with ``--no-install``
+        forced, to run ``node -e`` in the benchmark's directory and
+        environment, so ``.npmrc`` settings, ``script-shell`` and
+        local ``node_modules/.bin/node`` apply exactly as they do to
+        the benchmark. ``npx`` and ``npm exec`` fetch a package that is
+        not installed, so they are followed only when the command is
+        present locally or ``--no-install`` forbids fetching. Every
+        other launcher, and every other subcommand, option or
+        form, is refused.
+        """
+        label = tool
+        rest = list(args)
+        if tool != "npx":
+            if not rest or rest[0] != "exec":
+                sub = rest[0] if rest else ""
+                return _Runtime.unknown(
+                    exe.resolve(),
+                    f"{exe} {sub}: package scripts and other "
+                    f"subcommands are not followed; only '{tool} exec' is",
+                )
+            label = f"{tool} exec"
+            rest = rest[1:]
+        no_fetch = False
+        i = 0
+        while i < len(rest):
+            arg = rest[i]
+            if arg == "--":
+                i += 1
+                break
+            if arg in _NO_FETCH_FLAGS:
+                no_fetch = True
+            elif arg.startswith("-"):
+                return _Runtime.unknown(
+                    exe.resolve(),
+                    f"{label}: option {arg!r} is not understood",
+                )
+            else:
+                break
+            i += 1
+        command = rest[i:]
+        if not command:
+            return _Runtime.unknown(
+                exe.resolve(), f"{label} names no command to run"
+            )
+        if depth >= _MAX_LAUNCH_DEPTH:
+            return _Runtime.unknown(
+                exe.resolve(), f"{label}: too many nested launchers"
+            )
+        bins = [
+            str(directory / "node_modules" / ".bin")
+            for directory in (self.cwd, *self.cwd.parents)
+        ]
+        local = _which(command[0], {"PATH": os.pathsep.join(bins)}, self.cwd)
+        if not no_fetch and "/" not in command[0] and local is None:
+            return _Runtime.unknown(
+                exe.resolve(),
+                f"{label} {command[0]}: not installed in any "
+                "node_modules/.bin, so it would be fetched and run; add "
+                "--no-install to refuse the fetch",
+            )
+        path = os.pathsep.join([*bins, env.get("PATH", os.defpath)])
+        found = self.identify(command, {**env, "PATH": path}, depth + 1)
+        if found.family != "node":
+            return found.explained(label)
+        probe = (
+            [str(exe), "--no-install", "node"]
+            if tool == "npx"
+            else [str(exe), "exec", "--no", "--", "node"]
+        )
+        probed = self.node(probe, env, label)
+        if probed.kind == "interpreter" and (
+            found.executable,
+            found.version,
+        ) != (probed.executable, probed.version):
+            return _Runtime.unknown(
+                exe.resolve(),
+                f"{label}: the command runs {found.executable} "
+                f"({found.version}), but the launcher's node is "
+                f"{probed.executable}",
+            )
+        return probed
 
     def installed_in(self, path: Path) -> str | None:
         """Name the virtualenv or package directory ``path`` is in."""

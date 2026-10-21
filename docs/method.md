@@ -204,8 +204,67 @@ classes.
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Anything that can't be identified fails, including tools known to start other interpreters (tox, nox, poetry and the like). Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node and Java are recognised (below). Anything that can't be identified fails, including tools known to start other interpreters (tox, nox, poetry and the like), and a shell, which stays unknown because the program it runs is not the one perfproof launched. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
+
+**Node and Java runtimes.** A command whose program name resolves
+(symlinks followed) to `node` or `nodejs` is a Node runtime, and to
+`java` a Java runtime, wherever the file lives, in the tree or outside
+it. A shell stays unknown, because the program it runs is not the one
+perfproof launched.
+
+*Node* is asked, not derived. The gate runs the launch chain's own
+`node -e` in the benchmark's working directory and environment, with
+stdin closed, a timeout and output capped at 4096 characters; Node
+prints the real path of its own executable and its version. The
+runtime is the executable that answered, so a version-manager shim
+(`asdf`, `nodenv` and the like) that selects a binary by directory or
+environment is seen through. The record carries the real path and the
+version followed by `; sha256 <digest>` of that file, so a rebuilt or
+patched binary at the same path and version still differs. A probe that
+cannot start, times out, exits non-zero, prints more than a report or
+names a file that cannot be read makes the runtime unknown.
+
+*Java* is identified by its resolved path, the banner of `java
+-version` (run the same way; stderr, with the `Picked up ...` lines
+that `JAVA_TOOL_OPTIONS` adds dropped) and the SHA-256 of the resolved
+launcher. A `java` that exits non-zero, such as the macOS
+`/usr/bin/java` stub with no JDK behind it, is unknown.
+
+*Scripts and launchers.* A `node_modules/.bin` script is followed
+through its `#!` line (`#!/usr/bin/env node` resolves `node` on the
+benchmark's `PATH`) and then asked as above; one written for `sh` is a
+shell. `npx` and `npm exec` are followed: the command is resolved with
+every `node_modules/.bin` from the working directory upward in front of
+the `PATH` to learn what kind of program it is, and when it is Node the
+Node is asked through the launcher itself (`npx --no-install node -e`,
+`npm exec --no -- node -e`), so `.npmrc` settings, `script-shell` and a
+local `node_modules/.bin/node` apply exactly as they do to the
+benchmark, with no list of settings to keep complete. Because these two
+fetch and run a package that is not installed, they are followed only
+when the command is present in a `node_modules/.bin` or `--no-install`
+(`--no`) forbids the fetch, with no other option before the command
+except `--`; the probe always carries `--no-install`, which stops
+an install but not a registry metadata request npm may still make
+when the command is neither local nor global. A command's own
+interpreter is checked against the launcher's: a `.bin` script
+whose shebang names a different Node (`#!/abs/node18`) than the
+launcher's `node` is refused, with both named. Refused with a
+plain reason, because the Node they run is chosen by configuration the
+gate does not read or they may fetch one: `pnpm`, `pnpx`, `pn`, `pnx`,
+`yarn`, `yarnpkg`, `corepack`, `bun`, `deno`, `npm run` and every other
+`npm` subcommand, and options not understood. The launcher's own
+runtime is not recorded: only the command's is.
+
+Not seen for Node and Java: `NODE_OPTIONS` is recorded with its value
+and `JAVA_TOOL_OPTIONS` by name only, and neither is gated (the
+Node probe runs with `NODE_OPTIONS` removed, so a preload can neither
+forge nor spoil the report); Node options set in an `.npmrc`
+(`node-options`) are not recorded anywhere; the JDK's `libjvm` and
+class libraries are covered by the version banner only, not hashed,
+and a `java` shim that chooses between JDK homes is recorded as the
+shim, which passes; a Node program that spawns
+another runtime is recorded under its own.
 
 **Recorded, not gated:** the environment each command ran with (names, and
 values for variables known to affect performance such as

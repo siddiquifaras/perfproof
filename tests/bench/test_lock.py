@@ -939,8 +939,8 @@ def test_launcher_without_a_known_version_fails_closed(
 
     assert result.status == "failed"
     assert result.differences == ()
-    assert "run.sh -> /bin/sh is a native" in result.detail
-    assert "its version is not probed" in result.detail
+    assert "run.sh -> /bin/sh is a shell" in result.detail
+    assert "not the one launched" in result.detail
     assert waived.status == "waived"
     assert waived.detail == "allow_runtime_change: " + result.detail
 
@@ -1154,7 +1154,7 @@ def uv_project(tree: Path, node_version: str) -> None:
         capture_output=True,
         timeout=120,
     )
-    node = tree / ".venv" / "bin" / "node"
+    node = tree / ".venv" / "bin" / "tool"
     node.write_text(f"#!/bin/sh\necho {node_version}\n")
     node.chmod(0o755)
 
@@ -1163,7 +1163,7 @@ def test_uv_run_follows_a_command_that_is_not_python(
     baseline: Path, repo: Path
 ) -> None:
     uv_spec()
-    spec = make_spec(command=("uv", "run", "node", "bench.js"))
+    spec = make_spec(command=("uv", "run", "tool", "bench.js"))
     uv_project(baseline, "v18.0.0")
     uv_project(repo, "v22.0.0")
 
@@ -1172,8 +1172,8 @@ def test_uv_run_follows_a_command_that_is_not_python(
 
     assert env.runtime_version is None
     assert env.missing["runtime_version"].startswith(
-        f"uv run -> {(repo / '.venv' / 'bin' / 'node').absolute()} -> "
-        "/bin/sh is a native"
+        f"uv run -> {(repo / '.venv' / 'bin' / 'tool').absolute()} -> "
+        "/bin/sh is a shell"
     )
     assert result.status == "failed"
     assert "the candidate runtime is unknown: uv run ->" in result.detail
