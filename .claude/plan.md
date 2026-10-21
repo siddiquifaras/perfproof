@@ -628,7 +628,7 @@ by `stats-auditor` before its PR opens.
     unsupported procedure use another fixture; schema.json regenerated.
   - Effort: low
 
-- [ ] **T1.10 Wire batch means and the gate into compare**
+- [x] **T1.10 Wire batch means and the gate into compare** (siddiquifaras/perfproof#54, `a34c781`)
   - Owns: `src/perfproof/bench/compare.py`, `src/perfproof/stats/sequential.py`
     (the `candidate_first` default), `src/perfproof/stats/decision.py`
     (underflow), their tests
