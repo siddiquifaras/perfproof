@@ -159,8 +159,18 @@ __all__ = [
     "json_schema_text",
 ]
 
-SCHEMA_VERSION: Final = 3
+SCHEMA_VERSION: Final = 4
 """Version of the on-disk format; bumped on any incompatible change.
+
+Version 4 follows unknown-is-not-wrong: a guardrail's status can be
+``not_declared``; a record always serializes a ``measured_metric`` key
+(null unless a counter fell back to wall time); a spec may declare no
+check; coverage may be ``not_available`` with the unverified lines
+recorded. A version 4 reader refuses a version 3 document, and a
+version 3 reader refuses a version 4 one, because their models forbid
+extra fields. Every version 3 document is refused whatever its content,
+and none is migrated: a stored spec, manifest or record must be written
+again under version 4.
 
 Version 3 follows the method changes: a one-host look schedule needs
 even ``n0`` and ``k``; values carry a resolution, and a verdict the
@@ -168,9 +178,8 @@ resolution stop, its widening and the calibration conditions it rests
 on; a tree's runtime has a kind and its native build's outside-tree
 libraries; a record names its repository and candidate commit;
 differential checks declare a numeric tolerance and record their
-capture limit. Every version 2 document is refused, whatever its
-content, and none is migrated: a stored spec, manifest or record must
-be written again under version 3.
+capture limit. Every version 2 document was refused, whatever its
+content, and none was migrated.
 
 Version 2 added the safety checks: the `side_effects` and `coverage`
 gates, guardrails, the `guardrail` reason, the reset command, the
@@ -209,7 +218,7 @@ Rule = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_exact_int)]
 
 Rule 4 (continue) never ends a comparison, so no verdict carries it.
 """
-SchemaVersion = Annotated[Literal[3], BeforeValidator(_exact_int)]
+SchemaVersion = Annotated[Literal[4], BeforeValidator(_exact_int)]
 GateName = Literal[
     "side_effects",
     "lock",

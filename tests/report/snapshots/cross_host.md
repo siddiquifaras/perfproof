@@ -15,7 +15,7 @@ Labels:
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `70e5c2f53a377033c095397144e8ab542b798263ba1d0024daf42bd90cbf36f8`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `6a09135b445e1ecf60c9ff5be91dfcf2b47f4eb93a5080d20399a82d479bc39f`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -218,8 +218,8 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `70e5c2f53a377033c095397144e8ab542b798263ba1d0024daf42bd90cbf36f8`
-- schema_version: 3
+- spec_hash: `6a09135b445e1ecf60c9ff5be91dfcf2b47f4eb93a5080d20399a82d479bc39f`
+- schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -263,7 +263,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 3
+- schema_version: 4
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

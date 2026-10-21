@@ -12,7 +12,7 @@ The budget ran out with the interval still straddling the bar 1 + min_effect. Ne
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `e838ea8c21c71331e084cb61b221d6f73228da2b6966c2cfb2ab60aac0ce1ec2`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `reported` in `ms`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `35e64e84d6ccef3ac37e0087d254a652bee2fe2cdc6a2b47cf154a3d0f0b552e`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `reported` in `ms`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -121,8 +121,8 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `e838ea8c21c71331e084cb61b221d6f73228da2b6966c2cfb2ab60aac0ce1ec2`
-- schema_version: 3
+- spec_hash: `35e64e84d6ccef3ac37e0087d254a652bee2fe2cdc6a2b47cf154a3d0f0b552e`
+- schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -166,7 +166,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 3
+- schema_version: 4
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

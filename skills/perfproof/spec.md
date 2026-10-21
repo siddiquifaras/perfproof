@@ -63,7 +63,7 @@ install there would import its source in both versions.
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "name": "<name>",
   "command": ["python", "bench.py", "--output", "out/result.npy"],
   "cwd": ".",

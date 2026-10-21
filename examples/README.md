@@ -97,7 +97,7 @@ each column's values in the same order, from row 0 down, so the
 comparison can demand the same bits rather than a tolerance.
 
 `spec.json` in each Python example is the benchmark spec, in schema
-version 3. It names `wall_time` as the objective and declares the three
+version 4. It names `wall_time` as the objective and declares the three
 default guardrails of `docs/method.md` (the target class is unknown, so
 all three are required): peak memory at the 10% default allowance, and
 peak GPU memory and p99 latency not applicable, each with a reason.

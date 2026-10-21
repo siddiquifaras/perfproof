@@ -10,7 +10,7 @@ The experiment itself is not valid: the `side_effects` gate failed. Gates run be
 
 The `side_effects` gate failed. No claim about speed.
 
-Benchmark `sum-loop` at spec hash `bd5f7716ef4f5e48a5a8277ab2ef61391d1fd161d5ce33b118882562d1e4e026`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `19a402352efef3cdef27afa687089f3d88b4fb6a46059e68964a654020fbd2a6`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -132,8 +132,8 @@ None recorded.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `bd5f7716ef4f5e48a5a8277ab2ef61391d1fd161d5ce33b118882562d1e4e026`
-- schema_version: 3
+- spec_hash: `19a402352efef3cdef27afa687089f3d88b4fb6a46059e68964a654020fbd2a6`
+- schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
 - env `OMP_NUM_THREADS`: `1`
@@ -177,7 +177,7 @@ Fixed in the spec before any round.
 
 - run_id: `20261015-120000-sum-loop`
 - perfproof_version: `0.1.0`
-- schema_version: 3
+- schema_version: 4
 - started_at: 2026-10-15T12:00:00+00:00
 - finished_at: 2026-10-15T12:03:00+00:00
 - baseline_commit: `0123456789abcdef0123456789abcdef01234567`

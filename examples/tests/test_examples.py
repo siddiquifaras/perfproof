@@ -218,7 +218,7 @@ def test_specs_declare_objective_and_every_default_guardrail(
 ) -> None:
     spec = BenchmarkSpec.model_validate_json(path.read_text())
 
-    assert spec.schema_version == 3
+    assert spec.schema_version == 4
     assert spec.objective == "wall_time"
     by_metric = {g.metric: g for g in spec.guardrails}
     assert set(by_metric) == set(DEFAULT_GUARDRAILS[None])

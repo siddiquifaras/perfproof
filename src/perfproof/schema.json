@@ -71,8 +71,8 @@
       "description": "A frozen benchmark definition and its content hash.\n\n``name`` is how people refer to a benchmark; ``spec_hash`` is the\nidentity of one exact version of it. Two specs with the same name\nare never assumed equal. Runs and lock manifests store the hash.\n\nChanging any field gives a different ``spec_hash`` and so a new\nspec, which needs a new baseline. When a stored spec is loaded with\nits ``spec_hash``, the hash is recomputed and must match.\n\nRaises\n------\npydantic.ValidationError\n    If ``n0`` exceeds ``max_rounds``, ``n0`` or ``k`` is odd without\n    the cross-host opt-in, a path is declared twice\n    across the locked groups, a guardrail metric is declared twice\n    or is the primary objective, guardrails are declared without an\n    objective, the metric kind cannot measure the objective or its\n    direction is not the objective's, or a supplied ``spec_hash``\n    does not match the content.",
       "properties": {
         "schema_version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -2287,8 +2287,8 @@
       "description": "Hashes of every locked file of one spec, sorted by path.\n\nRaises\n------\npydantic.ValidationError\n    If a path appears twice.",
       "properties": {
         "schema_version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -3692,8 +3692,8 @@
       "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is a\n    rule 2 or 3 verdict or the resolution stop, a ``wall_interval``\n    appears for a metric other than ``reported``, ``finished_at``\n    precedes ``started_at``, or ``candidate_commit`` and\n    ``candidate_dirty`` are not set together. Also if the\n    guardrail results do not match the spec's guardrails, plus one\n    `not_declared` result for each default guardrail of\n    ``docs/method.md`` (peak memory, and the target class's own)\n    that the spec omits and that is not the objective (none for a\n    gate verdict), a status disagrees with its intervals, allowance\n    and limits, a spec with no correctness check records the\n    `correctness` gate `passed`, a KEEP has\n    a gate `not_available` or a guardrail other than `passed` or\n    `not_applicable`, a guardrail REJECT has no `breached`\n    guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing\n    that blocked the KEEP. The resolution stop is not a gate\n    verdict: it lists every gate and every guardrail result.",
       "properties": {
         "schema_version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "description": "Version of this format.",
           "title": "Schema Version",
           "type": "integer"
@@ -5015,5 +5015,5 @@
       "type": "object"
     }
   },
-  "title": "perfproof schema version 3"
+  "title": "perfproof schema version 4"
 }

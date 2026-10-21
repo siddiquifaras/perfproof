@@ -89,9 +89,10 @@ HASH_B = "b" * 64
 # objective or guardrails. Version 2 added both to the fixture and
 # pinned 98398968.... Version 3 changes schema_version and adds the
 # metric's resolution and the differential tolerances, at their
-# defaults, to the canonical form.
+# defaults, to the canonical form. Version 4 changes only
+# schema_version, so it pins 4c8b008b....
 PINNED_SPEC_HASH = (
-    "18b92a8e3582909ea75028680ca1b408f945c55f134d3aae4a8dae0f00373a19"
+    "4c8b008bc23295f09d3ba40f537d085194483fd98c560789fffdc0389405077c"
 )
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
@@ -1228,10 +1229,17 @@ def test_mapping_fields_are_read_only(mapping: Any) -> None:
 def test_root_documents_carry_schema_version() -> None:
     for model in (spec(), EXAMPLES["lock_manifest"], record()):
         assert as_json(model)["schema_version"] == schema.SCHEMA_VERSION
-    for version in (1, 2, 4):
-        data = with_value(as_json(record()), "schema_version", version)
+    assert schema.SCHEMA_VERSION == 4
+
+
+@pytest.mark.parametrize("version", [1, 2, 3, 5])
+def test_other_schema_versions_are_refused_not_migrated(
+    version: int,
+) -> None:
+    for model in (spec(), EXAMPLES["lock_manifest"], record()):
+        data = with_value(as_json(model), "schema_version", version)
         with pytest.raises(ValidationError):
-            RunRecord.model_validate(data)
+            type(model).model_validate(data)
 
 
 # Rejections: each case takes a valid example, changes one value through
@@ -1288,7 +1296,7 @@ REJECTED: list[tuple[str, str, Any]] = [
     ("verdict_keep", "rule", 2.0),
     ("verdict_keep", "rule", True),
     ("spec", "schema_version", True),
-    ("record", "schema_version", 3.0),
+    ("record", "schema_version", 4.0),
     # malformed identifiers and paths
     ("sample", "command_hash", "ABC"),
     ("record", "baseline_commit", "main"),
@@ -3676,7 +3684,7 @@ def test_new_models_reject_invalid_value(
 
 
 def test_new_documents_do_not_bump_schema_version() -> None:
-    assert schema.SCHEMA_VERSION == 3
+    assert schema.SCHEMA_VERSION == 4
     assert as_json(project_model())["schema_version"] == 1
     assert as_json(EXAMPLES["project_history"])["schema_version"] == 1
     assert as_json(event("observation"))["schema_version"] == 1
