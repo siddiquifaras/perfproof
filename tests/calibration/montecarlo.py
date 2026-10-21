@@ -78,7 +78,7 @@ from dataclasses import dataclass, field, replace
 from typing import Final, Literal
 
 import numpy as np
-from challengers import CHALLENGERS, WAVE_2, Challenger
+from challengers import CHALLENGERS, WAVE_2, WAVE_3, Challenger
 from conditions import COND
 from exposed import EXPOSED
 from heldout import HELDOUT
@@ -194,12 +194,17 @@ BATCH_BLOCK: Final = 6
 """Rounds per batch-means block: three order pairs (N1). The harness
 keeps its own copy, and a test holds it equal to production's."""
 WAVE_2_NAMES: Final = tuple(c.name for c in WAVE_2)
+WAVE_3_NAMES: Final = tuple(c.name for c in WAVE_3)
 PRIMARY: Final = f"batch_means_{BATCH_BLOCK}"
 UNGATED: Final = f"batch_means_{BATCH_BLOCK}_ungated"
 PROCEDURES: Final = (PRIMARY, UNGATED)
 ALL_PROCEDURES: Final = (
     *PROCEDURES,
-    *(n for n in CHALLENGERS if n not in WAVE_2_NAMES),
+    *(
+        n
+        for n in CHALLENGERS
+        if n not in WAVE_2_NAMES and n not in WAVE_3_NAMES
+    ),
 )
 """The primary, the ungated interval and T1.11's challengers
 (`challengers.CHALLENGERS`), all of which run on the same simulated
@@ -664,7 +669,12 @@ def run_cell(
     replications: int = REPLICATIONS,
 ) -> dict[str, object]:
     """Run one cell and return its results as plain data."""
-    unknown = set(procedures) - set(ALL_PROCEDURES) - set(WAVE_2_NAMES)
+    unknown = (
+        set(procedures)
+        - set(ALL_PROCEDURES)
+        - set(WAVE_2_NAMES)
+        - set(WAVE_3_NAMES)
+    )
     if unknown:
         msg = f"unknown procedures {sorted(unknown)}"
         raise ValueError(msg)

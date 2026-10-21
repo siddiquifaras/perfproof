@@ -27,6 +27,7 @@ from inference import (
     estimate,
     lag1,
     studentised_se,
+    t_order_centred,
 )
 from numpy.typing import NDArray
 
@@ -66,6 +67,7 @@ class Challenger:
     estimator: str = "mean"
     widen: float = 1.0
     guard: bool = False
+    kind: str = ""
 
     def bounds(
         self,
@@ -84,6 +86,11 @@ class Challenger:
         if n < MIN_N:
             return np.full(rows, np.nan), np.full(rows, np.nan)
         d = np.log(baseline / candidate)
+        if self.kind in ("t_oc", "ar1_ess"):
+            lo, hi = t_order_centred(
+                d, first, confidence=confidence, ar1=self.kind == "ar1_ess"
+            )
+            return np.exp(lo), np.exp(hi)
         if self.spec is None:
             lo, hi = batch_means_auto(
                 d,
@@ -179,4 +186,11 @@ CHALLENGER_LIST: Final = (
 WAVE_2: Final = (_spec("lf_huber_adj_hac_b10"),)
 """Added after the first wave of runs, which fixed ``montecarlo``'s
 ``all`` procedure list; run by name."""
-CHALLENGERS: Final = {c.name: c for c in (*CHALLENGER_LIST, *WAVE_2)}
+WAVE_3: Final = (
+    Challenger("t_oc", kind="t_oc"),
+    Challenger("ar1_ess", kind="ar1_ess"),
+)
+"""Added for the real-trace runs of phase 1b: the paired t interval with
+order-centred variance, and the same with a lag-1 effective sample
+size."""
+CHALLENGERS: Final = {c.name: c for c in (*CHALLENGER_LIST, *WAVE_2, *WAVE_3)}

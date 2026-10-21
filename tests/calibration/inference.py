@@ -547,3 +547,40 @@ def adjusted_fit(
         slope_se=np.sqrt(np.maximum(cov[:, -1, -1], 0.0)),
         imbalance=imbalance,
     )
+
+
+def t_order_centred(
+    d: FloatArray,
+    first: BoolArray,
+    *,
+    confidence: float,
+    ar1: bool,
+) -> tuple[FloatArray, FloatArray]:
+    """Paired t interval for ``E[d]`` with order-centred variance.
+
+    The mean of ``d`` (balanced order cancels the order effect) with
+    the variance of the order-centred ``d`` (``sum e^2 / (n - 2)`` over
+    ``n``, two order means estimated) and ``t`` with ``n - 2`` degrees
+    of freedom. With ``ar1`` the variance is inflated by
+    ``(1 + r) / (1 - r)`` for ``r`` the lag-1 autocorrelation of the
+    centred ``d`` clipped to ``[0, 0.9]`` (an effective sample size
+    ``n (1 - r) / (1 + r)``) and the degrees of freedom are that size
+    minus 2, at least 2. No worst case over ``r``: the correction is
+    the estimate's, so it inherits the estimate's noise. Returns
+    log-scale ``(lower, upper)``, shape ``(R,)``.
+    """
+    n = d.shape[1]
+    e = order_centre(d, first)
+    var = (e * e).sum(axis=1) / (n - 2) / n
+    df = np.full(d.shape[0], float(n - 2))
+    if ar1:
+        r = np.clip(lag1(d, first), 0.0, 0.9)
+        var = var * (1.0 + r) / (1.0 - r)
+        df = np.maximum(n * (1.0 - r) / (1.0 + r) - 2.0, 2.0)
+    crit = np.asarray(
+        stats.t.ppf(0.5 + confidence / 2, df),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+        dtype=np.float64,
+    )
+    half = crit * np.sqrt(var)
+    centre = d.mean(axis=1)
+    return centre - half, centre + half
