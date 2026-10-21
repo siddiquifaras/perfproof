@@ -1652,6 +1652,69 @@ would not write on its own.
   Python example and fixture with it.
 - [ ] **T5.2 Case study: frames2py.** Needs T5.1, T2.11. Effort: max.
 
+### Languages (Faras, 2026-10-22: every language done well, not just "not refused")
+
+Each language task has the same six-point Done-when, scored on real
+repositories before it counts:
+1. runtime identified and versioned by the runtime gate (a KEEP is possible);
+2. profiling through `perfproof profile --profiler-command` with the
+   language's standard profiler turned into folded stacks, tested on a
+   real repository, with the skill told how;
+3. warm-up handled where a JIT changes timings (in-process iterations
+   or measured warm-up rounds), documented in `docs/method.md`;
+4. coverage through the language's tool wired into the coverage gate
+   (needs T2.24), so "every changed line ran" can be checked;
+5. a playbook of what usually goes wrong in that language, linked
+   from SKILL.md, method not codebase;
+6. at least 3 real-repository tasks in the skill eval (find on a
+   pre-fix commit, prove a known change, nothing to keep), passing.
+
+- [ ] **T2.24 Wire the coverage gate into compare** (Python first)
+  - Owns: `src/perfproof/bench/compare.py` (coverage step),
+    `src/perfproof/bench/coverage_gate.py`, their tests
+  - Needs: T2.14, T2.23
+  - Do: replace the hard-coded `not_available` ("not built yet") with
+    the real gate for Python; unverified lines give `not_available`
+    (INCONCLUSIVE, never REJECT, per T2.23, fixing `coverage_gate.py`
+    line ~1643's `failed`); a language without a coverage tool stays
+    `not_available` with that reason. An interface other languages plug
+    into (a command producing a standard coverage report: lcov or
+    Cobertura).
+  - Done when: a Python change whose lines no test runs records
+    `coverage` `not_available` naming the lines; a covered change
+    records `passed`; the skill's R-5 applies.
+  - Effort: medium
+- [ ] **T5.10 TypeScript / Node, done well**
+  - Profiling: `node --cpu-prof` (or 0x) to folded stacks; warm-up:
+    V8 JIT; coverage: c8 (lcov); playbook: event-loop blocking, sync I/O,
+    JSON parse/stringify, regex, allocation and GC, bundling costs;
+    launchers already handled by T2.22 (npx, npm exec).
+  - Needs: T2.22, T2.23 (T2.24 for coverage)
+  - Done when: the six points above, with eval repos from fastify,
+    hono or nest (in the T4.1 pool).
+  - Effort: high
+- [ ] **T5.11 Java, done well**
+  - Profiling: async-profiler or JFR to folded stacks; warm-up: JIT,
+    with JMH where a project has it; coverage: JaCoCo; playbook:
+    allocation and GC pressure, boxing, string building, collections,
+    reflection, lock contention; build tools: Maven and Gradle
+    (runtime gate T2.22 identifies `java`).
+  - Needs: T2.22, T2.23 (T2.24 for coverage); Java repositories added
+    to the T4.1 pool first (none there today)
+  - Done when: the six points above, verified on Linux (JDK in Docker)
+    and on the Mac if a JDK is installed with Faras's approval.
+  - Effort: high
+- [ ] **T5.12 Go, done well** — pprof; `go test -cover`; playbook:
+  allocations, escape analysis, goroutine and lock contention, maps;
+  `go run` vs a built binary for the runtime gate. Repos: gin, echo.
+- [ ] **T5.13 Rust, done well** — perf (Linux) / samply (Mac) to folded
+  stacks; llvm-cov; playbook: clones, allocation, iterator chains,
+  bounds checks, async overhead; `cargo run` vs the built binary.
+  Repos: tokio, fd, ripgrep, polars.
+- [ ] **T5.14 Ruby and C#** — rbspy, stackprof / dotnet-trace; simplecov
+  / coverlet; playbooks. Repos: rails; a C# repo added to the pool.
+  (C and C++ are T5.3 and T5.4 with the same six points.)
+
 ### Native
 
 - [ ] **T5.3 Native coverage** with llvm-cov or gcov, so native changes
