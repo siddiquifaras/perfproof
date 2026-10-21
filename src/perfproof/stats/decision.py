@@ -33,7 +33,12 @@ written.
 
 Any failed gate decides first (rule 1), whatever the interval, the
 budget, the host mode or the pair count; when several fail,
-`GATE_PRECEDENCE` names one. A gate that is ``not_available`` (not
+`GATE_PRECEDENCE` names one. A gate fails only on evidence: what
+perfproof could not identify or read (an unidentified runtime, an
+unreadable host identity, no correctness check declared, changed lines
+no passing check ran) is ``not_available``, never failed, so it can
+only withhold a KEEP, never REJECT ("Unknown is not wrong" in
+``docs/method.md``). A gate that is ``not_available`` (not
 built yet, or nothing to check it with) never counts as passed: when
 rule 2 would give KEEP, the comparison is INCONCLUSIVE under rule 2
 instead, at the same look, naming the gates in ``blocked_by``, so it

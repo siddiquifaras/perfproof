@@ -626,7 +626,7 @@
     },
     "CorrectnessSpec": {
       "additionalProperties": false,
-      "description": "How the correctness gate decides the candidate is right.\n\nAt least one check is required: a gate that checks nothing would\npass every candidate.\n\nRaises\n------\npydantic.ValidationError\n    If there is neither a command nor an output, if a command has no\n    timeout or a timeout has no command, or if an output path\n    repeats.",
+      "description": "How the correctness gate decides the candidate is right.\n\nA spec may declare no check at all, for a project that has no test\ncommand and no output to compare. The gate is then\n``not_available``, never passed (`RunRecord` refuses a record that\npasses it), so a KEEP is withheld while the comparison still\nmeasures.\n\nRaises\n------\npydantic.ValidationError\n    If a command has no timeout or a timeout has no command, or if\n    an output path repeats.",
       "properties": {
         "command": {
           "anyOf": [
@@ -1194,7 +1194,7 @@
     },
     "GateResult": {
       "additionalProperties": false,
-      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines, a differential mismatch or ``output`` come\n    with a gate that did not fail; or a test, function or path\n    repeats.",
+      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines come with a gate that neither failed nor is\n    `not_available`; a differential mismatch or ``output`` come with\n    a gate that did not fail; or a test, function or path repeats.",
       "properties": {
         "gate": {
           "description": "`side_effects`, `lock`, `procedure`, `runtime` or `same_host`\n(integrity), or `correctness` or `coverage`.",
@@ -1262,7 +1262,7 @@
         },
         "unverified": {
           "default": [],
-          "description": "`coverage` only: changed lines no check ran, by file.",
+          "description": "`coverage` only: changed lines no check ran, by file. Lines that\nran under no passing check make the gate `not_available`, never\nfailed: the change may be right, and perfproof only can't show it\n(``docs/method.md``, \"Coverage gate\").",
           "items": {
             "$ref": "#/$defs/UnverifiedLines"
           },
@@ -1585,7 +1585,7 @@
     },
     "GuardrailResult": {
       "additionalProperties": false,
-      "description": "How one guardrail of the spec ended a comparison.\n\nThe status must agree with the intervals against the guardrail's\nallowance and limits; `RunRecord` checks that, since the spec holds\nthem. Here only what needs no spec is checked.\n\nRaises\n------\npydantic.ValidationError\n    If an `unmeasurable` or `not_applicable` guardrail has no reason\n    or carries a measurement, ``estimate`` and ``worsening`` are not\n    set together, or a `passed`, `breached` or `not_established`\n    guardrail has no interval. A guardrail with no interval at all\n    is `unmeasurable`, with its reason.",
+      "description": "How one guardrail of the spec ended a comparison.\n\nThe status must agree with the intervals against the guardrail's\nallowance and limits; `RunRecord` checks that, since the spec holds\nthem. Here only what needs no spec is checked.\n\nRaises\n------\npydantic.ValidationError\n    If an `unmeasurable`, `not_declared` or `not_applicable`\n    guardrail has no reason or carries a measurement, ``estimate``\n    and ``worsening`` are not\n    set together, or a `passed`, `breached` or `not_established`\n    guardrail has no interval. A guardrail with no interval at all\n    is `unmeasurable`, with its reason.",
       "properties": {
         "metric": {
           "description": "`GuardrailSpec.metric` of the guardrail.",
@@ -1594,12 +1594,13 @@
           "type": "string"
         },
         "status": {
-          "description": "`passed`, `breached`, `not_established`, `unmeasurable` or\n`not_applicable`, as defined in ``docs/method.md``.",
+          "description": "`passed`, `breached`, `not_established`, `unmeasurable`,\n`not_declared` or `not_applicable`, as defined in\n``docs/method.md``. `not_declared` is a default guardrail the spec\ndoes not declare; it has no `GuardrailSpec`.",
           "enum": [
             "passed",
             "breached",
             "not_established",
             "unmeasurable",
+            "not_declared",
             "not_applicable"
           ],
           "title": "Status",
@@ -1645,7 +1646,7 @@
         },
         "reason": {
           "default": "",
-          "description": "Why the guardrail is `unmeasurable` or `not_applicable`;\nrequired for those two.",
+          "description": "Why the guardrail is `unmeasurable`, `not_declared` or\n`not_applicable`; required for those three.",
           "title": "Reason",
           "type": "string"
         }
@@ -3688,7 +3689,7 @@
     },
     "RunRecord": {
       "additionalProperties": false,
-      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is a\n    rule 2 or 3 verdict or the resolution stop, a ``wall_interval``\n    appears for a metric other than ``reported``, ``finished_at``\n    precedes ``started_at``, or ``candidate_commit`` and\n    ``candidate_dirty`` are not set together. Also if the\n    guardrail results do not match the spec's guardrails one to one\n    (none for a gate verdict), the spec of any other verdict omits\n    a default guardrail of ``docs/method.md`` (peak memory, and the\n    target class's own) that is not the objective, a status\n    disagrees with its intervals, allowance and limits, a KEEP has\n    a gate `not_available` or a guardrail other than `passed` or\n    `not_applicable`, a guardrail REJECT has no `breached`\n    guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing\n    that blocked the KEEP. The resolution stop is not a gate\n    verdict: it lists every gate and every guardrail result.",
+      "description": "Everything about one comparison; written as ``record.json``.\n\nRaises\n------\npydantic.ValidationError\n    If the verdict disagrees with the gates (a failed gate must\n    decide, the deciding gate must be one that failed, and any other\n    verdict needs every gate listed, none failed), a gate is listed\n    twice, a waiver or cross-host verdict lacks the spec's opt-in,\n    the environments miss a version, repeat a version and session,\n    or name a session with no machine, rounds ran without a samples\n    path, rounds or looks exceed the spec's budget, the interval\n    contradicts the verdict against the bar ``1 + min_effect``, a\n    cross-host verdict claims more session pairs than ``machines``\n    holds sessions for, or has fewer than ``n0`` pairs and is a\n    rule 2 or 3 verdict or the resolution stop, a ``wall_interval``\n    appears for a metric other than ``reported``, ``finished_at``\n    precedes ``started_at``, or ``candidate_commit`` and\n    ``candidate_dirty`` are not set together. Also if the\n    guardrail results do not match the spec's guardrails, plus one\n    `not_declared` result for each default guardrail of\n    ``docs/method.md`` (peak memory, and the target class's own)\n    that the spec omits and that is not the objective (none for a\n    gate verdict), a status disagrees with its intervals, allowance\n    and limits, a spec with no correctness check records the\n    `correctness` gate `passed`, a KEEP has\n    a gate `not_available` or a guardrail other than `passed` or\n    `not_applicable`, a guardrail REJECT has no `breached`\n    guardrail, or a rule 2 INCONCLUSIVE has a breach or nothing\n    that blocked the KEEP. The resolution stop is not a gate\n    verdict: it lists every gate and every guardrail result.",
       "properties": {
         "schema_version": {
           "const": 3,
@@ -3837,6 +3838,18 @@
           ],
           "description": "Raw samples file, relative to the run directory; ``None`` when no\nround ran.",
           "title": "Samples Path"
+        },
+        "measured_metric": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The metric actually measured when it is not ``spec.metric``: a\n``counter`` metric whose ``perf`` was unusable is measured as wall\ntime in seconds (``docs/method.md``, \"Metrics\"). ``None`` when the\nspec's metric was measured. Every sample's value is in this metric's\nunit."
         },
         "profile_paths": {
           "default": [],
@@ -4792,7 +4805,7 @@
             }
           ],
           "default": null,
-          "description": "Target class judged under; ``None`` when unknown, in which case\nevery default guardrail of `DEFAULT_GUARDRAILS` must be declared.",
+          "description": "Target class judged under; ``None`` when unknown, in which case\nevery default guardrail of `DEFAULT_GUARDRAILS` is declared or\nrecorded `not_declared`.",
           "title": "Target Class"
         },
         "calibration": {

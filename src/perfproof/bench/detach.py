@@ -59,7 +59,12 @@ left both (``setsid`` and an exited parent) is beyond reach; the
 runner's own module docstring states the same limit.
 
 The timeout is a SIGALRM handler in the run's process, not a thread or
-a watchdog process.
+a watchdog process. It is the backstop: the run is also given the
+deadline (`perfproof.bench.compare.compare`), and before starting a
+round that could not finish by it the run ends as at a budget end,
+INCONCLUSIVE from the rounds it has, with a ``time_limit_reached``
+warning. Only a run that is inside a round or the gates when the
+deadline arrives is killed, with no verdict.
 """
 
 import contextlib
@@ -83,6 +88,7 @@ from perfproof.bench.compare import CompareStoppedError, compare
 from perfproof.bench.journal import (
     JOURNAL_NAME,
     MACHINE_NAME,
+    METRIC_NAME,
     PROGRESS_NAME,
     Journal,
     JournalError,
@@ -1257,11 +1263,14 @@ def _run(run_dir: Path, job: Job) -> int:
         if differing:
             msg = f"the machine changed ({', '.join(differing)})"
             raise DetachError("machine_changed", msg)
+        recorded = read_json(run_dir / METRIC_NAME)
+        kind = None if recorded is None else recorded.get("kind")
         resumed = Resumed(
             rounds=tuple(load_journal(run_dir, repair=True)),
             machine=saved,
             started=started,
             attempt=job.attempt,
+            metric_kind=kind if isinstance(kind, str) else None,
         )
     journal = Journal(
         run_dir,
@@ -1281,6 +1290,7 @@ def _run(run_dir: Path, job: Job) -> int:
             harness_root=Path(job.repo),
             journal=journal,
             resume=resumed,
+            deadline=job.deadline or None,
         )
     finally:
         journal.close()

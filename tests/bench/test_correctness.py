@@ -1537,3 +1537,14 @@ def test_rolling_wrong_output_fails_without_blaming_the_flaky_test(
         blamed
     )
     assert "output/sums.npy shape" in blamed
+
+
+def test_a_spec_with_no_check_is_not_available_not_passed(
+    trees: tuple[Path, Path],
+) -> None:
+    baseline, candidate = trees
+    result = correctness_gate(
+        make_spec(), baseline_root=baseline, candidate_root=candidate, env={}
+    )
+    assert result.status == "not_available"
+    assert "no correctness check" in result.detail

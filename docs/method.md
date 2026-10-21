@@ -33,12 +33,27 @@ the record, so a tool or an agent never has to parse prose to learn why.
 | Faster, but a guardrail is shown worse than its allowance or an absolute limit | REJECT | `guardrail` |
 | Faster, but a guardrail's compliance can't be established | INCONCLUSIVE | `insufficient_evidence`, naming the guardrail |
 | Candidate gives wrong results | REJECT | `correctness`, gate `correctness` |
-| Changed code that no check ever ran | REJECT | `correctness`, gate `coverage` |
-| The experiment itself is not valid (locked files, procedure, host) | REJECT | `integrity`, with the gate named |
+| Changed code that no check ran | INCONCLUSIVE | `insufficient_evidence`, gate `coverage` `not_available`, naming the lines |
+| The experiment itself is not valid (locked files, procedure, both arms' runtimes identified and different, a candidate that can't be started where the baseline runs, a host identity that changed) | REJECT | `integrity`, with the gate named |
+| Something could not be verified (an unidentified runtime, an unreadable host identity, no correctness check declared, a guardrail not declared) | INCONCLUSIVE | `insufficient_evidence`, naming what was not verified; the comparison is still measured and recorded |
 | The benchmark would reach a service that isn't local | Refused before anything runs | `integrity`, gate `side_effects` |
 | Interval still straddles the bar when the budget runs out | INCONCLUSIVE | `insufficient_evidence` |
 | A value no larger than its resolution, or an undeclared `reported` resolution that can't be trusted | INCONCLUSIVE | `insufficient_evidence`, diagnostic `coarse_resolution` |
 | The interval would decide, but a diagnostic says its coverage is not shown at this look's length (autocorrelated rounds, outliers) and the budget is out | INCONCLUSIVE | `insufficient_evidence`, diagnostic `autocorrelated_rounds` or `outlier_rounds` |
+
+**Unknown is not wrong.** perfproof exists to support the agent on any
+codebase, so it never stops or rejects for something it merely cannot
+verify. It measures, records what it could not verify, and withholds
+only a KEEP: the verdict is INCONCLUSIVE and names the reason, so the
+agent can tell the developer what would make the change keepable. A
+REJECT, or a stop with no verdict, stays for two things only:
+
+- *evidence of a real problem*: the arms ran different identified
+  runtimes, the output changed, a benchmark or test file was edited, a
+  slowdown was measured, a side effect was seen;
+- *an unsafe run*: one that would reach a remote or real service,
+  destroy data, or need credentials, or whose service address cannot be
+  parsed.
 
 A correctness or integrity REJECT says nothing about speed. Gates run
 before any timing, so those verdicts carry no speedup estimate at all.
@@ -72,9 +87,13 @@ non-executable program) produces no sample; its time never enters the
 statistics. If the
 candidate fails this way, the candidate fails the `correctness` gate:
 REJECT with reason `correctness`, the exit status and the tail of its
-output in the record. A candidate whose program or interpreter can't
-be found at all is caught earlier, before anything runs, by the
-`runtime` gate: REJECT with reason `integrity`. If the baseline fails,
+output in the record. A candidate that can't be started from its tree
+at all (its program or interpreter is missing there, or a bad
+interpreter line) while the baseline runs the same command means the
+two arms do not run the same program: the `runtime` gate fails, REJECT
+with reason `integrity`, unless the spec allows runtime changes, when
+it is the `correctness` gate as above. A candidate that started and then
+exited non-zero is always the `correctness` gate's. If the baseline fails,
 or its program or interpreter can't be found, the experiment itself is
 broken: the comparison stops with no verdict and reports the error.
 So does a fault in perfproof's own process, such as running out of
@@ -91,6 +110,13 @@ shared fault: if that fails, the comparison stops as a broken baseline;
 if it passes, the candidate fails the `correctness` gate, with both
 failures' reasons and the second attempt's status and output tail in
 the record.
+
+**No check declared.** A spec may declare no test command and no
+output to compare. The `correctness` gate is then `not_available`,
+with the detail "the spec declares no correctness check", and a KEEP
+is withheld. The candidate's executions are still run and a failed one
+fails the gate as above, so a crash is still a REJECT. A gate that
+checks nothing never passes.
 
 **Test results.** perfproof judges tests one by one where the runner
 reports them: it asks pytest for a JUnit XML report and points other
@@ -142,7 +168,10 @@ in the record.
 `git diff` and runs the correctness command and the differential checks
 under coverage. Every changed executable line must have run. A change
 in code no check executed is unverified, and an unverified change is
-not kept. For a target where perfproof cannot measure coverage yet, a
+not kept. It is not rejected either: the gate is `not_available`, with
+the unverified lines in its record, and the verdict is INCONCLUSIVE
+(`insufficient_evidence`), because the change may well be right and
+perfproof only cannot show it. For a target where perfproof cannot measure coverage yet, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
 "coverage not checked".
 
@@ -189,8 +218,22 @@ program or working directory: descriptors, processes or memory
 exhausted, an oversized environment) is a `harness_fault` stop with no
 verdict, as for setup, and blames neither tree.
 The arguments of the `setup` commands (see "Integrity") are checked like
-those of the benchmark, so a setup that names a remote package index or
-service is refused before anything runs.
+those of the benchmark, with one exception: an `https` URL whose host is
+exactly a public package registry (`pypi.org`, `files.pythonhosted.org`,
+`registry.npmjs.org`, `registry.yarnpkg.com`, `crates.io`,
+`index.crates.io`, `static.crates.io`, `proxy.golang.org`,
+`sum.golang.org`, `repo.maven.apache.org`, `repo1.maven.org`,
+`rubygems.org`, `index.rubygems.org`), with no user info, is allowed in
+a `setup` argument, since installing dependencies is what setup is for.
+The same URL in the benchmark, correctness or reset command is refused,
+as is any other remote host in setup. The exemption is only for an
+argument that is exactly the URL, or `--name=URL` whose value is exactly
+the URL: any space, tab, newline, NUL or other control character in the
+argument, before or after the URL, keeps it under the ordinary check,
+because clients disagree about where such a URL ends. A registry host written any other
+way (a mirror, an IP address, `http`) is not on the list. A value that
+cannot be parsed stays refused everywhere: an address perfproof cannot
+read is an unsafe run, not an unknown one.
 
 ## Integrity
 
@@ -198,19 +241,78 @@ The comparison is only meaningful if both versions went through the
 same experiment. Every property of the run falls in one of three
 classes.
 
-**Must match, or REJECT with reason `integrity`:**
+**Must match, or REJECT with reason `integrity`** (a difference that
+is seen; what can't be read is `not_available`, as set out after the
+table):
 
 | Gate | What is compared |
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node and Java are recognised (below). Anything that can't be identified fails, including tools known to start other interpreters (tox, nox, poetry and the like), and a shell, which stays unknown because the program it runs is not the one perfproof launched. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
-| `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node and Java are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `go`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. A host identity that can't be read is `not_available`; one that is read and differs is `failed`. |
+
+**What can't be read is `not_available`, not `failed`.** A gate fails
+only on evidence. When perfproof cannot identify what it would compare,
+the gate is `not_available`, its detail says what and why, the
+comparison goes on and measures, and the verdict can't be a KEEP.
+
+- `runtime`: each arm is identified or unknown. Both identified and
+  different (the interpreter, its version, its executable's hash, a
+  tracked binary, the outside libraries a native build links) is
+  `failed`. If either arm is unknown the gate is `not_available`
+  naming the arm, the launcher and the reason, even when the other arm
+  was identified, because nothing is then compared. A baseline that
+  can't run is still a broken experiment and stops the comparison as
+  under "Failed executions"; it is found when the baseline first runs.
+  For a native build, a closure that can't be listed, an unreadable
+  `git` answer and loader variables (`DYLD_*`, `LD_*`) in the
+  environment are likewise `not_available`: perfproof can't follow
+  them, which is not a difference between the arms.
+- `same_host`: a host identity that could not be read, at the start or
+  at the end, is `not_available`; two readable identities that differ
+  stay `failed`. The end check comes after the last look, so a host
+  identity lost only then still withholds the KEEP: the verdict becomes
+  INCONCLUSIVE naming `same_host`.
+- A launcher that may fetch and run code from the network when
+  perfproof starts the benchmark makes the `runtime` gate
+  `not_available` with the reason "this launcher may download code at
+  run time", and the same launcher in the test command makes it
+  `not_available` too. It is measured and not kept, never a stop:
+  perfproof can't see what such a launcher fetches, which is not
+  evidence of harm. The forms are `npx` and `npm exec` (including
+  `npm x`) with no local command, no `--no-install` and no `--offline`
+  (or with `-p`); `pnpm dlx`, `pnpx`, `pnx`, `yarn dlx`, `bunx`,
+  `bun x`, `uvx`, `pipx run`, `uv tool run`; `deno run` on a URL or an
+  `npm:` or `jsr:` specifier; `corepack` running a package manager
+  that is not in corepack's cache (`COREPACK_HOME`, else
+  `~/.cache/node/corepack`) unless `COREPACK_ENABLE_NETWORK=0`, and
+  `corepack prepare`, `install`, `up`, `use` and `pack`; and the
+  install forms of `npm`, `pnpm`, `yarn` and `bun` (`install`, `i`,
+  `ci`, `add`, `update`, `up`, `upgrade`, `create`, and a bare `yarn`).
+  Options in front of the subcommand are skipped, so `npm --silent
+  install` is the install form, and `yarn --version`, `-v`, `--help`
+  and `corepack enable` are not on the list. The same commands are
+  fine in `setup`. Build tools that fetch dependencies on their own
+  (`cargo`, `go`, `mvn`, `gradle`) are not on the list because
+  perfproof cannot tell when they will: declare the fetch in `setup`
+  so the measured run has nothing left to fetch. The side-effect guard
+  still reads their arguments and declared config.
+- Simple wrappers are peeled off before the command is identified, so
+  the runtime gate sees the program that runs: `timeout` (with its
+  options and duration), `nice`, `nohup`, `command`, `exec`, `time`,
+  `stdbuf`, `setsid`, and `env` (including `env -S`). Only a wrapper
+  that resolves, on the benchmark's `PATH` from its working directory,
+  to a file outside the tree is peeled: one in the tree is code under
+  test, so it is identified as the program it is (a script, so unknown)
+  and never skipped. `command -v`, `-V` and `-p` are not peeled, and a
+  wrapper whose options are not understood is identified as itself, an
+  unknown.
 
 **Node and Java runtimes.** A command whose program name resolves
 (symlinks followed) to `node` or `nodejs` is a Node runtime, and to
 `java` a Java runtime, wherever the file lives, in the tree or outside
-it. A shell stays unknown, because the program it runs is not the one
+it. A shell is unknown, because the program it runs is not the one
 perfproof launched.
 
 *Node* is asked, not derived. The gate runs the launch chain's own
@@ -223,7 +325,8 @@ environment is seen through. The record carries the real path and the
 version followed by `; sha256 <digest>` of that file, so a rebuilt or
 patched binary at the same path and version still differs. A probe that
 cannot start, times out, exits non-zero, prints more than a report or
-names a file that cannot be read makes the runtime unknown.
+names a file that cannot be read makes the runtime unknown, so the
+gate is `not_available`.
 
 *Java* is identified by its resolved path, the banner of `java
 -version` (run the same way; stderr, with the `Picked up ...` lines
@@ -249,12 +352,14 @@ an install but not a registry metadata request npm may still make
 when the command is neither local nor global. A command's own
 interpreter is checked against the launcher's: a `.bin` script
 whose shebang names a different Node (`#!/abs/node18`) than the
-launcher's `node` is refused, with both named. Refused with a
-plain reason, because the Node they run is chosen by configuration the
-gate does not read or they may fetch one: `pnpm`, `pnpx`, `pn`, `pnx`,
-`yarn`, `yarnpkg`, `corepack`, `bun`, `deno`, `npm run` and every other
-`npm` subcommand, and options not understood. The launcher's own
-runtime is not recorded: only the command's is.
+launcher's `node` is refused, with both named. Not
+followed, so unknown (`runtime` `not_available`, with the reason),
+because the Node they run is chosen by configuration the gate does not
+read: `pnpm`, `pn`, `yarn`, `yarnpkg`, `bun`, `deno`, `npm run` and
+every other `npm` subcommand, and options not understood. Where the
+form would also fetch code, `npx`, `pnpx`, `corepack` and the rest of
+the list above, the run stops instead. The launcher's own runtime is
+not recorded: only the command's is.
 
 Not seen for Node and Java: `NODE_OPTIONS` is recorded with its value
 and `JAVA_TOOL_OPTIONS` by name only, and neither is gated (the
@@ -383,6 +488,12 @@ ordering.
   stdout. Any language can do this, and it excludes process startup.
 - `counter`: hardware instruction or cycle counts from `perf stat`
   (Linux). Far less noisy than time, so small changes need fewer rounds.
+  Where `perf` can't count the event (another operating system, no
+  `perf`, no permission), the comparison does not stop. The declared
+  fallback is `wall`: it measures the whole command's wall time, records
+  a `counter_unavailable` warning with the reason, and withholds a KEEP,
+  because the verdict then rests on the fallback and not on the metric
+  the spec named. Its samples are seconds, whatever the spec's unit.
 
 **Resolution.** A measurement is only known to within its
 resolution, and a coarse one reads a small change as no change or as a
@@ -453,6 +564,17 @@ check above, the comparison stops at that look with **INCONCLUSIVE**
 report asks for more digits or more work per execution. It is checked
 after rule 1 and before rules 2 and 3, at every look, in both host
 modes.
+
+**Resolution unknown.** For a `reported` metric with no declared
+resolution, the step comes from the printed digits. If a value's line
+can't be read back from the benchmark's output to find them (it is
+gone, or its text is not the number the runner recorded), the
+resolution of that value is unknown. The comparison goes on, measuring:
+that value's step is taken as 0 for the interval, so the interval is
+not widened for it, the continuity check still applies, the record
+carries a `resolution_unknown` warning, and a KEEP is withheld. A
+REJECT on such values rests on the continuity check alone, a stated
+limit.
 
 ### Assumptions
 
@@ -667,6 +789,19 @@ The look schedule is fixed before the first round:
   That look replaces the remaining scheduled looks, so the total never
   exceeds `K`. A budget that ends before `n0` rounds gives no look at
   all, and the result is **INCONCLUSIVE** (`insufficient_evidence`).
+- A detached run's time limit (`docs/cli.md`, "Timeout") is a budget
+  end like `max_seconds`: before starting another round that cannot
+  finish, with the kill grace, before the limit, the run takes its
+  final look on the rounds it has, exactly as at a `max_seconds` end,
+  and records a `time_limit_reached` warning that says how many
+  rounds the final look used (complete order pairs only). Under the
+  uncalibrated procedure that is always INCONCLUSIVE
+  (`insufficient_evidence`); a run with fewer than `n0` rounds has no
+  look and is INCONCLUSIVE with no interval. The time limit is a budget
+  end, not a verification gap: it does not block a KEEP that the final
+  look's interval supports, and the warning is not one of the things
+  that withhold a KEEP. Only a run stuck inside one round or the gates
+  when the limit arrives is killed with no verdict.
 - Each look computes a two-sided interval at confidence
   `1 - alpha / (2K)` with `alpha = 0.05`: a Bonferroni split over the
   looks, designed to halve the error the promise allows. The margin is
@@ -745,7 +880,9 @@ tests it under the complete stopping procedure, not at fixed `n` alone.
 
 The first rule that matches decides:
 
-1. **REJECT** (`correctness` or `integrity`) if a gate failed. When
+1. **REJECT** (`correctness` or `integrity`) if a gate failed, which
+   needs evidence: a gate that could not be checked is `not_available`,
+   never failed. When
    several gates fail, the first in this order is named:
    `side_effects`, `lock`, `procedure`, `runtime`, `same_host`,
    `correctness`, `coverage`. Integrity comes first because a
@@ -756,9 +893,11 @@ The first rule that matches decides:
    **INCONCLUSIVE** (`insufficient_evidence`, `coarse_resolution`).
 2. If `L > 1 + min_effect`, the guardrails decide, as set out under
    "Guardrails": **KEEP** (`performance`) when every guardrail passed or
-   is not applicable, **REJECT** (`guardrail`) when any is breached, and
-   otherwise continue while budget remains, then **INCONCLUSIVE**
-   (`insufficient_evidence`).
+   is not applicable, **REJECT** (`guardrail`) when any is breached,
+   **INCONCLUSIVE** (`insufficient_evidence`) at once when something
+   that no further round can lift withholds the KEEP (see "Gate
+   statuses"), and otherwise continue while budget remains, then
+   **INCONCLUSIVE**.
 3. **REJECT** (`performance`) if `U <= 1 + min_effect`. If `U < 1`, the
    record also flags a regression.
 4. **Continue** if budget remains.
@@ -769,12 +908,26 @@ The first rule that matches decides:
 `not_available`. Only a gate with its own opt-in can be `waived`, and
 the opt-in is recorded. `not_available` means the gate couldn't be
 checked here, for example coverage for a language perfproof can't
-instrument. It blocks KEEP. When rule 2 matches with any gate
-`not_available`, the result is **INCONCLUSIVE**
-(`insufficient_evidence`) at that look, naming the gate, because more
-rounds can't make it available. Rules 1 and 3 still give REJECT, and
-so does a guardrail breach under rule 2, because a REJECT keeps
-nothing.
+instrument, a runtime perfproof can't identify, a host identity it
+can't read, or a spec with no correctness check. It blocks KEEP. When
+rule 2 matches with any gate `not_available`, the result is
+**INCONCLUSIVE** (`insufficient_evidence`) at that look, naming the
+gate, because more rounds can't make it available. Rules 1 and 3 still
+give REJECT, and so does a guardrail breach under rule 2, because a
+REJECT keeps nothing. Four more things withhold a KEEP the same way
+without being gates: a counter metric that fell back to wall time, a
+value whose resolution is unknown, a look schedule outside the
+calibrated ones, and a guardrail not shown or not declared. Each is
+named in the record (a `RunWarning`, or the guardrail's status), so the
+agent can say what would make the change keepable; the schema refuses a
+KEEP that carries one. A comparison does not go on collecting rounds for
+a KEEP that can't come: when a look would keep but one of these, fixed
+for the run, withholds it (any `not_available` gate, an undeclared or
+unmeasurable guardrail, the counter fallback, an unknown resolution, a
+late-look schedule), the comparison ends at that look as INCONCLUSIVE
+under rule 2, naming it, and REJECT stays reachable at earlier looks as
+before. A guardrail that is `not_established` is not fixed for the run:
+more rounds can narrow it, so those looks continue.
 
 **Before calibration.** Until the procedure has passed calibration
 (see "Calibration"), rules 2 and 3 never match. A comparison runs to
@@ -825,7 +978,12 @@ The project can override that per workload, and the reason is recorded.
 Any other guardrail, such as throughput when latency is the primary,
 has no default: the project declares it with its allowance. For each
 workload, every guardrail in the table is either applied or marked
-`not_applicable` with a reason. Nothing is left implicit.
+`not_applicable` with a reason. Nothing is left implicit in the
+record: a default guardrail the spec does not declare is not a reason
+to stop. The comparison measures anyway, and the record lists that
+guardrail as `not_declared`, with the reason. Where the target class
+is unknown, the defaults are peak memory, peak GPU memory and p99
+latency, so a spec that declares none of them records all three.
 
 **The defaults are not permission to regress.** 10% and 5% are the
 refusal thresholds used until the project sets its own. They are not a
@@ -851,6 +1009,7 @@ absolute limit.
 | `breached` | Shown worse: the lower bound of its worsening ratio exceeds `1 + allowance`, or the candidate's lower bound exceeds a limit. One check showing a breach is enough, even if another check's interval is missing |
 | `not_established` | Measured, but the data can't tell yet; at least one of its intervals was computed |
 | `unmeasurable` | Applicable, but perfproof could not measure it here; the reason is recorded |
+| `not_declared` | A default guardrail the spec does not declare; nothing was checked, and the reason is recorded. It has no spec entry to carry an allowance |
 | `not_applicable` | Marked not applicable for this workload; the reason is recorded |
 
 **Decision.** Guardrails matter only when the primary interval would
@@ -860,11 +1019,16 @@ give KEEP:
 - any guardrail `breached`: **REJECT** with reason `guardrail`, keeping
   the primary interval and every guardrail interval that was measured,
   the breaching one always among them;
-- otherwise, some guardrail `not_established` or `unmeasurable`:
-  continue while budget remains, then **INCONCLUSIVE**
-  (`insufficient_evidence`), naming the guardrails that couldn't be
-  established. An applicable metric that can't be measured never
-  passes silently.
+- otherwise, some guardrail `not_established`: continue while budget
+  remains, then **INCONCLUSIVE** (`insufficient_evidence`), naming the
+  guardrails that couldn't be established, since more rounds can
+  narrow its interval;
+- or some guardrail `unmeasurable` or `not_declared`: **INCONCLUSIVE**
+  at that look, naming it, because more rounds can't measure or declare
+  it. An applicable metric that can't be measured never
+  passes silently, and a default one nobody declared is not passed
+  either: declaring it, with an allowance, in a new spec is what makes
+  the change keepable.
 
 A performance REJECT or INCONCLUSIVE stands as it is, with the
 guardrails reported alongside. Requiring compliance to be shown, not

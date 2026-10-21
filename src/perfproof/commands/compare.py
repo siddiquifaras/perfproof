@@ -49,9 +49,13 @@ is not the one the run began on.
 ``--json`` result
 -----------------
 ``{"run_id", "run_dir", "record_path", "report_path", "verdict",
-"gates"}``: ``verdict`` is the JSON dump of the record's
-`perfproof.schema.Verdict`; ``gates`` lists ``{"gate", "status"}`` in
-the record's order; paths are absolute.
+"gates", "warnings", "not_verified", "measured_metric"}``: ``verdict``
+is the JSON dump of the record's `perfproof.schema.Verdict`; ``gates``
+lists ``{"gate", "status"}`` in the record's order; ``warnings`` lists
+``{"code", "message"}``; ``not_verified`` lists what withholds a KEEP
+(`perfproof.commands._runs.not_verified`); ``measured_metric`` is the
+metric actually measured when it is not the spec's (a counter that fell
+back to wall time), else null; paths are absolute.
 
 Error codes
 -----------
@@ -65,8 +69,7 @@ it; a bad ``--timeout``), the codes of
 ``invalid_journal``, ``spawn_failed``), and the codes of
 `perfproof.bench.compare.CompareStoppedError`, whose
 ``details.run_dir`` keeps the logs: ``broken_baseline``,
-``harness_fault``, ``unsupported_spec``, ``undeclared_guardrails`` and
-``internal_fault``.
+``harness_fault``, ``unsupported_spec`` and ``internal_fault``.
 """
 
 import argparse
@@ -102,7 +105,12 @@ from perfproof.bench.spec import (
     spec_record_path,
 )
 from perfproof.commands import CommandError, JsonValue, Output
-from perfproof.commands._runs import as_command_error, run_directory
+from perfproof.commands._runs import (
+    as_command_error,
+    not_verified,
+    run_directory,
+    warnings_json,
+)
 from perfproof.schema import BenchmarkSpec, LockManifest, RunRecord
 
 __all__ = ["add_arguments", "run"]
@@ -251,6 +259,13 @@ def run(args: argparse.Namespace) -> Output:
         "report_path": str(result.report_path),
         "verdict": record.verdict.model_dump(mode="json"),
         "gates": gates,
+        "warnings": warnings_json(record),
+        "not_verified": not_verified(record),
+        "measured_metric": (
+            None
+            if record.measured_metric is None
+            else record.measured_metric.model_dump(mode="json")
+        ),
     }
     return Output(result=payload, text=_text(record, result.report_path))
 

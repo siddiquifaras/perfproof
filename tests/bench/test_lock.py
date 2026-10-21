@@ -22,6 +22,7 @@ from perfproof.bench.lock import (
     procedure_gate,
     resolve_executable,
     runtime_gate,
+    unwrap_launch,
 )
 from perfproof.bench.snapshot import add_baseline_worktree, resolve_commit
 from perfproof.bench.spec import (
@@ -731,7 +732,7 @@ def test_unknown_runtime_fails_the_runtime_gate(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "unknown" in result.detail
 
 
@@ -740,7 +741,7 @@ def test_unknown_runtime_in_both_trees_fails_the_runtime_gate(
 ) -> None:
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert result.differences == ()
     assert "unknown" in result.detail
 
@@ -912,7 +913,7 @@ def test_uv_run_that_cannot_find_its_interpreter_fails_closed(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert result.differences == ()
     assert "the baseline runtime is unknown: uv run exited" in result.detail
 
@@ -937,12 +938,15 @@ def test_launcher_without_a_known_version_fails_closed(
         repo,
     )
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert result.differences == ()
     assert "run.sh -> /bin/sh is a shell" in result.detail
     assert "not the one launched" in result.detail
     assert waived.status == "waived"
-    assert waived.detail == "allow_runtime_change: " + result.detail
+    assert waived.detail.startswith("allow_runtime_change: ")
+    assert (
+        waived.detail.removeprefix("allow_runtime_change: ") in result.detail
+    )
 
 
 def test_native_executable_outside_the_tree_fails_closed(
@@ -950,7 +954,7 @@ def test_native_executable_outside_the_tree_fails_closed(
 ) -> None:
     result = check_runtime(make_spec(command=("true",)), baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "outside the tree" in result.detail
 
 
@@ -1094,7 +1098,7 @@ def test_native_library_that_cannot_be_found_fails_closed(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "libraries the baseline build/bench links cannot be listed" in (
         result.detail
     )
@@ -1175,7 +1179,7 @@ def test_uv_run_follows_a_command_that_is_not_python(
         f"uv run -> {(repo / '.venv' / 'bin' / 'tool').absolute()} -> "
         "/bin/sh is a shell"
     )
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "the candidate runtime is unknown: uv run ->" in result.detail
 
 
@@ -1253,8 +1257,11 @@ def test_in_tree_uv_that_is_not_followed_fails_closed(
 
     result = check_runtime(make_spec(command=command), baseline, repo)
 
-    assert result.status == "failed"
-    assert "only 'uv run' as uv's first argument" in result.detail
+    assert result.status == "not_available"
+    assert (
+        "only 'uv run' as uv's first argument" in result.detail
+        or "may download code at run time" in result.detail
+    )
 
 
 def test_in_tree_launcher_fails_closed(baseline: Path, repo: Path) -> None:
@@ -1264,8 +1271,11 @@ def test_in_tree_launcher_fails_closed(baseline: Path, repo: Path) -> None:
     spec = make_spec(command=("tools/uvx", "ruff"))
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
-    assert "is a launcher that picks its own runtime" in result.detail
+    assert result.status == "not_available"
+    assert (
+        "is a launcher that picks its own runtime" in result.detail
+        or "may download code at run time" in result.detail
+    )
 
 
 def test_native_tool_installed_in_a_tree_virtualenv_fails_closed(
@@ -1278,7 +1288,7 @@ def test_native_tool_installed_in_a_tree_virtualenv_fails_closed(
     spec = make_spec(command=(".venv/bin/tool",))
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "installed into the tree (virtualenv .venv)" in result.detail
 
 
@@ -1351,7 +1361,7 @@ def test_loader_variables_fail_native_builds_closed(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert f"loader variables are set ({name})" in result.detail
 
 
@@ -1379,7 +1389,7 @@ def test_unrecorded_environment_fails_native_builds_closed(
         candidate_root=repo,
     )
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "variable names were not recorded" in result.detail
 
 
@@ -1415,7 +1425,7 @@ def test_native_build_is_read_from_the_runtime_kind(
     )
 
     assert recorded.runtime_kind == "native_build"
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert marker in result.detail
 
 
@@ -1440,7 +1450,7 @@ def test_native_build_kind_outside_the_tree_fails_closed(
         candidate_root=repo,
     )
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "recorded as a native build, but" in result.detail
 
 
@@ -1569,7 +1579,7 @@ def test_slashless_shebang_missing_from_the_cwd_fails_closed(
 
     result = check_runtime(make_spec(command=("./bench-run",)), baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "'./python3' is not an executable file" in result.detail
 
 
@@ -1595,7 +1605,7 @@ def test_python_launchers_fail_closed(
 
     result = check_runtime(make_spec(command=command), baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "launcher that picks its own runtime" in result.detail
 
 
@@ -1642,7 +1652,7 @@ def test_every_python_form_refuses_a_launcher_module(
 
     result = check_runtime(make_spec(command=command), baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "launcher that picks its own runtime" in result.detail
 
 
@@ -1658,7 +1668,7 @@ def test_uv_run_python_module_launcher_fails_closed(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "uv run -m tox runs a launcher" in result.detail
 
 
@@ -1672,7 +1682,7 @@ def test_uv_run_module_launcher_fails_closed(
 
     result = check_runtime(spec, baseline, repo)
 
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "uv run -m tox runs a launcher" in result.detail
 
 
@@ -1814,3 +1824,125 @@ def test_unrecorded_names_are_warned_as_unknown() -> None:
 
     assert [w.code for w in warnings] == ["environment_unknown"]
     assert "env not readable" in warnings[0].message
+
+
+def test_one_identified_arm_and_one_unknown_is_not_available_not_failed(
+    baseline: Path, repo: Path
+) -> None:
+    spec = make_spec(command=(".venv/bin/bench-run",))
+    link_python(baseline)
+    link_python(repo)
+    console_script(baseline, str(baseline / VENV_PYTHON))
+    console_script(repo, "/bin/sh")
+
+    result = check_runtime(spec, baseline, repo)
+
+    assert result.status == "not_available"
+    assert result.differences == ()
+    assert "the candidate runtime is unknown" in result.detail
+    assert "the baseline runtime is unknown" not in result.detail
+    assert "a KEEP is withheld" in result.detail
+
+
+def local_wrapper(tree: Path, rel: str = "tools/nice") -> None:
+    """A tree-local script named like a system wrapper."""
+    script = tree / rel
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text('#!/bin/sh\nshift 2\nexec "$@"\n')
+    script.chmod(0o755)
+
+
+def test_a_tree_local_wrapper_is_not_peeled_unchecked(
+    baseline: Path, repo: Path
+) -> None:
+    spec = make_spec(command=("./tools/nice", "-n", "5", VENV_PYTHON, "x.py"))
+    for tree in (baseline, repo):
+        link_python(tree)
+        local_wrapper(tree)
+
+    result = check_runtime(spec, baseline, repo)
+
+    assert result.status == "not_available"
+    assert "is a shell" in result.detail
+
+
+def test_a_tree_local_wrapper_cannot_hide_a_different_interpreter(
+    baseline: Path, repo: Path, other_python: tuple[str, str]
+) -> None:
+    spec = make_spec(command=("./tools/nice", "-n", "5", VENV_PYTHON, "x.py"))
+    link_python(baseline)
+    link_python(repo, other_python[0])
+    for tree in (baseline, repo):
+        local_wrapper(tree)
+
+    result = check_runtime(spec, baseline, repo)
+
+    # Each arm's wrapper is code under test: neither is identified, so
+    # the gate does not pass on the interpreters behind them.
+    assert result.status == "not_available"
+
+
+def test_a_system_wrapper_is_peeled_and_the_program_identified(
+    baseline: Path, repo: Path, other_python: tuple[str, str]
+) -> None:
+    if shutil.which("nice") is None:
+        pytest.skip("no nice")
+    spec = make_spec(command=("nice", "-n", "5", VENV_PYTHON, "x.py"))
+    link_python(baseline)
+    link_python(repo)
+    assert check_runtime(spec, baseline, repo).status == "passed"
+    link_python(baseline.parent / "elsewhere", other_python[0])
+    differing = baseline.parent / "elsewhere"
+    (differing / "x.py").write_text("")
+    result = check_runtime(spec, baseline, differing)
+    assert result.status == "failed"
+    assert {d.item for d in result.differences} >= {"runtime_version"}
+
+
+def test_a_tree_relative_path_entry_cannot_shadow_a_system_wrapper(
+    baseline: Path, repo: Path
+) -> None:
+    spec = make_spec(command=("nice", "-n", "5", VENV_PYTHON, "x.py"))
+    for tree in (baseline, repo):
+        link_python(tree)
+        local_wrapper(tree, "tools/nice")
+    path = f"tools{os.pathsep}{os.environ['PATH']}"
+
+    result = check_runtime(spec, baseline, repo, PATH=path)
+
+    assert result.status == "not_available"
+    assert "is a shell" in result.detail
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["command", "-v", "python"],
+        ["command", "-p", "python"],
+        ["command", "-V", "python"],
+    ],
+)
+def test_command_lookups_are_not_peeled(argv: list[str]) -> None:
+    assert unwrap_launch(argv) == argv
+
+
+def test_exec_dash_a_takes_a_name() -> None:
+    assert unwrap_launch(["exec", "-a", "label", "node", "x.js"]) == [
+        "node",
+        "x.js",
+    ]
+    assert unwrap_launch(["exec", "-c", "node", "x.js"]) == ["node", "x.js"]
+
+
+def test_a_wrapper_in_the_tree_is_not_peeled_by_name(tmp_path: Path) -> None:
+    tree = tmp_path / "tree"
+    tools = tree / "tools"
+    tools.mkdir(parents=True)
+    exe = tools / "nice"
+    exe.write_text("#!/bin/sh\nexit 0\n")
+    exe.chmod(0o755)
+    argv = ["nice", "-n", "5", "node", "x.js"]
+    env = {"PATH": str(tools)}
+    assert unwrap_launch(argv, env, tree, tree) == argv
+    assert unwrap_launch(argv, env, tree, None) == ["node", "x.js"]
+    assert unwrap_launch(argv, {"PATH": ""}, tree, tree) == argv

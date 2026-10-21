@@ -6,10 +6,11 @@ import sys
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -30,6 +31,7 @@ from perfproof.machine import fingerprint
 from perfproof.report import read_record
 from perfproof.schema import (
     BenchmarkSpec,
+    GateResult,
     Interval,
     MachineFingerprint,
     RunRecord,
@@ -761,21 +763,8 @@ def test_baseline_whose_interpreter_is_missing_stops_with_no_verdict(
     with pytest.raises(CompareStoppedError) as stopped:
         project.run(candidate, spec)
     assert stopped.value.code == "broken_baseline"
-    assert "the baseline runtime is unknown" in stopped.value.message
+    assert "the baseline failed" in stopped.value.message
     assert not (project.run_dir() / "record.json").exists()
-
-
-def test_candidate_that_cannot_start_is_rejected(tmp_path: Path) -> None:
-    project = make_project(tmp_path, executables={"run.py": RUN_PY})
-    candidate = project.candidate("no-run", {})
-    (candidate / "run.py").unlink()
-    spec = BenchmarkSpec.model_validate(spec_fields(command=["./run.py"]))
-    result = project.run(candidate, spec)
-    v = result.record.verdict
-    assert (v.outcome, v.reason, v.gate) == ("REJECT", "integrity", "runtime")
-    runtime = {g.gate: g for g in result.record.gates}["runtime"]
-    assert "candidate runtime is unknown" in runtime.detail
-    nothing_ran(project, project.root, candidate)
 
 
 # No verdict, from a failure
@@ -813,23 +802,6 @@ def test_harness_fault_stops_with_no_verdict(
     assert stopped.value.code == "harness_fault"
     assert "out of file descriptors" in stopped.value.message
     assert not (project.run_dir() / "record.json").exists()
-
-
-@pytest.mark.parametrize(
-    ("changes", "code"),
-    [({"objective": None, "guardrails": []}, "undeclared_guardrails")],
-    ids=["no-guardrails"],
-)
-def test_specs_the_thin_path_cannot_run_are_refused_first(
-    project: Project, changes: dict[str, Any], code: str
-) -> None:
-    budget = {"max_rounds": 12, "max_seconds": 300.0}
-    spec = BenchmarkSpec.model_validate(spec_fields(budget=budget, **changes))
-    candidate = project.candidate("same", {})
-    with pytest.raises(CompareStoppedError) as stopped:
-        project.run(candidate, spec)
-    assert stopped.value.code == code
-    nothing_ran(project, project.root, candidate)
 
 
 def test_an_odd_one_host_schedule_never_reaches_compare() -> None:
@@ -975,6 +947,16 @@ def test_cli_rolling_fix_is_inconclusive_before_calibration(
     assert {g["gate"]: g["status"] for g in result["gates"]}["coverage"] == (
         "not_available"
     )
+    # The skill reads only this JSON: what was not verified is in it.
+    unverified_json = {
+        (item["kind"], item["name"]): item for item in result["not_verified"]
+    }
+    assert ("gate", "coverage") in unverified_json
+    assert unverified_json[("gate", "coverage")]["reason"]
+    assert result["measured_metric"] is None
+    assert result["warnings"] == [
+        {"code": w.code, "message": w.message} for w in record.warnings
+    ]
     assert git(root, "status", "--porcelain") == ""
 
 
@@ -1498,3 +1480,1141 @@ def test_identical_ratios_record_no_lag1_warning(tmp_path: Path) -> None:
     codes = {w.code for w in result.record.warnings}
     assert "lag1_autocorrelation_high" not in codes
     assert result.record.verdict.diagnostics.lag1_autocorrelation is None
+
+
+# Unknown is not wrong: measured, recorded, only a KEEP withheld
+
+
+def unverified(result: CompareResult) -> dict[str, str]:
+    """Return the gates that are not_available, with their detail."""
+    return {
+        g.gate: g.detail
+        for g in result.record.gates
+        if g.status == "not_available"
+    }
+
+
+def assert_measured_but_not_kept(result: CompareResult) -> None:
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+    )
+    assert verdict.rounds >= 2
+    assert result.record.samples_path is not None
+    assert "coverage" in unverified(result)
+
+
+def wall_spec(**changes: Any) -> BenchmarkSpec:
+    """A wall-time spec checking one declared output."""
+    fields = spec_fields(
+        metric={"kind": "wall", "direction": "lower_is_better", "unit": "s"},
+        correctness={"outputs": [{"path": "out.txt", "compare": "text"}]},
+        budget={"max_rounds": 12, "max_seconds": 300.0},
+        looks={"n0": 12, "k": 2, "max_looks": 1},
+        oracle=[],
+        config=[],
+        **changes,
+    )
+    return BenchmarkSpec.model_validate(fields)
+
+
+def test_an_unidentified_runtime_is_measured_not_rejected(
+    tmp_path: Path,
+) -> None:
+    run_sh = "#!/bin/sh\nexec python bench.py\n"
+    project = make_project(tmp_path, executables={"run.sh": run_sh})
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(command=["./run.sh"], harness=["bench.py", "run.sh"])
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    states = gates(result.record)
+    assert states["runtime"] == "not_available"
+    assert "is a shell" in unverified(result)["runtime"]
+    assert states["correctness"] == "passed"
+    assert_measured_but_not_kept(result)
+
+
+def test_a_missing_correctness_check_is_not_available_not_passed(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={},
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["correctness"] == "not_available"
+    assert "no correctness check" in unverified(result)["correctness"]
+    assert_measured_but_not_kept(result)
+
+
+def test_a_crash_is_still_rejected_without_a_correctness_check(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={},
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    broken = project.candidate("broken", {"work.py": FAILS})
+    result = project.run(broken, spec)
+    assert result.record.verdict.gate == "correctness"
+    assert result.record.verdict.outcome == "REJECT"
+
+
+def test_undeclared_default_guardrails_are_recorded_not_a_stop(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            objective=None,
+            guardrails=[],
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    states = {g.metric: g.status for g in result.record.guardrails}
+    assert states == {
+        "peak_memory": "not_declared",
+        "peak_gpu_memory": "not_declared",
+        "p99_latency": "not_declared",
+    }
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert "not declared" in result.report_path.read_text()
+
+
+def test_an_unreadable_host_identity_is_not_available_not_failed(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = fingerprint()
+    blind = real.model_copy(
+        update={
+            "host_id": None,
+            "missing": {**real.missing, "host_id": "no machine id here"},
+        }
+    )
+    monkeypatch.setattr(compare_module, "fingerprint", lambda: blind)
+    result = project.run(project.candidate("same", {}), twelve_rounds())
+    assert gates(result.record)["same_host"] == "not_available"
+    assert "no machine id here" in unverified(result)["same_host"]
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+
+
+def test_a_different_host_identity_still_fails(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = fingerprint()
+    other = real.model_copy(update={"host_id": "somewhere-else"})
+    calls = iter([real])
+    monkeypatch.setattr(
+        compare_module, "fingerprint", lambda: next(calls, other)
+    )
+    result = project.run(project.candidate("same", {}), twelve_rounds())
+    assert result.record.verdict.gate == "same_host"
+    assert result.record.verdict.outcome == "REJECT"
+
+
+def other_interpreter() -> Path:
+    """Return a working Python other than the one running the tests."""
+    mine = Path(PY).resolve()
+    for name in ("python3", "python3.12", "python3.13", "python3.14"):
+        found = shutil.which(name)
+        if found is None or Path(found).resolve() == mine:
+            continue
+        done = subprocess.run(
+            [found, "-I", "-c", "pass"],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        if done.returncode == 0:
+            return Path(found).resolve()
+    pytest.skip("no second Python interpreter is installed")
+
+
+def test_different_identified_runtimes_are_still_rejected(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path)
+    venv = project.root / ".venv" / "bin"
+    venv.mkdir(parents=True)
+    (venv / "python").symlink_to(Path(PY).resolve())
+    candidate = project.candidate("other", {})
+    link = candidate / ".venv" / "bin" / "python"
+    link.unlink()
+    link.symlink_to(other_interpreter())
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(command=[".venv/bin/python", "bench.py"])
+    )
+    result = project.run(candidate, spec)
+    assert result.record.verdict.gate == "runtime"
+    assert result.record.verdict.outcome == "REJECT"
+    assert result.record.verdict.reason == "integrity"
+
+
+COMPILED_BENCH = """\
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    volatile long total = 0;
+    for (long i = 0; i < 3000000; i++) total += i % 7;
+    FILE *f = fopen("out.txt", "w");
+    if (!f) return 1;
+    fprintf(f, "%ld\\n", total);
+    fclose(f);
+    return 0;
+}
+"""
+GO_STUB = """\
+#include <unistd.h>
+
+int main(void) {
+    execl("./gobench", "gobench", (char *)0);
+    return 127;
+}
+"""
+MAKEFILE = "run: prog\n\t./prog\n\nprog: prog.c\n\tcc -O1 -o prog prog.c\n"
+CARGO_TOML = (
+    '[package]\nname = "rbench"\nversion = "0.1.0"\nedition = "2021"\n'
+)
+RUST_MAIN = """\
+fn main() {
+    let mut total: u64 = 0;
+    for i in 0..3_000_000u64 {
+        total = total.wrapping_add(std::hint::black_box(i % 7));
+    }
+    std::fs::write("out.txt", format!("{}\\n", total)).unwrap();
+}
+"""
+NODE_BENCH = """\
+let total = 0;
+for (let i = 0; i < 3000000; i++) total += i % 7;
+require("fs").writeFileSync("out.txt", total + "\\n");
+"""
+
+
+def compile_c(source: Path, out: Path) -> None:
+    cc = shutil.which("cc")
+    if cc is None:
+        pytest.skip("no C compiler")
+    subprocess.run(
+        [cc, "-O1", "-o", str(out), str(source)], check=True, timeout=120
+    )
+
+
+def bare_project(tmp_path: Path, files: Mapping[str, str]) -> Project:
+    root = tmp_path / "repo"
+    root.mkdir()
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    return Project(root=root, commit=commit_all(root), tmp=tmp_path)
+
+
+def test_a_c_program_built_by_make_runs_to_an_inconclusive_estimate(
+    tmp_path: Path,
+) -> None:
+    if shutil.which("make") is None:
+        pytest.skip("no make")
+    project = bare_project(
+        tmp_path, {"Makefile": MAKEFILE, "prog.c": COMPILED_BENCH}
+    )
+    spec = wall_spec(
+        command=["make", "-s", "run"], harness=["Makefile", "prog.c"]
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    states = gates(result.record)
+    assert states["runtime"] == "not_available"
+    assert states["correctness"] == "passed"
+    assert_measured_but_not_kept(result)
+    assert result.record.verdict.estimate is not None
+
+
+def test_go_run_runs_to_an_inconclusive_estimate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Go is not installed here: a compiled `go` stub execs a compiled
+    # program, which is what `go run` does for perfproof's purposes.
+    project = bare_project(
+        tmp_path,
+        {
+            "prog.c": COMPILED_BENCH,
+            "stub.c": GO_STUB,
+            "main.go": "package main\n",
+        },
+    )
+    compile_c(project.root / "prog.c", project.root / "gobench")
+    stubs = tmp_path / "stubs"
+    stubs.mkdir()
+    compile_c(project.root / "stub.c", stubs / "go")
+    monkeypatch.setenv(
+        "PATH", f"{stubs}{os.pathsep}{os.environ.get('PATH', os.defpath)}"
+    )
+    spec = wall_spec(command=["go", "run", "."], harness=["main.go"])
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["runtime"] == "not_available"
+    assert gates(result.record)["correctness"] == "passed"
+    assert_measured_but_not_kept(result)
+
+
+def test_cargo_run_runs_to_an_inconclusive_estimate(tmp_path: Path) -> None:
+    if shutil.which("cargo") is None:
+        pytest.skip("no cargo")
+    project = bare_project(
+        tmp_path, {"Cargo.toml": CARGO_TOML, "src/main.rs": RUST_MAIN}
+    )
+    spec = wall_spec(
+        command=["cargo", "run", "--offline", "--quiet"],
+        harness=["Cargo.toml", "src/main.rs"],
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["runtime"] == "not_available"
+    assert gates(result.record)["correctness"] == "passed"
+    assert_measured_but_not_kept(result)
+
+
+def test_a_node_script_runs_to_an_inconclusive_estimate(
+    tmp_path: Path,
+) -> None:
+    if shutil.which("node") is None:
+        pytest.skip("no node")
+    project = bare_project(tmp_path, {"bench.js": NODE_BENCH})
+    spec = wall_spec(command=["node", "bench.js"], harness=["bench.js"])
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["runtime"] == "passed"
+    assert gates(result.record)["correctness"] == "passed"
+    assert_measured_but_not_kept(result)
+
+
+def test_a_wrong_output_still_rejects_a_build_tool_benchmark(
+    tmp_path: Path,
+) -> None:
+    if shutil.which("make") is None:
+        pytest.skip("no make")
+    project = bare_project(
+        tmp_path, {"Makefile": MAKEFILE, "prog.c": COMPILED_BENCH}
+    )
+    spec = wall_spec(command=["make", "-s", "run"], harness=["Makefile"])
+    wrong = project.candidate(
+        "wrong", {"prog.c": COMPILED_BENCH.replace("i % 7", "i % 8")}
+    )
+    result = project.run(wrong, spec)
+    assert result.record.verdict.gate == "correctness"
+    assert result.record.verdict.outcome == "REJECT"
+
+
+def test_a_missing_perf_falls_back_to_wall_time_and_says_so(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def no_perf(event: str, *, env: Mapping[str, str] | None = None) -> str:
+        return "perf is not on PATH"
+
+    monkeypatch.setattr(compare_module, "counter_unavailable_reason", no_perf)
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            metric={
+                "kind": "counter",
+                "direction": "lower_is_better",
+                "unit": "instructions",
+                "event": "instructions",
+            },
+            objective="instructions",
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    codes = {w.code for w in result.record.warnings}
+    assert "counter_unavailable" in codes
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert result.record.verdict.rounds >= 2
+
+
+def test_a_reported_value_that_cannot_be_read_back_is_measured_anyway(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def unreadable(ex: object) -> None:
+        return None
+
+    monkeypatch.setattr(compare_module, "_printed_step", unreadable)
+    result = project.run(project.candidate("same", {}), twelve_rounds())
+    codes = {w.code for w in result.record.warnings}
+    assert "resolution_unknown" in codes
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert result.record.verdict.rounds >= 2
+
+
+def test_the_deadline_ends_the_rounds_inconclusive(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 200, "max_seconds": 3000.0},
+            looks={"n0": 200, "k": 2, "max_looks": 1},
+        )
+    )
+    candidate = project.candidate("same", {})
+    result = compare(
+        spec,
+        build_manifest(spec, project.root),
+        baseline_root=project.root,
+        baseline_commit=project.commit,
+        candidate_root=candidate,
+        run_dir=project.run_dir(),
+        process_env=os.environ,
+        order_seed=7,
+        deadline=time.time() + 16.0,
+    )
+    verdict = result.record.verdict
+    assert verdict.outcome == "INCONCLUSIVE"
+    assert 1 <= verdict.rounds < 200
+    assert "time_limit_reached" in {w.code for w in result.record.warnings}
+
+
+# Each condition that withholds a KEEP does so at every look, through
+# the real compare, with the procedure forced calibrated.
+
+NOT_APPLICABLE = [
+    {
+        "metric": m,
+        "direction": "lower_is_better",
+        "unit": u,
+        "applicable": False,
+        "reason": "not used by this workload",
+    }
+    for m, u in (
+        ("peak_memory", "bytes"),
+        ("peak_gpu_memory", "bytes"),
+        ("p99_latency", "s"),
+    )
+]
+
+
+DET_BENCH = """\
+import os
+
+from work import SCALE, run
+
+n = int(open("n.txt").read()) if os.path.exists("n.txt") else 0
+open("n.txt", "w").write(str(n + 1))
+value = SCALE * (1 + 0.004 * ((n * 37) % 11 - 5))
+with open("out.txt", "w") as f:
+    f.write(f"{run()}\\n")
+print("PERFPROOF {\\"value\\": %.6f}" % value)
+"""
+
+
+def det_work(scale: float) -> str:
+    """A work module whose benchmark value is exactly ``scale`` times a
+    fixed zigzag, so the ratio of two arms never varies."""
+    return f"SCALE = {scale}\n\n\ndef run():\n    return 42\n"
+
+
+def keepworthy_spec(**changes: Any) -> BenchmarkSpec:
+    """One look on 12 rounds; guardrails declared not applicable."""
+    fields = spec_fields(
+        budget={"max_rounds": 12, "max_seconds": 300.0},
+        looks={"n0": 12, "k": 2, "max_looks": 1},
+        guardrails=NOT_APPLICABLE,
+    )
+    fields.update(changes)
+    return BenchmarkSpec.model_validate(fields)
+
+
+class Seen:
+    """What `decide_look` was asked at each look of one run."""
+
+    def __init__(self) -> None:
+        self.blocked: list[bool] = []
+        self.rules: list[int] = []
+        self.held: list[bool] = []
+
+
+def calibrated(
+    monkeypatch: pytest.MonkeyPatch, *, coverage_passed: bool = True
+) -> Seen:
+    """Force CALIBRATED and coverage passed, and spy on looks."""
+    monkeypatch.setattr(compare_module, "CALIBRATED", True)
+    real_gate = compare_module.GateResult
+    if coverage_passed:
+
+        def gate(**fields: Any) -> GateResult:
+            if fields.get("gate") == "coverage":
+                fields = {**fields, "status": "passed", "detail": "forced"}
+            return real_gate(**fields)
+
+        monkeypatch.setattr(compare_module, "GateResult", gate)
+    seen = Seen()
+    real_look = compare_module.decide_look
+
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        look = real_look(*args, **kwargs)
+        if "keep_blocked" not in kwargs:
+            return look
+        seen.blocked.append(bool(kwargs["keep_blocked"][0]))
+        seen.rules.append(int(look.rule[0]))
+        seen.held.append(bool(look.held[0]))
+        return look
+
+    monkeypatch.setattr(compare_module, "decide_look", spy)
+    return seen
+
+
+def faster_candidate(project: Project) -> Path:
+    return project.candidate("fast", {"work.py": det_work(0.5)})
+
+
+def slow_baseline(tmp_path: Path, **kwargs: Any) -> Project:
+    return make_project(
+        tmp_path, bench=DET_BENCH, baseline=det_work(1.0), **kwargs
+    )
+
+
+def blocked_everywhere(seen: Seen) -> None:
+    assert seen.blocked, "no look was taken"
+    assert all(seen.blocked), seen.blocked
+    assert all(seen.held), (seen.rules, seen.held)
+
+
+def assert_withheld(result: CompareResult, *, blocker: str) -> None:
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.rule) == ("INCONCLUSIVE", 2)
+    assert verdict.estimate is not None
+    assert verdict.estimate > 1.03
+    assert verdict.interval is not None
+    assert verdict.interval.lower > 1.03
+    codes = {w.code for w in result.record.warnings}
+    states = {g.gate: g.status for g in result.record.gates}
+    shown = {g.metric: g.status for g in result.record.guardrails}
+    assert (
+        blocker in codes
+        or states.get(blocker) == "not_available"
+        or shown.get(blocker) == "not_declared"
+    ), (blocker, codes, states, shown)
+
+
+def test_control_nothing_unverified_is_not_blocked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(tmp_path)
+    spec = keepworthy_spec()
+    with pytest.raises(CompareStoppedError) as stopped:
+        project.run(faster_candidate(project), spec)
+    # A KEEP is not built in the thin path: the look would have kept.
+    assert stopped.value.code == "internal_fault"
+    assert seen.blocked == [False]
+    assert seen.rules == [2]
+    assert seen.held == [False]
+
+
+def test_an_unidentified_runtime_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(
+        tmp_path, executables={"run.sh": "#!/bin/sh\nexec python bench.py\n"}
+    )
+    spec = keepworthy_spec(
+        command=["./run.sh"], harness=["bench.py", "run.sh"]
+    )
+    result = project.run(faster_candidate(project), spec)
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="runtime")
+
+
+def test_an_unreadable_host_identity_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    real = fingerprint()
+    blind = real.model_copy(
+        update={"host_id": None, "missing": {**real.missing, "host_id": "x"}}
+    )
+    monkeypatch.setattr(compare_module, "fingerprint", lambda: blind)
+    project = slow_baseline(tmp_path)
+    result = project.run(faster_candidate(project), keepworthy_spec())
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="same_host")
+
+
+def test_a_host_identity_lost_after_the_last_look_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    real = fingerprint()
+    blind = real.model_copy(
+        update={"host_id": None, "missing": {**real.missing, "host_id": "x"}}
+    )
+    calls = iter([real])
+    monkeypatch.setattr(
+        compare_module, "fingerprint", lambda: next(calls, blind)
+    )
+    project = slow_baseline(tmp_path)
+    result = project.run(faster_candidate(project), keepworthy_spec())
+    # Nothing blocked at the look: the host was readable then.
+    assert seen.blocked == [False]
+    assert_withheld(result, blocker="same_host")
+    assert gates(result.record)["same_host"] == "not_available"
+
+
+def test_no_correctness_check_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(tmp_path)
+    result = project.run(
+        faster_candidate(project), keepworthy_spec(correctness={})
+    )
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="correctness")
+
+
+def test_coverage_not_available_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch, coverage_passed=False)
+    project = slow_baseline(tmp_path)
+    result = project.run(faster_candidate(project), keepworthy_spec())
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="coverage")
+
+
+def test_an_undeclared_guardrail_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(tmp_path)
+    spec = keepworthy_spec(objective=None, guardrails=[])
+    result = project.run(faster_candidate(project), spec)
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="peak_memory")
+
+
+def test_a_counter_fallback_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+
+    def no_perf(event: str, *, env: Mapping[str, str] | None = None) -> str:
+        return "perf is not on PATH"
+
+    monkeypatch.setattr(compare_module, "counter_unavailable_reason", no_perf)
+    # Wall time of the whole command: the work itself must dominate it.
+    project = make_project(tmp_path, baseline=work(0.4))
+    spec = keepworthy_spec(
+        metric={
+            "kind": "counter",
+            "direction": "lower_is_better",
+            "unit": "instructions",
+            "event": "instructions",
+        },
+        objective="instructions",
+    )
+    result = project.run(
+        project.candidate("fast", {"work.py": work(0.02)}), spec
+    )
+    # Real wall times: whether the look held a rule 2 depends on the
+    # noise, but that the block was on at every look does not.
+    assert seen.blocked
+    assert all(seen.blocked)
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert "counter_unavailable" in {w.code for w in result.record.warnings}
+    record = result.record
+    assert record.spec.metric.kind == "counter"
+    assert record.measured_metric is not None
+    assert (record.measured_metric.kind, record.measured_metric.unit) == (
+        "wall",
+        "s",
+    )
+    assert "`wall` in `s`" in result.report_path.read_text()
+
+
+def test_an_unknown_resolution_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+
+    def unreadable(ex: object) -> None:
+        return None
+
+    monkeypatch.setattr(compare_module, "_printed_step", unreadable)
+    project = slow_baseline(tmp_path)
+    result = project.run(faster_candidate(project), keepworthy_spec())
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="resolution_unknown")
+
+
+def test_a_held_look_ends_the_run_at_that_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # More budget remains, and nothing in the run can lift the block.
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(tmp_path)
+    spec = keepworthy_spec(
+        correctness={},
+        budget={"max_rounds": 40, "max_seconds": 300.0},
+        looks={"n0": 12, "k": 12, "max_looks": 3},
+    )
+    result = project.run(faster_candidate(project), spec)
+    assert seen.blocked == [True]
+    assert seen.held == [True]
+    assert result.record.verdict.rounds == 12
+    assert result.record.verdict.looks == 1
+    assert result.record.verdict.rule == 2
+
+
+# A launch failure of only one arm means the arms do not run the same
+# program: the runtime gate, not the correctness gate.
+
+
+def test_a_candidate_that_cannot_start_fails_the_runtime_gate(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path, executables={"run.py": RUN_PY})
+    candidate = project.candidate("no-run", {})
+    (candidate / "run.py").unlink()
+    spec = BenchmarkSpec.model_validate(spec_fields(command=["./run.py"]))
+    result = project.run(candidate, spec)
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.gate) == (
+        "REJECT",
+        "integrity",
+        "runtime",
+    )
+    gate = {g.gate: g for g in result.record.gates}["runtime"]
+    assert "do not run the same program" in gate.detail
+
+
+def test_a_program_only_the_baseline_has_fails_the_runtime_gate(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path)
+    venv = project.root / ".venv" / "bin"
+    venv.mkdir(parents=True)
+    (venv / "python").symlink_to(Path(PY).resolve())
+    candidate = project.candidate("novenv", {})
+    shutil.rmtree(candidate / ".venv")
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(command=[".venv/bin/python", "bench.py"])
+    )
+    result = project.run(candidate, spec)
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.gate) == (
+        "REJECT",
+        "integrity",
+        "runtime",
+    )
+
+
+def test_a_candidate_that_starts_and_exits_non_zero_is_correctness(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path)
+    broken = project.candidate("broken", {"work.py": FAILS})
+    result = project.run(broken, twelve_rounds())
+    verdict = result.record.verdict
+    assert (verdict.reason, verdict.gate) == ("correctness", "correctness")
+
+
+def test_the_launch_rule_is_waived_with_the_runtime_opt_in(
+    tmp_path: Path,
+) -> None:
+    project = make_project(tmp_path, executables={"run.py": RUN_PY})
+    candidate = project.candidate("no-run", {})
+    (candidate / "run.py").unlink()
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(command=["./run.py"], allow_runtime_change=True)
+    )
+    result = project.run(candidate, spec)
+    assert result.record.verdict.gate == "correctness"
+
+
+# A launcher that may download code is measured and not kept; the
+# stubs here are inert scripts, so nothing touches the network.
+
+
+def stub_launcher(tmp_path: Path, name: str, body: str) -> Path:
+    stubs = tmp_path / "stubs"
+    stubs.mkdir(exist_ok=True)
+    exe = stubs / name
+    exe.write_text(f"#!/bin/sh\n{body}\n")
+    exe.chmod(0o755)
+    return stubs
+
+
+def test_a_benchmark_launcher_that_may_download_is_measured_not_stopped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stubs = stub_launcher(tmp_path, "npx", "exec python bench.py")
+    monkeypatch.setenv(
+        "PATH", f"{stubs}{os.pathsep}{os.environ.get('PATH', os.defpath)}"
+    )
+    project = make_project(tmp_path)
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            command=["npx", "some-benchmark-tool"],
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["runtime"] == "not_available"
+    assert "may download code at run time" in unverified(result)["runtime"]
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert result.record.verdict.rounds >= 2
+
+
+def test_a_test_launcher_that_may_download_is_recorded_not_stopped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stubs = stub_launcher(tmp_path, "pnpx", 'exec python -m pytest -q "$@"')
+    monkeypatch.setenv(
+        "PATH", f"{stubs}{os.pathsep}{os.environ.get('PATH', os.defpath)}"
+    )
+    project = make_project(tmp_path)
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={
+                "command": ["pnpx", "pytest"],
+                "timeout_seconds": 60.0,
+                "outputs": [{"path": "out.txt", "compare": "text"}],
+            },
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert "test command's launcher" in unverified(result)["runtime"]
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+
+
+# The metric kind is journaled, so a resume never mixes units
+
+
+def test_a_resume_under_another_metric_kind_is_not_resumable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench import runner as runner_module
+    from perfproof.bench.journal import (
+        MACHINE_NAME,
+        METRIC_NAME,
+        Journal,
+        Resumed,
+        load_journal,
+        read_json,
+    )
+
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            metric={
+                "kind": "counter",
+                "direction": "lower_is_better",
+                "unit": "instructions",
+                "event": "instructions",
+            },
+            objective="instructions",
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    project = make_project(tmp_path)
+    candidate = project.candidate("same", {})
+    run_dir = project.run_dir()
+    run_dir.mkdir(parents=True)
+    lock = build_manifest(spec, project.root)
+
+    def no_perf(event: str, *, env: Mapping[str, str] | None = None) -> str:
+        return "perf unavailable in attempt 1"
+
+    monkeypatch.setattr(compare_module, "counter_unavailable_reason", no_perf)
+    real_round = runner_module.Runner.run_round
+
+    def dying(self: Runner, index: int) -> Round:
+        if index == 4:
+            raise KeyboardInterrupt
+        return real_round(self, index)
+
+    monkeypatch.setattr(runner_module.Runner, "run_round", dying)
+    journal = Journal(run_dir, spec.budget.max_rounds)
+    with pytest.raises(KeyboardInterrupt):
+        compare(
+            spec,
+            lock,
+            baseline_root=project.root,
+            baseline_commit=project.commit,
+            candidate_root=candidate,
+            run_dir=run_dir,
+            process_env=os.environ,
+            order_seed=7,
+            journal=journal,
+        )
+    journal.close()
+    monkeypatch.setattr(runner_module.Runner, "run_round", real_round)
+    assert read_json(run_dir / METRIC_NAME) == {"kind": "wall"}
+    rounds = load_journal(run_dir, repair=True)
+    assert len(rounds) == 4
+
+    def perf_ok(event: str, *, env: Mapping[str, str] | None = None) -> None:
+        return None
+
+    monkeypatch.setattr(compare_module, "counter_unavailable_reason", perf_ok)
+    doc = read_json(run_dir / MACHINE_NAME)
+    assert doc is not None
+    saved = MachineFingerprint.model_validate(doc["machine"])
+    started = datetime.fromisoformat(str(doc["started_at"]))
+    resumed = Resumed(
+        rounds=tuple(rounds),
+        machine=saved,
+        started=started,
+        attempt=1,
+        metric_kind="wall",
+    )
+    journal = Journal(run_dir, 12, resume_after=len(rounds))
+    try:
+        with pytest.raises(CompareStoppedError) as stopped:
+            compare(
+                spec,
+                lock,
+                baseline_root=project.root,
+                baseline_commit=project.commit,
+                candidate_root=candidate,
+                run_dir=run_dir,
+                process_env=os.environ,
+                order_seed=7,
+                journal=journal,
+                resume=resumed,
+            )
+    finally:
+        journal.close()
+    assert stopped.value.code == "not_resumable"
+    assert "wall" in stopped.value.message
+    assert "counter" in stopped.value.message
+
+
+# The deadline
+
+
+@pytest.mark.parametrize("deadline", [0.0, -1.0, float("inf"), float("nan")])
+def test_a_deadline_must_be_positive_and_finite(
+    project: Project, deadline: float
+) -> None:
+    spec = twelve_rounds()
+    with pytest.raises(ValueError, match="deadline"):
+        compare(
+            spec,
+            build_manifest(spec, project.root),
+            baseline_root=project.root,
+            baseline_commit=project.commit,
+            candidate_root=project.candidate("same", {}),
+            run_dir=project.run_dir(),
+            process_env=os.environ,
+            order_seed=7,
+            deadline=deadline,
+        )
+    assert not project.run_dir().exists()
+
+
+def test_the_deadline_warning_says_how_many_rounds_the_look_used(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 200, "max_seconds": 3000.0},
+            looks={"n0": 200, "k": 2, "max_looks": 1},
+        )
+    )
+    result = compare(
+        spec,
+        build_manifest(spec, project.root),
+        baseline_root=project.root,
+        baseline_commit=project.commit,
+        candidate_root=project.candidate("same", {}),
+        run_dir=project.run_dir(),
+        process_env=os.environ,
+        order_seed=7,
+        deadline=time.time() + 16.0,
+    )
+    warning = next(
+        w for w in result.record.warnings if w.code == "time_limit_reached"
+    )
+    rounds = result.record.verdict.rounds
+    assert f"after {rounds} rounds" in warning.message
+    assert "final look used" in warning.message or "too few" in warning.message
+
+
+PERF_STUB = """#!/bin/sh
+# inert stand-in for: perf stat -x, -e EVENT -o FILE -- CMD ARGS...
+event="$4"; out="$6"
+shift 7
+"$@"; rc=$?
+echo "1000000,,$event,1000,100.00,," > "$out"
+exit $rc
+"""
+
+
+def test_three_attempts_with_perf_flipping_never_mix_units(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench import runner as runner_module
+    from perfproof.bench.journal import (
+        MACHINE_NAME,
+        METRIC_NAME,
+        Journal,
+        Resumed,
+        load_journal,
+        read_json,
+    )
+
+    stubs = tmp_path / "stubs"
+    stubs.mkdir()
+    perf = stubs / "perf"
+    perf.write_text(PERF_STUB)
+    perf.chmod(0o755)
+    monkeypatch.setenv(
+        "PATH", f"{stubs}{os.pathsep}{os.environ.get('PATH', os.defpath)}"
+    )
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            metric={
+                "kind": "counter",
+                "direction": "lower_is_better",
+                "unit": "instructions",
+                "event": "instructions",
+            },
+            objective="instructions",
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    project = make_project(tmp_path)
+    candidate = project.candidate("same", {})
+    run_dir = project.run_dir()
+    run_dir.mkdir(parents=True)
+    lock = build_manifest(spec, project.root)
+    real_round = runner_module.Runner.run_round
+
+    def perf_is(usable: bool) -> None:
+        def reason(
+            event: str, *, env: Mapping[str, str] | None = None
+        ) -> str | None:
+            return None if usable else "perf is not usable in this attempt"
+
+        monkeypatch.setattr(
+            compare_module, "counter_unavailable_reason", reason
+        )
+        monkeypatch.setattr(
+            runner_module, "counter_unavailable_reason", reason
+        )
+
+    def die_at(index: int) -> None:
+        def dying(self: Runner, i: int) -> Round:
+            if i == index:
+                raise KeyboardInterrupt
+            return real_round(self, i)
+
+        monkeypatch.setattr(runner_module.Runner, "run_round", dying)
+
+    def attempt(number: int) -> None:
+        resume = None
+        rounds = load_journal(run_dir, repair=True) if number else []
+        if number:
+            doc = read_json(run_dir / MACHINE_NAME)
+            assert doc is not None
+            recorded = read_json(run_dir / METRIC_NAME)
+            kind = None if recorded is None else recorded.get("kind")
+            resume = Resumed(
+                rounds=tuple(rounds),
+                machine=MachineFingerprint.model_validate(doc["machine"]),
+                started=datetime.fromisoformat(str(doc["started_at"])),
+                attempt=number,
+                metric_kind=kind if isinstance(kind, str) else None,
+            )
+        journal = Journal(run_dir, 12, resume_after=len(rounds))
+        try:
+            compare(
+                spec,
+                lock,
+                baseline_root=project.root,
+                baseline_commit=project.commit,
+                candidate_root=candidate,
+                run_dir=run_dir,
+                process_env=os.environ,
+                order_seed=7,
+                journal=journal,
+                resume=resume,
+            )
+        finally:
+            journal.close()
+
+    perf_is(False)
+    die_at(0)
+    with pytest.raises(KeyboardInterrupt):
+        attempt(0)
+    assert read_json(run_dir / METRIC_NAME) == {"kind": "wall"}
+    assert load_journal(run_dir, repair=True) == []
+
+    perf_is(True)
+    die_at(3)
+    with pytest.raises(KeyboardInterrupt):
+        attempt(1)
+    # The first attempt kept no round, so this one decides the kind.
+    assert read_json(run_dir / METRIC_NAME) == {"kind": "counter"}
+    assert len(load_journal(run_dir, repair=True)) == 3
+
+    perf_is(False)
+    monkeypatch.setattr(runner_module.Runner, "run_round", real_round)
+    with pytest.raises(CompareStoppedError) as stopped:
+        attempt(2)
+    assert stopped.value.code == "not_resumable"
+    assert "counter" in stopped.value.message
+    assert "wall" in stopped.value.message
+
+
+def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
+    project: Project,
+) -> None:
+    from perfproof.commands._runs import not_verified, warnings_json
+    from perfproof.schema import RunWarning
+
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={},
+            guardrails=[GUARDRAILS[0]],
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    record = project.run(project.candidate("same", {}), spec).record
+    withholding = ("counter_unavailable", "resolution_unknown")
+    extra = (
+        *(RunWarning(code=c, message=f"{c} text") for c in withholding),
+        RunWarning(code="schedule_uncalibrated", message="late looks"),
+        RunWarning(code="high_load", message="not a blocker"),
+    )
+    shown = record.model_copy(update={"warnings": (*record.warnings, *extra)})
+
+    entries = cast("list[dict[str, Any]]", not_verified(shown))
+    items = {(e["kind"], e["name"]): e for e in entries}
+
+    assert items[("gate", "correctness")]["status"] == "not_available"
+    assert items[("gate", "coverage")]["reason"]
+    assert items[("guardrail", "peak_memory")]["status"] == "unmeasurable"
+    assert items[("guardrail", "peak_gpu_memory")]["status"] == "not_declared"
+    assert items[("guardrail", "p99_latency")]["status"] == "not_declared"
+    for code in (*withholding, "schedule_uncalibrated"):
+        entry = items[("warning", code)]
+        assert entry["status"] == "withholds_keep"
+        assert entry["reason"]
+    assert ("warning", "high_load") not in items
+    codes = {
+        w["code"] for w in cast("list[dict[str, Any]]", warnings_json(shown))
+    }
+    assert codes >= {"high_load", "schedule_uncalibrated"}

@@ -42,7 +42,11 @@ from pydantic import ValidationError
 
 from perfproof.bench.detach import RunStatus, run_status
 from perfproof.commands import CommandError, JsonValue, Output
-from perfproof.commands._runs import run_directory
+from perfproof.commands._runs import (
+    not_verified,
+    run_directory,
+    warnings_json,
+)
 from perfproof.report import RECORD_NAME, read_record
 from perfproof.schema import RunRecord
 
@@ -98,7 +102,8 @@ def run(args: argparse.Namespace) -> Output:
     text = _line(directory.name, status)
     if status.state == "finished":
         path = directory / RECORD_NAME
-        v = _record(path).verdict
+        loaded = _record(path)
+        v = loaded.verdict
         interval: JsonValue = (
             None
             if v.interval is None
@@ -114,6 +119,8 @@ def run(args: argparse.Namespace) -> Output:
             "estimate": v.estimate,
             "interval": interval,
             "record_path": str(path),
+            "not_verified": not_verified(loaded),
+            "warnings": warnings_json(loaded),
         }
         text = f"{text}  {v.outcome} {v.reason}"
     if status.error is not None:

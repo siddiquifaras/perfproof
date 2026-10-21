@@ -29,7 +29,9 @@ Where it looks:
   URLs whose scheme is one of `SERVICE_SCHEMES` or `WEB_SCHEMES`, so
   ``OPENAI_API_BASE=https://api.openai.com/v1`` is refused too.
 - The argv of the benchmark, correctness, reset and setup commands:
-  URLs with a service or web scheme in any argument, keyword DSNs
+  URLs with a service or web scheme in any argument (except an
+  ``https`` URL on a public package registry in a ``setup`` command,
+  `PACKAGE_REGISTRY_HOSTS`), keyword DSNs
   (``host=...``, ``service=...``), ``NAME=value`` arguments whose name
   is a service variable (``env PGHOST=h ...``), and ``--name=value``
   options whose name is one too or one of the config keys below.
@@ -148,6 +150,7 @@ __all__ = [
     "BASE_ENV_VARIABLES",
     "MAX_FINDINGS",
     "OUTPUT_TAIL_BYTES",
+    "PACKAGE_REGISTRY_HOSTS",
     "PROGRAM_ERRNOS",
     "SERVICE_SCHEMES",
     "SERVICE_SUFFIXES",
@@ -245,6 +248,26 @@ wherever they appear."""
 WEB_SCHEMES: Final = frozenset({"http", "https", "ws", "wss"})
 """URL schemes checked in every variable and argument, and in config
 files under a listed key."""
+PACKAGE_REGISTRY_HOSTS: Final = frozenset(
+    {
+        "crates.io",
+        "files.pythonhosted.org",
+        "index.crates.io",
+        "index.rubygems.org",
+        "proxy.golang.org",
+        "pypi.org",
+        "registry.npmjs.org",
+        "registry.yarnpkg.com",
+        "repo.maven.apache.org",
+        "repo1.maven.org",
+        "rubygems.org",
+        "static.crates.io",
+        "sum.golang.org",
+    }
+)
+"""Hosts of public package registries. An ``https`` URL on exactly one,
+with no user info, is allowed in a ``setup`` argument and nowhere else
+("Side effects" in ``docs/method.md``)."""
 MAX_FINDINGS: Final = 20
 """Most findings a gate's detail lists; the rest are counted."""
 OUTPUT_TAIL_BYTES: Final = 16 * 1024
@@ -557,6 +580,42 @@ def _url_hosts(url: str) -> list[str] | None:
     return hosts
 
 
+def _is_registry_url(url: str) -> bool:
+    """Say whether ``url`` is ``https`` on exactly a package registry.
+
+    The host must be one of `PACKAGE_REGISTRY_HOSTS`, spelled as the
+    list does (any case), with no user info and the default port, and
+    the URL must parse as `_web_hostport` reads it.
+    """
+    match = _SCHEME.match(url)
+    if match is None or match.group(1).lower() != "https":
+        return False
+    if any(c.isspace() or not c.isprintable() for c in url):
+        return False
+    rest = url[match.end() :]
+    if _web_hostport(rest) is None:
+        return False
+    body = rest[2:]
+    authority = body[: _first_of(body, "/?#")]
+    name, _, port = authority.partition(":")
+    return (
+        "@" not in authority
+        and name.lower() in PACKAGE_REGISTRY_HOSTS
+        and port in ("", "443")
+    )
+
+
+def _whole_value(text: str) -> str:
+    """Return the value of a ``NAME=value`` argument, else the argument.
+
+    A registry URL is exempt only when it is all of that: any text
+    around it (a space, tab, newline or NUL after it can make a client
+    read another host) keeps it under the ordinary check.
+    """
+    match = _ASSIGNMENT.match(text)
+    return text if match is None else match.group(3)
+
+
 def _starts_like_dsn(text: str) -> bool:
     """Say whether text opens with ``key =``, as a keyword DSN does.
 
@@ -843,10 +902,21 @@ class _Findings:
             self.add(where, problem)
 
     def text(
-        self, where: str, text: str, schemes: frozenset[str] = _ALL_SCHEMES
+        self,
+        where: str,
+        text: str,
+        schemes: frozenset[str] = _ALL_SCHEMES,
+        *,
+        registry_ok: bool = False,
     ) -> None:
-        """Check the URLs with one of ``schemes`` in free text."""
+        """Check the URLs with one of ``schemes`` in free text.
+
+        With ``registry_ok``, a URL on a package registry is skipped.
+        """
+        whole = _whole_value(text)
         for url in _urls_in(text, schemes):
+            if registry_ok and url == whole and _is_registry_url(url):
+                continue
             self.value(where, url)
 
 
@@ -882,31 +952,40 @@ def _is_keyword_dsn(arg: str) -> bool:
 
 def _check_commands(findings: _Findings, spec: BenchmarkSpec) -> None:
     """Check the argv of the benchmark, correctness, reset and setup."""
-    commands = [("command", spec.command)]
+    commands = [("command", spec.command, False)]
     if spec.correctness.command is not None:
-        commands.append(("correctness command", spec.correctness.command))
+        commands.append(
+            ("correctness command", spec.correctness.command, False)
+        )
     if spec.reset is not None:
-        commands.append(("reset command", spec.reset.command))
+        commands.append(("reset command", spec.reset.command, False))
     if spec.setup is not None:
         commands.extend(
-            (f"setup command {i}", argv)
+            (f"setup command {i}", argv, True)
             for i, argv in enumerate(spec.setup.commands)
         )
-    for label, argv in commands:
+    for label, argv, registry_ok in commands:
         for index, arg in enumerate(argv):
             where = f"{label} argument {index}"
-            findings.text(where, arg)
+            findings.text(where, arg, registry_ok=registry_ok)
             if _is_keyword_dsn(arg):
                 findings.value(where, arg)
-            _check_assignment(findings, where, arg)
+            _check_assignment(findings, where, arg, registry_ok=registry_ok)
 
 
-def _check_assignment(findings: _Findings, where: str, arg: str) -> None:
-    """Check a ``NAME=value`` or ``--name=value`` argument."""
+def _check_assignment(
+    findings: _Findings, where: str, arg: str, *, registry_ok: bool = False
+) -> None:
+    """Check a ``NAME=value`` or ``--name=value`` argument.
+
+    With ``registry_ok``, a value that is a package registry URL passes.
+    """
     match = _ASSIGNMENT.match(arg)
     if match is None:
         return
     dashes, name, value = match.groups()
+    if registry_ok and _is_registry_url(value):
+        return
     key = re.sub(r"[.-]", "_", name).upper()
     indirect = _INDIRECT_VARIABLES.get(key)
     if indirect is not None and value:
