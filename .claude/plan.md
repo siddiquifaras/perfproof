@@ -566,7 +566,7 @@ by `stats-auditor` before its PR opens.
     minutes.
   - Effort: max
 
-- [ ] **T1.8 Switch the primary to batch means, and close the audit-range gaps**
+- [x] **T1.8 Switch the primary to batch means, and close the audit-range gaps** (siddiquifaras/perfproof#50, `f8435b1`)
   - Owns: `src/perfproof/stats/intervals.py`, `sequential.py`, their
     tests, `tests/calibration/`, "Speedup and interval" and the
     calibration sections of `docs/method.md`, the t references in
