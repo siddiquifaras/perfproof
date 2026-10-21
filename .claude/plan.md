@@ -948,7 +948,7 @@ Mac and on Linux CI, with decoys that must be refused.
     absent); stats-auditor passes.
   - Effort: medium
 
-- [ ] **T2.23 Unknown is not wrong: measure, withhold only KEEP**
+- [x] **T2.23 Unknown is not wrong: measure, withhold only KEEP** (siddiquifaras/perfproof#55, `bc26eca`)
   - Owns: `src/perfproof/bench/lock.py` (`runtime_gate` status for an
     unidentified runtime), `src/perfproof/bench/compare.py`
     (`_refuse_unsupported`, `_same_host_gate`, `_Steps.of`, timeout
