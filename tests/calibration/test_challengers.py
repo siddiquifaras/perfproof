@@ -316,3 +316,33 @@ def test_sb_closed_form_matches_resampling() -> None:
     resampled = float(x[idx].mean(axis=1).var())
     closed = inf.sb_variance_at(x[None, :], np.array([p]))[0]
     assert closed == pytest.approx(resampled, rel=0.02)
+
+
+def test_adjusted_fit_with_a_constant_nonzero_covariate_keeps_the_mean() -> (
+    None
+):
+    rng = np.random.default_rng(13)
+    d = 0.1 + 0.01 * rng.standard_normal((6, 24))
+    first = np.zeros(d.shape, dtype=np.bool_)
+    first[:, 0::2] = True
+    for c in (0.0, 1.0, 3.0):
+        fit = inf.adjusted_fit(d, first, np.full(d.shape, c), 0.2)
+        np.testing.assert_allclose(fit.theta, d.mean(axis=1), atol=1e-12)
+        flat = inf.adjusted_fit(d, first, np.zeros_like(d), 0.2)
+        np.testing.assert_allclose(fit.se, flat.se, rtol=1e-9)
+        expected = np.inf if c else 0.0
+        assert np.all(fit.imbalance == expected)
+
+
+def test_politis_white_length_looks_at_lag_one_when_m_is_zero() -> None:
+    rng = np.random.default_rng(14)
+    n = 60
+    z = rng.standard_normal((3000, n))
+    x = np.empty_like(z)
+    x[:, 0] = z[:, 0]
+    for i in range(1, n):
+        x[:, i] = 0.3 * x[:, i - 1] + math.sqrt(1 - 0.09) * z[:, i]
+    length = inf.politis_white_length(
+        inf.order_centre(x, np.zeros_like(x, bool))
+    )
+    assert length.mean() > 1.8

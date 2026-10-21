@@ -249,9 +249,11 @@ def politis_white_length(u: FloatArray) -> FloatArray:
 
     ``b = (2 G^2 / D_SB)^(1/3) n^(1/3)`` with ``D_SB = 2 g(0)^2``,
     ``g`` and ``G`` from the flat-top window of Politis and Romano
-    (1995) at ``M = 2 m`` where ``m`` is the first lag after which
-    ``K_N`` autocorrelations are inside ``c sqrt(log10(n) / n)``, with
-    ``c = 2``, ``K_N = max(5, ceil(sqrt(log10 n)))`` and at most
+    (1995) at ``M = 2 max(m, 1)`` (as Patton's reference code, so
+    that ``m = 0`` still looks at lag 1) where ``m`` is the first lag
+    after which ``K_N`` autocorrelations are inside
+    ``c sqrt(log10(n) / n)``, with ``c = 2``,
+    ``K_N = max(5, ceil(sqrt(log10 n)))`` and at most
     ``ceil(sqrt n) + K_N`` lags examined (the lag cap of the paper).
     The length is clipped to ``[1, ceil(min(3 sqrt n, n / 3))]``, the
     cap of Patton, Politis and White (2009). Returns shape ``(R,)``.
@@ -271,7 +273,7 @@ def politis_white_length(u: FloatArray) -> FloatArray:
     found = window.any(axis=0)
     first_ok = np.argmax(window, axis=0)
     m_hat = np.where(found, first_ok, starts - 1)
-    big_m = np.minimum(2 * m_hat, m_max)
+    big_m = np.minimum(2 * np.maximum(m_hat, 1), m_max)
     lags = np.arange(m_max + 1)
     t = np.abs(lags)[np.newaxis, :] / np.maximum(big_m, 1)[:, np.newaxis]
     lam = np.where(t <= 0.5, 1.0, np.where(t <= 1.0, 2.0 * (1.0 - t), 0.0))
@@ -469,7 +471,11 @@ def adjusted_fit(
     ordinary least squares; the covariance is the sandwich
     ``A^-1 Omega A^-1 / n`` with ``Omega`` the Bartlett long-run
     variance of the scores at ``b = M / n`` (`bandwidth`). Rank
-    deficiency (a flat ``x``) is handled by the pseudo-inverse.
+    deficiency is handled by the pseudo-inverse. A row whose ``x`` is
+    constant carries no information about the slope: the column is
+    replaced by zeros (so the intercept is the plain mean, not a share
+    of it) and the imbalance is ``inf`` if the constant is not 0, since
+    every round then differs by the same amount.
     Cost ``O(R n M p^2)`` with ``p`` at most 3.
 
     With ``robust`` the coefficients are the Huber M-estimate of the
@@ -485,7 +491,8 @@ def adjusted_fit(
     columns = [ones]
     if first.any():
         columns.append(np.where(first, 0.5, -0.5))
-    columns.append(x)
+    flat = np.ptp(x, axis=1) == 0
+    columns.append(np.where(flat[:, np.newaxis], 0.0, x))
     design: FloatArray = np.stack(columns, axis=2)
     gram = np.einsum("rni,rnj->rij", design, design) / n
     inverse: FloatArray = np.linalg.pinv(gram)
@@ -532,6 +539,7 @@ def adjusted_fit(
     se_x = np.sqrt(np.maximum(bartlett_variance(centred, b), 0.0))
     with np.errstate(invalid="ignore", divide="ignore"):
         imbalance = np.where(se_x > 0, x.mean(axis=1) / se_x, 0.0)
+    imbalance = np.where(flat, np.where(x[:, 0] != 0, np.inf, 0.0), imbalance)
     return Adjusted(
         theta=beta[:, 0],
         se=np.sqrt(np.maximum(cov[:, 0, 0], 0.0)),

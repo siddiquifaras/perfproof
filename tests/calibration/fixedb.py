@@ -37,9 +37,14 @@ delta method), in the units of the critical value.
 Usage::
 
     uv run python tests/calibration/fixedb.py generate --table iid \\
-        --out tests/calibration/results/fixed_b_critical.csv --workers 4
+        --draws 300000 --workers 4 \\
+        --out tests/calibration/results/fixed_b_critical.csv
     uv run python tests/calibration/fixedb.py generate --table lf \\
-        --out tests/calibration/results/lf_critical.csv --workers 4
+        --draws 300000 --workers 4 \\
+        --out tests/calibration/results/lf_critical.csv
+    uv run python tests/calibration/fixedb.py generate \\
+        --table lf-extra --draws 200000 --workers 4 \\
+        --out tests/calibration/results/lf_critical_extra.csv
 """
 
 import argparse
@@ -61,7 +66,7 @@ from perfproof.stats.sequential import look_confidence
 
 TABLE_SEED: Final = 6522260469845266907
 """Drawn before any run, for the committed tables."""
-DRAWS: Final = 2_000_000
+DRAWS: Final = 300_000
 N_MIN: Final = 12
 N_MAX: Final = 120
 LEVELS: Final = tuple(
@@ -108,7 +113,7 @@ LF_EXTRA_SPECS: Final = (
 SPEC_BY_NAME: Final = {s.name: s for s in (*SPECS, *LF_SPECS, *LF_EXTRA_SPECS)}
 RHOS: Final = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7)
 """AR(1) coefficients of the least favourable table: the audit range."""
-LF_DRAWS: Final = 500_000
+LF_DRAWS: Final = 300_000
 """Draws per ``rho`` of the least favourable table."""
 LF_N_NODES: Final = (
     *range(12, 31, 2),
@@ -124,9 +129,11 @@ LF_N_NODES: Final = (
     120,
 )
 """Look lengths tabulated for the least favourable table; a look of
-``n`` observations takes the largest of these at most ``n``, whose
-values are the more conservative (critical values fall as ``n``
-grows)."""
+``n`` observations takes the largest of these at most ``n``. That is
+not guaranteed conservative: critical values usually fall as ``n``
+grows, but the committed table has bins where the next node is higher
+(up to 12.6% in ``lf_hac_b20`` cross host, nodes 48 to 54), a
+consequence of Monte Carlo noise in the bins."""
 LF_MIN_COUNT: Final = 2000
 """Fewest draws a (``rho``, bin) must hold to set a critical value."""
 LF_EDGES: Final = np.round(np.arange(-0.5, 0.9501, 0.05), 10)
