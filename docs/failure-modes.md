@@ -46,7 +46,7 @@ because a later code mechanism catches the result.
 |---|---|---|---|---|---|
 | 14 | A benchmark touches a real database or paid API | `side_effects` preflight refuses non-local service addresses; a reset command between rounds | Code | Preflight tests; the remote-database fixture | Services configured only inside files the preflight doesn't read; proxies; a cloud SDK's default endpoint reached through a region variable and credentials under `HOME` |
 | 15 | The developer's own uncommitted work is lost | A session refuses a dirty tree unless told how to set it aside; kept changes go on perfproof's own branch; undo touches only files perfproof changed | Code | Session tests | Nothing within the repository |
-| 16 | A long run killed by a client timeout, then misread | `--detach`, `status`, `cancel`, `--resume` after re-checking gates and the machine; a partial run never yields a verdict | Code | `kill -9` and cancel tests | Nothing |
+| 16 | A long run killed by a client timeout, then misread | `--detach`, `status`, `cancel`, `--resume` after re-checking gates and the machine; a killed run never yields a verdict; a run that reaches its time limit ends on its completed rounds | Code | `kill -9` and cancel tests | Nothing |
 
 ## Discovery going wrong
 

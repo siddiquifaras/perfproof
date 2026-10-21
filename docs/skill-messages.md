@@ -291,9 +291,9 @@ rest is {other}. Each round is slow and the measurement coarse. Shorten
 | `non_performance_governor` | The CPU is not set to run at full speed. |
 
 ```text
-{sentences} Timings taken now vary, so a comparison would likely end
-undecided and take longer. {advice} I'll keep doing the parts that need
-no timing. Fix it and I'll re-check, or go on anyway?
+{sentences} Old and new run in alternating rounds, so load that hits
+both mostly cancels; it widens the range and may need more rounds.
+{advice} I'll go on and note the conditions in the report.
 ```
 
 `{advice}` is the `advice` field of the warning. Unknown code: the
@@ -388,13 +388,15 @@ crashed on your change: {tail}." `{pin_next}`: "Update {pin_file} the
 project's way ({command}) and measure the speed, or drop this change?"
 or "Drop this change, or tell me what difference is allowed?"
 
-**R-5, lines never ran**
+**R-5, lines never ran** (only once the coverage gate exists, T2.14;
+until then coverage is always "not checked yet" under R-11/R-13 and no
+test is offered for it)
 
 ```text
 The changed lines {file}:{a}-{b} never ran under any check, so
-perfproof can't tell whether they broke anything. Your code is back as
-it was. Add a test that reaches them (it must fail on the original), or
-skip this change?
+perfproof can't tell whether they broke anything. Add a test that
+reaches them (it must fail on the original), or leave this change for
+you to judge?
 Result: INCONCLUSIVE (insufficient_evidence)
 ```
 
@@ -467,7 +469,7 @@ The measurement ran and is in the record; only the keep is withheld.
 | gate `runtime` `not_available` | "which program runs each version ({launcher})"; fix: run the benchmark through a runtime perfproof can identify, or accept that this kind of benchmark can be measured but not kept |
 | gate `same_host` `not_available` | "which machine each round ran on"; fix: none needed on one machine, name the probe that failed |
 | gate `correctness` `not_available`, no check declared | "whether the change still gives the same results (the benchmark has no test or output to compare)"; fix: a new spec with a test command or a declared output, which is a new baseline |
-| gate `coverage` `not_available` | "whether any check ran the changed code"; fix: see R-5 |
+| gate `coverage` `not_available` | "whether any check ran the changed code"; fix: none today, perfproof can't check which changed lines ran yet (R-5 applies once T2.14 builds the gate) |
 | guardrail `not_declared` | "whether it costs more {metric}"; fix: declare it, with an allowance, in a new spec |
 | warning `counter_unavailable` | "the instruction count (`perf` is not usable here)"; the speed was timed on the clock instead; fix: run on Linux with `perf`, or use a time metric |
 | warning `resolution_unknown` | "how finely the benchmark's number is known"; fix: print a fixed number of digits or declare a resolution |

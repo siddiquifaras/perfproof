@@ -13,10 +13,13 @@ Use this shape, leaving out empty parts:
 >
 > **The timing:** <estimate or verdict, see below>.
 >
-> **Not checked:** <every gate whose status is `not_available` or
-> `waived`, every guardrail that is not `passed` or `not_applicable`,
-> in plain words: "whether every changed line ran under a test",
-> "memory use">.
+> **Not checked:** <every entry of `not_verified`, plus any gate
+> whose status is `waived`, in plain words: "whether every changed line
+> ran under a test", "memory use", "whether both versions ran the same
+> Node">, with what would make it checkable where there is one.
+>
+> **Conditions:** <only if `doctor` warned or `warnings` names load:
+> "measured on a busy machine (load 7)"; omit otherwise>.
 >
 > **Run record:** `<report_path>`.
 >
@@ -31,18 +34,17 @@ Read `verdict.outcome`, `verdict.reason`, `verdict.rule`,
 "the bar" as the number from the spec, `1 + min_effect` (3% by
 default). Ratios are old time divided by new time; say so once.
 
-`compare --json` does not yet carry which tests failed, which output
-differs, or guardrail values. Until it does: read only the
-"Correctness" section of `report.md` for failing tests and output
-differences, and list every guardrail under "Not checked" unless you
-have its result.
+`compare --json` carries `not_verified`, `warnings` and
+`measured_metric`, but not yet which tests failed, which output
+differs, or guardrail values. For those, read only the "Correctness"
+section of `report.md`.
 
 | Result | Say |
 |---|---|
 | INCONCLUSIVE with `verdict.diagnostics.procedure_uncalibrated` (every run today) | "perfproof can't keep changes yet. The estimate is <estimate>x (range <lower> to <upper>), which is not a verdict. The change is <where it is>." Never set the estimate against the change's own claim. |
 | INCONCLUSIVE with `verdict.diagnostics.coarse_resolution` | "The benchmark is too short for the timer to tell the versions apart. A longer input would fix that." |
 | INCONCLUSIVE, calibrated, rule 5 | "Undecided: the range <lower> to <upper> still includes the bar (<bar>)." |
-| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail could not be established) | "Undecided: <the check or guardrail> could not be checked here, so nothing can be kept." Don't mention the range or the bar. |
+| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail could not be established) | "Measured, but not kept: <each `not_verified` item> couldn't be checked here. <What would make it checkable.>" Don't mention the range or the bar. |
 | KEEP, calibrated | "Kept: <estimate>x faster (range <lower> to <upper>), clear of the bar (<bar>). It's on `perfproof/<name>`." |
 | REJECT `performance` | "Not kept: even the high end of the range, <upper>x, doesn't clear the bar (<bar>)." Say "slower" only if `verdict.regression` is true. |
 | REJECT `guardrail` | "Not kept: it uses more <memory or latency> than allowed (<value> against <limit>)." |
@@ -52,8 +54,7 @@ have its result.
 | `verdict.gate` | Say |
 |---|---|
 | `correctness` | "Refused: the new version changes the result. <failing tests, capped at five, or which output differs>." |
-| `coverage` | "Refused: some changed lines never ran under any test, so nothing checked them. <lines>." Offer to write a test that fails on the old code. |
-| `lock` | "Refused: the change edits the benchmark or its tests, so the measurement would no longer mean the same thing." |
+| `lock` | "Refused: the change edits the benchmark or its tests, so the measurement would no longer mean the same thing." Describe what the edit does as work, not speed: "it makes the benchmark do a quarter of the work and leaves `held_orders` unchanged", never "it runs shorter", "it speeds up the benchmark" or "rather than a speedup": nothing was timed. |
 | `side_effects` | "Refused: the benchmark would talk to something that isn't on this machine, <address>. I can set up a local copy." |
 | `runtime` | "Refused: the two versions wouldn't run the same program (<why>), so timing them says nothing." |
 | `procedure`, `same_host` | "Refused: the setup differed between the two runs. I'll fix it and run again." |

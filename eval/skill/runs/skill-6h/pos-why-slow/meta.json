@@ -1,0 +1,46 @@
+{
+  "task_id": "pos-why-slow",
+  "started_at": "2026-10-21T22:14:00+00:00",
+  "wall_seconds": 6.14,
+  "load_start": [
+    6.74072265625,
+    6.44287109375,
+    5.62841796875
+  ],
+  "load_end": [
+    6.9404296875,
+    6.49365234375,
+    5.65576171875
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "6afa9cf74700",
+  "turns": [
+    {
+      "prompt": "why is this slow",
+      "argv": [
+        "claude",
+        "-p",
+        "why is this slow",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.3",
+        "--max-turns",
+        "2"
+      ],
+      "seconds": 5.64,
+      "exit_code": 1,
+      "session_id": "32f85fcf-7df9-4b33-b130-958e3a8ee655"
+    }
+  ]
+}

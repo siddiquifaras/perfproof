@@ -168,15 +168,16 @@ path.
 | BS-7 | `compare` error `broken_baseline`, or `profile` error `workload_failed`, on the baseline | No record exists. Show the command and a capped log tail; use the project's documented setup; no opt-in. | NO VERDICT (original code will not run) |
 | BS-8 | Two baseline runs differ in declared output; or the run did not do the work; or the timed part is tiny (C-02) | Normalise or fix before locking; ask only about shortening. | none (fixed, then continue) |
 | BS-9 | Merge-base differs, locked files missing, foreign commits (PF-2, PF-3) | Set the baseline or derive a branch, and say so. | none (fixed, then continue) |
-| BS-10 | `doctor` warnings `high_load`, `on_battery`, `low_power_mode`, `thermal_limit`, `non_performance_governor` | Hold timing steps only; name what uses the CPU; never busy-wait; go on if the user says so, with the load at start and end in the report. | none (held, or goes on) |
-| BS-11 | Every `compare` | `--detach`, poll `status`, speak when a look completes. A partial run yields no verdict. Paid or remote host: stop and ask with the cost. | NO VERDICT (run not finished) when cut off |
-| BS-12 | Any other `ok == false`: `not_built`, `usage`, `internal_*`, `invalid_spec`, `spec_conflict`, `ambiguous_hash`, `unsupported_spec`, `undeclared_guardrails`, `harness_fault` | Fail closed; no retry that changes the experiment. Allowed fixes: newest spec for `ambiguous_hash`; a new spec name for `spec_conflict`; declare the missing guardrail for `undeclared_guardrails`. `not_built` and `usage`: this version cannot do that step. | NO VERDICT (perfproof stopped) |
+| BS-10 | `doctor` warnings `high_load`, `on_battery`, `low_power_mode`, `thermal_limit`, `non_performance_governor` | Say what it means in one sentence and go on (paired rounds cancel shared load; it widens the range); offer to wait only if the user would rather; never busy-wait; the conditions go in the report. | none (goes on) |
+| BS-11 | Every `compare` | `--detach`, poll `status`, speak when a look completes. A killed or cancelled run yields no verdict; a run that reaches its time limit ends INCONCLUSIVE on its completed rounds. Paid or remote host: stop and ask with the cost. | NO VERDICT (run not finished) when cut off |
+| BS-12 | Any other `ok == false`: `not_built`, `usage`, `internal_*`, `invalid_spec`, `spec_conflict`, `ambiguous_hash`, `unsupported_spec`, `harness_fault` | Fail closed; no retry that changes the experiment. Allowed fixes: newest spec for `ambiguous_hash`; a new spec name for `spec_conflict`. `not_built` and `usage`: this version cannot do that step. | NO VERDICT (perfproof stopped) |
 
 ## 7. Results after a run, first match wins
 
 Read `verdict.outcome`, `verdict.reason`, `verdict.rule`,
-`verdict.gate`, `verdict.calibration` and `gates[]`; `compare --json`
-carries no gate detail, warnings or guardrails today (C-04).
+`verdict.gate`, `verdict.calibration`, `gates[]`, `not_verified`,
+`warnings` and `measured_metric`; `compare --json` carries no gate
+detail or guardrail values today (C-04).
 
 | ID | Trigger | Behaviour |
 |---|---|---|
@@ -184,13 +185,13 @@ carries no gate detail, warnings or guardrails today (C-04).
 | R-2 | REJECT `performance` | Not kept: interval at or below the bar; "slower" only if `verdict.regression`. Undo. |
 | R-3 | REJECT `guardrail` | Not kept: names the guardrail, value and limit. Undo. |
 | R-4 | REJECT `correctness`, gate `correctness` | A check failed or the benchmark crashed: failing ids (capped) or the differing output. A pin or golden file may be updated only by the project's own workflow, toward fewer queries, as a separate commit, after the user says yes; never raised to get a result. Faster but different is REJECT until the user states the allowed difference. Undo. |
-| R-5 | REJECT `correctness`, gate `coverage` | Lines never ran. Offer a test that fails on the baseline (a new spec, the user's call) or drop. Undo. |
+| R-5 | INCONCLUSIVE, `coverage` in `not_verified` with unverified lines named by the gate (only once T2.14 builds the gate; today coverage is "not built yet" and falls to R-11/R-13) | Measured, not kept: changed lines never ran under a check. Offer a test that fails on the baseline (a new spec, the user's call). |
 | R-6 | REJECT `integrity`, gate `lock` | Refused: the change edits a locked file. Offer a spec that does not lock it (new baseline, asked first). |
 | R-7 | REJECT `integrity`, gate `side_effects` | Refused: a service not local. As BS-4. |
-| R-8 | REJECT `integrity`, gate `runtime` in a returned record | Refused: the two versions would not run the same program. Fix the setup (leftover worktree, native build not built); a waiver is the user's decision, with its label stated. |
+| R-8 | REJECT `integrity`, gate `runtime` in a returned record | Refused: the two versions ran different identified runtimes, or one could not start. Fix the setup (leftover worktree, native build not built); a waiver is the user's decision, with its label stated. A runtime that could not be identified is R-11, not this. |
 | R-9 | REJECT `integrity`, gate `procedure` or `same_host` | Refused: the setup differed between the two versions. Fix and rerun. |
 | R-10 | INCONCLUSIVE, `diagnostics.coarse_resolution` | The timer is too coarse for this benchmark. Longer workload or a count metric. |
-| R-11 | INCONCLUSIVE, rule 2 (a gate `not_available` or a guardrail not established) | Undecided: names what could not be checked. Does not mention the interval or the bar. |
+| R-11 | INCONCLUSIVE, rule 2 (anything in `not_verified`: a gate `not_available`, a guardrail not established or not declared, a counter fallback, an unknown resolution, an uncalibrated schedule) | Measured, not kept: names each item in plain words and what would make it checkable. Does not mention the interval or the bar. |
 | R-12 | INCONCLUSIVE, rule 5, `calibration == "calibrated"` | Undecided: the interval includes the bar. Rounds and minutes that would settle it only if the CLI gives them (T3.7); never computed by hand. |
 | R-13 | INCONCLUSIVE, rule 5, `calibration == "uncalibrated"` (every run today) | "perfproof can't keep changes yet." Estimate with interval, labelled uncalibrated, facts, not checked, conditions, and where the change is. No rerun is offered to change the outcome. |
 

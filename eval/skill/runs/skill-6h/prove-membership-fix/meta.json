@@ -1,0 +1,44 @@
+{
+  "task_id": "prove-membership-fix",
+  "started_at": "2026-10-21T22:08:49+00:00",
+  "wall_seconds": 64.31,
+  "load_start": [
+    6.9921875,
+    5.9755859375,
+    5.17626953125
+  ],
+  "load_end": [
+    6.83837890625,
+    6.11572265625,
+    5.2841796875
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "6afa9cf74700",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-speedup",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-speedup",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.8"
+      ],
+      "seconds": 63.62,
+      "exit_code": 0,
+      "session_id": "3c98480d-28f6-4495-b16c-e8de8b0f35e3"
+    }
+  ]
+}

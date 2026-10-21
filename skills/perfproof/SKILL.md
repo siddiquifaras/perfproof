@@ -47,13 +47,15 @@ the user.
   the spec, a branch, a busy machine) gets no `Result:` line. A stop
   that ends the session (not a git repository, uncommitted changes,
   nothing to run) and every finished run end with one last line, the
-  only place the word `Result:` starts a line. When `compare` returned a
+  only place the word "Result" appears as a label: never use it as a
+  heading or bold label in the body ("**Result:**"); head the timing
+  paragraph "**The timing:**" as in messages.md. When `compare` returned a
   verdict, copy it: `Result: <verdict.outcome> (<verdict.reason>)`,
   adding `, gate <verdict.gate>` when there is one, for example
   `Result: INCONCLUSIVE (insufficient_evidence)` or
-  `Result: REJECT (correctness, gate coverage)`. A REJECT from a gate
-  (correctness, coverage, lock, side_effects, runtime, procedure,
-  same_host) is a verdict: copy it. Use `Result: NO VERDICT (<plain
+  `Result: REJECT (correctness, gate correctness)`. A REJECT from a
+  gate (correctness, lock, side_effects, runtime, procedure, same_host)
+  is a verdict: copy it. Use `Result: NO VERDICT (<plain
   reason>)` only when `compare` returned no verdict at all (you stopped
   before it, or it answered `ok: false`). An uncalibrated INCONCLUSIVE
   is "not yet a verdict" to the user, but `compare` did return one:
@@ -99,13 +101,17 @@ with one sentence and one next step:
    this machine: stop. Offer a local copy; never point a benchmark at
    anything remote.
 4. `perfproof doctor --json` warns (`high_load`, `on_battery`,
-   `low_power_mode`, `thermal_limit`, `non_performance_governor`): say
-   what it means in one sentence and ask whether to continue. When
-   finding speedups, put this in the one question of step 1 instead of
-   stopping here.
+   `low_power_mode`, `thermal_limit`, `non_performance_governor`): this
+   is how real machines are, not a reason to stop. Say what it means in
+   one sentence, carry on, and put the conditions in the report. The
+   old and new versions run in alternating rounds, so load that hits
+   both mostly cancels; it only widens the range. Offer to wait only if
+   the user would rather. When finding speedups, mention it in the one
+   question of step 1.
 5. The project has no tests or other check of the result: say a change
    can't be kept without one, and offer to write a check (the output on
-   a fixed input) with the user's agreement.
+   a fixed input) with the user's agreement. If they decline, still
+   measure; perfproof reports the estimate and says it can't keep.
 
 Never set `allow_runtime_change`, `allow_cross_host` or any other
 opt-in in a spec without asking; each one turns a check off.
@@ -154,7 +160,16 @@ No discovery. One candidate at a time, against its parent.
    `verdict.interval.lower` to `verdict.interval.upper`; never
    `diagnostics.wall_interval`) or verdict, what was not checked, and
    where the run record is (`report_path`). Never say a check ran
-   unless `gates[]` shows it.
+   unless `gates[]` shows it. "Not checked" comes from the JSON's
+   `not_verified` list: say each item in plain words and, where one
+   exists, what would make the change keepable ("run the program
+   directly instead of through a shell script"). Offer only a step that
+   would actually change the item: coverage isn't checked by perfproof
+   yet, so say "perfproof can't check which changed lines ran yet" and
+   don't offer a test for it. If `measured_metric` is set, say what was
+   actually measured ("instructions weren't available here, so wall
+   time was measured"). An unverified item is not a failure: the
+   change was measured, it just can't be kept until that is checked.
 
 ## Find speedups
 
