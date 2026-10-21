@@ -615,6 +615,39 @@ by `stats-auditor` before its PR opens.
     set, and the next audit draws new ones.
   - Effort: max
 
+- [ ] **T1.9 Schema for the batch-means gate** (schema task)
+  - Owns: `src/perfproof/schema.py`, `schema.json`, their tests
+  - Needs: T1.8
+  - Do: drop `hodges_lehmann_wilcoxon` and `bootstrap_median_ratio`
+    from the procedure list (deleted in T1.8); add the gate's withheld
+    diagnostics (`autocorrelated_rounds`, `outlier_rounds`) to
+    `Diagnostics`, and rename the existing lag-1 > 0.3 `RunWarning`
+    `autocorrelated_rounds` so one name means one thing.
+  - Done when: a record carrying a withheld look validates; the two
+    tests that used `bootstrap_median_ratio` as a schema-valid but
+    unsupported procedure use another fixture; schema.json regenerated.
+  - Effort: low
+
+- [ ] **T1.10 Wire batch means and the gate into compare**
+  - Owns: `src/perfproof/bench/compare.py`, `src/perfproof/stats/sequential.py`
+    (the `candidate_first` default), `src/perfproof/stats/decision.py`
+    (underflow), their tests
+  - Needs: T1.8, T1.9
+  - Do: `PROCEDURE` becomes `t_log_ratio_batch_means`; pass
+    `candidate_first` from the round order on every look and make it
+    required when it would otherwise be inferred (T1.8 audit F3: 13 of
+    672 cells fail without it); an underflowed or overflowed interval
+    bound is no decision (rule 4 or 5, NaN bounds), never a raise (F4,
+    `decision.py:555`); a spec schedule with more than one look at 20
+    blocks or more is refused or labelled uncalibrated (F2); record the
+    gate's withheld reason. `CALIBRATED` stays False.
+  - Done when: an end-to-end compare on `examples/` records batch-means
+    bounds and, on an autocorrelated fixture, a withheld look naming
+    `autocorrelated_rounds`; the underflow case returns INCONCLUSIVE;
+    stats-auditor passes.
+  - Effort: medium
+
+
 ## M2 Local loop
 
 The first working product: the whole loop on Python examples, on this
@@ -895,6 +928,24 @@ Mac and on Linux CI, with decoys that must be refused.
     `wait4` counts only waited-for processes; "at least N%" rounds to
     nearest instead of down; a CPU-bound run reads "waiting for at least
     0%". py-spy on native Linux hardware is unverified.
+  - Effort: medium
+
+- [ ] **T2.22 Runtime gate: other runtimes**
+  - Owns: `src/perfproof/bench/lock.py` (`_Launch`), the `runtime` row
+    of `docs/method.md`, `tests/bench/test_lock*.py`
+  - Needs: T2.21
+  - Do: measured 2026-10-21: `_Launch.identify` returns unknown for
+    `node`, `npx`, `java` and `sh`, so TypeScript/Node and Java
+    benchmarks REJECT at the runtime gate. Write the design into
+    method.md first: recognised runtimes (node, java at least), each
+    identified by resolved path, a `--version` probe with a timeout and
+    a hash of the executable; launchers (`npx`, `pnpm exec`, `yarn`)
+    followed to the runtime they run or refused with a reason; anything
+    unidentifiable fails as today.
+  - Done when: a Node script benchmark and a Java benchmark pass the
+    gate unchanged and fail it when the runtime's version or binary
+    differs between arms, with real tests (skip where the runtime is
+    absent); stats-auditor passes.
   - Effort: medium
 
 - [ ] **T2.11 Real noise traces, CPU**
