@@ -322,6 +322,9 @@ def _meaning(record: RunRecord) -> str:
                 "than the baseline, flagged as a regression."
             )
         return text
+    withheld = _withheld(v)
+    if withheld is not None:
+        return withheld
     if v.diagnostics.procedure_uncalibrated:
         return (
             "The interval procedure had not passed calibration when this "
@@ -508,6 +511,41 @@ def _provenance(record: RunRecord) -> str:
     return " ".join(parts)
 
 
+def _withheld(v: Verdict) -> str | None:
+    """Say why the diagnostic gate withheld the last look, if it did."""
+    d = v.diagnostics
+    if d.autocorrelated_rounds:
+        what = (
+            "the lag-1 autocorrelation of the log ratios was above the "
+            "gate's limit, and a look this short cannot show that the "
+            "interval covers (`autocorrelated_rounds`)"
+        )
+    elif d.outlier_rounds:
+        what = (
+            "the share of outlier rounds was above the gate's limit, and a "
+            "look this short cannot show that the interval covers "
+            "(`outlier_rounds`)"
+        )
+    else:
+        return None
+    text = (
+        "The diagnostic gate withheld the decision at the last look: "
+        f"{what}. The interval is recorded but decides nothing. Nothing "
+        "is kept."
+    )
+    if d.procedure_uncalibrated:
+        return text + (
+            " Two things stand in the way: the gate's reason, which more "
+            "rounds or less dependence between rounds would lift, and the "
+            "interval procedure not having passed calibration, which no "
+            "number of rounds can change, so this comparison is "
+            "INCONCLUSIVE until it has."
+        )
+    return text + (
+        " More rounds, or less dependence between rounds, can resolve it."
+    )
+
+
 def _measured(record: RunRecord) -> str:
     v, spec = record.verdict, record.spec
     lines = ["## Measured", ""]
@@ -576,6 +614,12 @@ def _measured(record: RunRecord) -> str:
             else _flag(d.coarse_resolution)
         ),
     ]
+    for name, flagged in (
+        ("autocorrelated_rounds", d.autocorrelated_rounds),
+        ("outlier_rounds", d.outlier_rounds),
+    ):
+        if flagged:
+            diagnostics.append(f"{name}: {_flag(flagged)} (decision withheld)")
     for name, value in (
         ("lag1_autocorrelation", d.lag1_autocorrelation),
         ("cv_baseline", d.cv_baseline),

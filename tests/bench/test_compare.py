@@ -21,6 +21,8 @@ from perfproof.bench.compare import (
     CompareResult,
     CompareStoppedError,
     compare,
+    keep_blocked,
+    late_looks,
 )
 from perfproof.bench.lock import build_manifest
 from perfproof.bench.runner import Round, Runner, RunnerError
@@ -32,7 +34,8 @@ from perfproof.schema import (
     MachineFingerprint,
     RunRecord,
 )
-from perfproof.stats.sequential import Look, look_confidence
+from perfproof.stats.intervals import t_interval
+from perfproof.stats.sequential import BATCH_BLOCK, Look, look_confidence
 
 PY = sys.executable
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -273,11 +276,21 @@ def nothing_ran(project: Project, *trees: Path) -> None:
 # The thin path: gates pass, the rounds run, the verdict is INCONCLUSIVE
 
 
+def twelve_rounds() -> BenchmarkSpec:
+    """One look on 12 rounds, the fewest with a batch-means interval."""
+    return BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+
+
 def test_passing_gates_end_inconclusive_with_the_interval(
     project: Project,
 ) -> None:
     faster = project.candidate("fast", {"work.py": work(0.005)})
-    result = project.run(faster)
+    result = project.run(faster, twelve_rounds())
     record = result.record
     v = record.verdict
     assert (v.outcome, v.reason, v.rule, v.gate) == (
@@ -288,10 +301,13 @@ def test_passing_gates_end_inconclusive_with_the_interval(
     )
     assert v.diagnostics.procedure_uncalibrated
     assert v.calibration == "uncalibrated"
-    assert (v.rounds, v.looks) == (10, 1)
+    assert (v.rounds, v.looks) == (12, 1)
+    assert v.procedure == "t_log_ratio_batch_means"
     assert v.interval is not None
     assert v.estimate is not None
-    assert 1 < v.interval.lower <= v.estimate <= v.interval.upper
+    # Two blocks leave one degree of freedom, so under load the interval
+    # can reach below 1; only its order is a property of the procedure.
+    assert 0 < v.interval.lower <= v.estimate <= v.interval.upper
     assert v.interval.confidence == look_confidence(0.05, 1)
     assert v.diagnostics.wall_interval is not None
     assert v.diagnostics.metric_disagreement is False
@@ -502,18 +518,19 @@ def test_host_change_fails_the_same_host_gate(
 
 
 @pytest.mark.parametrize(
-    ("max_rounds", "k", "max_looks", "looks", "rounds"),
+    ("n0", "max_rounds", "k", "max_looks", "looks", "rounds"),
     [
-        (13, 2, 3, 2, 13),
-        (12, 2, 3, 2, 12),
-        (20, 4, 2, 2, 14),
-        (11, 2, 2, 1, 11),
+        (10, 13, 2, 3, 2, 13),
+        (10, 12, 2, 3, 2, 12),
+        (10, 20, 4, 2, 2, 14),
+        (12, 13, 2, 2, 1, 13),
     ],
     ids=["odd-budget", "budget-on-a-look", "kth-look", "re-decided-final"],
 )
 def test_looks_follow_the_schedule_and_budget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    n0: int,
     max_rounds: int,
     k: int,
     max_looks: int,
@@ -524,7 +541,7 @@ def test_looks_follow_the_schedule_and_budget(
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             budget={"max_rounds": max_rounds, "max_seconds": 600.0},
-            looks={"n0": 10, "k": k, "max_looks": max_looks},
+            looks={"n0": n0, "k": k, "max_looks": max_looks},
         )
     )
     decided = spy_on_looks(monkeypatch)
@@ -575,7 +592,7 @@ def test_time_budget_after_n0_re_decides_the_last_look_as_final(
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             budget={"max_rounds": 20, "max_seconds": 600.0},
-            looks={"n0": 10, "k": 2, "max_looks": 3},
+            looks={"n0": 12, "k": 2, "max_looks": 3},
         )
     )
     skipped = [0.0]
@@ -589,7 +606,7 @@ def test_time_budget_after_n0_re_decides_the_last_look_as_final(
 
     def slow_after_n0(self: Runner, index: int) -> Round:
         done = real(self, index)
-        if index == 10:
+        if index == 12:
             skipped[0] = 1e6
         return done
 
@@ -598,7 +615,7 @@ def test_time_budget_after_n0_re_decides_the_last_look_as_final(
     result = project.run(project.candidate("same", {}), spec)
     v = result.record.verdict
     assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
-    assert (v.looks, v.rounds) == (1, 11)
+    assert (v.looks, v.rounds) == (1, 13)
     assert_decided_at(v.interval, decided, look_confidence(0.05, 3))
 
 
@@ -627,15 +644,21 @@ def test_reset_runs_before_every_execution_end_to_end(
 ) -> None:
     project = make_project(tmp_path, bench=EVENTS_BENCH)
     candidate = project.candidate("fast", {"work.py": work(0.005)})
-    spec = BenchmarkSpec.model_validate(spec_fields(reset=RESET))
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            reset=RESET,
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
     result = project.run(candidate, spec)
     v = result.record.verdict
-    assert (v.outcome, v.rule, v.rounds) == ("INCONCLUSIVE", 5, 10)
+    assert (v.outcome, v.rule, v.rounds) == ("INCONCLUSIVE", 5, 12)
     assert v.interval is not None
     assert set(gates(result.record).values()) <= {"passed", "not_available"}
-    # Per tree: the output-producing execution, one warmup, ten rounds.
+    # Per tree: the output-producing execution, one warmup, 12 rounds.
     for tree in (project.root, candidate):
-        assert events(tree) == ["reset", "bench"] * 12
+        assert events(tree) == ["reset", "bench"] * 14
 
 
 def test_recheck_runs_one_baseline_execution_after_its_reset(
@@ -864,8 +887,8 @@ def example_candidate(tmp_path: Path, example: Path, name: str) -> Path:
 def thin_rolling_spec(root: Path) -> Path:
     fields = json.loads((root / "spec.json").read_text())
     fields.update(
-        budget={"max_rounds": 10, "max_seconds": 600},
-        looks={"n0": 10, "k": 10, "max_looks": 1},
+        budget={"max_rounds": 12, "max_seconds": 600},
+        looks={"n0": 12, "k": 10, "max_looks": 1},
         env={"ROLLING_FLAKY_SEED": "0"},
         objective="wall_time",
         guardrails=GUARDRAILS,
@@ -927,6 +950,24 @@ def test_cli_rolling_fix_is_inconclusive_before_calibration(
     )
     assert v["diagnostics"]["procedure_uncalibrated"] is True
     assert v["interval"]["lower"] > 1.03
+    assert v["procedure"] == "t_log_ratio_batch_means"
+    with np.load(
+        Path(result["run_dir"]) / SAMPLES_NAME, allow_pickle=False
+    ) as data:
+        mine = data["candidate"] == 1
+        value = data["value"][np.argsort(data["round"], kind="stable")]
+        mine = mine[np.argsort(data["round"], kind="stable")]
+    means = t_interval(
+        value[~mine][np.newaxis],
+        value[mine][np.newaxis],
+        direction="lower_is_better",
+        confidence=v["interval"]["confidence"],
+        block=BATCH_BLOCK,
+    )
+    assert v["interval"]["lower"] <= float(means.lower[0])
+    assert v["interval"]["lower"] == pytest.approx(
+        float(means.lower[0]), rel=1e-2
+    )
     record = read_record(Path(result["record_path"]))
     assert record.verdict.model_dump(mode="json") == v
     assert Path(result["report_path"]).is_file()
@@ -1067,3 +1108,393 @@ def test_cli_ambiguous_spec_needs_a_hash(
     assert sorted(result["error"]["details"]["matches"]) == sorted(
         [thin, shipped]
     )
+
+
+# Batch means, the diagnostic gate and the late-look refusal
+
+WAVE_BENCH = """\
+import hashlib
+import os
+from pathlib import Path
+
+from work import factor
+
+# Each tree counts its own executions, so round r has the same index i
+# in both and the printed values are a function of (tree, round).
+name = hashlib.md5(os.getcwd().encode()).hexdigest()
+counter = Path(os.environ["WAVE_DIR"]) / name
+i = int(counter.read_text()) if counter.exists() else 0
+counter.write_text(str(i + 1))
+with open("out.txt", "w") as f:
+    f.write("42\\n")
+print("PERFPROOF {\\"value\\": %r}" % factor(i))
+"""
+# Distinct values, so the continuity check of a reported metric passes.
+WAVE_BASELINE = "def factor(i):\n    return 1.0 + 0.0001 * ((i * 7) % 11)\n"
+WAVE_CANDIDATE = (
+    "import math\n\n\ndef factor(i):\n"
+    "    return 0.7 * math.exp(0.015 * math.sin(2 * math.pi * i / 40))\n"
+)
+
+
+def wave_run(
+    tmp_path: Path, spec_changes: Mapping[str, Any] | None = None
+) -> tuple[Project, CompareResult]:
+    """A candidate 1.43 times faster, log ratios on a slow wave."""
+    project = make_project(tmp_path, bench=WAVE_BENCH, baseline=WAVE_BASELINE)
+    fields = spec_fields(
+        budget={"max_rounds": 12, "max_seconds": 300.0},
+        looks={"n0": 12, "k": 2, "max_looks": 1},
+        env={"WAVE_DIR": str(tmp_path)},
+        **(spec_changes or {}),
+    )
+    spec = BenchmarkSpec.model_validate(fields)
+    candidate = project.candidate("wave", {"work.py": WAVE_CANDIDATE})
+    return project, project.run(candidate, spec)
+
+
+def arm_values(result: CompareResult) -> tuple[Any, Any]:
+    """Both arms' recorded values in round order."""
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        mine = data["candidate"] == 1
+        order = np.argsort(data["round"], kind="stable")
+        value = data["value"][order]
+        return value[~mine[order]], value[mine[order]]
+
+
+def test_the_interval_is_the_batch_means_interval(project: Project) -> None:
+    faster = project.candidate("fast", {"work.py": work(0.005)})
+    result = project.run(faster, twelve_rounds())
+    v = result.record.verdict
+    assert v.interval is not None
+    b, c = arm_values(result)
+    kwargs: dict[str, Any] = {
+        "direction": "lower_is_better",
+        "confidence": v.interval.confidence,
+    }
+    means = t_interval(
+        b[np.newaxis], c[np.newaxis], block=BATCH_BLOCK, **kwargs
+    )
+    plain = t_interval(b[np.newaxis], c[np.newaxis], **kwargs)
+    # The resolution widens the bounds outward by a little: the printed
+    # values have six decimals, so well under 1% here.
+    assert v.interval.lower <= float(means.lower[0])
+    assert v.interval.upper >= float(means.upper[0])
+    assert v.interval.lower == pytest.approx(float(means.lower[0]), rel=1e-2)
+    assert v.interval.upper == pytest.approx(float(means.upper[0]), rel=1e-2)
+    assert abs(v.interval.lower - float(means.lower[0])) < abs(
+        v.interval.lower - float(plain.lower[0])
+    )
+    assert v.estimate == float(means.estimate[0])
+
+
+def test_the_order_of_each_round_reaches_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[Any] = []
+    real = compare_module.decide_look
+
+    def spy(*args: Any, **kwargs: Any) -> Look:
+        seen.append((kwargs["candidate_first"], args[0].shape[1]))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(compare_module, "decide_look", spy)
+    _, result = wave_run(tmp_path)
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        ran_first = data["candidate"][data["position"] == 0] == 1
+    assert 0 < int(ran_first.sum()) < 12
+    assert seen
+    for flags, n in seen:
+        assert flags.dtype == np.bool_
+        assert flags.shape == (1, n)
+        assert flags[0].tolist() == ran_first[:n].tolist()
+
+
+def test_a_withheld_look_names_its_reason_in_the_record_and_report(
+    tmp_path: Path,
+) -> None:
+    _, result = wave_run(tmp_path)
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
+    assert v.procedure == "t_log_ratio_batch_means"
+    assert v.diagnostics.autocorrelated_rounds is True
+    assert v.diagnostics.outlier_rounds is False
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    report = result.report_path.read_text()
+    assert "autocorrelated_rounds: yes (decision withheld)" in report
+    assert "The diagnostic gate withheld the decision" in report
+    assert "no number of rounds can change" in report
+    assert "More rounds, or less dependence" not in report
+    assert read_record(result.record_path) == result.record
+
+
+def test_high_lag1_autocorrelation_warns(tmp_path: Path) -> None:
+    _, result = wave_run(tmp_path)
+    warned = [
+        w
+        for w in result.record.warnings
+        if w.code == "lag1_autocorrelation_high"
+    ]
+    assert len(warned) == 1
+    lag1 = result.record.verdict.diagnostics.lag1_autocorrelation
+    assert lag1 is not None
+    assert lag1 > 0.3
+    assert f"{lag1:.3f}" in warned[0].message
+
+
+@pytest.mark.parametrize(
+    ("n0", "k", "looks", "max_rounds", "late"),
+    [
+        (10, 10, 6, 60, 0),
+        (20, 20, 6, 120, 1),
+        (20, 20, 7, 121, 1),
+        (20, 20, 7, 122, 2),
+        (20, 20, 10, 200, 5),
+        (10, 10, 14, 140, 3),
+        (120, 2, 3, 122, 2),
+        (120, 2, 1, 130, 1),
+    ],
+    ids=[
+        "python-default",
+        "gpu-default",
+        "one-late-look-no-room-for-a-cut",
+        "one-late-look-and-a-cut",
+        "shipped-examples",
+        "three-late",
+        "n0-already-late",
+        "single-look-late",
+    ],
+)
+def test_late_looks_are_counted_as_the_method_says(
+    n0: int, k: int, looks: int, max_rounds: int, late: int
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": max_rounds, "max_seconds": 300.0},
+            looks={"n0": n0, "k": k, "max_looks": looks},
+        )
+    )
+    assert late_looks(spec) == late
+
+
+def test_a_schedule_outside_the_calibrated_ones_runs_to_a_verdict(
+    project: Project,
+) -> None:
+    # Looks at 120, 122 and 124 rounds: three at 20 blocks or more.
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 124, "max_seconds": 600.0},
+            looks={"n0": 120, "k": 2, "max_looks": 3},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
+    assert v.rounds >= 120
+    warned = [
+        w for w in result.record.warnings if w.code == "schedule_uncalibrated"
+    ]
+    assert len(warned) == 1
+    assert "can never be a KEEP" in warned[0].message
+    assert "schedule_uncalibrated" in result.report_path.read_text()
+
+
+@pytest.mark.parametrize(
+    ("looks", "max_rounds", "applicable", "blocked"),
+    [
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, False, False),
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, False, False),
+        ({"n0": 20, "k": 20, "max_looks": 10}, 200, False, True),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, True, True),
+    ],
+    ids=["python-default", "gpu-default", "late-looks", "guardrail"],
+)
+def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
+    looks: dict[str, int], max_rounds: int, applicable: bool, blocked: bool
+) -> None:
+    guardrails = [
+        {
+            "metric": "peak_memory",
+            "direction": "lower_is_better",
+            "unit": "bytes",
+            "applicable": False,
+            "reason": "not used here",
+        }
+        if g["metric"] == "peak_memory" and not applicable
+        else g
+        for g in GUARDRAILS
+    ]
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            looks=looks,
+            budget={"max_rounds": max_rounds, "max_seconds": 600.0},
+            guardrails=guardrails,
+        )
+    )
+    assert keep_blocked(spec) is blocked
+
+
+def test_the_default_schedules_have_no_late_look_warning(
+    project: Project,
+) -> None:
+    result = project.run(project.candidate("same", {}))
+    assert "schedule_uncalibrated" not in {
+        w.code for w in result.record.warnings
+    }
+
+
+UNDERFLOW_BASELINE = (
+    "def factor(i):\n"
+    "    return 1.2345678901 * 10.0 ** (-260 + ((i * 7) % 11 - 5) * 3.5)\n"
+)
+UNDERFLOW_CANDIDATE = (
+    "def factor(i):\n    return 1.0 + 0.0001 * ((i * 7) % 11)\n"
+)
+
+
+def test_an_unrepresentable_bound_is_inconclusive_with_its_cause(
+    tmp_path: Path,
+) -> None:
+    # Ratios of 1e-260 spread over 35 decades: the lower bound
+    # underflows, so the look has no interval, and the record says why.
+    project = make_project(
+        tmp_path, bench=WAVE_BENCH, baseline=UNDERFLOW_BASELINE
+    )
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+            env={"WAVE_DIR": str(tmp_path)},
+        )
+    )
+    candidate = project.candidate("same", {"work.py": UNDERFLOW_CANDIDATE})
+    result = project.run(candidate, spec)
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        5,
+    )
+    assert (v.interval, v.estimate) == (None, None)
+    assert v.rounds == 12
+    codes = {w.code for w in result.record.warnings}
+    assert "interval_unrepresentable" in codes
+    assert "coarse_resolution" not in codes
+
+
+EXTREME_BASELINE = (
+    "def factor(i):\n"
+    "    if i == {i} and {arm!r} == 'baseline':\n        return {value}\n"
+    "    return 1.2345678e-5 * (1 + 0.002 * ((i * 7) % 11))\n"
+)
+EXTREME_CANDIDATE = (
+    "import sys\n\n\ndef factor(i):\n"
+    "    if i == {i} and {arm!r} == 'candidate':\n        return {value}\n"
+    "    return 1.1111111e-5 * (1 + 0.002 * ((i * 7) % 11))\n"
+)
+
+
+def extreme_run(tmp_path: Path, arm: str, value: str) -> CompareResult:
+    """One round prints ``value`` in ``arm``; the rest are ordinary."""
+    project = make_project(
+        tmp_path,
+        bench=WAVE_BENCH,
+        baseline=EXTREME_BASELINE.format(i=7, arm=arm, value=value),
+    )
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+            env={"WAVE_DIR": str(tmp_path)},
+        )
+    )
+    files = {"work.py": EXTREME_CANDIDATE.format(i=7, arm=arm, value=value)}
+    return project.run(project.candidate("extreme", files), spec)
+
+
+@pytest.mark.parametrize(
+    ("arm", "value", "warning"),
+    [
+        ("candidate", "sys.float_info.max", "interval_unrepresentable"),
+        ("baseline", "5e-324", "coarse_resolution"),
+        ("candidate", "1.2345678901e305", "interval_unrepresentable"),
+    ],
+    ids=["float-max", "denormal", "ratio-below-normal"],
+)
+def test_one_extreme_value_gives_inconclusive_not_a_crash(
+    tmp_path: Path, arm: str, value: str, warning: str
+) -> None:
+    result = extreme_run(tmp_path, arm, value)
+    v = result.record.verdict
+    assert v.outcome == "INCONCLUSIVE"
+    assert v.interval is None
+    assert warning in {w.code for w in result.record.warnings}
+    assert result.record_path.is_file()
+    assert read_record(result.record_path) == result.record
+
+
+def test_a_huge_value_leaves_the_cv_finite(tmp_path: Path) -> None:
+    result = extreme_run(tmp_path, "candidate", "1.2345678901e295")
+    d = result.record.verdict.diagnostics
+    assert d.cv_candidate is not None
+    assert 0 < d.cv_candidate < 10
+    assert d.sd_log_ratio is not None
+
+
+def test_a_cv_that_is_not_finite_is_not_recorded(tmp_path: Path) -> None:
+    result = extreme_run(tmp_path, "baseline", "5e-324")
+    d = result.record.verdict.diagnostics
+    assert d.cv_baseline is None or d.cv_baseline >= 0
+
+
+def test_the_recorded_lag1_uses_the_order_of_each_round(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[Any] = []
+    real = compare_module.lag1_autocorrelation
+
+    def spy(d: Any, first: Any) -> Any:
+        seen.append(first)
+        return real(d, first)
+
+    monkeypatch.setattr(compare_module, "lag1_autocorrelation", spy)
+    _, result = wave_run(tmp_path)
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        ran_first = data["candidate"][data["position"] == 0] == 1
+    assert len(seen) == 1
+    assert seen[0].tolist() == ran_first.tolist()
+    assert 0 < int(ran_first.sum()) < 12
+
+
+def test_a_guardrail_blocks_keep_at_every_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    blocked: list[Any] = []
+    real = compare_module.decide_look
+
+    def spy(*args: Any, **kwargs: Any) -> Look:
+        if "keep_blocked" in kwargs:
+            blocked.append(kwargs["keep_blocked"].tolist())
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(compare_module, "decide_look", spy)
+    wave_run(tmp_path)
+    assert blocked
+    assert all(b == [True] for b in blocked)
+
+
+def test_identical_ratios_record_no_lag1_warning(tmp_path: Path) -> None:
+    flat = "def factor(i):\n    return 1.0\n"
+    project = make_project(tmp_path, bench=WAVE_BENCH, baseline=flat)
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+            env={"WAVE_DIR": str(tmp_path)},
+        )
+    )
+    result = project.run(project.candidate("flat", {"work.py": flat}), spec)
+    codes = {w.code for w in result.record.warnings}
+    assert "lag1_autocorrelation_high" not in codes
+    assert result.record.verdict.diagnostics.lag1_autocorrelation is None

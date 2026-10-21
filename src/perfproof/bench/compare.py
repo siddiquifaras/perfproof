@@ -73,9 +73,17 @@ Before calibration
 T1.7). Rules 2 and 3 then never fire: every comparison that passes
 its gates runs to the end of its budget, or to its ``K``-th look, and
 ends INCONCLUSIVE (``insufficient_evidence``) with the diagnostic
-``procedure_uncalibrated`` and its interval recorded. Only a gate
-REJECT can end it otherwise, and the resolution stop can end it early
-as INCONCLUSIVE.
+``procedure_uncalibrated``. The interval is the batch-means interval
+of ``docs/method.md`` and is recorded when the last look has one: not
+below two complete blocks (12 rounds), and not when a ratio or a bound
+falls outside the float range, which records the warning
+``interval_unrepresentable``. The diagnostic gate is still evaluated
+as if calibrated, so a look it would have withheld records
+``autocorrelated_rounds`` or ``outlier_rounds``. A schedule that can
+take more than one look at 120 rounds or more runs, records the warning
+``schedule_uncalibrated`` and can never KEEP. Only a gate REJECT can
+end a comparison otherwise, and the resolution stop can end it early as
+INCONCLUSIVE.
 
 Resolution
 ----------
@@ -184,6 +192,8 @@ from perfproof.schema import (
 from perfproof.stats.decision import GATE_PRECEDENCE, decide
 from perfproof.stats.intervals import t_interval
 from perfproof.stats.sequential import (
+    BATCH_BLOCK,
+    LAG1_MIN_BLOCKS,
     Look,
     Resolution,
     decide_look,
@@ -199,13 +209,15 @@ __all__ = [
     "CompareResult",
     "CompareStoppedError",
     "compare",
+    "keep_blocked",
+    "late_looks",
 ]
 
 CALIBRATED: Final = False
 """Whether the interval procedure has passed calibration. False until
 the M1 exit (T1.6 and T1.7): no KEEP and no performance REJECT."""
-PROCEDURE: Final[Procedure] = "t_log_ratio"
-"""The primary interval procedure of ``docs/method.md``."""
+PROCEDURE: Final[Procedure] = "t_log_ratio_batch_means"
+"""The primary interval procedure of ``docs/method.md``: batch means."""
 SAMPLES_NAME: Final = "samples.npz"
 """File name of the raw samples in a run directory."""
 
@@ -625,6 +637,22 @@ class _Run:
         except ValueError as exc:
             msg = f"the look schedule can't run on one host: {exc}"
             raise self.stop("unsupported_spec", msg) from exc
+        if late_looks(spec) > 1:
+            self.warnings.append(
+                RunWarning(
+                    code="schedule_uncalibrated",
+                    message=(
+                        f"the look schedule (n0 {spec.looks.n0}, k "
+                        f"{spec.looks.k}, {spec.looks.max_looks} looks, up "
+                        f"to {spec.budget.max_rounds} rounds) can take "
+                        "more than one look at "
+                        f"{LAG1_MIN_BLOCKS * BATCH_BLOCK} rounds or more, "
+                        "outside the schedules the procedure was "
+                        "calibrated on: the comparison runs, but this "
+                        "verdict can never be a KEEP"
+                    ),
+                )
+            )
         declared = {g.metric for g in spec.guardrails}
         missing = sorted(
             set(DEFAULT_GUARDRAILS[None]) - declared - {spec.objective}
@@ -911,11 +939,28 @@ class _Run:
             ),
             keep_blocked=np.array([self._keep_blocked()]),
             procedure=PROCEDURE,
+            candidate_first=self._candidate_first(used)[np.newaxis, :],
+        )
+
+    def _candidate_first(self, used: int) -> NDArray[np.bool_]:
+        """Whether the candidate ran first in each of ``used`` rounds.
+
+        Read from each sample's recorded ``position`` (0 ran first), not
+        from the seeded plan, so it is what actually ran, including for
+        rounds restored from a journal.
+        """
+        return np.array(
+            [
+                next(s for s in m.samples if s.position == 0).version
+                == "candidate"
+                for m in self.measured[:used]
+            ],
+            dtype=np.bool_,
         )
 
     def _keep_blocked(self) -> bool:
-        """Whether a guardrail can't be shown compliant yet."""
-        return any(g.applicable for g in self.spec.guardrails)
+        """Whether a KEEP is withheld: see `keep_blocked`."""
+        return keep_blocked(self.spec)
 
     def _values(
         self, used: int, field: Callable[[Sample], float]
@@ -1023,17 +1068,33 @@ class _Run:
             return Diagnostics(procedure_uncalibrated=True), None, None
         spec = self.spec
         b, c = self._values(n, lambda s: s.value)
-        ratios = b / c if spec.metric.direction == "lower_is_better" else c / b
-        d = np.log(ratios)
-        first = np.array(
-            [m.samples[0].version == "candidate" for m in self.measured]
-        )[:n]
-        lag1 = float(lag1_autocorrelation(d, first))
-        self._shape_warnings(d, lag1)
+        with np.errstate(over="ignore", under="ignore"):
+            ratios = (
+                b / c if spec.metric.direction == "lower_is_better" else c / b
+            )
+        in_range = bool(
+            np.all(np.isfinite(ratios) & (ratios >= np.finfo(np.float64).tiny))
+        )
+        first = self._candidate_first(n)
+        d = np.log(ratios) if in_range else None
+        # Identical log ratios have no autocorrelation, whatever residue
+        # the mean leaves, as in the gate of `decide_look`.
+        lag1 = (
+            float(lag1_autocorrelation(d, first))
+            if d is not None and np.ptp(d) > 0
+            else math.nan
+        )
+        if d is not None:
+            self._shape_warnings(d, lag1)
         confidence = ended.confidence
         interval: Interval | None = None
         estimate: float | None = None
-        if look is not None and int(look.rule[0]) == 5:
+        if (
+            look is not None
+            and int(look.rule[0]) == 5
+            and np.isfinite(look.lower[0])
+            and np.isfinite(look.upper[0])
+        ):
             interval = Interval(
                 lower=float(look.lower[0]),
                 upper=float(look.upper[0]),
@@ -1045,7 +1106,26 @@ class _Run:
                     c,
                     direction=spec.metric.direction,
                     confidence=confidence,
+                    block=BATCH_BLOCK,
                 ).estimate
+            )
+        if (
+            interval is None
+            and look is not None
+            and int(look.rule[0]) == 5
+            and n // BATCH_BLOCK >= 2
+        ):
+            self.warnings.append(
+                RunWarning(
+                    code="interval_unrepresentable",
+                    message=(
+                        "a ratio or an interval bound of the last look "
+                        "fell outside the range of a float (underflowed to "
+                        "0 or overflowed), so no interval is recorded and "
+                        "the look decides nothing; the values are extreme "
+                        "or spread over hundreds of orders of magnitude"
+                    ),
+                )
             )
         wall, disagree = self._wall(n, confidence, interval)
         diagnostics = Diagnostics(
@@ -1053,9 +1133,11 @@ class _Run:
             metric_disagreement=disagree,
             wall_interval=wall,
             lag1_autocorrelation=None if math.isnan(lag1) else lag1,
-            cv_baseline=float(np.std(b, ddof=1) / np.mean(b)),
-            cv_candidate=float(np.std(c, ddof=1) / np.mean(c)),
-            sd_log_ratio=float(np.std(d, ddof=1)),
+            autocorrelated_rounds=_gate_flag(look, "autocorrelated_rounds"),
+            outlier_rounds=_gate_flag(look, "outlier_rounds"),
+            cv_baseline=_cv(b),
+            cv_candidate=_cv(c),
+            sd_log_ratio=None if d is None else float(np.std(d, ddof=1)),
         )
         return diagnostics, interval, estimate
 
@@ -1087,8 +1169,11 @@ class _Run:
                 baseline_step=step, candidate_step=step, check_continuity=False
             ),
             procedure=PROCEDURE,
+            candidate_first=self._candidate_first(n)[np.newaxis, :],
         )
-        if int(look.rule[0]) == 1:
+        if int(look.rule[0]) == 1 or not (
+            np.isfinite(look.lower[0]) and np.isfinite(look.upper[0])
+        ):
             return None, None
         wall = Interval(
             lower=float(look.lower[0]),
@@ -1311,6 +1396,86 @@ def _tail(path: Path) -> tuple[str, bool]:
     except OSError:
         return "", False
     return data.decode("utf-8", errors="replace"), size > OUTPUT_TAIL_BYTES
+
+
+def _cv(values: NDArray[np.float64]) -> float | None:
+    """Coefficient of variation, ``None`` if not a finite float.
+
+    Scaled by the largest value first, so a value near the float
+    maximum cannot overflow the variance. The result is unchanged by
+    the scale.
+    """
+    scaled = values / np.max(values)
+    cv = float(np.std(scaled, ddof=1) / np.mean(scaled))
+    return cv if math.isfinite(cv) else None
+
+
+def _gate_flag(look: Look | None, name: str) -> bool | None:
+    """Whether the diagnostic gate named ``name`` at ``look``.
+
+    ``None`` when no look was taken, so the gate was not evaluated.
+    """
+    if look is None:
+        return None
+    return str(look.withheld[0]) == name
+
+
+def keep_blocked(spec: BenchmarkSpec) -> bool:
+    """Whether the spec rules out a KEEP, whatever the interval shows.
+
+    True when a guardrail can't be shown compliant yet, or when the
+    look schedule is outside the calibrated ones (more than one look at
+    120 observations or more, see `late_looks`). Rule 2 then continues,
+    or is INCONCLUSIVE at the last look; REJECTs are unaffected.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec being compared.
+
+    Returns
+    -------
+    bool
+        Whether rule 2 must not keep.
+    """
+    return any(g.applicable for g in spec.guardrails) or late_looks(spec) > 1
+
+
+def late_looks(spec: BenchmarkSpec) -> int:
+    """Count the looks the budget can take at 120 observations or more.
+
+    "Stopping" in ``docs/method.md``: the scheduled looks at
+    ``n0 + j k`` for ``j < K`` from 120 up to ``max_rounds``, plus one
+    when exactly one is that long, it is not the ``K``-th, and the
+    budget runs at least 2 rounds past it, since a budget that ends
+    there takes a final look that replaces the remaining ones.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec whose look schedule and budget are counted, in rounds
+        (one host).
+
+    Returns
+    -------
+    int
+        The looks at 120 observations or more. Exact for whether it is
+        above 1, which is what the warning and the KEEP block use; a
+        lower bound on the true count above that.
+    """
+    sched = spec.looks
+    late = [
+        n
+        for j in range(sched.max_looks)
+        if LAG1_MIN_BLOCKS * BATCH_BLOCK
+        <= (n := sched.n0 + j * sched.k)
+        <= spec.budget.max_rounds
+    ]
+    if len(late) != 1:
+        return len(late)
+    j = (late[0] - sched.n0) // sched.k
+    cut = j + 1 < sched.max_looks and spec.budget.max_rounds >= late[0] + 2
+    return 1 + int(cut)
 
 
 def _wall_step() -> float:

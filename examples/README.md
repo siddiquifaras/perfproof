@@ -101,8 +101,10 @@ version 3. It names `wall_time` as the objective and declares the three
 default guardrails of `docs/method.md` (the target class is unknown, so
 all three are required): peak memory at the 10% default allowance, and
 peak GPU memory and p99 latency not applicable, each with a reason.
-Its budget and look schedule are a starting point for T2.8, not a
-measured choice.
+Its budget and look schedule are the default Python schedule of
+`docs/method.md` (10, 10, 6 looks, 60 rounds), a starting point for
+T2.8, not a measured choice; a schedule with more than one look at 120
+rounds or more still runs, but `compare` warns and never keeps.
 `pytest.ini` is locked as config, so a candidate can't deselect tests.
 `colsum` has no spec: the schema has no build step yet.
 

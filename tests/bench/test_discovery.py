@@ -246,7 +246,9 @@ def test_conditions_need_distinct_keys(
 
 def test_rounds_beyond_the_budget_are_refused(tmp_path: Path) -> None:
     spec = example_spec("growth")
-    with pytest.raises(MeasureError, match="budget of 200") as info:
+    with pytest.raises(
+        MeasureError, match=f"budget of {spec.budget.max_rounds}"
+    ) as info:
         run_conditions(
             spec,
             project(tmp_path, "growth"),

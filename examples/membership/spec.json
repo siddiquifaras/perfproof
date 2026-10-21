@@ -36,8 +36,8 @@
     "outputs": [{"path": "output/held.txt", "compare": "text"}]
   },
   "warmup": 1,
-  "budget": {"max_rounds": 200, "max_seconds": 900},
-  "looks": {"n0": 20, "k": 20, "max_looks": 10},
+  "budget": {"max_rounds": 60, "max_seconds": 900},
+  "looks": {"n0": 10, "k": 10, "max_looks": 6},
   "min_effect": 0.03,
   "alpha": 0.05,
   "timeout_seconds": 60,

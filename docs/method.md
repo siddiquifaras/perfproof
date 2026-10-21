@@ -627,6 +627,14 @@ freedom) at the per-look confidence below, exponentiated to give
 boundaries stay where they were as the looks accumulate. It is the
 same procedure on one host and cross host.
 
+- **A bound that cannot be represented** is no interval: a lower bound
+  that underflows to 0 or an upper bound that overflows to infinity (the
+  conservative values `intervals` returns past the float range), before
+  or after the resolution widening, or a NaN bound. The look records no
+  interval, neither keeps nor rejects, and is rule 4 while budget
+  remains and rule 5 (INCONCLUSIVE, `insufficient_evidence`) at its last
+  look, never an error; the record carries a
+  `interval_unrepresentable` warning, so the empty interval has a cause.
 - **Fewer than two complete blocks** (`n` below 12) give no interval,
   never an error: the look neither keeps nor rejects, it is rule 4
   while budget remains and rule 5 (INCONCLUSIVE,
@@ -674,6 +682,25 @@ The look schedule is fixed before the first round:
   63 points, the most in the least noisy one.
 - The comparison stops at the first look where the resolution stop or
   rule 2 or 3 below fires.
+- **A schedule outside the calibrated ones.** The gate under
+  "Assumptions" lifts at 20 blocks (120 observations), so a schedule
+  that can take more than one look at that length has looks the
+  calibration never covered (the T1.8 audit's F2). Such a spec is not
+  refused: perfproof cannot verify the procedure there, so it measures
+  anyway, says what it could not verify, and withholds only the KEEP.
+  The comparison runs; a KEEP is withheld the way an unestablished
+  guardrail withholds it (rule 2 continues, and is INCONCLUSIVE at the
+  last look); REJECTs (a failed gate, a measured performance REJECT)
+  are decided as usual; and the record carries the warning
+  `schedule_uncalibrated`, which the report shows. The test is whether
+  more than one such look is possible: the scheduled looks at
+  `n0 + j k` for `j < K` that are 120 or more and at most
+  `max_rounds`, plus one when exactly one scheduled look is that long,
+  it is not the `K`-th, and `max_rounds` is at least 2 rounds past it
+  (a budget that ends there takes a final look on the complete order
+  pairs, which replaces the remaining scheduled looks and can also be
+  120 or more). The default schedules never reach it: GPU kernels
+  has its single look at 120 as its last.
 
 **Defaults per target class.** Provisional: chosen by reasoning about
 each class's round cost and noise, not measured or calibrated. T1.6
@@ -754,8 +781,12 @@ nothing.
 the end of its budget and ends **INCONCLUSIVE**
 (`insufficient_evidence`), with the diagnostic
 `procedure_uncalibrated` recorded. Rule 1 still gives REJECT when a
-gate fails, and the resolution stop still ends it early. Every record states whether it was made by a calibrated
-procedure, and that field has no default.
+gate fails, and the resolution stop still ends it early. The
+diagnostic gate under "Assumptions" is still evaluated on the rule the
+interval gives as if calibrated, so the record names the diagnostic
+(`autocorrelated_rounds` or `outlier_rounds`) that would have withheld
+a KEEP or REJECT, and the report says so. Every record states whether
+it was made by a calibrated procedure, and that field has no default.
 
 With the default bar of +3%:
 
