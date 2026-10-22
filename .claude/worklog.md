@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `eb9a6f5` | C/C++ done well merged (PR #73, T5.4 with T5.3 native coverage): native runtime gate (`nativebuildinfo.py`), native profiler (perf on Linux, `sample` on macOS), llvm-cov/gcov coverage (`native_coverage.py`), playbook native.md, three eval tasks (simdjson, lz4, zstd). Checked head c156ef7: Mac 5147, Linux 5066; then main (#71, sandbox only, no overlap) merged and its own tests rerun: 119 passed |
 | `34a8113` | eval sandbox git fix merged (PR #71): `agent_env` sets `GIT_EXEC_PATH` to the toolchain's git-core, so the toolbin-linked git finds its helpers and fetch/clone work under the sandbox (test fails without the line). Head 5f31023 (1e5b1d8 + main): Mac 5083, Linux 5002 |
 | `9b4ef64` | install-skills source fix merged (PR #72): `skill_source()` prefers the checkout's `skills/perfproof` over the editable install's stale data copy (main's install test failed on every stale Mac venv; a wheel install still uses the data copy, reviewer checked in a fresh venv). Mac 5082, Linux 5002 |
 | `e4dc5a5` | Flaky timing test fixed (PR #70): `test_cli_rolling_fix_is_inconclusive_before_calibration` asserts the estimate > 1.03, not the interval's lower bound, so load on the checking machine can't fail it (Linux run had lower 0.556). Reviewer PASS; Mac 4958, Linux 4878 on 0693df9; merged under the new targeted-rerun rule (own file passed 105 after the main merge) |
