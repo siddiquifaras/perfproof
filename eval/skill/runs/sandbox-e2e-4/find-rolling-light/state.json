@@ -1,0 +1,37 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "a1c9f17d6f2edc64916b0e9d74780baafb981246",
+    "perfproof/rolling": "d96e49512a85149ce42d6ff1fbc5c4e51bdc3d7c"
+  },
+  "seeded": {
+    "main": "a1c9f17d6f2edc64916b0e9d74780baafb981246"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.48s"
+    },
+    {
+      "ref": "perfproof/rolling",
+      "changed": [
+        "rolling.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "................                                                         [100%]\n16 passed, 1 deselected in 0.44s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261022T060056Z-e078a7",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

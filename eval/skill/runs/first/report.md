@@ -6,7 +6,7 @@ Skill `6087f6fa28cf`, Claude Code 2.1.291 (Claude Code).
 - Trigger set: 12 of 12 matched
 - Verdict accepted: 6 of 8; wrong KEEP: 0
 - Result line correct: 7 of 8
-- Hotspot ranked first by the profile and named: 2 of 2
+- Hotspot in a real `perfproof profile` output and named: top1 2 of 2
 - Fix passes tests, no locked file touched (prove: no code changed): 8 of 8
 - Tree clean: 8 of 8
 - Wording violations: result_line 1

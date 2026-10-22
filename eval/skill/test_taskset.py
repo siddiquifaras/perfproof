@@ -24,6 +24,7 @@ def test_task_ids_are_unique_and_cover_the_brief() -> None:
 
 @pytest.mark.parametrize("task", TASKS, ids=lambda t: t.id)
 def test_every_branch_names_a_real_candidate(task: taskset.Task) -> None:
+    assert task.example is not None
     for branch in task.branches:
         root = runner.EXAMPLES / task.example / "candidates"
         assert (root / branch.candidate).is_dir()
@@ -98,6 +99,7 @@ def test_broken_skill_inverts_only_the_direction_rule(
 def test_each_branch_differs_from_main_by_exactly_its_candidate(
     task: taskset.Task, tmp_path: Path
 ) -> None:
+    assert task.example is not None
     repo = tmp_path / "repo"
     runner.build_repo(task, repo, runner.SKILL_SOURCE)
     for branch in task.branches:

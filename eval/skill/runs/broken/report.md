@@ -6,7 +6,7 @@ Skill `0674202571f3`, Claude Code 2.1.291 (Claude Code).
 - Trigger set: 0 of 0 matched
 - Verdict accepted: 2 of 2; wrong KEEP: 0
 - Result line correct: 2 of 2
-- Hotspot ranked first by the profile and named: 0 of 0
+- Hotspot in a real `perfproof profile` output and named: no task has one
 - Fix passes tests, no locked file touched (prove: no code changed): 2 of 2
 - Tree clean: 2 of 2
 - Wording violations: direction_word 4

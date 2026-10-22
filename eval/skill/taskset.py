@@ -11,13 +11,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 TASKS_FILE = Path(__file__).resolve().parent / "tasks.json"
 """The committed task-set file."""
 
 Kind = Literal["prove", "find", "trigger"]
-FixKind = Literal["none", "branch"]
+FixKind = Literal["none", "branch", "optional_branch"]
 
 
 class _Model(BaseModel):
@@ -51,10 +51,45 @@ class Hotspot(_Model):
         Path of the module holding it, relative to the repo root.
     function : str
         Name of the function the time goes to.
+    top_n : int
+        The function must be among the first ``top_n`` hotspots of a
+        ``perfproof profile`` output in the transcript (1: it must
+        rank first, as for the small examples; 5 for real
+        repositories), and be named, without a negation, after it.
     """
 
     file: str
     function: str
+    top_n: int = 1
+
+
+class RealRepo(_Model):
+    """A public repository at a mined task's commit, built locally.
+
+    The repository, commit, build steps and test command come from the
+    task's manifest under ``eval/tasks`` and ``eval/mine/checks.json``,
+    so there is one source for them.
+
+    Attributes
+    ----------
+    manifest : str
+        Manifest id, for example ``pydata-xarray-pr6107``.
+    branch : str or None
+        Prove tasks: name of the branch cut at the reference change;
+        ``main`` is its parent. ``None`` for find tasks, which get the
+        task commit alone and no history after it.
+    requires : list of str
+        Executables that must be on ``PATH`` (or provided by ``shim``)
+        for the task to run; a missing one skips the task.
+    shim : {"go", "ruby"} or None
+        Toolchain the project runs in a container here: launchers for
+        it are put on the run's ``PATH``, as the manifest's commands do.
+    """
+
+    manifest: str
+    branch: str | None = None
+    requires: list[str] = []
+    shim: Literal["go", "ruby"] | None = None
 
 
 class Expect(_Model):
@@ -98,8 +133,10 @@ class Task(_Model):
         Unique, also the run directory name.
     kind : {"prove", "find", "trigger"}
         What the task exercises.
-    example : str
+    example : str or None
         Example directory the repo is built from.
+    repo : RealRepo or None
+        A real repository to build instead of an example.
     branches : list of BranchSpec
         Branches to seed, each one commit on the baseline.
     prompt : str
@@ -111,20 +148,36 @@ class Task(_Model):
         ``--max-turns`` for the run; ``None`` leaves it unlimited.
     budget_usd : float
         ``--max-budget-usd`` for each ``claude`` call.
+    task_budget_usd : float or None
+        Cap on the whole task: later calls get what is left, and none
+        starts once it is spent. ``None`` leaves only the per-call cap.
+    timeout_s : float or None
+        Wall-time cap for each ``claude`` call; the runner default when
+        ``None``.
     locked : list of str
         Files a change must not touch (harness, oracle, config).
     """
 
     id: str
     kind: Kind
-    example: str
+    example: str | None = None
+    repo: RealRepo | None = None
     branches: list[BranchSpec] = []
     prompt: str
     followups: list[str] = []
     max_turns: int | None = None
     budget_usd: float = 1.0
+    task_budget_usd: float | None = None
+    timeout_s: float | None = None
     locked: list[str] = []
     expect: Expect
+
+    @model_validator(mode="after")
+    def _one_source(self) -> Task:
+        if (self.example is None) == (self.repo is None):
+            msg = f"task {self.id}: set exactly one of example and repo"
+            raise ValueError(msg)
+        return self
 
 
 class TaskSet(_Model):

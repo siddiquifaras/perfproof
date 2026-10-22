@@ -8,7 +8,9 @@ unscored noise removed. Nothing here runs anything.
 from __future__ import annotations
 
 import json
+import posixpath
 import re
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -319,8 +321,8 @@ def seen_verdicts(turns: list[Turn]) -> list[SeenVerdict]:
     return found
 
 
-def _top_hotspot(text: str) -> str | None:
-    """Name the function with the largest ``total_fraction`` printed.
+def _ranked_hotspots(text: str) -> list[str]:
+    """List the functions printed, largest ``total_fraction`` first.
 
     Reads each printed object (JSON or a Python dict repr) that has a
     ``function`` and a ``total_fraction``, and skips interpreter frames
@@ -328,7 +330,7 @@ def _top_hotspot(text: str) -> str | None:
     ``<module>``, whose total share covers the whole script and so
     outranks every real function once printed.
     """
-    best: tuple[float, str] | None = None
+    found: list[tuple[float, str]] = []
     for chunk in re.finditer(r"\{[^{}]*\}", text):
         body = chunk.group(0)
         func = re.search(
@@ -350,11 +352,14 @@ def _top_hotspot(text: str) -> str | None:
             score = float(frac.group(1))
         except ValueError:
             continue
-        if best is None or score > best[0]:
-            best = (score, func.group(2))
-    if best is None:
-        best = _top_hotspot_lines(text)
-    return None if best is None else best[1]
+        found.append((score, func.group(2)))
+    if not found:
+        found = _hotspot_lines(text)
+    ordered: list[str] = []
+    for _, name in sorted(found, key=lambda pair: -pair[0]):
+        if name not in ordered:
+            ordered.append(name)
+    return ordered
 
 
 _HOTSPOT_LINE = re.compile(
@@ -362,7 +367,7 @@ _HOTSPOT_LINE = re.compile(
 )
 
 
-def _top_hotspot_lines(text: str) -> tuple[float, str] | None:
+def _hotspot_lines(text: str) -> list[tuple[float, str]]:
     """Read hotspots printed one per line: function, file, ..., share.
 
     Agents often print ``result.hotspots[]`` compactly, for example
@@ -370,15 +375,13 @@ def _top_hotspot_lines(text: str) -> tuple[float, str] | None:
     lines whose file is an interpreter frame (angle brackets) are
     skipped, as in the JSON reading.
     """
-    best: tuple[float, str] | None = None
+    found: list[tuple[float, str]] = []
     for line in text.splitlines():
         match = _HOTSPOT_LINE.match(line)
         if match is None or match.group(2).startswith("<"):
             continue
-        score = float(match.group(3))
-        if best is None or score > best[0]:
-            best = (score, match.group(1))
-    return best
+        found.append((float(match.group(3)), match.group(1)))
+    return found
 
 
 def profile_evidence(turns: list[Turn]) -> tuple[str | None, list[str]]:
@@ -396,7 +399,26 @@ def profile_evidence(turns: list[Turn]) -> tuple[str | None, list[str]]:
         profile call, or no hotspots in its output, were recorded; and
         every assistant text written after the call.
     """
-    top: str | None = None
+    ranked, after = profile_ranking(turns)
+    return (ranked[0] if ranked else None), after
+
+
+def profile_ranking(turns: list[Turn]) -> tuple[list[str], list[str]]:
+    """Find the first ``perfproof profile`` call and rank its output.
+
+    Parameters
+    ----------
+    turns : list of Turn
+        The task's calls.
+
+    Returns
+    -------
+    tuple of (list of str, list of str)
+        The functions that call's output prints, largest share first
+        (empty if no profile call, or no hotspots in its output, were
+        recorded); and every assistant text written after the call.
+    """
+    top: list[str] | None = None
     after: list[str] = []
     ident: str | None = None
     for turn in turns:
@@ -419,8 +441,521 @@ def profile_evidence(turns: list[Turn]) -> tuple[str | None, list[str]]:
                     and top is None
                     and str(block.get("tool_use_id")) == ident
                 ):
-                    top = _top_hotspot(_result_text(block))
-    return top, after
+                    top = _ranked_hotspots(_result_text(block))
+    return (top or []), after
+
+
+_EDIT_TOOLS = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit"})
+_SCRATCH_DIRS = (".perfproof", ".claude")
+_SHARED_PREFIXES = ("/tmp/", "/private/", "/var/", "/dev/")  # noqa: S108
+_HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+_WRITE_OPEN = re.compile(
+    r"open\(\s*(['\"])(?P<path>[^'\"]+)\1\s*,\s*['\"][rbt]*[wax+][bt+]*['\"]"
+)
+_WRITE_PATH = re.compile(
+    r"Path\(\s*(['\"])(?P<path>[^'\"]+)\1\s*\)\s*\.write_(?:text|bytes)\("
+)
+_PY_WRITES = re.compile(
+    r"open\([^)]*,\s*['\"][rbt]*[wax+][bt+]*['\"]|\.write_(?:text|bytes)\("
+)
+_PY_STRING = re.compile(r"['\"]([\w./-]+\.\w+)['\"]")
+_GIT_EDIT = re.compile(
+    r"\bgit\s+(?:commit|apply|cherry-pick|merge|rebase|am|pull|restore)"
+    r"(?![-\w])"
+    r"|\bgit\s+stash\s+(?:pop|apply)\b"
+    r"|\bgit\s+reset\s+[^|;&]*--hard\b"
+    r"|\bgit\s+checkout\s+[^|;&]*?\s--\s+\S"
+)
+# Runs that only report: a dry run, a patch check, a staged restore.
+_GIT_NO_EDIT = re.compile(
+    r"\bgit\s+commit\b[^|;&]*\s--dry-run\b"
+    r"|\bgit\s+apply\b(?![^|;&]*\s--apply\b)[^|;&]*"
+    r"\s--(?:check|stat|numstat|summary)\b"
+    r"|\bgit\s+restore\b(?![^|;&]*\s--worktree\b)[^|;&]*\s--staged\b"
+)
+_GIT_CHECKOUT = re.compile(r"\bgit\s+checkout\s+([^|;&]*)")
+_VALUE_OPTS: dict[tuple[str, ...], frozenset[str]] = {
+    ("profile",): frozenset(
+        {
+            "--spec-hash",
+            "--profiler",
+            "--profiler-command",
+            "--top",
+            "--timeout",
+            "--hypothesis",
+            "--own-module",
+            "--repo",
+        }
+    ),
+    ("bench", "define"): frozenset({"--spec", "--repo"}),
+}
+_SED_IN_PLACE = re.compile(r"-[A-Za-z]*i\S*|--in-place(?:=.*)?")
+_PERL_IN_PLACE = re.compile(r"-[pnalw0-9]*i\S*")
+
+
+def _segments(command: str) -> list[str]:
+    """Split a shell command into simple commands.
+
+    Splits on ``;``, ``&``, ``&&``, ``|``, ``||`` and newlines outside
+    quotes, and keeps a here-document's body with the command that
+    opened it, so text inside quotes or a body never reads as a command.
+    """
+    parts: list[str] = []
+    buf: list[str] = []
+    quote = ""
+    heredocs: list[str] = []
+    i, n = 0, len(command)
+    while i < n:
+        ch = command[i]
+        if quote:
+            buf.append(ch)
+            if ch == quote:
+                quote = ""
+            elif ch == "\\" and quote == '"' and i + 1 < n:
+                i += 1
+                buf.append(command[i])
+        elif ch in "'\"":
+            quote = ch
+            buf.append(ch)
+        elif ch == "\\" and i + 1 < n:
+            buf.append(ch)
+            i += 1
+            buf.append(command[i])
+        elif ch == "&" and i > 0 and command[i - 1] in "<>":
+            buf.append(ch)  # a descriptor copy such as ``2>&1``
+        elif ch == "\n" or ch in ";&|":
+            if ch == "\n" and heredocs:
+                tag = heredocs.pop(0)
+                end = re.compile(rf"^\s*{re.escape(tag)}\s*$", re.M)
+                found = end.search(command, i + 1)
+                stop = found.end() if found else n
+                buf.append(command[i:stop])
+                i = stop
+                continue
+            parts.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+            if command.startswith("<<", i) and not command.startswith(
+                "<<<", i
+            ):
+                found = _HEREDOC.match(command, i)
+                if found:
+                    heredocs.append(found.group(2))
+        i += 1
+    parts.append("".join(buf))
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _words(segment: str) -> list[str]:
+    try:
+        words = shlex.split(segment, posix=True)
+    except ValueError:
+        words = segment.split()
+    while words and (
+        re.fullmatch(r"\w+=\S*", words[0]) or words[0] in {"(", "{", "time"}
+    ):
+        words = words[1:]
+    return [w.lstrip("({") for w in words] if words else words
+
+
+def _is_project_path(path: str, root: str | None) -> bool:
+    """Tell whether a path belongs to the project."""
+    path = path.strip().strip("'\"")
+    if not path or path == "-" or path.startswith(("&", "~", "$")):
+        return False
+    path = posixpath.normpath(path)
+    if path == "." or path == ".." or path.startswith("../"):
+        return False
+    if path.startswith("/"):
+        if root is not None:
+            if path != root and not path.startswith(root + "/"):
+                return False
+            path = path[len(root) :].lstrip("/")
+        elif path.startswith(_SHARED_PREFIXES) or any(
+            f"/{d}/" in path for d in _SCRATCH_DIRS
+        ):
+            return False
+    return bool(path) and path.split("/")[0] not in _SCRATCH_DIRS
+
+
+def _sed_files(words: list[str]) -> list[str]:
+    """Return the file arguments of a ``sed -i`` command."""
+    rest = words[1:]
+    files: list[str] = []
+    script_seen = False
+    skip = False
+    for k, word in enumerate(rest):
+        if skip:
+            skip = False
+        elif word in {"-e", "-f"}:
+            script_seen = True
+            skip = True
+        elif re.fullmatch(r"-[A-Za-z]*i", word) and k + 1 < len(rest):
+            # BSD sed takes the backup suffix as the next word.
+            if rest[k + 1] == "":
+                skip = True
+        elif word.startswith("-"):
+            continue
+        elif not script_seen:
+            script_seen = True
+        else:
+            files.append(word)
+    return files
+
+
+def _redirect_targets(line: str) -> list[str]:
+    """Return the targets of the ``>`` and ``>>`` redirections.
+
+    Quotes are respected, so ``echo 'a > b'`` has none, and ``x>f`` with
+    no spaces is read; ``>&2`` duplicates a descriptor and has no file.
+    """
+    targets: list[str] = []
+    quote = ""
+    i, n = 0, len(line)
+    while i < n:
+        ch = line[i]
+        if quote:
+            if ch == "\\" and quote == '"':
+                i += 1
+            elif ch == quote:
+                quote = ""
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "\\":
+            i += 1
+        elif ch == ">":
+            j = i + 1
+            if j < n and line[j] in ">|":
+                j += 1
+            if j < n and line[j] == "&":
+                i = j + 1
+                continue
+            while j < n and line[j] in " \t":
+                j += 1
+            buf: list[str] = []
+            inner = ""
+            while j < n:
+                c = line[j]
+                if inner:
+                    if c == inner:
+                        inner = ""
+                    else:
+                        buf.append(c)
+                elif c in "'\"":
+                    inner = c
+                elif c == "\\" and j + 1 < n:
+                    j += 1
+                    buf.append(line[j])
+                elif c in " \t;|&<>()":
+                    break
+                else:
+                    buf.append(c)
+                j += 1
+            targets.append("".join(buf))
+            i = j
+            continue
+        i += 1
+    return targets
+
+
+def _git_edit(line: str) -> bool:
+    """Tell whether a command line changes files through ``git``."""
+    if _GIT_NO_EDIT.search(line):
+        return False
+    if _GIT_EDIT.search(line):
+        return True
+    found = _GIT_CHECKOUT.search(line)
+    if found is None:
+        return False
+    rest = found.group(1).split()
+    if any(
+        w in {"-b", "-B", "-c", "-C", "--orphan", "--detach", "-d"}
+        for w in rest
+    ):
+        return False
+    # ``git checkout <path>`` restores a file; a branch has no suffix.
+    return any(
+        w == "." or re.search(r"\.[A-Za-z]\w*$", w)
+        for w in rest
+        if w[:1] != "-"
+    )
+
+
+def _perfproof_args(words: list[str]) -> list[str] | None:
+    """Return a simple command's words after ``perfproof``, or ``None``.
+
+    Strips a ``uv run`` or ``uvx --from <pkg>`` prefix. Redirections are
+    dropped, so ``> out.json`` is not read as an argument.
+    """
+    if words[:2] == ["uv", "run"]:
+        words = words[2:]
+    elif words[:2] == ["uvx", "--from"]:
+        words = words[3:]
+    if not words or words[0] != "perfproof":
+        return None
+    rest: list[str] = []
+    skip = False
+    for word in words[1:]:
+        if skip:
+            skip = False
+        elif re.fullmatch(r"\d*>>?", word):
+            skip = True
+        elif not re.match(r"\d*>", word):
+            rest.append(word)
+    return rest
+
+
+def _positionals(words: list[str], value_opts: frozenset[str]) -> list[str]:
+    """Return the arguments that are not options or their values."""
+    out: list[str] = []
+    skip = False
+    ended = False
+    for word in words:
+        if skip:
+            skip = False
+        elif ended:
+            out.append(word)
+        elif word == "--":
+            ended = True
+        elif word.startswith("--"):
+            skip = word in value_opts
+        elif word.startswith("-") and len(word) > 1:
+            continue
+        else:
+            out.append(word)
+    return out
+
+
+def _subcommand_positionals(
+    segment: str, command: tuple[str, ...]
+) -> list[str] | None:
+    """Return the positionals of ``perfproof <command>`` or ``None``."""
+    args = _perfproof_args(_words(segment))
+    if args is None or tuple(args[: len(command)]) != command:
+        return None
+    return _positionals(args[len(command) :], _VALUE_OPTS[command])
+
+
+def _segment_edits(segment: str, root: str | None) -> bool:
+    # Redirections and options are read from the command line itself; a
+    # here-document body (the rest) is only the python rule's text.
+    line = segment.split("\n", 1)[0]
+    words = _words(line)
+    if not words:
+        return False
+    head = words[0].rsplit("/", 1)[-1]
+    targets: list[str] = []
+    if _perfproof_args(words) is None:
+        targets += _redirect_targets(line)
+    args = [w for w in words[1:] if not w.startswith("-")]
+    if head == "tee":
+        targets += args
+    elif head in {"cp", "mv", "install"} and len(args) >= 2:
+        targets.append(args[-1])
+    elif head == "sed" and any(_SED_IN_PLACE.fullmatch(w) for w in words[1:]):
+        targets += _sed_files(words)
+    elif head == "perl" and any(
+        _PERL_IN_PLACE.fullmatch(w) for w in words[1:]
+    ):
+        targets += args[1:]
+    elif head == "patch":
+        targets += [a for a in args if "." in a] or ["patch"]
+    if any(_is_project_path(t, root) for t in targets):
+        return True
+    if _git_edit(line):
+        return True
+    if head.startswith(("python", "pypy")) or "python" in segment[:40]:
+        paths = [m.group("path") for m in _WRITE_OPEN.finditer(segment)]
+        paths += [m.group("path") for m in _WRITE_PATH.finditer(segment)]
+        if not paths and _PY_WRITES.search(segment):
+            paths = _PY_STRING.findall(segment) or ["unknown"]
+        return any(_is_project_path(p, root) for p in paths)
+    return False
+
+
+def is_code_edit(
+    name: str, args: dict[str, Any], root: str | None = None
+) -> bool:
+    """Tell whether a tool call changes the project's code.
+
+    Parameters
+    ----------
+    name : str
+        The tool's name.
+    args : dict
+        Its arguments.
+    root : str, optional
+        The project's root directory, when known (see
+        ``infer_project_root``). With it, an absolute path outside the
+        root is not the project's, and ``.perfproof`` and ``.claude``
+        are scratch only as the root's own top-level directories.
+
+    Returns
+    -------
+    bool
+        True for ``Write``, ``Edit``, ``MultiEdit`` and ``NotebookEdit``
+        on a project path; and for a ``Bash`` command with a simple
+        command that redirects or ``tee``s into a project path, ``cp``s
+        or ``mv``s onto one, edits in place (``sed -i`` judged by its
+        file arguments, ``perl -pi``, ``patch``), opens a project file
+        for writing from ``python``, or runs ``git commit``, ``apply``,
+        ``cherry-pick``, ``merge``, ``stash pop`` or ``apply``, or
+        ``checkout <ref> -- <file>``. Opening a branch alone and writing
+        a new file under ``.perfproof/`` are not edits. The Bash
+        patterns are best effort: an edit made some way not listed is
+        not seen.
+    """
+    if name in _EDIT_TOOLS:
+        path = str(args.get("file_path") or args.get("notebook_path") or "")
+        return _is_project_path(path, root)
+    if name == "Bash":
+        return any(
+            _segment_edits(s, root)
+            for s in _segments(str(args.get("command", "")))
+        )
+    return False
+
+
+def infer_project_root(turns: list[Turn], task_id: str) -> str | None:
+    """Find the task repo's path in what the agent saw and did.
+
+    Parameters
+    ----------
+    turns : list of Turn
+        The task's calls.
+    task_id : str
+        The task's id; runs keep each repo at ``.../repos/<task id>``.
+
+    Returns
+    -------
+    str or None
+        The first such path, or ``None`` if none appears.
+    """
+    pattern = re.compile(
+        r"(/[^\s\"'\\]*/repos/" + re.escape(task_id) + r")(?=[/\s\"'\\]|$)"
+    )
+    for turn in turns:
+        for event in turn.events:
+            for block in _blocks(event):
+                text = json.dumps(block.get("input", "")) + _result_text(block)
+                found = pattern.search(text)
+                if found:
+                    return found.group(1)
+    return None
+
+
+def profile_targets(command: str) -> list[str]:
+    """List the benchmarks a command asks ``perfproof`` to profile.
+
+    Parameters
+    ----------
+    command : str
+        A Bash command.
+
+    Returns
+    -------
+    list of str
+        The benchmark name of each simple command that starts with
+        ``perfproof profile`` (after environment assignments or a
+        ``uvx --from`` / ``uv run`` prefix), skipping options and the
+        values of those that take one. Text inside quotes or a
+        here-document is not a command.
+    """
+    found: list[str] = []
+    for segment in _segments(command):
+        rest = _subcommand_positionals(segment, ("profile",))
+        if rest is not None:
+            found.append(rest[0].rstrip(")};") if rest else "")
+    return found
+
+
+def _defined_benchmarks(command: str) -> list[str]:
+    names: list[str] = []
+    for segment in _segments(command):
+        rest = _subcommand_positionals(segment, ("bench", "define"))
+        if rest:
+            names.append(rest[0])
+    return names
+
+
+def profile_before_edit(
+    turns: list[Turn], root: str | None = None
+) -> tuple[list[str], list[str], str]:
+    """Find the first successful ``perfproof profile`` before any edit.
+
+    A call counts as a profile call only if one of its simple commands
+    starts with ``perfproof profile`` (so ``echo 'perfproof profile'``
+    does not), and, once the run has defined benchmarks with ``perfproof
+    bench define``, only if it profiles one of them. It succeeded if its
+    output has hotspots that parse and did not report a non-zero exit. A
+    failed attempt followed by a successful one still counts. A success
+    in the same command as, or after, the first detected edit of the
+    project's code does not count (detection is pattern based, see
+    ``is_code_edit``).
+
+    Parameters
+    ----------
+    turns : list of Turn
+        The task's calls.
+    root : str, optional
+        The project's root, for ``is_code_edit``.
+
+    Returns
+    -------
+    tuple of (list of str, list of str, str)
+        The functions that profile printed, largest share first, and
+        every assistant text written after it; and a reason when there
+        is none: ``"none"`` (no successful profile at all) or
+        ``"after_edit"`` (one, but only after the first edit).
+    """
+    edited = False
+    defined: set[str] = set()
+    calls: dict[str, tuple[bool, list[str], frozenset[str]]] = {}
+    ranked: list[str] | None = None
+    late = False
+    after: list[str] = []
+    for turn in turns:
+        for event in turn.events:
+            kind = event.get("type")
+            for block in _blocks(event):
+                btype = block.get("type")
+                if kind == "assistant" and btype == "tool_use":
+                    args = as_dict(block.get("input")) or {}
+                    name = str(block.get("name", ""))
+                    if is_code_edit(name, args, root):
+                        edited = True
+                    command = (
+                        str(args.get("command", "")) if name == "Bash" else ""
+                    )
+                    defined.update(_defined_benchmarks(command))
+                    calls[str(block.get("id"))] = (
+                        edited,
+                        profile_targets(command),
+                        frozenset(defined),
+                    )
+                elif kind == "assistant" and btype == "text":
+                    if ranked is not None:
+                        after.append(str(block.get("text", "")))
+                elif kind == "user" and btype == "tool_result":
+                    was_edited, targets, known = calls.get(
+                        str(block.get("tool_use_id")), (False, [], frozenset())
+                    )
+                    if not targets or ranked is not None:
+                        continue
+                    if known and not any(t in known for t in targets):
+                        continue
+                    text = _result_text(block)
+                    found = _ranked_hotspots(text)
+                    if not found or text.lstrip().startswith("Exit code"):
+                        continue
+                    if was_edited:
+                        late = True
+                    else:
+                        ranked = found
+    if ranked is None:
+        return [], [], "after_edit" if late else "none"
+    return ranked, after, ""
 
 
 def result_metrics(turns: list[Turn]) -> tuple[float, int, float]:

@@ -14,13 +14,16 @@ Checks, by task kind:
 
 from __future__ import annotations
 
+import json
 import re
+import shlex
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+import realrepo
 import transcript
-from runner import Meta, RunVerdict, State
+from runner import Meta, RunVerdict, State, TreeState
 from taskset import Task, TaskSet
 
 # Words the skill must not put next to an uncalibrated estimate
@@ -95,7 +98,8 @@ class Violation(_Model):
     Attributes
     ----------
     rule : str
-        ``direction_word``, ``claim_comparison``, ``cheap_timing`` or
+        ``direction_word``, ``claim_comparison``, ``cheap_timing``,
+        ``leak``, ``harness_access``, ``locked_file_edited`` or
         ``result_line``.
     text : str
         The offending sentence or line, shortened.
@@ -118,14 +122,17 @@ class TaskScore(_Model):
     trigger_ok : bool or None
         ``trigger`` matches the expectation.
     verdict : str or None
-        ``OUTCOME (reason[, gate G])`` of the last compare, if any.
+        ``OUTCOME (reason[, gate G])`` of the verdict the task is graded
+        on (a prove task's first compare, otherwise the last), if any.
     verdict_source : str
         ``record``, ``transcript`` or ``none``.
     verdict_ok : bool or None
         The verdict is accepted by the task. A KEEP where the task does
         not accept one is also counted in ``wrong_keep``.
     wrong_keep : bool
-        A KEEP the task does not accept.
+        A KEEP the task does not accept, in any verdict of the run (the
+        run records or the transcript), not only the judged one. It
+        fails the task.
     result_line : str or None
         The ``Result:`` line found at the end of the final message.
     result_line_ok : bool or None
@@ -134,6 +141,9 @@ class TaskScore(_Model):
         The known function ranks first in a ``perfproof profile``
         output in the transcript and is named, without a negation, in
         what the user could read afterwards.
+    hotspot_top_n : int or None
+        The rank window the hotspot rule used (1: must rank first;
+        5: top five), ``None`` without a known hotspot.
     hotspot_detail : str
         Why.
     fix_ok : bool or None
@@ -173,6 +183,7 @@ class TaskScore(_Model):
     result_line: str | None
     result_line_ok: bool | None
     hotspot_named: bool | None
+    hotspot_top_n: int | None = None
     hotspot_detail: str
     fix_ok: bool | None
     fix_detail: str
@@ -393,11 +404,28 @@ def _judged(
     under test: work the skill goes on to do after the verdict (a fix of
     its own) cannot replace it. The record does not name the candidate
     it judged (``candidate_commit`` is null for a branch), so order is
-    the only link. Other tasks are graded on the last compare.
+    the only link. Other tasks are graded on the last compare. A KEEP
+    anywhere in the run is caught separately by ``any_wrong_keep``,
+    whichever verdict is judged.
     """
     if task.kind == "prove" and state.run_verdicts:
         return state.run_verdicts[0]
     return last
+
+
+def any_wrong_keep(
+    task: Task, state: State, turns: list[transcript.Turn]
+) -> bool:
+    """Tell whether any verdict of the run is a KEEP the task rejects.
+
+    The record's verdicts and those seen in the transcript both count.
+    """
+    accepted = task.expect.outcomes
+    if not accepted or "KEEP" in accepted:
+        return False
+    return any(v.outcome == "KEEP" for v in state.run_verdicts) or any(
+        v.outcome == "KEEP" for v in transcript.seen_verdicts(turns)
+    )
 
 
 def _verdict_ok(
@@ -458,6 +486,8 @@ def fix_check(task: Task, state: State) -> tuple[bool | None, str]:
         if stray:
             return False, "code changed: " + "; ".join(stray)
         return True, "no code changed"
+    if task.expect.fix == "optional_branch":
+        return _optional_branch_check(task, state, new, working)
     if hotspot is None:
         return None, "no hotspot to fix"
     if working is not None:
@@ -485,6 +515,84 @@ def fix_check(task: Task, state: State) -> tuple[bool | None, str]:
     if working is not None and hotspot.file in working.changed:
         return False, "change left in the working tree, not on a branch"
     return False, "no perfproof/* branch changes " + hotspot.file
+
+
+_TEST_PATH = re.compile(
+    r"(?:^|/)(?:tests?|spec|testing|__tests__|Tests?)/"
+    r"|(?:^|/)test_[^/]*$|_test\.[a-z]+$|_spec\.rb$"
+    r"|Tests?\.java$|\.(?:spec|test)\.[jt]sx?$"
+    r"|(?:^|/)(?:conftest\.py|pytest\.ini|tox\.ini|setup\.cfg"
+    r"|pyproject\.toml|noxfile\.py)$"
+)
+_CODE_FILE = re.compile(r"^[\w./-]+\.(?:py|rb|go|rs|cc|cpp|c|h|js|ts|java)$")
+
+
+def _is_test_path(path: str) -> bool:
+    """Tell whether a path of a real repository is a test file."""
+    return _TEST_PATH.search(path) is not None
+
+
+def _oracle_paths(task: Task) -> set[str]:
+    """Files named by the manifest's test command."""
+    if task.repo is None:
+        return set()
+    try:
+        command = realrepo.load_spec(task.repo.manifest).oracle
+    except (FileNotFoundError, KeyError, ValueError):
+        return set()
+    return {t for t in shlex.split(command or "") if _CODE_FILE.match(t)}
+
+
+def locked_edits(task: Task, changed: list[str]) -> list[str]:
+    """List changed paths a run must not touch.
+
+    Parameters
+    ----------
+    task : Task
+        Supplies ``locked``; for a real repository, also the test
+        files, test configuration and the files its oracle names.
+    changed : list of str
+        Paths that differ from the baseline.
+
+    Returns
+    -------
+    list of str
+        The sorted paths that are locked.
+    """
+    barred = set(task.locked)
+    if task.repo is not None:
+        barred |= _oracle_paths(task)
+    return sorted(
+        p
+        for p in changed
+        if p in barred or (task.repo is not None and _is_test_path(p))
+    )
+
+
+def _optional_branch_check(
+    task: Task,
+    state: State,
+    new: list[TreeState],
+    working: TreeState | None,
+) -> tuple[bool, str]:
+    """Judge a run that may or may not have kept a change."""
+    if working is not None:
+        locked = locked_edits(task, working.changed)
+        if locked:
+            return False, f"working tree edits locked files {locked}"
+    dirty = _dirty(state)
+    if dirty:
+        return False, f"uncommitted changes in the tree: {dirty}"
+    kept = [t for t in new if t.ref.startswith("perfproof/")]
+    for tree in kept:
+        touched = locked_edits(task, tree.changed)
+        if touched:
+            return False, f"{tree.ref} edits locked files {touched}"
+        if not tree.tests_ok:
+            return False, f"{tree.ref} fails the tests: {tree.tests_tail}"
+    if not kept:
+        return True, "no change kept"
+    return True, "kept " + ", ".join(t.ref for t in kept) + ", tests pass"
 
 
 def tree_check(state: State) -> tuple[bool, str]:
@@ -518,6 +626,7 @@ def tree_check(state: State) -> tuple[bool, str]:
     return not problems, "; ".join(problems) or "clean"
 
 
+_SELF_URL = "git+https://github.com/siddiquifaras/perfproof"
 _NEGATION = re.compile(r"\b(?:not|no|isn't|aren't|n't)\b", re.IGNORECASE)
 
 
@@ -526,24 +635,145 @@ def hotspot_check(
 ) -> tuple[bool | None, str]:
     """Check the run found the known bottleneck from a profile.
 
-    The function must rank first in the output of a ``perfproof
-    profile`` call in the transcript, and be named, without a
+    The function must rank first in the output of the first successful
+    ``perfproof profile`` call before any edit of the project's code (a
+    failed attempt before it does not matter), and be named, without a
     negation, in what the user could read after that call.
     """
     hotspot = task.expect.hotspot
     if hotspot is None:
         return None, ""
-    top, after = transcript.profile_evidence(turns)
-    if top is None:
+    ranked, after, why = transcript.profile_before_edit(
+        turns, transcript.infer_project_root(turns, task.id)
+    )
+    if not ranked:
+        if why == "after_edit":
+            return False, (
+                "the first successful profile came after the first edit"
+                " of the code"
+            )
         return False, "no profile output with hotspots in the transcript"
-    if top != hotspot.function:
-        return False, f"profile ranks {top} first"
+    top = ranked[0]
+    window = ranked[: hotspot.top_n]
+    if hotspot.function not in window:
+        if hotspot.top_n == 1:
+            return False, f"profile ranks {top} first"
+        return False, (
+            f"{hotspot.function} is not in the profile's top "
+            f"{hotspot.top_n}: {window}"
+        )
     pattern = re.compile(rf"\b{re.escape(hotspot.function)}\b")
     for text in after:
         for sentence in _sentences(text):
             if pattern.search(sentence) and not _NEGATION.search(sentence):
-                return True, f"{top} ranks first and is named"
-    return False, f"{top} ranks first but is never named as the cost"
+                return (
+                    True,
+                    f"{hotspot.function} is in the profile's top "
+                    f"{hotspot.top_n} and is named",
+                )
+    return (
+        False,
+        f"{hotspot.function} is in the profile but never named as the cost",
+    )
+
+
+_HARNESS = ("eval/tasks", "eval/mine", "checks.json", "SPLITS.md")
+
+
+def _call_text(call: transcript.ToolCall) -> str:
+    return json.dumps(call.input, default=str) + "\n" + call.output
+
+
+def leak_violations(
+    calls: list[transcript.ToolCall],
+    reference: str,
+    number: str,
+    title: str = "",
+    name: str = "",
+) -> list[Violation]:
+    """Find signs the run looked up the reference change.
+
+    Parameters
+    ----------
+    calls : list of ToolCall
+        The task's tool calls, of every tool.
+    reference : str
+        Commit sha of the reference change.
+    number : str
+        Its pull request number, or an empty string.
+    title : str, optional
+        Its title; a call that holds it is a lookup.
+    name : str, optional
+        The project's name; a Bash command that installs or downloads a
+        package of that name gets a later release, fix included.
+
+    Returns
+    -------
+    list of Violation
+        One per call whose arguments or output hold the reference
+        commit, its pull request or its title, and one per Bash call
+        that fetches from the network or installs the project from an
+        index. Such a call could only have got its answer
+        from outside the checkout.
+    """
+    needles = [reference[:10]]
+    if number:
+        needles.append(f"pull/{number}")
+    if title:
+        needles.append(title)
+    installs = re.compile(
+        r"\b(?:pip3?|npm|cargo|gem|go)\s+(?:install|download|add|get|update)\b"
+        r"[^\n;&|]*"
+    )
+    project = (
+        re.compile(rf"(?<![\w.])-?{re.escape(name)}\b", re.IGNORECASE)
+        if name
+        else None
+    )
+    fetch = re.compile(
+        r"\bgit\s+(?:fetch|pull|ls-remote|clone)\b|\bgh\s|\bcurl\b"
+        r"|\bwget\b|\bpip\s+download\b|github\.com|githubusercontent"
+    )
+    found: list[Violation] = []
+    for call in calls:
+        command = (
+            str(call.input.get("command", "")) if call.name == "Bash" else ""
+        )
+        # The skill's own documented install fallback is not a lookup.
+        looked = command.replace(_SELF_URL, "")
+        text = _call_text(call)
+        pulled = bool(
+            project
+            and any(
+                project.search(m.group(0)) for m in installs.finditer(looked)
+            )
+        )
+        if fetch.search(looked) or pulled or any(n in text for n in needles):
+            found.append(Violation(rule="leak", text=_clip(text.strip())))
+    return found
+
+
+def harness_violations(
+    calls: list[transcript.ToolCall],
+) -> list[Violation]:
+    """Find calls that reach into the eval's own task files.
+
+    Parameters
+    ----------
+    calls : list of ToolCall
+        The task's tool calls, of every tool (Read, Grep, Glob, Bash).
+
+    Returns
+    -------
+    list of Violation
+        One per call whose arguments or output mention the manifests,
+        their build recipes or the split lists.
+    """
+    return [
+        Violation(rule="harness_access", text=_clip(_call_text(c).strip()))
+        for c in calls
+        if any(n in _call_text(c) for n in _HARNESS)
+    ]
 
 
 def score_task(task: Task, task_dir: Path) -> TaskScore:
@@ -597,6 +827,8 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
     truth, source = _ground_truth(state, turns)
     judged = _judged(task, state, truth)
     verdict_ok, wrong_keep = _verdict_ok(task, judged)
+    if any_wrong_keep(task, state, turns):
+        verdict_ok, wrong_keep = False, True
     line, line_ok, why = result_line_check(transcript.final_text(turns), truth)
     wording = direction_violations(
         texts,
@@ -605,6 +837,26 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
         ),
     )
     wording += cheap_timing_violations(texts, calls)
+    if task.repo is not None:
+        wording += harness_violations(calls)
+        edited = sorted(
+            {p for t in state.trees for p in locked_edits(task, t.changed)}
+        )
+        if edited:
+            wording.append(
+                Violation(rule="locked_file_edited", text=str(edited))
+            )
+    if task.repo is not None and task.repo.branch is None:
+        spec = realrepo.load_spec(task.repo.manifest)
+        # A landed task starts at the reference commit itself.
+        if spec.reference_commit != spec.task_commit:
+            wording += leak_violations(
+                calls,
+                spec.reference_commit,
+                spec.reference_number,
+                spec.reference_title,
+                spec.repository.split("/")[-1],
+            )
     if not line_ok:
         wording.append(Violation(rule="result_line", text=why))
     return _build(
@@ -656,8 +908,10 @@ def _build(
         fix[0],
         tree[0],
     ]
-    passed = all(c is not False for c in checks) and not any(
-        w.rule != "result_line" for w in wording
+    passed = (
+        all(c is not False for c in checks)
+        and not wrong_keep
+        and not any(w.rule != "result_line" for w in wording)
     )
     return TaskScore(
         task_id=task.id,
@@ -672,6 +926,9 @@ def _build(
         result_line_ok=result[1],
         hotspot_named=hotspot[0],
         hotspot_detail=hotspot[1],
+        hotspot_top_n=(
+            None if task.expect.hotspot is None else task.expect.hotspot.top_n
+        ),
         fix_ok=fix[0],
         fix_detail=fix[1],
         tree_ok=tree[0],

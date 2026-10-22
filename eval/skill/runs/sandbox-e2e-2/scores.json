@@ -1,0 +1,63 @@
+{
+  "run_id": "sandbox-e2e-2",
+  "skill_sha": "6afa9cf74700",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 1,
+    "passed": 1,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 1,
+    "verdict_total": 1,
+    "wrong_keeps": 0,
+    "result_ok": 1,
+    "result_total": 1,
+    "hotspot_ok": 1,
+    "hotspot_total": 1,
+    "hotspot_by_rule": {
+      "top1": [
+        1,
+        1
+      ]
+    },
+    "fix_ok": 1,
+    "fix_total": 1,
+    "tree_ok": 1,
+    "tree_total": 1,
+    "wording": {},
+    "cost_usd": 0.26,
+    "wall_seconds": 149.4,
+    "api_seconds": 147.6,
+    "agent_turns": 10
+  },
+  "skipped": [],
+  "tasks": [
+    {
+      "task_id": "find-rolling-light",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": true,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": true,
+      "hotspot_top_n": 1,
+      "hotspot_detail": "rolling_sum is in the profile's top 1 and is named",
+      "fix_ok": true,
+      "fix_detail": "perfproof/rolling-cumsum changes rolling.py, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.2618,
+      "api_seconds": 147.6,
+      "wall_seconds": 149.4,
+      "agent_turns": 10,
+      "calls": 2,
+      "load_start": 5.36181640625,
+      "passed": true
+    }
+  ]
+}

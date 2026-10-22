@@ -14,6 +14,7 @@
     "result_total": 2,
     "hotspot_ok": 0,
     "hotspot_total": 0,
+    "hotspot_by_rule": {},
     "fix_ok": 2,
     "fix_total": 2,
     "tree_ok": 2,
@@ -26,6 +27,7 @@
     "api_seconds": 163.8,
     "agent_turns": 19
   },
+  "skipped": [],
   "tasks": [
     {
       "task_id": "prove-rolling-fix",
@@ -39,6 +41,7 @@
       "result_line": "INCONCLUSIVE (insufficient_evidence)",
       "result_line_ok": true,
       "hotspot_named": null,
+      "hotspot_top_n": null,
       "hotspot_detail": "",
       "fix_ok": true,
       "fix_detail": "no code changed",
@@ -74,6 +77,7 @@
       "result_line": "INCONCLUSIVE (insufficient_evidence)",
       "result_line_ok": true,
       "hotspot_named": null,
+      "hotspot_top_n": null,
       "hotspot_detail": "",
       "fix_ok": true,
       "fix_detail": "no code changed",

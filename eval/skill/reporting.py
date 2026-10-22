@@ -30,7 +30,11 @@ class Summary(BaseModel):
     result_ok, result_total : int
         Correct ``Result:`` lines, over prove and find tasks.
     hotspot_ok, hotspot_total : int
-        Known function named, over tasks with a known hotspot.
+        Known function found and named, over tasks with a known
+        hotspot.
+    hotspot_by_rule : dict of str to list of int
+        The same, split by rule: ``top1`` (must rank first, the small
+        examples) and ``top5`` (real repositories), as [ok, total].
     fix_ok, fix_total : int
         Correct fix outcome, over prove and find tasks.
     tree_ok, tree_total : int
@@ -56,6 +60,7 @@ class Summary(BaseModel):
     result_total: int
     hotspot_ok: int
     hotspot_total: int
+    hotspot_by_rule: dict[str, list[int]]
     fix_ok: int
     fix_total: int
     tree_ok: int
@@ -90,6 +95,12 @@ def summarize(scores: list[TaskScore]) -> Summary:
     verdict = _count([s.verdict_ok for s in scores])
     result = _count([s.result_line_ok for s in scores])
     hotspot = _count([s.hotspot_named for s in scores])
+    by_rule: dict[str, list[int]] = {}
+    for n in sorted({s.hotspot_top_n for s in scores if s.hotspot_top_n}):
+        ok, total = _count(
+            [s.hotspot_named for s in scores if s.hotspot_top_n == n]
+        )
+        by_rule[f"top{n}"] = [ok, total]
     fix = _count([s.fix_ok for s in scores])
     tree = _count([s.tree_ok for s in scores])
     wording = Counter(w.rule for s in scores for w in s.wording)
@@ -105,6 +116,7 @@ def summarize(scores: list[TaskScore]) -> Summary:
         result_total=result[1],
         hotspot_ok=hotspot[0],
         hotspot_total=hotspot[1],
+        hotspot_by_rule=by_rule,
         fix_ok=fix[0],
         fix_total=fix[1],
         tree_ok=tree[0],
@@ -166,8 +178,14 @@ def _summary_lines(m: Summary) -> list[str]:
         f"- Verdict accepted: {m.verdict_ok} of {m.verdict_total}; "
         f"wrong KEEP: {m.wrong_keeps}",
         f"- Result line correct: {m.result_ok} of {m.result_total}",
-        f"- Hotspot ranked first by the profile and named: "
-        f"{m.hotspot_ok} of {m.hotspot_total}",
+        "- Hotspot in a real `perfproof profile` output and named: "
+        + (
+            ", ".join(
+                f"{rule} {ok} of {total}"
+                for rule, (ok, total) in m.hotspot_by_rule.items()
+            )
+            or "no task has one"
+        ),
         f"- Fix passes tests, no locked file touched (prove: no code "
         f"changed): {m.fix_ok} of {m.fix_total}",
         f"- Tree clean: {m.tree_ok} of {m.tree_total}",
@@ -271,9 +289,14 @@ def write(
         "skill_sha": metas[0].skill_sha if metas else "",
         "claude_version": metas[0].claude_version if metas else "",
     }
+    skipped = [
+        json.loads(p.read_text(encoding="utf-8"))
+        for p in sorted(run_dir.glob("*/skipped.json"))
+    ]
     payload = {
         **header,
         "summary": summary.model_dump(),
+        "skipped": skipped,
         "tasks": [s.model_dump() for s in scores],
     }
     (run_dir / "scores.json").write_text(
@@ -290,6 +313,10 @@ def write(
         *_table(scores),
         "",
     ]
+    if skipped:
+        lines += ["## Skipped (not scored)", ""]
+        lines += [f"- `{k['task_id']}`: {k['reason']}" for k in skipped]
+        lines.append("")
     details = _details(scores)
     if details:
         lines += ["## Failures", "", *details, ""]

@@ -1,0 +1,231 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "real-xarray-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "pydata-xarray-pr6107",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "xarray/core/pycompat.py",
+          "function": "is_dask_collection",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "real-fd-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "sharkdp-fd-pr853",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/output.rs",
+          "function": "print_entry_colorized",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "real-django-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "django-django-pr21460",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "django/contrib/auth/decorators.py",
+          "function": "user_passes_test",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "real-arrow-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "apache-arrow-pr48898",
+        "branch": "pr-48898",
+        "requires": [
+          "cmake",
+          "ninja",
+          "clang++"
+        ]
+      },
+      "prompt": "Someone opened a PR that optimizes CountSetBits in the Arrow C++ bit utilities. It is on branch pr-48898, branched from main. Is it actually faster, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 3000,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "real-echo-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "labstack-echo-pr3023",
+        "branch": "pr-3023",
+        "requires": [
+          "docker",
+          "go"
+        ],
+        "shim": "go"
+      },
+      "prompt": "Is the change on branch pr-3023 (pooled-buffer JSON deserialize) really faster than main?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "real-rails-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "rails-rails-pr58964",
+        "branch": "pr-58964",
+        "requires": [
+          "docker",
+          "bundle"
+        ],
+        "shim": "ruby"
+      },
+      "prompt": "This PR says it speeds up structured event logging. The branch is pr-58964; is it actually faster than main?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "real-rich-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "textualize-rich-pr2217-landed",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    },
+    {
+      "id": "real-rails-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "rails-rails-pr58751-landed",
+        "requires": [
+          "docker",
+          "bundle"
+        ],
+        "shim": "ruby"
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

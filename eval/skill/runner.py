@@ -11,11 +11,13 @@ taken from the repo afterwards.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import threading
 import time
@@ -25,6 +27,8 @@ from types import ModuleType
 
 from pydantic import BaseModel, ConfigDict
 
+import realrepo
+import sandbox
 from taskset import Task, TaskSet
 from transcript import as_dict, as_list, load_turns, seen_verdicts
 
@@ -36,17 +40,11 @@ SKILL_SOURCE = REPO_ROOT / "skills" / "perfproof"
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 """Tools allowed without a prompt; nobody is there to answer one."""
 TURN_TIMEOUT_SECONDS = 1500.0
-_GIT_ENV = {
-    "GIT_AUTHOR_NAME": "dev",
-    "GIT_AUTHOR_EMAIL": "dev@example.com",
-    "GIT_COMMITTER_NAME": "dev",
-    "GIT_COMMITTER_EMAIL": "dev@example.com",
-    "GIT_CONFIG_GLOBAL": os.devnull,
-    "GIT_CONFIG_SYSTEM": os.devnull,
-}
+SECRETS_USED: list[str] = []
+"""Sign-in values handed to agents by this process; memory only."""
 # The owner's own CLAUDE.md and memory change how the skill answers (a
 # private report format leaked into one transcript): runs ignore them.
-_ISOLATION_ENV = {
+ISOLATION_ENV = {
     "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
 }
@@ -60,6 +58,8 @@ _NOISE_SUBTYPES = frozenset(
     }
 )
 _COMMAND_TIMEOUT = 120.0
+_MIN_CALL_USD = 0.05
+"""Below this much task budget, no further call is started."""
 
 
 class _Model(BaseModel):
@@ -187,6 +187,8 @@ class Meta(_Model):
         Hash of the installed skill's files.
     turns : list of TurnMeta
         The calls, in order.
+    setup_seconds : float
+        Time spent seeding and building the repo before the first call.
     """
 
     task_id: str
@@ -197,16 +199,66 @@ class Meta(_Model):
     claude_version: str
     skill_sha: str
     turns: list[TurnMeta]
+    setup_seconds: float = 0.0
+
+
+def confined(
+    argv: list[str],
+    tree: Path,
+    *,
+    allow_docker: bool = False,
+    strict: bool = True,
+) -> tuple[list[str], dict[str, str]]:
+    """Wrap a harness command that touches an agent-controlled tree.
+
+    Parameters
+    ----------
+    argv : list of str
+        The command.
+    tree : Path
+        The task tree (or any path two levels inside the run's work
+        directory); the sandbox scratch is two levels up, in
+        ``sandbox/<name>``.
+    allow_docker : bool, optional
+        Whether the command may run the Docker client.
+    strict : bool, optional
+        Fail when ``sandbox-exec`` is missing, instead of running
+        unconfined with only the clean environment.
+
+    Returns
+    -------
+    tuple of (list of str, dict of str to str)
+        The command, behind ``sandbox-exec``, and the sanitized
+        environment: nothing of the owner's survives that
+        ``sandbox.agent_env`` does not allow, and git runs no
+        repo-local helper or hook. Harness steps on an agent's tree
+        (``git status``, the tests, an archive) would otherwise run the
+        agent's repo configuration with the owner's credentials.
+    """
+    scratch = tree.parents[1] / "sandbox" / tree.name
+    env = sandbox.agent_env(os.environ, scratch, [])
+    wrapped = sandbox.wrap(
+        argv,
+        scratch,
+        checkout=REPO_ROOT,
+        allow_docker=allow_docker,
+        strict=strict,
+        cwd=tree,
+        read=[REPO_ROOT / ".venv", REPO_ROOT / "src", scratch],
+        write=[scratch / "private"],
+    )
+    return wrapped, env
 
 
 def _git(
     repo: Path, *args: str, check: bool = True
 ) -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, **_GIT_ENV}
+    argv, env = confined(["git", *args], repo, strict=False)
     done = subprocess.run(
-        ["git", *args],
+        argv,
         cwd=repo,
         env=env,
+        start_new_session=True,
         capture_output=True,
         text=True,
         check=False,
@@ -286,7 +338,9 @@ def shim_dir(root: Path) -> Path:
         ("perfproof", venv / "perfproof"),
     ):
         launcher = bindir / name
-        launcher.write_text(f'#!/bin/sh\nexec "{target}" "$@"\n')
+        launcher.write_text(
+            f'#!/bin/sh\nexec "{target}" "$@"\n', encoding="utf-8"
+        )
         launcher.chmod(0o755)
     return bindir
 
@@ -313,13 +367,18 @@ def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
     FileExistsError
         If ``dest`` exists.
     """
+    if task.example is None:
+        msg = f"task {task.id} has no example to build"
+        raise ValueError(msg)
     mat = _materialize_module()
     mat.materialize(task.example, None, dest)
     for spec in dest.glob("spec*.json"):
         spec.unlink()
     _git(dest, "init", "-q", "-b", "main")
     (dest / ".git" / "info").mkdir(exist_ok=True)
-    (dest / ".git" / "info" / "exclude").write_text(".claude/\n")
+    (dest / ".git" / "info" / "exclude").write_text(
+        ".claude/\n", encoding="utf-8"
+    )
     _git(dest, "add", "-A")
     _git(dest, "commit", "-q", "-m", f"{task.example} baseline")
     for branch in task.branches:
@@ -336,6 +395,54 @@ def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
     target = dest / ".claude" / "skills" / "perfproof"
     shutil.copytree(skill_dir, target)
     return _branch_tips(dest)
+
+
+def build_real_repo(
+    task: Task,
+    spec: realrepo.RepoSpec,
+    dest: Path,
+    skill_dir: Path,
+    cache_dir: Path,
+    extra_path: list[Path],
+) -> dict[str, str]:
+    """Build a real repository: the commit, the skill, the build steps.
+
+    Parameters
+    ----------
+    task : Task
+        A task with ``repo`` set.
+    spec : RepoSpec
+        The manifest's repository, commits, build commands and oracle.
+    dest : Path
+        Directory to create; it must not exist.
+    skill_dir : Path
+        The skill to copy to ``.claude/skills/perfproof/``.
+    cache_dir : Path
+        Where fetched repositories are cached between runs.
+    extra_path : list of Path
+        Directories for ``PATH`` while building.
+
+    Returns
+    -------
+    dict of str to str
+        Branch name to tip sha as seeded, ``main`` included.
+
+    Raises
+    ------
+    realrepo.SetupError
+        If the fetch or a build step fails.
+    """
+    if task.repo is None:
+        msg = f"task {task.id} has no real repository"
+        raise ValueError(msg)
+    seeded = realrepo.seed_repo(spec, task.repo, dest, cache_dir)
+    (dest / ".git" / "info").mkdir(exist_ok=True)
+    (dest / ".git" / "info" / "exclude").write_text(
+        ".claude/\n", encoding="utf-8"
+    )
+    shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
+    realrepo.run_setup(spec, dest, extra_path)
+    return seeded
 
 
 def _branch_tips(repo: Path) -> dict[str, str]:
@@ -384,7 +491,11 @@ def _without_thinking(event: dict[str, object]) -> dict[str, object]:
 
 
 def _claude_argv(
-    task: Task, taskset: TaskSet, prompt: str, session_id: str | None
+    task: Task,
+    taskset: TaskSet,
+    prompt: str,
+    session_id: str | None,
+    budget: float,
 ) -> list[str]:
     argv = [
         "claude",
@@ -403,7 +514,7 @@ def _claude_argv(
         "project,local",
         "--strict-mcp-config",
         "--max-budget-usd",
-        str(task.budget_usd),
+        f"{budget:.2f}",
     ]
     if task.max_turns is not None:
         argv += ["--max-turns", str(task.max_turns)]
@@ -412,41 +523,71 @@ def _claude_argv(
     return argv
 
 
-def _run_turn(
-    argv: list[str], repo: Path, path_dir: Path, out: Path, err: Path
+def run_turn(
+    argv: list[str],
+    repo: Path,
+    env: dict[str, str],
+    out: Path,
+    err: Path,
+    timeout: float,
+    prefix: list[str] | None = None,
+    redact: list[str] | None = None,
 ) -> tuple[TurnMeta, dict[str, object] | None]:
-    env = {
-        **os.environ,
-        "PATH": f"{path_dir}{os.pathsep}{os.environ['PATH']}",
-        **_ISOLATION_ENV,
-    }
+    """Run one ``claude`` call, stream its events to ``out``.
+
+    Parameters
+    ----------
+    argv : list of str
+        The command; ``argv[2]`` is recorded as the prompt.
+    repo : Path
+        Working directory.
+    env : dict of str to str
+        Environment.
+    out, err : Path
+        Files for the trimmed event stream and for stderr.
+    timeout : float
+        Seconds before the call is killed.
+    prefix : list of str, optional
+        Words to run before ``argv`` (the ``sandbox-exec`` launcher);
+        ``argv`` is what gets recorded.
+    redact : list of str, optional
+        Strings (a credential handed to the agent) replaced by
+        ``<redacted>`` in every recorded event and in the stderr file,
+        so a transcript that kept the agent's ``env`` output holds no
+        secret.
+
+    Returns
+    -------
+    tuple of (TurnMeta, dict or None)
+        What was run, and the call's ``result`` event if it sent one.
+        The call ends when ``claude`` exits, not when its output pipe
+        closes: a background process the agent started holds the pipe
+        open, and waiting for it would hang the harness. The whole
+        process group is killed once the call is over, normally or on
+        timeout, and also if the harness is interrupted.
+    """
     started = time.monotonic()
-    result: dict[str, object] | None = None
-    session_id: str | None = None
+    state: dict[str, object] = {"result": None, "session": None}
     with (
         out.open("w", encoding="utf-8") as sink,
         err.open("w", encoding="utf-8") as errsink,
     ):
         proc = subprocess.Popen(
-            argv,
+            [*(prefix or []), *argv],
             cwd=repo,
             env=env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=errsink,
             text=True,
+            start_new_session=True,
         )
-        timed_out = threading.Event()
 
-        def _kill() -> None:
-            timed_out.set()
-            proc.kill()
-
-        timer = threading.Timer(TURN_TIMEOUT_SECONDS, _kill)
-        timer.start()
-        try:
+        def _pump() -> None:
             assert proc.stdout is not None  # noqa: S101
             for line in proc.stdout:
+                if redact:
+                    line = sandbox.redact(line, redact)
                 try:
                     raw = json.loads(line)
                 except json.JSONDecodeError:
@@ -456,23 +597,44 @@ def _run_turn(
                     continue
                 sid = event.get("session_id")
                 if isinstance(sid, str):
-                    session_id = sid
+                    state["session"] = sid
                 if event.get("type") == "result":
-                    result = event
+                    state["result"] = event
                 trimmed = _trim(event)
                 if trimmed is not None:
                     sink.write(json.dumps(trimmed) + "\n")
-            proc.wait()
+
+        reader = threading.Thread(target=_pump, daemon=True)
+        reader.start()
+        timed_out = False
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
         finally:
-            timer.cancel()
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            reader.join(timeout=30)
+            if proc.stdout is not None:
+                proc.stdout.close()
+    if redact:
+        err.write_text(
+            sandbox.redact(
+                err.read_text(encoding="utf-8", errors="replace"), redact
+            ),
+            encoding="utf-8",
+        )
+    session = state["session"]
+    result = state["result"]
     meta = TurnMeta(
         prompt=argv[2],
         argv=argv,
         seconds=round(time.monotonic() - started, 2),
-        exit_code=None if timed_out.is_set() else proc.returncode,
-        session_id=session_id,
+        exit_code=None if timed_out else proc.returncode,
+        session_id=session if isinstance(session, str) else None,
     )
-    return meta, result
+    return meta, as_dict(result)
 
 
 _WAITING_ON_MACHINE = re.compile(
@@ -537,18 +699,16 @@ def asks_question(result: dict[str, object]) -> bool:
 
 
 def _tests(tree: Path, python: Path) -> tuple[bool, str]:
-    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    argv, env = confined(
+        [str(python), "-m", "pytest", "-q", "-m", "not deliberately_flaky"],
+        tree,
+    )
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     proc = subprocess.run(
-        [
-            str(python),
-            "-m",
-            "pytest",
-            "-q",
-            "-m",
-            "not deliberately_flaky",
-        ],
+        argv,
         cwd=tree,
         env=env,
+        start_new_session=True,
         capture_output=True,
         text=True,
         check=False,
@@ -566,24 +726,50 @@ def _changed_vs_main(repo: Path, ref: str | None) -> list[str]:
     return sorted(out.split())
 
 
+def copy_tree(repo: Path, scratch: Path) -> None:
+    """Copy an agent's working tree for the test run.
+
+    Parameters
+    ----------
+    repo : Path
+        The task repo.
+    scratch : Path
+        Directory to create.
+
+    Notes
+    -----
+    Symlinks are copied as symlinks. This copy runs unconfined, and the
+    agent can plant ``ln -s ~/.ssh/id_rsa lnk``: dereferencing it would
+    put the file's content in the copy, where the tests could print it
+    into ``state.json``. A link left in place points at the same target
+    but is only ever read by the confined test run, which cannot read
+    it.
+    """
+    shutil.copytree(
+        repo,
+        scratch,
+        symlinks=True,
+        ignore=shutil.ignore_patterns(
+            ".git", ".perfproof", ".claude", "__pycache__"
+        ),
+    )
+
+
 def _tree_state(
     repo: Path, ref: str, scratch: Path, python: Path
 ) -> TreeState:
     if ref == "working":
         changed = _changed_vs_main(repo, None)
-        shutil.copytree(
-            repo,
-            scratch,
-            ignore=shutil.ignore_patterns(
-                ".git", ".perfproof", ".claude", "__pycache__"
-            ),
-        )
+        copy_tree(repo, scratch)
     else:
         changed = _changed_vs_main(repo, ref)
         scratch.mkdir()
+        argv, env = confined(["git", "archive", ref], repo, strict=False)
         archive = subprocess.run(
-            ["git", "archive", ref],
+            argv,
             cwd=repo,
+            env=env,
+            start_new_session=True,
             capture_output=True,
             check=True,
             timeout=_COMMAND_TIMEOUT,
@@ -602,9 +788,26 @@ def _tree_state(
     return TreeState(ref=ref, changed=changed, tests_ok=ok, tests_tail=tail)
 
 
-def _run_verdicts(repo: Path) -> list[RunVerdict]:
+def run_verdicts(repo: Path) -> list[RunVerdict]:
+    """Read the verdicts of the run records an agent left in its repo.
+
+    Parameters
+    ----------
+    repo : Path
+        The task repo.
+
+    Returns
+    -------
+    list of RunVerdict
+        Oldest first. A record that is a symlink, or sits in a symlinked
+        directory, is skipped: this read is unconfined.
+    """
     found: list[RunVerdict] = []
     for record in sorted((repo / ".perfproof" / "runs").glob("*/record.json")):
+        # Unconfined read of a file the agent controls: a link out of
+        # the tree is never followed.
+        if record.is_symlink() or record.parent.is_symlink():
+            continue
         try:
             data = json.loads(record.read_text(encoding="utf-8"))
             verdict = data["verdict"]
@@ -629,8 +832,53 @@ def _run_verdicts(repo: Path) -> list[RunVerdict]:
     return found
 
 
-def capture_state(repo: Path, seeded: dict[str, str], work: Path) -> State:
-    """Read the repo's state after a run, running the example's tests.
+def _real_trees(
+    repo: Path,
+    seeded: dict[str, str],
+    task: Task,
+    spec: realrepo.RepoSpec,
+    extra_path: list[Path],
+) -> list[TreeState]:
+    """Name what changed in each tree; run the oracle on kept branches.
+
+    The oracle runs in the repo itself, with the branch checked out and
+    the original checkout restored afterwards, because the build (a
+    venv with an editable install, a build directory) lives there.
+    """
+    branches = _branch_tips(repo)
+    head = _git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    trees = [
+        TreeState(
+            ref="working",
+            changed=_changed_vs_main(repo, None),
+            tests_ok=None,
+            tests_tail="",
+        )
+    ]
+    for ref in sorted(b for b in branches if b not in seeded):
+        changed = _changed_vs_main(repo, ref)
+        ok: bool | None = None
+        tail = "not run"
+        if task.expect.fix != "none" and ref.startswith("perfproof/"):
+            moved = _git(repo, "checkout", "-q", ref, check=False)
+            if moved.returncode != 0:
+                ok, tail = False, "could not check out: " + moved.stderr
+            else:
+                ok, tail = realrepo.run_oracle(spec, repo, extra_path)
+                _git(repo, "checkout", "-q", head)
+        trees.append(
+            TreeState(ref=ref, changed=changed, tests_ok=ok, tests_tail=tail)
+        )
+    return trees
+
+
+def capture_state(
+    repo: Path,
+    seeded: dict[str, str],
+    work: Path,
+    real: tuple[Task, realrepo.RepoSpec, list[Path]] | None = None,
+) -> State:
+    """Read the repo's state after a run, running the tests.
 
     Parameters
     ----------
@@ -641,6 +889,10 @@ def capture_state(repo: Path, seeded: dict[str, str], work: Path) -> State:
     work : Path
         Empty scratch directory the trees are exported into; removed
         tree by tree.
+    real : tuple of (Task, RepoSpec, list of Path), optional
+        For a real repository: the task, its manifest spec and the
+        ``PATH`` directories. The manifest's test command then runs on
+        each kept branch; the example's tests do not apply.
 
     Returns
     -------
@@ -648,23 +900,65 @@ def capture_state(repo: Path, seeded: dict[str, str], work: Path) -> State:
         Status, branches, the tests on every changed tree and the
         verdicts of the run records.
     """
-    python = REPO_ROOT / ".venv" / "bin" / "python"
+    status = _git(repo, "status", "--porcelain").stdout
     branches = _branch_tips(repo)
     head = _git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-    work.mkdir(parents=True, exist_ok=True)
-    refs = ["working", *sorted(b for b in branches if b not in seeded)]
-    trees = [
-        _tree_state(repo, ref, work / f"tree{i}", python)
-        for i, ref in enumerate(refs)
-    ]
+    if real is not None:
+        trees = _real_trees(repo, seeded, *real)
+    else:
+        python = REPO_ROOT / ".venv" / "bin" / "python"
+        work.mkdir(parents=True, exist_ok=True)
+        refs = ["working", *sorted(b for b in branches if b not in seeded)]
+        trees = [
+            _tree_state(repo, ref, work / f"tree{i}", python)
+            for i, ref in enumerate(refs)
+        ]
     return State(
-        status=_git(repo, "status", "--porcelain").stdout,
+        status=status,
         current_branch=head,
         branches=branches,
         seeded=seeded,
         trees=trees,
-        run_verdicts=_run_verdicts(repo),
+        run_verdicts=run_verdicts(repo),
     )
+
+
+def call_budget(task: Task, spent: float) -> float:
+    """Dollar cap for the next ``claude`` call.
+
+    Parameters
+    ----------
+    task : Task
+        Supplies ``budget_usd`` and ``task_budget_usd``.
+    spent : float
+        Cost of the calls so far.
+
+    Returns
+    -------
+    float
+        ``budget_usd``, lowered to what is left of ``task_budget_usd``.
+    """
+    if task.task_budget_usd is None:
+        return task.budget_usd
+    return min(task.budget_usd, task.task_budget_usd - spent)
+
+
+def budget_spent(task: Task, spent: float) -> bool:
+    """Tell whether too little of the task budget is left for a call."""
+    return (
+        task.task_budget_usd is not None
+        and task.task_budget_usd - spent < _MIN_CALL_USD
+    )
+
+
+def call_timeout(task: Task) -> float:
+    """Wall-time cap in seconds for one ``claude`` call of a task."""
+    return task.timeout_s or TURN_TIMEOUT_SECONDS
+
+
+def _call_cost(result: dict[str, object] | None) -> float:
+    cost = None if result is None else result.get("total_cost_usd")
+    return float(cost) if isinstance(cost, int | float) else 0.0
 
 
 def run_task(
@@ -673,6 +967,8 @@ def run_task(
     run_dir: Path,
     skill_dir: Path,
     path_dir: Path,
+    cache_dir: Path | None = None,
+    work_root: Path | None = None,
 ) -> Meta:
     """Run one task end to end and write its record.
 
@@ -688,34 +984,114 @@ def run_task(
         The skill to install.
     path_dir : Path
         Directory with the ``python`` and ``perfproof`` launchers.
+    cache_dir : Path, optional
+        Where real repositories are cached; ``run_dir/../cache`` by
+        default.
+    work_root : Path, optional
+        Where the task repo, launchers and config scratch live, as
+        ``<work_root>/<run id>/``. Put it outside the perfproof
+        checkout so the agent's working directory has no ``eval/`` near
+        it; ``run_dir`` itself when omitted.
 
     Returns
     -------
     Meta
         What was run, also written to ``meta.json``.
+
+    Raises
+    ------
+    realrepo.SetupError
+        If a real repository cannot be fetched or built, or the machine
+        lacks a toolchain it needs. Nothing is written to the task
+        directory then, so the caller can record the task as skipped.
     """
     started = time.monotonic()
     started_at = datetime.now(UTC).isoformat(timespec="seconds")
     load_start = list(os.getloadavg())
     out = run_dir / task.id
+    work = run_dir if work_root is None else work_root / run_dir.name
+    repo = work / "repos" / task.id
+    extra_path = [path_dir]
+    spec: realrepo.RepoSpec | None = None
+    if task.repo is not None:
+        missing = realrepo.missing_requirements(task.repo)
+        if missing:
+            msg = "missing on this machine: " + ", ".join(missing)
+            raise realrepo.SetupError(msg)
+        if task.repo.shim is not None:
+            shims = work / "shims" / task.repo.shim
+            realrepo.write_shims(shims, task.repo.shim)
+            extra_path.append(shims)
+        spec = realrepo.load_spec(task.repo.manifest)
+        seeded = build_real_repo(
+            task,
+            spec,
+            repo,
+            skill_dir,
+            cache_dir or run_dir.parent / "cache",
+            extra_path,
+        )
+        env = realrepo.task_env(spec, repo, extra_path)
+    else:
+        seeded = build_repo(task, repo, skill_dir)
+        env = sandbox.agent_env(
+            os.environ, work / "sandbox" / task.id, [path_dir]
+        )
+    config_dir = work / "claude-config" / task.id
+    config_dir.mkdir(parents=True, exist_ok=True)
+    env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    # claude otherwise uses /tmp/claude-<uid>, which also holds other
+    # sessions' scratch and is closed to the agent.
+    env["CLAUDE_CODE_TMPDIR"] = str(config_dir / "tmp")
+    (config_dir / "tmp").mkdir(exist_ok=True)
+    env.update(ISOLATION_ENV)
+    token = sandbox.claude_oauth_token()
+    if token is not None:
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = token
+    secrets = sandbox.env_secrets(env)
+    SECRETS_USED.extend(s for s in secrets if s not in SECRETS_USED)
+    forms = sandbox.secret_forms(secrets)
+    setup_seconds = round(time.monotonic() - started, 2)
     out.mkdir(parents=True)
-    repo = run_dir / "repos" / task.id
-    seeded = build_repo(task, repo, skill_dir)
     turns: list[TurnMeta] = []
     session_id: str | None = None
     prompt = task.prompt
     replies = list(task.followups)
+    spent = 0.0
     while True:
         n = len(turns) + 1
-        argv = _claude_argv(task, taskset, prompt, session_id)
-        meta, result = _run_turn(
+        argv = _claude_argv(
+            task, taskset, prompt, session_id, call_budget(task, spent)
+        )
+        launch = sandbox.wrap(
+            [],
+            work / "sandbox" / task.id,
+            checkout=REPO_ROOT,
+            allow_docker=bool(task.repo and task.repo.shim),
+            cwd=repo,
+            read=[
+                path_dir,
+                work / "shims",
+                work / "sandbox" / task.id,
+                REPO_ROOT / ".venv",
+                REPO_ROOT / "src",
+            ],
+            write=[config_dir, work / "sandbox" / task.id / "private"],
+        )
+        meta, result = run_turn(
             argv,
             repo,
-            path_dir,
+            env,
             out / f"turn-{n}.jsonl",
             out / f"turn-{n}.err",
+            call_timeout(task),
+            launch,
+            forms,
         )
         turns.append(meta)
+        if spec is not None:
+            realrepo.kill_containers()
+        spent += _call_cost(result)
         session_id = meta.session_id
         if (
             result is None
@@ -723,6 +1099,7 @@ def run_task(
             or not replies
             or not asks_question(result)
             or session_over(result)
+            or budget_spent(task, spent)
         ):
             break
         # Proving ends at the verdict. A generic "yes" to the follow-up
@@ -730,10 +1107,20 @@ def run_task(
         if task.kind == "prove" and seen_verdicts(load_turns(out)):
             break
         prompt = replies.pop(0)
-    state = capture_state(repo, seeded, run_dir / "work" / task.id)
-    (out / "state.json").write_text(state.model_dump_json(indent=2))
+    if spec is not None:
+        realrepo.kill_containers()
+    state = capture_state(
+        repo,
+        seeded,
+        run_dir / "work" / task.id,
+        None if spec is None else (task, spec, extra_path),
+    )
+    (out / "state.json").write_text(
+        state.model_dump_json(indent=2), encoding="utf-8"
+    )
     version = subprocess.run(
         ["claude", "--version"],
+        env=sandbox.agent_env(os.environ, work / "sandbox" / "version", []),
         capture_output=True,
         text=True,
         check=False,
@@ -748,6 +1135,9 @@ def run_task(
         claude_version=version,
         skill_sha=skill_hash(skill_dir),
         turns=turns,
+        setup_seconds=setup_seconds,
     )
-    (out / "meta.json").write_text(meta_all.model_dump_json(indent=2))
+    (out / "meta.json").write_text(
+        meta_all.model_dump_json(indent=2), encoding="utf-8"
+    )
     return meta_all

@@ -10,12 +10,14 @@ something itself. Nothing in them is typed by hand.
 """
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
 
 import runner
 import scoring
+import taskset
 import transcript
 from runner import RunVerdict
 from taskset import load
@@ -427,3 +429,599 @@ def test_a_refusal_that_names_the_machine_ends_the_session() -> None:
     assert not runner.session_over(
         ending("Result: NO VERDICT (the machine is busy: load 9 on 10 cores)")
     )
+
+
+def _optional(task: str) -> taskset.Task:
+    base = BY_ID[task]
+    return base.model_copy(
+        update={
+            "expect": base.expect.model_copy(update={"fix": "optional_branch"})
+        }
+    )
+
+
+def test_optional_branch_accepts_no_change_or_a_tested_branch() -> None:
+    task = _optional("find-rolling-light")
+    real = _state("find-rolling-light")
+    assert scoring.fix_check(task, real)[0] is True
+    kept = [t for t in real.trees if t.ref.startswith("perfproof/")]
+    assert kept, "the real run kept a branch"
+    bare = real.model_copy(
+        update={"trees": [t for t in real.trees if t not in kept]}
+    )
+    assert scoring.fix_check(task, bare) == (True, "no change kept")
+
+
+def test_optional_branch_fails_on_a_branch_that_breaks_the_tests() -> None:
+    task = _optional("find-rolling-light")
+    real = _state("find-rolling-light")
+    trees = [
+        t.model_copy(update={"tests_ok": False})
+        if t.ref.startswith("perfproof/")
+        else t
+        for t in real.trees
+    ]
+    fix_ok, why = scoring.fix_check(
+        task, real.model_copy(update={"trees": trees})
+    )
+    assert fix_ok is False
+    assert "fails the tests" in why
+
+
+def _bash(command: str, output: str = "") -> transcript.ToolCall:
+    return transcript.ToolCall("Bash", {"command": command}, output)
+
+
+def test_leak_check_flags_network_lookups_and_the_reference() -> None:
+    reference = "e391f131451ca8962106f2a146abd024b91e21e2"
+    clean = [_bash("perfproof profile x --json", "total 12")]
+    assert scoring.leak_violations(clean, reference, "6107") == []
+    fetch = [_bash("git fetch origin")]
+    assert scoring.leak_violations(fetch, reference, "6107")[0].rule == "leak"
+    seen = [_bash("git log", "commit e391f131451ca8962106")]
+    assert scoring.leak_violations(seen, reference, "6107")
+    pr = [_bash("curl https://github.com/pydata/xarray/pull/6107")]
+    assert scoring.leak_violations(pr, reference, "6107")
+
+
+def test_leak_check_lets_the_skills_own_install_fallback_pass() -> None:
+    command = (
+        "perfproof doctor --json || uvx --from "
+        "git+https://github.com/siddiquifaras/perfproof perfproof doctor"
+    )
+    assert (
+        scoring.leak_violations([_bash(command)], "e391f131451c", "6107") == []
+    )
+
+
+def test_leak_check_sees_downloads_and_clones() -> None:
+    reference = "e391f131451ca8962106f2a146abd024b91e21e2"
+    for command in (
+        "curl https://api.github.com/repos/pydata/xarray/pulls/6107",
+        "git clone https://example.org/x x",
+        "pip download xarray==2022.3.0",
+    ):
+        assert scoring.leak_violations([_bash(command)], reference, "6107")
+
+
+def _with_hotspot(function: str, top_n: int) -> taskset.Task:
+    hot = taskset.Hotspot(file="rolling.py", function=function, top_n=top_n)
+    base = BY_ID["find-rolling-light"]
+    return base.model_copy(
+        update={"expect": base.expect.model_copy(update={"hotspot": hot})}
+    )
+
+
+def test_hotspot_top_n_widens_the_window_and_still_needs_naming() -> None:
+    turns = _turns("find-rolling-light")
+    ranked, _ = transcript.profile_ranking(turns)
+    assert ranked[0] == "rolling_sum"
+    assert scoring.hotspot_check(_with_hotspot("rolling_sum", 5), turns)[0]
+    absent = _with_hotspot("is_dask_collection", 5)
+    found, why = scoring.hotspot_check(absent, turns)
+    assert found is False
+    assert "top 5" in why
+
+
+def test_a_file_name_alone_is_not_a_hotspot() -> None:
+    task = _with_hotspot("no_such_fn", 5)
+    found, _ = scoring.hotspot_check(task, _turns("find-rolling-light"))
+    assert found is False
+
+
+def test_a_kept_branch_that_edits_a_test_file_fails() -> None:
+    base = _optional("find-rolling-light")
+    task = base.model_copy(
+        update={"repo": taskset.RealRepo(manifest="x"), "example": None}
+    )
+    real = _state("find-rolling-light")
+    trees = [
+        t.model_copy(update={"changed": [*t.changed, "tests/test_a.py"]})
+        if t.ref.startswith("perfproof/")
+        else t
+        for t in real.trees
+    ]
+    ok, why = scoring.fix_check(task, real.model_copy(update={"trees": trees}))
+    assert ok is False
+    assert "locked" in why
+
+
+def test_leak_check_sees_the_title_and_a_later_release() -> None:
+    reference = "e391f131451ca8962106f2a146abd024b91e21e2"
+    title = "is_dask_collection: micro optimization"
+    grep = transcript.ToolCall("Grep", {"pattern": title}, "")
+    assert scoring.leak_violations([grep], reference, "6107", title, "xarray")
+    install = [_bash("uv pip install -U xarray")]
+    assert scoring.leak_violations(install, reference, "6107", "", "xarray")
+    fine = [_bash("uv pip install pytest")]
+    assert not scoring.leak_violations(fine, reference, "6107", "", "xarray")
+
+
+def test_leak_check_reads_every_tool_not_only_bash() -> None:
+    reference = "e391f131451ca8962106f2a146abd024b91e21e2"
+    read = transcript.ToolCall(
+        "Read", {"file_path": "/x"}, "merged as e391f131451ca89"
+    )
+    assert scoring.leak_violations([read], reference, "6107")
+
+
+def test_reaching_into_the_eval_task_files_is_flagged() -> None:
+    manifest = transcript.ToolCall(
+        "Read", {"file_path": "/c/perfproof/eval/tasks/hidden-fix/x.json"}, ""
+    )
+    grep = transcript.ToolCall(
+        "Grep", {"pattern": "x", "path": "eval/mine"}, ""
+    )
+    listing = _bash("ls", "checks.json SPLITS.md")
+    found = scoring.harness_violations([manifest, grep, listing])
+    assert [v.rule for v in found] == ["harness_access"] * 3
+    assert scoring.harness_violations([_bash("ls", "src tests")]) == []
+
+
+def _real(fix: str = "optional_branch") -> taskset.Task:
+    base = _optional("find-rolling-light")
+    return base.model_copy(
+        update={"repo": taskset.RealRepo(manifest="x"), "example": None}
+    )
+
+
+def test_test_files_and_their_config_are_locked_in_real_repos() -> None:
+    task = _real()
+    touched = [
+        "xarray/tests/test_x.py",
+        "conftest.py",
+        "pytest.ini",
+        "pyproject.toml",
+        "src/FooTest.java",
+        "web/a.spec.ts",
+        "pkg/a_test.go",
+        "Tests/Foo.swift",
+        "testing/util.py",
+        "web/__tests__/a.js",
+        "spec/models/a_spec.rb",
+    ]
+    assert scoring.locked_edits(task, [*touched, "src/lib.py"]) == sorted(
+        touched
+    )
+
+
+def _verdict(outcome: str, run_id: str) -> RunVerdict:
+    return RunVerdict(
+        run_id=run_id,
+        outcome=outcome,
+        reason="insufficient_evidence",
+        gate=None,
+        calibration="uncalibrated",
+    )
+
+
+@pytest.mark.parametrize(
+    "order", [("KEEP", "INCONCLUSIVE"), ("INCONCLUSIVE", "KEEP")]
+)
+def test_a_keep_anywhere_in_the_run_is_a_wrong_keep(
+    order: tuple[str, str], tmp_path: Path
+) -> None:
+    # prove-membership-wrong-output accepts only REJECT; its real
+    # transcripts and state are used, with the verdicts swapped in.
+    task = BY_ID["prove-membership-wrong-output"]
+    state = runner.State.model_validate_json(
+        (FIRST / task.id / "state.json").read_text()
+    ).model_copy(
+        update={
+            "run_verdicts": [_verdict(o, f"r{i}") for i, o in enumerate(order)]
+        }
+    )
+    turns = transcript.load_turns(FIRST / task.id)
+    assert scoring.any_wrong_keep(task, state, turns) is True
+    kept = tmp_path / task.id
+    shutil.copytree(FIRST / task.id, kept)
+    (kept / "state.json").write_text(state.model_dump_json(), encoding="utf-8")
+    score = scoring.score_task(task, kept)
+    assert score.wrong_keep is True
+    assert score.verdict_ok is False
+    assert score.passed is False
+    clean = state.model_copy(
+        update={"run_verdicts": [_verdict("INCONCLUSIVE", "a")] * 2}
+    )
+    assert scoring.any_wrong_keep(task, clean, turns) is False
+
+
+def test_a_task_that_accepts_keep_never_has_a_wrong_keep() -> None:
+    task = BY_ID["prove-rolling-fix"]
+    assert "KEEP" in task.expect.outcomes
+    state = _state("prove-rolling-fix").model_copy(
+        update={"run_verdicts": [_verdict("KEEP", "a")]}
+    )
+    turns = transcript.load_turns(FIRST / task.id)
+    assert scoring.any_wrong_keep(task, state, turns) is False
+
+
+# The output below is what an agent's script printed from a real
+# ``perfproof profile`` (runs/sandbox-e2e-5, find-rolling-light); the
+# events around it have the schema of the saved transcripts.
+_PROFILE_OK = (
+    "True None\nrolling_sum rolling.py 51 0.7808993603283747\n"
+    "compile <built-in> None 0.13734775965125162\n"
+    "make_series bench.py 44 0.008166299641963658\n"
+)
+_PROFILE_WRONG = (
+    "True None\nmake_series bench.py 44 0.9\nrolling_sum rolling.py 51 0.05\n"
+)
+_PROFILE_FAILED = (
+    "(eval):1: operation not permitted: /tmp/prof.json\nTraceback (most "
+    "recent call last):\nPermissionError: [Errno 1] Operation not "
+    "permitted: '/tmp/prof.json'\n"
+)
+
+
+def _use(n: int, name: str, **args: str) -> transcript.Event:
+    return {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": f"t{n}",
+                    "name": name,
+                    "input": args,
+                }
+            ]
+        },
+    }
+
+
+def _out(n: int, text: str) -> transcript.Event:
+    return {
+        "type": "user",
+        "message": {
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": f"t{n}",
+                    "content": text,
+                    "is_error": False,
+                }
+            ]
+        },
+    }
+
+
+def _say(text: str) -> transcript.Event:
+    return {
+        "type": "assistant",
+        "message": {"content": [{"type": "text", "text": text}]},
+    }
+
+
+_NAMED = "`rolling_sum` is the cost: about 78% of the profiled run."
+
+
+def _grade(events: list[transcript.Event]) -> tuple[bool | None, str]:
+    base = BY_ID["find-rolling-light"]
+    return scoring.hotspot_check(base, [transcript.Turn(events, None)])
+
+
+def test_no_successful_profile_fails_the_hotspot_check() -> None:
+    ok, why = _grade(
+        [
+            _use(
+                1, "Bash", command="perfproof profile rolling --json > /tmp/p"
+            ),
+            _out(1, _PROFILE_FAILED),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is False
+    assert "no profile output" in why
+
+
+def test_a_profile_that_only_succeeds_after_the_first_edit_fails() -> None:
+    ok, why = _grade(
+        [
+            _use(1, "Edit", file_path="/w/rolling.py"),
+            _out(1, ""),
+            _use(2, "Bash", command="perfproof profile rolling --json"),
+            _out(2, _PROFILE_OK),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is False
+    assert "after the first edit" in why
+
+
+def test_a_failed_profile_then_a_successful_one_before_the_edit_passes() -> (
+    None
+):
+    ok, why = _grade(
+        [
+            _use(
+                1, "Bash", command="perfproof profile rolling --json > /tmp/p"
+            ),
+            _out(1, _PROFILE_FAILED),
+            # Editing the scratch spec is not an edit of the code.
+            _use(2, "Bash", command="sed -i 's/a/b/' .perfproof/specs/r.json"),
+            _out(2, ""),
+            _use(3, "Write", file_path="/w/.perfproof/specs/r2.json"),
+            _out(3, ""),
+            _use(4, "Bash", command="perfproof profile rolling --json | py"),
+            _out(4, _PROFILE_OK),
+            _say(_NAMED),
+            _use(5, "Write", file_path="/w/rolling.py"),
+        ]
+    )
+    assert ok is True, why
+
+
+def test_a_successful_profile_with_the_wrong_hotspot_fails() -> None:
+    ok, why = _grade(
+        [
+            _use(1, "Bash", command="perfproof profile rolling --json"),
+            _out(1, _PROFILE_WRONG),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is False
+    assert "make_series" in why
+
+
+def test_what_counts_as_an_edit_of_the_code() -> None:
+    root = "/r/repos/t"
+
+    def bash(command: str) -> bool:
+        return transcript.is_code_edit("Bash", {"command": command}, root)
+
+    edits = (
+        "echo x > rolling.py",
+        "cat >> rolling.py <<'EOF'\nx\nEOF",
+        "printf x | tee rolling.py",
+        "cp new.py rolling.py",
+        "mv new.py src/a.py",
+        "perl -pi -e 's/a/b/' rolling.py",
+        "python3 - <<'EOF'\nopen('rolling.py','w').write('x')\nEOF",
+        "python -c \"from pathlib import Path; Path('r.py').write_text('x')\"",
+        "git stash pop",
+        "git stash apply",
+        "git cherry-pick abc",
+        "git merge main",
+        "git checkout abc123 -- rolling.py",
+        "git commit -qm x",
+        "cd /r/repos/t && git apply x.patch",
+        "sed -i 's/a/b/' rolling.py",
+        "sed -i '' 's/a/b/' rolling.py",
+        # judged by the file argument, not by a mention of .perfproof
+        "sed -i 's/a/b/' rolling.py && echo .perfproof/x",
+        "sed -i 's/a/b/' rolling.py # note about .perfproof",
+    )
+    for command in edits:
+        assert bash(command), command
+    not_edits = (
+        "git checkout -q -b perfproof/x",
+        "git switch -c y",
+        "git checkout main",
+        "echo x > .perfproof/a.json",
+        "cat > .perfproof/spec.json <<'EOF'\n{\"a\": 1}\nEOF",
+        "sed -i 's/a/b/' .perfproof/specs/r.json",
+        "perfproof profile r --json > .perfproof/p.json",
+        "cp a.json .perfproof/b.json",
+        "echo x > /dev/null",
+        "ls > /tmp/x",
+        "echo 'a > b'",
+        "echo hi; cat rolling.py",
+        "python3 -c \"open('.perfproof/x','w')\"",
+        "python3 - <<'EOF'\nopen('.perfproof/x','w').write('if 1 > 0')\nEOF",
+        "cat > .perfproof/s.py <<'EOF'\nif a > b:\n    pass\nEOF",
+    )
+    for command in not_edits:
+        assert not bash(command), command
+
+
+def test_edit_tools_are_judged_by_the_project_path() -> None:
+    root = "/r/repos/t"
+    edit = transcript.is_code_edit
+    assert edit("Write", {"file_path": "/r/repos/t/rolling.py"}, root)
+    assert edit("Edit", {"file_path": "/r/repos/t/src/.claude/x.py"}, root)
+    assert edit("Edit", {"file_path": "rolling.py"}, root)
+    # A new file under the project's .perfproof or .claude is scratch.
+    assert not edit(
+        "Write", {"file_path": "/r/repos/t/.perfproof/s.json"}, root
+    )
+    assert not edit("Write", {"file_path": ".perfproof/s.json"}, root)
+    assert not edit("Edit", {"file_path": "/r/repos/t/.claude/x"}, root)
+    # Outside the project is not the project.
+    assert not edit("Write", {"file_path": "/elsewhere/notes.txt"}, root)
+    assert not edit("Read", {"file_path": "/r/repos/t/rolling.py"}, root)
+    # Without a known root, a .perfproof component anywhere is scratch.
+    assert not edit("Write", {"file_path": "/w/.perfproof/s.json"})
+    assert edit("Write", {"file_path": "/w/rolling.py"})
+
+
+def test_a_profile_named_only_in_text_is_not_a_profile_call() -> None:
+    ok, why = _grade(
+        [
+            _use(
+                1,
+                "Bash",
+                command="echo 'perfproof profile'; "
+                "echo 'rolling_sum rolling.py 51 0.9'",
+            ),
+            _out(1, "perfproof profile\nrolling_sum rolling.py 51 0.9\n"),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is False
+    assert "no profile output" in why
+    heredoc = "cat <<'EOF'\nperfproof profile x\nEOF"
+    assert transcript.profile_targets(heredoc) == []
+
+
+def test_a_profile_of_another_target_does_not_count() -> None:
+    define = _use(1, "Bash", command="perfproof bench define rolling --spec s")
+    other = [
+        define,
+        _out(1, "ok"),
+        _use(2, "Bash", command="perfproof profile other --json"),
+        _out(2, _PROFILE_OK),
+        _say(_NAMED),
+    ]
+    ok, why = _grade(other)
+    assert ok is False
+    assert "no profile output" in why
+    right = [
+        define,
+        _out(1, "ok"),
+        _use(2, "Bash", command="perfproof profile rolling --json"),
+        _out(2, _PROFILE_OK),
+        _say(_NAMED),
+    ]
+    assert _grade(right)[0] is True
+
+
+def test_profile_commands_are_found_by_their_simple_command() -> None:
+    found = transcript.profile_targets
+    assert found("cd /w && perfproof profile rolling --json | head") == [
+        "rolling"
+    ]
+    assert found("H=ab perfproof profile bench --spec-hash $H") == ["bench"]
+    assert found("cd /w; (perfproof profile bench)") == ["bench"]
+    assert found("uvx --from git+https://x perfproof profile b") == ["b"]
+    assert found("echo perfproof profile x") == []
+    assert found("grep 'perfproof profile' README") == []
+
+
+def _bash_edit(command: str, root: str = "/r/repos/t") -> bool:
+    return transcript.is_code_edit("Bash", {"command": command}, root)
+
+
+def _graded_after(define: str, profile: str) -> bool:
+    ok, _ = _grade(
+        [
+            _use(1, "Bash", command=define),
+            _out(1, "ok"),
+            _use(2, "Bash", command=profile),
+            _out(2, _PROFILE_OK),
+            _say(_NAMED),
+        ]
+    )
+    return ok is True
+
+
+def test_git_commands_that_only_read_are_not_edits() -> None:
+    for command in (
+        "git merge-base origin/main HEAD",
+        "git merge-tree a b c",
+        "git commit --dry-run",
+        "git commit -m x --dry-run",
+        "git apply --check x.patch",
+        "git apply --stat x.patch",
+        "git restore --staged rolling.py",
+    ):
+        assert not _bash_edit(command), command
+    assert _bash_edit("git merge main")
+    assert _bash_edit("git apply --apply --check x.patch")
+    assert _bash_edit("git restore --staged --worktree rolling.py")
+
+
+def test_profile_and_define_skip_option_values() -> None:
+    profile = transcript.profile_targets
+    for line in (
+        "perfproof profile --top 5 rolling",
+        "perfproof profile --profiler pyinstrument rolling",
+        "perfproof profile --repo . rolling",
+        "perfproof profile --spec-hash ab --timeout 9 rolling --json",
+        "perfproof profile --own-module x --hypothesis h1 rolling",
+        "perfproof profile --profiler-command '[\"x\"]' rolling",
+        "perfproof profile --top=5 rolling",
+        "perfproof profile rolling --json > prof.json",
+    ):
+        assert profile(line) == ["rolling"], line
+    for define in (
+        "perfproof bench define --spec s.json rolling",
+        "perfproof bench define --repo . --spec - rolling",
+    ):
+        assert _graded_after(define, "perfproof profile rolling --json")
+
+
+def test_defined_benchmarks_strip_uv_prefixes_like_profile() -> None:
+    for define in (
+        "uv run perfproof bench define rolling --spec s",
+        "uvx --from git+https://x perfproof bench define rolling --spec s",
+    ):
+        assert _graded_after(define, "perfproof profile rolling --json")
+        assert not _graded_after(define, "perfproof profile other --json")
+
+
+def test_redirects_are_judged_by_who_writes_and_where() -> None:
+    assert not _bash_edit("perfproof profile rolling --json > prof.json")
+    assert not _bash_edit("uv run perfproof compare a b --json >out.json")
+    assert not _bash_edit("perfproof profile r --json 2>&1 > prof.json")
+    assert _bash_edit("echo x > prof.json")
+    assert _bash_edit("python3 gen.py > rolling.py")
+    assert _bash_edit("echo x>rolling.py")
+    assert _bash_edit("echo x >>rolling.py")
+    assert not _bash_edit("echo x > ../notes.txt")
+    assert not _bash_edit("echo x > a/../../notes.txt")
+    assert not _bash_edit("echo x > /r/repos/t/../other/f.py")
+    assert _bash_edit("echo x > a/../rolling.py")
+    assert _bash_edit("echo x > .perfproof/../rolling.py")
+    assert not _bash_edit("echo 'a>b'")
+    assert not _bash_edit("echo hi 2>&1")
+    assert (
+        transcript.is_code_edit(
+            "Write", {"file_path": "../x.py"}, "/r/repos/t"
+        )
+        is False
+    )
+
+
+def test_cheap_missed_edits_are_seen() -> None:
+    for command in (
+        "sed -ri 's/a/b/' rolling.py",
+        "sed -Ei 's/a/b/' rolling.py",
+        "sed -ni 's/a/b/p' rolling.py",
+        "sed -i.bak 's/a/b/' rolling.py",
+        "sed --in-place 's/a/b/' rolling.py",
+        "sed --in-place=.bak 's/a/b/' rolling.py",
+        "perl -pi.bak -e 's/a/b/' rolling.py",
+        "git restore rolling.py",
+        "git restore --source=HEAD~1 rolling.py",
+        "git reset --hard HEAD~1",
+        "git reset -q --hard origin/main",
+        "git rebase main",
+        "git am x.mbox",
+        "git pull",
+        "git checkout rolling.py",
+        "git checkout HEAD src/a.py",
+        "git checkout .",
+    ):
+        assert _bash_edit(command), command
+    for command in (
+        "git reset HEAD rolling.py",
+        "git reset --soft HEAD~1",
+        "git checkout -b fix.1",
+        "git checkout main",
+        "git checkout v1.2",
+        "perl -MList::Util=sum -e 'print 1' rolling.py",
+        "sed -n 's/a/b/p' rolling.py",
+        "sed -i 's/a/b/' .perfproof/specs/r.json",
+    ):
+        assert not _bash_edit(command), command
