@@ -6,6 +6,16 @@ lead; task branches don't edit it.
 
 ## 2026-10-16, overnight session
 
+### PAUSED 2026-10-22 11:40 PKT (Faras: weekly limit; restart only on his word)
+
+All agents stopped, hourly cron deleted. Still running on their own (no model use): Hetzner trace queue (linux-web then LLM then loaded passes, ETA ~17:00 PKT; do NOT wipe yet, T1.12 needs the box), Mac `record_mac_ext.sh` (pid 93339) and `record_mac_rerun.sh` (pid 21412) waiting for a quiet machine. Resume order:
+1. PR #60 (worktree agent-a3c70e2204e271e70) head 68c1aee: rerun the final reviewer (it was stopped mid-review) and `scratch/queue_checks.sh <wt> pr60b`; merge on PASS + green. Then follow-up PR: harness runs agents as `ppeval` AND inside the sandbox (ppeval provisioned and signed in; see `scratch/ppeval-provision.md`: clipboard, Finder AppleScript and `open` reach faras's GUI session via sudo, so the sandbox Mach deny is required on top).
+2. PR #59 Node (worktree agent-aacddb73ec949121b): worker was stopped mid cover3 + tolerance study (round 4 brief: cover3, tolerances 1/2/3/5% chosen by the cheapest meeting CP95 <=2.5% at noise 1.0/1.5, cost, F2-F6). Check its uncommitted state, resume with SendMessage.
+3. T1.11 (worktree agent-a102d2f03cc28f264): split HELD by Faras; worker was asked for a WIP commit + entry points and was stopped (check `git status` there). Then start T1.12 golden set (plan entry, local commit e9fd0ce) in a fresh Sonnet agent branching from that head.
+4. Trace worker (agent-adffba1a6b1fcf18d): resume monitoring; Mac quiet window tonight with all heavy jobs paused; tell Faras hours when Hetzner finishes.
+5. Recreate the hourly check-in cron only if Faras re-authorises auto-continue.
+Local main has unpushed worklog/plan commits; push when no PR merge is pending.
+
 ### Commits and merges on main
 
 | Commit | What |
