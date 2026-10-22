@@ -1,0 +1,37 @@
+Apple clang version 17.0.0 (clang-1700.6.3.2)
+Darwin 24.6.0 arm64
+Apple M4
+10
+ 3:10  up 1 day, 13:17, 2 users, load averages: 7.07 6.31 6.86
+12 fresh processes, 60 blocks of 300 decompressions each
+
+Per process (ns per decompression):
+process  first block  steady median  first/steady  steady CV%
+      1      61640.0        58816.7          1.05         2.8
+      2      61330.0        57398.3          1.07         3.4
+      3      63713.3        57920.0          1.10         1.8
+      4      59460.0        57825.0          1.03         1.7
+      5      60143.3        57760.0          1.04         1.8
+      6      58526.7        58985.0          0.99         2.3
+      7      60696.7        58980.0          1.03         5.1
+      8      59010.0        57473.3          1.03         2.7
+      9      58250.0        57495.0          1.01         3.3
+     10      59433.3        57608.3          1.03         2.2
+     11      62030.0        58323.3          1.06         2.5
+     12      60426.7        59210.0          1.02         5.5
+
+first block / steady median: min 0.99, median 1.03, max 1.10
+processes whose steady CV is at most 10% (12 of 12): first/steady min 0.99, median 1.03, max 1.10
+steady medians of the 12 identical processes: min 57398.3, max 59210.0, max/min 1.032
+
+Pooled over processes, median block time / that process's steady:
+  block  0: 1.030
+  block  1: 1.016
+  block  2: 1.005
+  block  3: 0.999
+  block  4: 1.010
+  block  5: 1.005
+  block  9: 1.013
+  block 10: 1.005
+  block 30: 0.999
+  block 59: 0.995

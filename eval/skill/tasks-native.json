@@ -1,0 +1,73 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "native-simdjson-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "simdjson-simdjson-pr2805",
+        "requires": ["cc", "c++", "make"]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/to_chars.cpp",
+          "function": "to_chars",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "native-lz4-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "lz4-lz4-pr1040",
+        "branch": "pr-1040",
+        "requires": ["cc", "make"]
+      },
+      "prompt": "Is the change on branch pr-1040 (fast decoding loop on Apple and AArch64 builds) really faster than main, and still correct?",
+      "followups": ["yes, go ahead"],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": ["KEEP", "INCONCLUSIVE"]
+      }
+    },
+    {
+      "id": "native-zstd-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "facebook-zstd-pr3152-landed",
+        "requires": ["cc", "make"]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": ["INCONCLUSIVE", "REJECT", "NO VERDICT"]
+      }
+    }
+  ]
+}

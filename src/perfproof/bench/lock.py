@@ -48,6 +48,7 @@ from typing import Final, Literal, cast, get_args
 from pydantic import ValidationError
 
 from perfproof.bench.gobuildinfo import go_build_version
+from perfproof.bench.nativebuildinfo import compiler_family, native_build_info
 from perfproof.bench.spec import (
     STATE_DIR,
     normalize_launch_path,
@@ -216,6 +217,12 @@ _INSTALL_DIRS: Final = frozenset(
     {"dist-packages", "node_modules", "site-packages"}
 )
 _NODE_NAMES: Final = frozenset({"node", "nodejs"})
+_COMPILER_NAME: Final = re.compile(
+    r"(?:[a-z0-9_.]+-)*(?:cc|c\+\+|gcc|g\+\+|clang|clang\+\+)(?:-\d+(?:\.\d+)*)?"
+)
+"""A C or C++ compiler driver's name: ``cc``, ``gcc-14``, ``clang++``,
+``aarch64-linux-gnu-g++``."""
+_COMPILER_BANNER: Final = re.compile(r"(?m)^InstalledDir: (?P<dir>.+)$")
 _GO_SUBCOMMANDS: Final = frozenset({"build", "run", "test", "vet"})
 """The ``go`` subcommands whose runtime is the toolchain that runs them:
 they compile the code under test, and ``run`` and ``test`` then run it.
@@ -1160,6 +1167,10 @@ def _compare_native(
             )
             differences.extend(changed)
     toolchains = _go_toolchains(rel, paths, problems, unverified, differences)
+    if toolchains is None:
+        toolchains = _native_toolchains(
+            rel, paths, problems, unverified, differences
+        )
     how = (
         "tracked by git and identical in both trees"
         if tracked
@@ -1229,6 +1240,64 @@ def _go_toolchains(
         )
         return None
     return base
+
+
+def _native_toolchains(
+    rel: str,
+    paths: Mapping[Arm, Path],
+    problems: list[str],
+    unverified: list[str],
+    differences: list[Difference],
+) -> str | None:
+    """Compare the C or C++ toolchain that built each arm's executable.
+
+    An ELF executable names its compilers in ``.comment`` and a Mach-O
+    one its SDK and linker (`native_build_info`). Two trees whose
+    executables name different toolchains differ in more than the code
+    under test. This adds to ``problems`` and ``differences`` when both
+    name one and the names differ, and to ``unverified`` when only one
+    does or a file cannot be read. An executable that names none (not a
+    C or C++ build, or stripped) adds nothing.
+
+    Returns
+    -------
+    str or None
+        The toolchain both arms were built by, or ``None`` when neither
+        names one or the arms differ.
+    """
+    found: dict[Arm, tuple[str, ...]] = {}
+    for arm in _ARMS:
+        try:
+            found[arm] = native_build_info(paths[arm])
+        except OSError as exc:
+            unverified.append(f"the {arm} {rel} cannot be read: {exc}")
+            return None
+    base, cand = found["baseline"], found["candidate"]
+    if not base and not cand:
+        return None
+    if not base or not cand:
+        unverified.append(
+            f"only the {'candidate' if not base else 'baseline'} {rel} names "
+            "the toolchain that built it, so the toolchains cannot be "
+            "compared"
+        )
+        return None
+    if base != cand:
+        problems.append(
+            f"{rel} was built by different toolchains "
+            f"({'; '.join(base)} and {'; '.join(cand)})"
+        )
+        differences.append(
+            Difference(
+                item=f"{rel} native toolchain",
+                baseline="; ".join(base),
+                candidate="; ".join(cand),
+            )
+        )
+        return None
+    family = compiler_family(base)
+    named = f"{family}: " if family else ""
+    return f"{named}{'; '.join(base)}"
 
 
 def runtime_gate(
@@ -1885,6 +1954,11 @@ class _Launch:
             return self.java(exe, real, env)
         if "go" in canon and _native_kind(real) is not None:
             return self.go(exe, real, argv[1:], env)
+        if (
+            any(_COMPILER_NAME.fullmatch(c) for c in canon)
+            and _native_kind(real) is not None
+        ):
+            return self.compiler(exe, real, env)
         if canon & _SHELL_NAMES:
             return _Runtime.unknown(
                 real,
@@ -2043,6 +2117,56 @@ class _Launch:
             return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
         version = f"{' / '.join(lines)}; sha256 {digest}"
         return _Runtime("interpreter", real, version, None, "java")
+
+    def compiler(
+        self, exe: Path, real: Path, env: Mapping[str, str]
+    ) -> _Runtime:
+        """Identify the C or C++ compiler a driver command runs.
+
+        The driver is asked for ``--version`` and ``-dumpmachine`` as
+        the benchmark would run it. A banner with an ``InstalledDir``
+        line (clang prints one; Apple's ``/usr/bin/clang`` is a shim
+        that runs the compiler in the Command Line Tools) is hashed at
+        that directory's file of the resolved name when it is a native
+        file, else the resolved driver is. A driver that is a script
+        (ccache's wrapper, a distribution's alternatives script) is
+        never asked: the compiler it runs is not the one launched.
+
+        Returns
+        -------
+        _Runtime
+            An ``interpreter`` with family ``cc``, whose version is the
+            banner's first line, the target and the SHA-256 of the
+            compiler file; or unknown with the reason.
+        """
+        out, _, failure = self.report([str(exe), "--version"], env)
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not report its version: {failure}"
+            )
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+        if not lines:
+            return _Runtime.unknown(real, f"{exe} --version printed nothing")
+        machine, _, failure = self.report([str(exe), "-dumpmachine"], env)
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not report its target: {failure}"
+            )
+        target = machine.strip()
+        hashed = real
+        banner = _COMPILER_BANNER.search(out)
+        if banner is not None:
+            candidate = Path(banner.group("dir").strip()) / real.name
+            if _native_kind(candidate.resolve()) is not None:
+                hashed = candidate.resolve()
+        try:
+            digest, _ = hash_file(hashed)
+        except OSError as exc:
+            return _Runtime.unknown(
+                hashed, f"{hashed} cannot be hashed: {exc}"
+            )
+        text = f"{lines[0]}; target {target}; sha256 {digest}"
+        return _Runtime("interpreter", hashed, text, None, "cc")
 
     def go(
         self,

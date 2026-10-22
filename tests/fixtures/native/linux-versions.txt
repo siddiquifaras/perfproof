@@ -1,0 +1,7 @@
+gcc (GCC) 14.4.0
+Debian clang version 19.1.7 (3+b1)
+perf version 6.12.113
+gcov (GCC) 14.4.0
+Debian LLVM version 19.1.7
+  Optimized build.
+aarch64

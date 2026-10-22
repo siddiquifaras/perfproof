@@ -212,6 +212,10 @@ No discovery. One candidate at a time, against its parent.
    For Go, read [go.md](go.md) first: how to build and launch the
    benchmark so the runtime is identified, how to profile it with
    pprof, and what usually goes wrong.
+   For C and C++, read [native.md](native.md) first: how to build and
+   launch the benchmark so the toolchain is identified, how to profile
+   it with `sample` or `perf`, how to check the change ran, and what
+   usually goes wrong.
 3. **Ideas.** For each hotspot, work out the most a change there could
    save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:

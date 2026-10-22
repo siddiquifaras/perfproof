@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_decode lib/lz4hc.c lib/lz4frame.c programs/lz4io.c tests/fuzzer.c tests/frametest.c",
+    "source": "written here from the title of https://github.com/lz4/lz4/pull/1040 (fast decoding on Apple and AArch64 builds, lib/lz4.c): a C program that decompresses one 370 KB block 20,000 times with LZ4_decompress_safe, eval/tasks/workloads/lz4-lz4-pr1040/eval_decode.c, copied into the tree and built with the system cc against lib/lz4.c; its input is source files the pull request does not change",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "tests/fuzzer -s1 -i800",
+    "source": "lz4's own fuzzer (tests/fuzzer.c, built by make -C tests fuzzer against lib/lz4.c), 800 tests from seed 1; the fuzzer is not changed by https://github.com/lz4/lz4/pull/1040",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,9 +37,110 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs a C compiler named cc on the PATH and make (tested with Apple clang 17.0.0 on arm64 macOS, the Command Line Tools); the change enables its path for Apple and AArch64 builds only",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/lz4-lz4-pr1040/eval_decode.c .",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-22T21:41:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cc -O2 -Ilib -o eval_decode eval_decode.c lib/lz4.c",
+      "exit_code": 0,
+      "duration_s": 1.55,
+      "date": "2026-10-22T21:41:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "make -C tests fuzzer",
+      "exit_code": 0,
+      "duration_s": 5.03,
+      "date": "2026-10-22T21:41:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "cc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/lz4.c -o lz4.o\ncc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/lz4hc.c -o lz4hc.o\ncc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/xxhash.c -o xxhash.o\ncc -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_  lz4.o lz4hc.o xxhash.o fuzzer.c -o fuzzer"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "tests/fuzzer -s1 -i800",
+      "exit_code": 0,
+      "duration_s": 13.16,
+      "date": "2026-10-22T21:42:00+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  569   \n  595   \n  621   \n  634   \n  658   \n  676   \n  698   \n  719   \n  739   \n  760   \n  787   \n    800 /    800   - all tests completed successfully \ncompression ratio: 54.876%\nHC compression ratio: 51.624%\nratio with dict: 34.278%"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "./eval_decode lib/lz4hc.c lib/lz4frame.c programs/lz4io.c tests/fuzzer.c tests/frametest.c",
+      "exit_code": 0,
+      "duration_s": 3.77,
+      "date": "2026-10-22T21:42:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "371627 -> 122298 bytes, 20000 rounds, check 1445849"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/lz4-lz4-pr1040/eval_decode.c .",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-22T21:42:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cc -O2 -Ilib -o eval_decode eval_decode.c lib/lz4.c",
+      "exit_code": 0,
+      "duration_s": 1.8,
+      "date": "2026-10-22T21:42:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "make -C tests fuzzer",
+      "exit_code": 0,
+      "duration_s": 5.5,
+      "date": "2026-10-22T21:42:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "cc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/lz4.c -o lz4.o\ncc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/lz4hc.c -o lz4hc.o\ncc -c -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_ ../lib/xxhash.c -o xxhash.o\ncc -O3  -Wall -Wextra -Wundef -Wcast-qual -Wcast-align -Wshadow -Wswitch-enum -Wdeclaration-after-statement -Wstrict-prototypes -Wpointer-arith -Wstrict-aliasing=1 -g -DLZ4_DEBUG=1  -I../lib -I../programs -DXXH_NAMESPACE=LZ4_  lz4.o lz4hc.o xxhash.o fuzzer.c -o fuzzer"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "tests/fuzzer -s1 -i800",
+      "exit_code": 0,
+      "duration_s": 6.7,
+      "date": "2026-10-22T21:42:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  443   \n  473   \n  498   \n  531   \n  568   \n  609   \n  638   \n  671   \n  701   \n  736   \n  769   \n    800 /    800   - all tests completed successfully \ncompression ratio: 54.876%\nHC compression ratio: 51.624%\nratio with dict: 34.278%"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "./eval_decode lib/lz4hc.c lib/lz4frame.c programs/lz4io.c tests/fuzzer.c tests/frametest.c",
+      "exit_code": 0,
+      "duration_s": 1.64,
+      "date": "2026-10-22T21:42:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "371627 -> 122298 bytes, 20000 rounds, check 1445849"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

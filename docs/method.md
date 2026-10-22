@@ -249,7 +249,7 @@ table):
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java and Go are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java, Go and the C and C++ compilers are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. A host identity that can't be read is `not_available`; one that is read and differs is `failed`. |
 
 **What can't be read is `not_available`, not `failed`.** A gate fails
@@ -387,6 +387,37 @@ empty program, against 1.3 ms for its built binary, 30 starts each in
 one container (`studies/go/results.txt`, from `studies/go/run.sh`).
 Build in `setup` and time the executable (`go build -o`, or `go test -c`
 and the test binary) unless the command line is what the user waits for.
+
+*C and C++* programs are identified two ways. A command whose program
+resolves to a native `cc`, `c++`, `gcc`, `g++`, `clang` or `clang++`
+(versioned and target-prefixed names such as `gcc-14` and
+`aarch64-linux-gnu-g++` too) is asked, as the benchmark would run it,
+for `--version` and `-dumpmachine`, with stdin closed, a timeout and
+output capped at 4096 characters. The record is the first line of the
+banner, the target and the SHA-256 of the compiler's file; when the
+banner has an `InstalledDir` line (clang prints one, and Apple's
+`/usr/bin/clang` is a shim that runs the compiler in the Command Line
+Tools) the file hashed is the one of that name in that directory. A
+driver that is a script (ccache's wrapper, a distribution's alternatives
+script) is a shell, so unknown, as are `make`, `cmake` and `ninja`,
+which start other programs. A native executable built in the tree,
+which the gate already compared by the libraries it links from outside
+the tree, is also compared by what it records of its toolchain, read
+from the file without running it (`perfproof.bench.nativebuildinfo`):
+an ELF file's `.comment` section lists the compilers that contributed
+object files (`GCC: (GNU) 14.4.0`; a clang build on Debian lists
+`Debian clang version 19.1.7 (3+b1)` and the gcc line of the C runtime
+objects), and a Mach-O file's `LC_BUILD_VERSION` names the SDK and the
+linker (`ld 1230.1`) but no compiler (`tests/fixtures/native/SOURCE.md`,
+`tests/bench/test_lock_native.py`). Two executables that record
+different toolchains are a difference, `<path> native toolchain`; one
+that records none (stripped, not a C or C++ build, an ELF file that is
+32-bit or big-endian, a fat Mach-O) adds nothing when neither does and
+is unverified when only one does. The same records are in the passed
+detail. Not seen: compiler flags (`-O` level, `-march`), which the
+executable does not record, so two versions compiled with different
+flags in `setup` (not checked) pass this gate; ccache and the compiler
+a `make` runs; the Mach-O compiler version.
 
 *Scripts and launchers.* A `node_modules/.bin` script is followed
 through its `#!` line (`#!/usr/bin/env node` resolves `node` on the
@@ -1467,6 +1498,64 @@ What follows for a Go benchmark:
 Not measured: workloads with a large live heap (where the collector's
 pacing, and so its share, changes), programs that are mostly goroutine
 scheduling or blocking, cgo, and any machine but the one above.
+
+### Warm-up (C and C++)
+
+C and C++ compile ahead of time. There is no interpreter and no JIT, so
+the warm-up of "Warm-up (Java)" does not exist and its rules are not
+used. What can still make early iterations differ is the cold start of
+the process: page faults, instruction and data caches, branch
+predictors, frequency scaling. One run measures how large that is for
+one workload.
+
+The run (`studies/native/run.sh`, summarised by `studies/native/analyze.py`
+into `studies/native/results.txt`; raw output in
+`studies/native/runs-warmup/`): one workload, LZ4 decompression of one
+block of about 370 KB (the five source files that
+`studies/native/run.sh` names, 371,627 bytes together), built with the system cc
+at `-O2`, in 12 fresh processes, each timing 60 blocks of 300
+decompressions (17 to 19 ms a block). Apple clang 17.0.0 on an
+Apple M4 with 10 CPUs, native, not in a container. The machine was
+shared with other work while it ran: the load average was 7.07 when the
+run started (`studies/native/runs-warmup/environment.txt`).
+
+- *The first block is slightly slower, by at most 10%.* Its time over
+  that process's steady median (blocks 10 to 59) was 1.03 at the median
+  of the 12 processes, 0.99 at least and 1.10 at most. Pooled over the
+  12, the median of block 0 over steady was 1.030, of blocks 1 to 5
+  0.999 to 1.016, and of block 59 0.995 (`studies/native/results.txt`).
+  There is a small cold-start cost in the first block, and no curve
+  after the first few blocks.
+- *Processes differ by 3%.* The steady medians of the 12 identical
+  processes spread by a factor of 1.032 (57,398 to 59,210 ns a
+  decompression), and a block's variation inside a process was 1.7 to
+  5.5%. This is the noise the alternating rounds and the interval are
+  for.
+One workload, one machine, 12 processes. What follows for a C or C++
+benchmark is expected from this and from how ahead-of-time code runs,
+not measured beyond it:
+
+- Make one execution long enough that start-up is a small part of it
+  (half a second is a suggestion, not a measured threshold, and the
+  same for both versions), and use a fixed amount of work, not a fixed
+  time. A benchmark mode that runs for N seconds gives both versions
+  the same wall time.
+- `warmup` executions (a whole execution each) cover the cold start
+  seen above (up to 10% of a 17 ms block); there is no in-process phase
+  to wait for, and an in-process loop with a floor and a cap as for Java
+  is not used.
+- A `reported` rate from inside the process takes the median of blocks,
+  not one number over one long run, so that a pause in one block does
+  not decide it. This follows the Go template in `skills/perfproof/go.md`
+  and has not been calibrated for C.
+- Say when the machine was loaded: `perfproof profile` reports
+  `machine_loaded` with the load average and the share of wall time with
+  no thread on a CPU (`studies/native/simdjson-profile.json`).
+
+Not measured: a workload that builds a large structure first or maps a
+large file (those pay page faults in the first iterations), workloads
+that mostly wait on I/O, threaded programs, x86_64, a machine with no other load, and
+the effect of frequency scaling on a laptop on battery.
 
 ### Assumptions
 

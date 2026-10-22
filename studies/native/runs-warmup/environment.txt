@@ -1,0 +1,5 @@
+Apple clang version 17.0.0 (clang-1700.6.3.2)
+Darwin 24.6.0 arm64
+Apple M4
+10
+ 3:10  up 1 day, 13:17, 2 users, load averages: 7.07 6.31 6.86

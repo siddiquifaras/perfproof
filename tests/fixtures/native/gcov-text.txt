@@ -1,0 +1,9 @@
+File 'prog/check.c'
+Lines executed:80.00% of 10
+Creating 'check.c.gcov'
+
+File 'prog/work.c'
+Lines executed:78.95% of 19
+Creating 'work.c.gcov'
+
+Lines executed:79.31% of 29

@@ -27,14 +27,14 @@
   "change_kind": "after-landed",
   "target_class": "native",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_cdict",
+    "source": "written here from the title of https://github.com/facebook/zstd/pull/3152 (the short cache for dictionary match states at levels 1 to 4): a C program that compresses 160,000 blocks of 4 KiB at level 1 against a digested 64 KiB dictionary attached by reference (ZSTD_c_forceAttachDict), eval/tasks/workloads/facebook-zstd-pr3152-landed/eval_cdict.c, copied into the tree and linked against lib/libzstd.a, run on the tree where the change is already in",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "tests/fuzzer -s1 -i60",
+    "source": "zstd's own fuzzer (tests/fuzzer.c, built by make -C tests fuzzer), 60 tests from seed 1; the fuzzer covers the compression paths the pull request changes",
+    "verified": true
   },
   "evidence": [
     {
@@ -43,9 +43,130 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs a C compiler named cc on the PATH and make (tested with Apple clang 17.0.0 on arm64 macOS)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/facebook-zstd-pr3152-landed/eval_cdict.c .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T21:42:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "make -C lib libzstd.a",
+      "exit_code": 0,
+      "duration_s": 7.03,
+      "date": "2026-10-22T21:42:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "CC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_fast.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_lazy.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_ldm.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_opt.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstdmt_compress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/huf_decompress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_ddict.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_decompress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_decompress_block.o\nAS obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/huf_decompress_amd64.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/cover.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/divsufsort.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/fastcover.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zdict.o\ncompiling single-threaded static library 1.5.2"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cc -O2 -Ilib -o eval_cdict eval_cdict.c lib/libzstd.a",
+      "exit_code": 0,
+      "duration_s": 0.06,
+      "date": "2026-10-22T21:43:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "make -C tests fuzzer",
+      "exit_code": 0,
+      "duration_s": 9.54,
+      "date": "2026-10-22T21:43:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "tests/fuzzer -s1 -i60",
+      "exit_code": 0,
+      "duration_s": 4.25,
+      "date": "2026-10-22T21:43:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\n                                                                               \nTrying 5 different sets of parameters\n\n20%       \n                                                                               \nTrying 5 different sets of parameters\n\n20%       \n                                                                               \n\n     1/    60    \n    35/    60    \n    48/    60    \n60 fuzzer tests completed"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "./eval_cdict",
+      "exit_code": 0,
+      "duration_s": 1.72,
+      "date": "2026-10-22T21:43:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "160000 blocks of 4096 bytes -> 165252500 bytes"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/facebook-zstd-pr3152-landed/eval_cdict.c .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T21:43:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "make -C lib libzstd.a",
+      "exit_code": 0,
+      "duration_s": 7.11,
+      "date": "2026-10-22T21:43:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "CC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_fast.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_lazy.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_ldm.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_opt.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstdmt_compress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/huf_decompress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_ddict.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_decompress.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zstd_decompress_block.o\nAS obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/huf_decompress_amd64.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/cover.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/divsufsort.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/fastcover.o\nCC obj/conf_d5d9d86d5ec5be836ebf41a6b5e761fb/static/zdict.o\ncompiling single-threaded static library 1.5.2"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cc -O2 -Ilib -o eval_cdict eval_cdict.c lib/libzstd.a",
+      "exit_code": 0,
+      "duration_s": 0.06,
+      "date": "2026-10-22T21:43:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "make -C tests fuzzer",
+      "exit_code": 0,
+      "duration_s": 9.73,
+      "date": "2026-10-22T21:43:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "tests/fuzzer -s1 -i60",
+      "exit_code": 0,
+      "duration_s": 4.35,
+      "date": "2026-10-22T21:43:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\n                                                                               \nTrying 5 different sets of parameters\n\n20%       \n                                                                               \nTrying 5 different sets of parameters\n\n20%       \n                                                                               \n\n     1/    60    \n    35/    60    \n    48/    60    \n60 fuzzer tests completed"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "./eval_cdict",
+      "exit_code": 0,
+      "duration_s": 1.67,
+      "date": "2026-10-22T21:43:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "160000 blocks of 4096 bytes -> 165252500 bytes"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

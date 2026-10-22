@@ -1,0 +1,33 @@
+        -:    0:Source:prog/work.c
+        -:    1:#include "work.h"
+        -:    2:
+        -:    3:/* FNV-1a: one multiply per byte, the loop the profile should name. */
+        1:    4:uint64_t checksum(const uint8_t *data, size_t n) {
+        1:    5:    uint64_t h = 1469598103934665603ULL;
+        5:    6:    for (size_t i = 0; i < n; i++) {
+        4:    7:        h ^= data[i];
+        4:    8:        h *= 1099511628211ULL;
+        -:    9:    }
+        1:   10:    return h;
+        -:   11:}
+        -:   12:
+        -:   13:/* Insertion sort: quadratic on purpose, so it shows up next to the
+        -:   14: * checksum in a profile. */
+        1:   15:void sort_ints(int *values, size_t n) {
+        3:   16:    for (size_t i = 1; i < n; i++) {
+        2:   17:        int v = values[i];
+        2:   18:        size_t j = i;
+        4:   19:        while (j > 0 && values[j - 1] > v) {
+        2:   20:            values[j] = values[j - 1];
+        2:   21:            j--;
+        -:   22:        }
+        2:   23:        values[j] = v;
+        -:   24:    }
+        1:   25:}
+        -:   26:
+    #####:   27:int never_called(int x) {
+    #####:   28:    if (x > 0) {
+    #####:   29:        return x * 2;
+        -:   30:    }
+    #####:   31:    return -x;
+        -:   32:}

@@ -95,6 +95,19 @@ from one launch form used for both versions.
 | Supported | Go 1.25 on Linux arm64 in Docker (the official `golang:1.25` image), with the fixtures captured there and the profiler's integration tests run there, as run for T5.12; macOS and x86_64 are expected to work for the converters and have not been run with a Go toolchain |
 | Outside | Windows, cgo-heavy programs (not run), programs with no way to write a profile (see `skills/perfproof/go.md`), Go older than 1.18 for the built-executable check |
 
+## C and C++
+
+| | |
+|---|---|
+| Workload | A C or C++ program or test binary built in `setup` and timed as the built executable, by `wall` or by a `reported` rate printed by the program; fixed work, not a fixed time; see "Warm-up (C and C++)" in [method.md](method.md) |
+| Oracle | The project's tests (its fuzzer or test executable) and the program's output compared between versions |
+| Coverage | gcc `--coverage` read with `gcov --json-format`, or clang `-fprofile-instr-generate -fcoverage-mapping` read with `llvm-cov export`, turned into lcov by `perfproof.bench.native_coverage`; it plugs into the coverage gate when T2.24 lands and is reported as not checked until then |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | A built executable is compared by the toolchain it names: an ELF file's `.comment` (compiler lines), a Mach-O file's SDK and linker version (it names no compiler). A native `cc`, `gcc`, `g++`, `c++`, `clang` or `clang++` as the command is identified by its `--version`, target and a hash of its file. `make`, `cmake`, `ninja` and scripts (including a `gcc` that is a script) are `not_available` |
+| Profiling | macOS `sample` and Linux `perf`, turned into folded stacks with `file:line` by `perfproof.profilers.native` |
+| Supported | Apple clang 17.0.0 on macOS arm64 (`sample`, llvm-cov, the runtime gate) and gcc 14.4.0, clang 19.1.7 and perf 6.12.113 on Linux arm64 in the official `gcc` image on Docker Desktop (`tests/fixtures/native/SOURCE.md`, `studies/native/`); x86_64 and other compilers are expected to work and have not been run |
+| Outside | Windows and MSVC, Mach-O universal binaries and 32-bit or big-endian ELF files (their toolchain is not read), `perf stat` counters (not run), programs started through `make` or a script as the profiled command |
+
 ## Web and CRUD services
 
 | | |

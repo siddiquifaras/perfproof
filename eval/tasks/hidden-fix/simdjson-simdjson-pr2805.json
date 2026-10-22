@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "./build/benchmark/car_builder/benchmark_car_builder",
-    "source": "quoted in the description of https://github.com/simdjson/simdjson/pull/2805",
-    "verified": false
+    "command": "./eval_to_chars",
+    "source": "written here from the title of https://github.com/simdjson/simdjson/pull/2805 (to_chars in the DOM serializer and the string builder): a C++ program that serializes a parsed array of 100,000 doubles 400 times with simdjson::to_string, eval/tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp, copied into the tree and built with the system c++ against src/simdjson.cpp; the benchmark the pull request quotes (benchmark_car_builder) is not used",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "./eval_builder_tests",
+    "source": "simdjson's own string builder tests (tests/builder/builder_string_builder_tests.cpp, which appends doubles through the changed to_chars), compiled directly against src/simdjson.cpp as a single executable instead of through CMake",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,9 +39,110 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs a C++20 compiler named c++ on the PATH (tested with Apple clang 17.0.0 on arm64 macOS)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T21:42:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "c++ -std=c++20 -O2 -Iinclude -Isrc -o eval_to_chars eval_to_chars.cpp src/simdjson.cpp",
+      "exit_code": 0,
+      "duration_s": 1.86,
+      "date": "2026-10-22T21:42:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "c++ -std=c++20 -O1 -Iinclude -Isrc -Itests -Itests/builder -o eval_builder_tests tests/builder/builder_string_builder_tests.cpp src/simdjson.cpp",
+      "exit_code": 0,
+      "duration_s": 2.26,
+      "date": "2026-10-22T21:42:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "./eval_builder_tests",
+      "exit_code": 0,
+      "duration_s": 0.3,
+      "date": "2026-10-22T21:42:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "> Running serialize_optional ...\n> Running append_char ...\n> Running append_integer ...\n> Running append_float ...\n> Running append_null ...\n> Running clear ...\n> Running escape_and_append ...\n> Running escape_and_append_with_quotes ...\n> Running escape_write_string_escaped_exhaustive ...\n> Running append_raw ...\n> Running raw_with_length ...\n> Running string_convertion ...\n> Running buffer_growth ...\n> Running unicode_validation ...\nSuccess!"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "./eval_to_chars",
+      "exit_code": 0,
+      "duration_s": 1.7,
+      "date": "2026-10-22T21:42:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "100000 numbers, 400 rounds, 766818400 bytes written"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T21:42:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "c++ -std=c++20 -O2 -Iinclude -Isrc -o eval_to_chars eval_to_chars.cpp src/simdjson.cpp",
+      "exit_code": 0,
+      "duration_s": 1.84,
+      "date": "2026-10-22T21:42:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "c++ -std=c++20 -O1 -Iinclude -Isrc -Itests -Itests/builder -o eval_builder_tests tests/builder/builder_string_builder_tests.cpp src/simdjson.cpp",
+      "exit_code": 0,
+      "duration_s": 2.26,
+      "date": "2026-10-22T21:42:46+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "./eval_builder_tests",
+      "exit_code": 0,
+      "duration_s": 0.29,
+      "date": "2026-10-22T21:42:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "> Running serialize_optional ...\n> Running append_char ...\n> Running append_integer ...\n> Running append_float ...\n> Running append_null ...\n> Running clear ...\n> Running escape_and_append ...\n> Running escape_and_append_with_quotes ...\n> Running escape_write_string_escaped_exhaustive ...\n> Running append_raw ...\n> Running raw_with_length ...\n> Running string_convertion ...\n> Running buffer_growth ...\n> Running unicode_validation ...\nSuccess!"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "./eval_to_chars",
+      "exit_code": 0,
+      "duration_s": 1.49,
+      "date": "2026-10-22T21:42:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "100000 numbers, 400 rounds, 766818400 bytes written"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

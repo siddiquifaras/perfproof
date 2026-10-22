@@ -1,0 +1,2 @@
+perfproof.bench.native_coverage: 23 of 29 lines ran, in 2 files
+exit 0

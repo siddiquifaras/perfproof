@@ -1,0 +1,7 @@
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:20) 383
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:21) 1
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:25);checksum (work.c:7) 1518
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:27) 1
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:31);sort_ints (work.c:19) 55
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:31);sort_ints (work.c:20) 37
+hot`_start;libc.so.6`__libc_start_main;libc.so.6`[unknown];main (hot.c:31);sort_ints (work.c:23) 4

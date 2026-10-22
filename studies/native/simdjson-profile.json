@@ -1,0 +1,197 @@
+{
+  "command": "profile",
+  "ok": true,
+  "result": {
+    "argv": [
+      "<worktree>/.venv/bin/python",
+      "-m",
+      "perfproof.profilers.native",
+      "record",
+      "--output",
+      "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/command.folded.txt",
+      "--root",
+      "<worktree>/scratch/sjprof",
+      "--",
+      "<worktree>/scratch/sjprof/eval_to_chars_g"
+    ],
+    "basis": "unknown",
+    "cpu_count": 10,
+    "directory": "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77",
+    "evidence": {
+      "path": "<worktree>/scratch/sjprof/.perfproof/evidence/to-chars/20261022T221058Z-profile-93e142.json",
+      "sha256": "75ce4d1f4fcc0e576f78604ddfead4fbeb5907745ce13f2e953aa9843a77c75c"
+    },
+    "folded": "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/command.folded.txt",
+    "hotspots": [
+      {
+        "file": null,
+        "frame_kind": "native",
+        "function": "libsystem_platform.dylib`_platform_memmove",
+        "is_library": true,
+        "line": null,
+        "self_fraction": 0.33797909407665505,
+        "total_fraction": 0.33797909407665505
+      },
+      {
+        "file": "src/to_chars.cpp",
+        "frame_kind": "native",
+        "function": "simdjson::internal::to_chars(char*, char const*, double)",
+        "is_library": false,
+        "line": 1164,
+        "self_fraction": 0.19337979094076654,
+        "total_fraction": 0.3797909407665505
+      },
+      {
+        "file": "src/to_chars.cpp",
+        "frame_kind": "native",
+        "function": "simdjson::internal::to_chars(char*, char const*, double)",
+        "is_library": false,
+        "line": 1169,
+        "self_fraction": 0.15505226480836237,
+        "total_fraction": 0.2979094076655052
+      },
+      {
+        "file": null,
+        "frame_kind": "native",
+        "function": "eval_to_chars_g`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)",
+        "is_library": true,
+        "line": null,
+        "self_fraction": 0.06968641114982578,
+        "total_fraction": 0.06968641114982578
+      },
+      {
+        "file": null,
+        "frame_kind": "native",
+        "function": "libsystem_kernel.dylib`madvise",
+        "is_library": true,
+        "line": null,
+        "self_fraction": 0.03484320557491289,
+        "total_fraction": 0.03484320557491289
+      },
+      {
+        "file": null,
+        "frame_kind": "native",
+        "function": "eval_to_chars_g`simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)",
+        "is_library": true,
+        "line": null,
+        "self_fraction": 0.028745644599303136,
+        "total_fraction": 0.028745644599303136
+      },
+      {
+        "file": "include/simdjson/dom/serialization-inl.h",
+        "frame_kind": "native",
+        "function": "simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)",
+        "is_library": false,
+        "line": 418,
+        "self_fraction": 0.02264808362369338,
+        "total_fraction": 0.02264808362369338
+      },
+      {
+        "file": null,
+        "frame_kind": "native",
+        "function": "eval_to_chars_g`simdjson::internal::to_chars(char*, char const*, double)",
+        "is_library": true,
+        "line": null,
+        "self_fraction": 0.01916376306620209,
+        "total_fraction": 0.01916376306620209
+      }
+    ],
+    "hypothesis": null,
+    "load_average": 6.64013671875,
+    "logs": [
+      "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/unprofiled.stdout",
+      "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/unprofiled.stderr",
+      "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/profiled.stdout",
+      "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/profiled.stderr"
+    ],
+    "name": "to-chars",
+    "profiled_wall_seconds": 1.717947291,
+    "profiler": "command",
+    "raw": "<worktree>/scratch/sjprof/.perfproof/profiles/to-chars/20261022T221055Z-676d77/command.folded.txt",
+    "side_effects": {
+      "detail": "every service address is local: 0 spec env and 7 other environment variables, the commands and 0 config files checked",
+      "differences": [],
+      "differential": [],
+      "gate": "side_effects",
+      "output": null,
+      "quarantined": [],
+      "status": "passed",
+      "truncated": false,
+      "unverified": []
+    },
+    "spec_hash": "153c35a4f682332324bdb4d787e4e3378fad1791b8285e4f06073a6bb9ad4782",
+    "summary": {
+      "basis": "unknown",
+      "frames": [
+        {
+          "cap": 1.5105263157894737,
+          "cap_above_bar": true,
+          "file": null,
+          "frame_kind": "native",
+          "function": "libsystem_platform.dylib`_platform_memmove",
+          "is_library": true,
+          "line": null,
+          "self_fraction": 0.33797909407665505,
+          "total_fraction": 0.33797909407665505
+        },
+        {
+          "cap": 1.6123595505617978,
+          "cap_above_bar": true,
+          "file": "src/to_chars.cpp",
+          "frame_kind": "native",
+          "function": "simdjson::internal::to_chars(char*, char const*, double)",
+          "is_library": false,
+          "line": 1164,
+          "self_fraction": 0.19337979094076654,
+          "total_fraction": 0.3797909407665505
+        },
+        {
+          "cap": 1.4243176178660049,
+          "cap_above_bar": true,
+          "file": "src/to_chars.cpp",
+          "frame_kind": "native",
+          "function": "simdjson::internal::to_chars(char*, char const*, double)",
+          "is_library": false,
+          "line": 1169,
+          "self_fraction": 0.15505226480836237,
+          "total_fraction": 0.2979094076655052
+        },
+        {
+          "cap": 1.0749063670411985,
+          "cap_above_bar": true,
+          "file": null,
+          "frame_kind": "native",
+          "function": "eval_to_chars_g`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)",
+          "is_library": true,
+          "line": null,
+          "self_fraction": 0.06968641114982578,
+          "total_fraction": 0.06968641114982578
+        }
+      ],
+      "frames_omitted": 4,
+      "labels": {
+        "cap": "bound: 1 / (1 - total share); not a measured effect",
+        "share": "estimate: a share of the profile, not of a calibrated run",
+        "time": "measured once, on the machine as loaded at the time"
+      },
+      "time": {
+        "cpu_count": 10,
+        "cpu_over_wall": 0.9623945892670834,
+        "cpu_seconds": 1.6081299999999998,
+        "load_average": 6.64013671875,
+        "machine_loaded": false,
+        "reading": "for at least this share of wall time no thread was on a CPU: the run was waiting, not computing",
+        "waiting_share_at_least": 0.03760541073291657,
+        "wall_seconds": 1.670967416
+      },
+      "weight_unit": "unknown"
+    },
+    "tool_version": null,
+    "unprofiled": {
+      "cpu_fraction": 0.9623945892670834,
+      "cpu_seconds": 1.6081299999999998,
+      "wall_seconds": 1.670967416
+    },
+    "weight_unit": "unknown"
+  }
+}

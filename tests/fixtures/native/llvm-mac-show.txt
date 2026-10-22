@@ -1,0 +1,55 @@
+/var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/perfproof-native.4YdHWO/prog/check.c:
+    1|       |/* The correctness check: runs checksum and sort_ints, not never_called,
+    2|       | * so a coverage report has one function with no executed line. */
+    3|       |#include <stdio.h>
+    4|       |
+    5|       |#include "work.h"
+    6|       |
+    7|      1|int main(void) {
+    8|      1|    const uint8_t data[] = {1, 2, 3, 4};
+    9|      1|    int values[] = {3, 1, 2};
+   10|      1|    if (checksum(data, sizeof data) == 0) {
+   11|      0|        return 1;
+   12|      0|    }
+   13|      1|    sort_ints(values, 3);
+   14|      1|    if (values[0] != 1 || values[2] != 3) {
+   15|      0|        return 1;
+   16|      0|    }
+   17|      1|    puts("ok");
+   18|      1|    return 0;
+   19|      1|}
+
+/var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/perfproof-native.4YdHWO/prog/work.c:
+    1|       |#include "work.h"
+    2|       |
+    3|       |/* FNV-1a: one multiply per byte, the loop the profile should name. */
+    4|      1|uint64_t checksum(const uint8_t *data, size_t n) {
+    5|      1|    uint64_t h = 1469598103934665603ULL;
+    6|      5|    for (size_t i = 0; i < n; i++) {
+    7|      4|        h ^= data[i];
+    8|      4|        h *= 1099511628211ULL;
+    9|      4|    }
+   10|      1|    return h;
+   11|      1|}
+   12|       |
+   13|       |/* Insertion sort: quadratic on purpose, so it shows up next to the
+   14|       | * checksum in a profile. */
+   15|      1|void sort_ints(int *values, size_t n) {
+   16|      3|    for (size_t i = 1; i < n; i++) {
+   17|      2|        int v = values[i];
+   18|      2|        size_t j = i;
+   19|      4|        while (j > 0 && values[j - 1] > v) {
+   20|      2|            values[j] = values[j - 1];
+   21|      2|            j--;
+   22|      2|        }
+   23|      2|        values[j] = v;
+   24|      2|    }
+   25|      1|}
+   26|       |
+   27|      0|int never_called(int x) {
+   28|      0|    if (x > 0) {
+   29|      0|        return x * 2;
+   30|      0|    }
+   31|      0|    return -x;
+   32|      0|}
+

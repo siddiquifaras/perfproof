@@ -741,5 +741,42 @@
     "env": {
       "GOTOOLCHAIN": "local"
     }
+  },
+  "lz4-lz4-pr1040": {
+    "setup": [
+      "cp ../../../../tasks/workloads/lz4-lz4-pr1040/eval_decode.c .",
+      "cc -O2 -Ilib -o eval_decode eval_decode.c lib/lz4.c",
+      "make -C tests fuzzer"
+    ],
+    "workload": "./eval_decode lib/lz4hc.c lib/lz4frame.c programs/lz4io.c tests/fuzzer.c tests/frametest.c",
+    "workload_source": "written here from the title of https://github.com/lz4/lz4/pull/1040 (fast decoding on Apple and AArch64 builds, lib/lz4.c): a C program that decompresses one 370 KB block 20,000 times with LZ4_decompress_safe, eval/tasks/workloads/lz4-lz4-pr1040/eval_decode.c, copied into the tree and built with the system cc against lib/lz4.c; its input is source files the pull request does not change",
+    "oracle": "tests/fuzzer -s1 -i800",
+    "oracle_source": "lz4's own fuzzer (tests/fuzzer.c, built by make -C tests fuzzer against lib/lz4.c), 800 tests from seed 1; the fuzzer is not changed by https://github.com/lz4/lz4/pull/1040",
+    "notes": "Needs a C compiler named cc on the PATH and make (tested with Apple clang 17.0.0 on arm64 macOS, the Command Line Tools); the change enables its path for Apple and AArch64 builds only"
+  },
+  "simdjson-simdjson-pr2805": {
+    "setup": [
+      "cp ../../../../tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp .",
+      "c++ -std=c++20 -O2 -Iinclude -Isrc -o eval_to_chars eval_to_chars.cpp src/simdjson.cpp",
+      "c++ -std=c++20 -O1 -Iinclude -Isrc -Itests -Itests/builder -o eval_builder_tests tests/builder/builder_string_builder_tests.cpp src/simdjson.cpp"
+    ],
+    "workload": "./eval_to_chars",
+    "workload_source": "written here from the title of https://github.com/simdjson/simdjson/pull/2805 (to_chars in the DOM serializer and the string builder): a C++ program that serializes a parsed array of 100,000 doubles 400 times with simdjson::to_string, eval/tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp, copied into the tree and built with the system c++ against src/simdjson.cpp; the benchmark the pull request quotes (benchmark_car_builder) is not used",
+    "oracle": "./eval_builder_tests",
+    "oracle_source": "simdjson's own string builder tests (tests/builder/builder_string_builder_tests.cpp, which appends doubles through the changed to_chars), compiled directly against src/simdjson.cpp as a single executable instead of through CMake",
+    "notes": "Needs a C++20 compiler named c++ on the PATH (tested with Apple clang 17.0.0 on arm64 macOS)"
+  },
+  "facebook-zstd-pr3152-landed": {
+    "setup": [
+      "cp ../../../../tasks/workloads/facebook-zstd-pr3152-landed/eval_cdict.c .",
+      "make -C lib libzstd.a",
+      "cc -O2 -Ilib -o eval_cdict eval_cdict.c lib/libzstd.a",
+      "make -C tests fuzzer"
+    ],
+    "workload": "./eval_cdict",
+    "workload_source": "written here from the title of https://github.com/facebook/zstd/pull/3152 (the short cache for dictionary match states at levels 1 to 4): a C program that compresses 160,000 blocks of 4 KiB at level 1 against a digested 64 KiB dictionary attached by reference (ZSTD_c_forceAttachDict), eval/tasks/workloads/facebook-zstd-pr3152-landed/eval_cdict.c, copied into the tree and linked against lib/libzstd.a, run on the tree where the change is already in",
+    "oracle": "tests/fuzzer -s1 -i60",
+    "oracle_source": "zstd's own fuzzer (tests/fuzzer.c, built by make -C tests fuzzer), 60 tests from seed 1; the fuzzer covers the compression paths the pull request changes",
+    "notes": "Needs a C compiler named cc on the PATH and make (tested with Apple clang 17.0.0 on arm64 macOS)"
   }
 }
