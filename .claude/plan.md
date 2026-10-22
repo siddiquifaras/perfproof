@@ -7,6 +7,32 @@ agent and developer see), `docs/method.md` (prove),
 (how we show it works) and `docs/targets.md` (per-class contracts).
 This file is the order of work.
 
+## Launch plan to 2026-11-02 (Faras, 2026-10-22: "ready for the world by then; it's your job")
+
+Nov 2 is the launch, not a beta; support comes after. No gold plating: a
+piece ships when its essentials pass review, nits become follow-ups.
+Tracks run in parallel; dates are when each must be done.
+
+1. Trustworthy KEEP (critical path). T1.12 golden set results 10-23 ->
+   method decision (Faras) 10-24 -> wire the chosen procedure into
+   compare and the schema 10-26 -> T2.15 guardrails 10-27 -> CALIBRATED
+   flip with the stats-auditor 10-28. Without it perfproof never says
+   KEEP.
+2. The skill works on real repos. T3.20 (eval as ppeval) merged 10-23 ->
+   skill round 7 scored on the example and real-repo evals 10-24 ->
+   rounds until the real-repo batch and a broad "throw anything" set
+   pass at a bar set from the first scored round (real-3 was 2/8) 10-30.
+3. Languages done well (six-point bar): Node (#59) and Java merged; Go
+   (T5.12) and Rust (T5.13) 10-27; C/C++ native (T5.3/T5.4) 10-28;
+   Ruby and C# (T5.14) 10-30. Anything not at the bar by 10-30 ships
+   labelled experimental (T6.1), never claimed.
+4. First run for a stranger: T3.16 install, T3.14 depth tiers, T3.15
+   short output, T3.9 Codex verified, by 10-29.
+5. GPU anywhere: MPS path on this Mac and the CUDA path via the free
+   Modal credit, by 10-30.
+6. Release: T6.2 README with every claim linked to a run, 10-31; Faras's
+   hands-on try 10-31 to 11-01; T6.3 publish (Faras) 11-02.
+
 ## Priority (Faras, 2026-10-19)
 
 The `/perfproof` skill is the product: it has to work end to end, in
