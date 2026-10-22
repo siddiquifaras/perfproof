@@ -647,6 +647,32 @@ by `stats-auditor` before its PR opens.
     stats-auditor passes.
   - Effort: medium
 
+- [ ] **T1.12 Golden set: choose the statistics method on ground truth** (Faras, 2026-10-22: run before shipping the T1.11 split, which is held)
+  - Owns: `studies/golden/`, `tests/golden/` (new), `eval/golden/` (new),
+    a replay entry point in `src/perfproof/stats/` if needed, and the
+    `/verify` hook for the golden eval; branches from
+    `task/t1.11-phase2` (needs `hac_lf`)
+  - Needs: T1.11 phase 2 code (PR #64, held)
+  - Do: spike-in ground truth on real hardware. Insert exact slowdowns
+    (0, 2, 3, 5, 10%) into real benchmarks (Python, Node, Java, one
+    native; LLM serving and GPU later, GPU paid only on approval) on the
+    Mac and the Hetzner box; run each compare to its maximum rounds
+    once, recording every execution with load, frequency and host;
+    replay the gated primary, `hac_lf` everywhere and the split on the
+    same rounds (shadow, common data). Report per method: wrong-KEEP
+    rate with CP95, power per effect, rounds and wall time to verdict,
+    compute cost; explain every disagreement. Quantify what interleaving,
+    pinning, frequency control and instruction counts remove from the
+    raw per-execution noise, and whether that alone closes the GPU gap.
+    Commit the golden set as a regression eval `/verify` can run (a
+    fast replay subset).
+  - Done when: a recommendation with evidence: the method (or split),
+    every place it loses with numbers, whether "split by schedule"
+    stands; wrong-KEEP within 2.5% (CP95) on every golden cell; the
+    reviewer and stats-auditor pass; a proposed (not run) paid GPU
+    golden run with cost.
+  - Effort: large
+
 
 ## M2 Local loop
 
