@@ -1,0 +1,129 @@
+{
+  "id": "fasterxml-jackson-core-pr1706",
+  "repository": "FasterXML/jackson-core",
+  "stars": 2379,
+  "pushed_at": "2026-10-20T22:34:48Z",
+  "task_commit": "57bd0c6552b9ee643cbc3af7457adc300a32136b",
+  "task_commit_basis": "base of https://github.com/FasterXML/jackson-core/pull/1706 from gh api, the first parent of its squash merge 104aab73ca8981ac08e37c001143d30fa6eec0e0",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/FasterXML/jackson-core/pull/1706",
+    "title": "Write number text directly as ASCII bytes in `UTF8JsonGenerator`",
+    "commit": "104aab73ca8981ac08e37c001143d30fa6eec0e0",
+    "merged_at": "2026-09-14T15:39:50Z",
+    "files": [
+      "release-notes/VERSION",
+      "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "src/test/java/tools/jackson/core/unittest/write/GeneratorBasicTest.java"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "java",
+  "workload": {
+    "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
+    "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1706, whose harness is not in the tree: a program writing 30-digit BigDecimals (their text cached) through UTF8JsonGenerator with USE_FAST_DOUBLE_WRITER off, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java). In single runs on JDK 21 (macOS arm64), the last warm-up iterations in the recorded workload output took about 16 ms on the task tree and 16 to 20 ms on the reference tree; that is one run each, and no conclusion is drawn from it. The description's own table (JDK 17, another harness, an earlier form of the loop) shows the copy path halved.",
+    "verified": false
+  },
+  "oracle": {
+    "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
+    "source": "GeneratorBasicTest, the test class https://github.com/FasterXML/jackson-core/pull/1706 extends; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/FasterXML/jackson-core/pull/1706",
+      "note": "description: number text is written as ASCII bytes straight into the output buffer; a hand-rolled harness with 5 JVM forks is quoted"
+    }
+  ],
+  "audit": null,
+  "status": "builds",
+  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21). The workload ran; the recorded tails do not settle whether this change is faster, so that is open: labelling decides what the task is worth. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 6.81,
+      "date": "2026-10-22T00:15:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.29,
+      "date": "2026-10-22T00:15:49+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
+      "exit_code": 0,
+      "duration_s": 5.63,
+      "date": "2026-10-22T00:15:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
+      "exit_code": 0,
+      "duration_s": 0.74,
+      "date": "2026-10-22T00:15:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 7 15602 us\nwarmup 8 16510 us\nwarmup 9 16883 us\nwarmup 10 16407 us\nwarmup 11 16144 us\nwarmup 12 15895 us\nwarmup 13 16568 us\nwarmup 14 15361 us\nwarmup 15 15989 us\nwarmup 16 15220 us\nwarmup 17 16510 us\nwarmup 18 16100 us\nwarmup 19 16300 us\nwarmup 20 16605 us\nstabilised after 20 iterations"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 6.47,
+      "date": "2026-10-22T00:15:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.3,
+      "date": "2026-10-22T00:16:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
+      "exit_code": 0,
+      "duration_s": 6.44,
+      "date": "2026-10-22T00:16:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
+      "exit_code": 0,
+      "duration_s": 0.88,
+      "date": "2026-10-22T00:16:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 7 18612 us\nwarmup 8 21279 us\nwarmup 9 18928 us\nwarmup 10 17117 us\nwarmup 11 19777 us\nwarmup 12 20080 us\nwarmup 13 17382 us\nwarmup 14 19676 us\nwarmup 15 17995 us\nwarmup 16 18629 us\nwarmup 17 18028 us\nwarmup 18 17054 us\nwarmup 19 16051 us\nwarmup 20 18665 us\nstabilised after 20 iterations"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T00:14:18+00:00",
+  "miner": "written by hand for T5.11 (no Java repository in the pool)"
+}

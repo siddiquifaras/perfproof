@@ -1,0 +1,1426 @@
+jdk.ExecutionSample {
+  startTime = 01:00:24.324 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 597
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.327 (2026-10-22)
+  sampledThread = "C2 CompilerThre" (osThreadId = 76)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    libjvm.so.compare_immediate_pair() line: 0
+    libc.so.6.bsearch() line: 0
+    libjvm.so.encoding_for_logical_immediate() line: 0
+    libjvm.so.Assembler::operand_valid_for_logical_immediate() line: 0
+    libjvm.so.State::_sub_Op_ConI() line: 0
+    libjvm.so.State::DFA() line: 0
+    libjvm.so.Matcher::Label_Root() line: 0
+    libjvm.so.Matcher::match_tree() line: 0
+    libjvm.so.Matcher::xform() line: 0
+    libjvm.so.Matcher::match() line: 0
+    libjvm.so.Compile::Code_Gen() line: 0
+    libjvm.so.Compile::Compile() line: 0
+    libjvm.so.C2Compiler::compile_method() line: 0
+    libjvm.so.CompileBroker::invoke_compiler_on_method() line: 0
+    libjvm.so.CompileBroker::compiler_thread_loop() line: 0
+    libjvm.so.JavaThread::thread_main_inner() line: 0
+    libjvm.so.Thread::call_run() line: 0
+    libjvm.so.thread_native_entry() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.334 (2026-10-22)
+  sampledThread = "[tid=82]" (osThreadId = 82)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    libjvm.so.RegionNode::is_unreachable_from_root() line: 0
+    libjvm.so.PhiNode::is_data_loop() line: 0
+    libjvm.so.PhiNode::Ideal() line: 0
+    libjvm.so.PhaseIterGVN::transform_old() line: 0
+    libjvm.so.PhaseIterGVN::optimize() line: 0
+    libjvm.so.PhaseMacroExpand::expand_macro_nodes() line: 0
+    libjvm.so.Compile::Optimize() line: 0
+    libjvm.so.Compile::Compile() line: 0
+    libjvm.so.C2Compiler::compile_method() line: 0
+    libjvm.so.CompileBroker::invoke_compiler_on_method() line: 0
+    libjvm.so.CompileBroker::compiler_thread_loop() line: 0
+    libjvm.so.JavaThread::thread_main_inner() line: 0
+    libjvm.so.Thread::call_run() line: 0
+    libjvm.so.thread_native_entry() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.335 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.StringBuilder.<init>(int) line: 119
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.346 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.356 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.StringLatin1.equals(byte[], byte[]) line: 96
+    java.lang.String.equals(Object) line: 1852
+    jdk.internal.org.objectweb.asm.SymbolTable.addType(String) line: 1175
+    jdk.internal.org.objectweb.asm.Frame.getAbstractTypeFromDescriptor(SymbolTable, String, int) line: 365
+    jdk.internal.org.objectweb.asm.Frame.push(SymbolTable, String) line: 584
+    jdk.internal.org.objectweb.asm.Frame.execute(int, int, Symbol, SymbolTable) line: 1075
+    jdk.internal.org.objectweb.asm.MethodWriter.visitMethodInsn(int, String, String, String, boolean) line: 1078
+    java.lang.invoke.InvokerBytecodeGenerator.clinit(ClassWriter, String, List) line: 334
+    java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCodeBytes() line: 755
+    java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCode(LambdaForm, MethodType) line: 712
+    java.lang.invoke.LambdaForm.compileToBytecode() line: 849
+    java.lang.invoke.LambdaForm.prepare() line: 807
+    java.lang.invoke.MethodHandle.<init>(MethodType, LambdaForm) line: 482
+    java.lang.invoke.BoundMethodHandle.<init>(MethodType, LambdaForm) line: 52
+    java.lang.invoke.SimpleMethodHandle.<init>(MethodType, LambdaForm) line: 40
+    java.lang.invoke.SimpleMethodHandle.make(MethodType, LambdaForm) line: 45
+    java.lang.invoke.SimpleMethodHandle.copyWith(MethodType, LambdaForm) line: 60
+    java.lang.invoke.MethodHandles.dropArgumentsTrusted(MethodHandle, int, Class[]) line: 5375
+    java.lang.invoke.MethodHandles.dropArguments(MethodHandle, int, Class) line: 5443
+    java.lang.invoke.StringConcatFactory.prependBase() line: 761
+    java.lang.invoke.StringConcatFactory.prepender(String, Class, String, Class) line: 775
+    java.lang.invoke.StringConcatFactory.prepender(int, String[], Class[], int) line: 789
+    java.lang.invoke.StringConcatFactory.filterInPrependers(MethodHandle, String[], Class[]) line: 621
+    java.lang.invoke.StringConcatFactory.generateMHInlineCopy(MethodType, String[]) line: 549
+    java.lang.invoke.StringConcatFactory.makeConcatWithConstants(MethodHandles$Lookup, String, MethodType, String, Object[]) line: 365
+    java.lang.invoke.DirectMethodHandle$Holder.invokeStatic(Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.DelegatingMethodHandle$Holder.delegate(Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.Invokers$Holder.invokeExact_MT(Object, Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.BootstrapMethodInvoker.invoke(Class, MethodHandle, String, Object, Object, Class) line: 102
+    java.lang.invoke.CallSite.makeSite(MethodHandle, String, MethodType, Object, Class) line: 310
+    java.lang.invoke.MethodHandleNatives.linkCallSiteImpl(Class, MethodHandle, String, MethodType, Object, Object[]) line: 249
+    java.lang.invoke.MethodHandleNatives.linkCallSite(Object, Object, Object, Object, Object, Object[]) line: 239
+    Base64Workload.main(String[]) line: 54
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.365 (2026-10-22)
+  sampledThread = "C2 CompilerThre" (osThreadId = 76)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    libjvm.so.PhaseCCP::push_more_uses() line: 0
+    libjvm.so.PhaseCCP::analyze() line: 0
+    libjvm.so.Compile::Optimize() line: 0
+    libjvm.so.Compile::Compile() line: 0
+    libjvm.so.C2Compiler::compile_method() line: 0
+    libjvm.so.CompileBroker::invoke_compiler_on_method() line: 0
+    libjvm.so.CompileBroker::compiler_thread_loop() line: 0
+    libjvm.so.JavaThread::thread_main_inner() line: 0
+    libjvm.so.Thread::call_run() line: 0
+    libjvm.so.thread_native_entry() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.366 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 567
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.377 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.387 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 581
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.398 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.408 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.418 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.430 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.440 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.450 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    Base64Workload.iteration() line: 26
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.461 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.471 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.482 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.492 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    Base64Workload.iteration() line: 26
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.502 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.<init>(int) line: 101
+    java.lang.StringBuilder.<init>(int) line: 119
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.514 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.524 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 581
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.534 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.544 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.554 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.564 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.575 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.585 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.595 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.usesPadding() line: 324
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 467
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.605 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 240
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.616 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.626 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.newCapacity(int) line: 260
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 243
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.636 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.646 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.656 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.667 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.invoke.DirectMethodHandle.internalMemberName(Object) line: 327
+    java.lang.invoke.DirectMethodHandle$Holder.invokeStatic(Object, Object, long) line: 0
+    java.lang.invoke.LambdaForm$MH.0x0000000401004400.invoke(Object, long) line: 0
+    java.lang.invoke.LambdaForm$MH.0x0000000401005c00.invoke(Object, int, long) line: 0
+    java.lang.invoke.LambdaForm$MH.0x0000000401006400.linkToTargetMethod(int, long, Object) line: 0
+    Base64Workload.main(String[]) line: 54
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.677 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.687 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.698 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.708 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.718 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.728 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.739 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.749 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.759 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 470
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.769 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.780 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.790 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 245
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 466
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.800 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.811 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.822 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 469
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.832 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.842 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.852 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.863 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.873 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.883 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.893 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.904 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.914 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.924 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3541
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.934 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.944 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.util.Arrays.copyOfRange(byte[], int, int) line: 3853
+    java.lang.String.<init>(AbstractStringBuilder, Void) line: 4781
+    java.lang.String.<init>(StringBuilder) line: 1496
+    java.lang.StringBuilder.toString() line: 475
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 606
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.954 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.965 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.975 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.985 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.995 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    .zero_blocks() line: 0
+    java.lang.AbstractStringBuilder.<init>(int) line: 101
+    java.lang.StringBuilder.<init>(int) line: 119
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.005 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.<init>(int) line: 101
+    java.lang.StringBuilder.<init>(int) line: 119
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.016 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.026 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 240
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.036 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.046 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.056 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.067 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3542
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.078 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    .forward_copy_longs() line: 0
+    .arrayof_jlong_disjoint_arraycopy() line: 0
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.089 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.099 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.109 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.119 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    .zero_blocks() line: 0
+    java.lang.AbstractStringBuilder.<init>(int) line: 101
+    java.lang.StringBuilder.<init>(int) line: 119
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.131 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.141 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.152 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.162 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.172 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.182 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.192 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.203 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.213 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.223 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.233 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.243 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 567
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.254 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    .arrayof_jlong_disjoint_arraycopy() line: 0
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.264 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.274 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3541
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.284 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 245
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.294 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.304 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.314 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 466
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.326 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.334 (2026-10-22)
+  sampledThread = "C1 CompilerThre" (osThreadId = 77)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    libjvm.so.LinearScan::use_kind_of_output_operand() line: 0
+    libjvm.so.LinearScan::build_intervals() line: 0
+    libjvm.so.LinearScan::do_linear_scan() line: 0
+    libjvm.so.Compilation::emit_lir() line: 0
+    libjvm.so.Compilation::compile_java_method() line: 0
+    libjvm.so.Compilation::compile_method() line: 0
+    libjvm.so.Compilation::Compilation() line: 0
+    libjvm.so.Compiler::compile_method() line: 0
+    libjvm.so.CompileBroker::invoke_compiler_on_method() line: 0
+    libjvm.so.CompileBroker::compiler_thread_loop() line: 0
+    libjvm.so.JavaThread::thread_main_inner() line: 0
+    libjvm.so.Thread::call_run() line: 0
+    libjvm.so.thread_native_entry() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+    ./usr/lib/aarch64-linux-gnu/libc.so.6() line: 0
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:25.336 (2026-10-22)
+  sampledThread = "DestroyJavaVM" (javaThreadId = 26)
+  state = "STATE_DEFAULT"
+  stackTrace = [
+    java.lang.invoke.LambdaForm$Name.<init>(LambdaForm$Name, Object) line: 1351
+    java.lang.invoke.LambdaForm$Name.withConstraint(Object) line: 1412
+    java.lang.invoke.DelegatingMethodHandle.makeReinvokerForm(MethodHandle, int, Object, boolean, LambdaForm$NamedFunction, LambdaForm$NamedFunction) line: 148
+    java.lang.invoke.DelegatingMethodHandle.makeReinvokerForm(MethodHandle, int, Object, LambdaForm$NamedFunction) line: 120
+    java.lang.invoke.BoundMethodHandle.makeReinvoker(MethodHandle) line: 111
+    java.lang.invoke.DirectMethodHandle.rebind() line: 148
+    java.lang.invoke.StringConcatFactory.prepender(Class) line: 727
+    java.lang.invoke.StringConcatFactory.prepender(String, Class) line: 713
+    java.lang.invoke.StringConcatFactory.prepender(int, String[], Class[], int) line: 786
+    java.lang.invoke.StringConcatFactory.filterInPrependers(MethodHandle, String[], Class[]) line: 621
+    java.lang.invoke.StringConcatFactory.generateMHInlineCopy(MethodType, String[]) line: 549
+    java.lang.invoke.StringConcatFactory.makeConcatWithConstants(MethodHandles$Lookup, String, MethodType, String, Object[]) line: 365
+    java.lang.invoke.DirectMethodHandle$Holder.invokeStatic(Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.DelegatingMethodHandle$Holder.delegate(Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.Invokers$Holder.invokeExact_MT(Object, Object, Object, Object, Object, Object, Object) line: 0
+    java.lang.invoke.BootstrapMethodInvoker.invoke(Class, MethodHandle, String, Object, Object, Class) line: 102
+    java.lang.invoke.CallSite.makeSite(MethodHandle, String, MethodType, Object, Class) line: 310
+    java.lang.invoke.MethodHandleNatives.linkCallSiteImpl(Class, MethodHandle, String, MethodType, Object, Object[]) line: 249
+    java.lang.invoke.MethodHandleNatives.linkCallSite(Object, Object, Object, Object, Object, Object[]) line: 239
+    Base64Workload.main(String[]) line: 79
+  ]
+}
+

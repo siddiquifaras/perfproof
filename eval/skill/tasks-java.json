@@ -1,0 +1,91 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "java-jackson-core-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "fasterxml-jackson-core-pr1674",
+        "requires": [
+          "java",
+          "javac"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/main/java/tools/jackson/core/Base64Variant.java",
+          "function": "encodeBase64Chunk",
+          "match": "named"
+        }
+      }
+    },
+    {
+      "id": "java-guava-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "google-guava-4802ac3c1b",
+        "branch": "commit-4802ac3",
+        "requires": [
+          "java",
+          "javac"
+        ]
+      },
+      "prompt": "The change on branch commit-4802ac3 says it speeds up AbstractNonStreamingHashFunction for non-bytes types. Is it actually faster than main, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 3000,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ]
+      }
+    },
+    {
+      "id": "java-jackson-core-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "fasterxml-jackson-core-pr1704-landed",
+        "requires": [
+          "java",
+          "javac"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

@@ -204,6 +204,9 @@ No discovery. One candidate at a time, against its parent.
    instead (`sample` on macOS), call each function's share of the
    samples an estimate, name the sampler, and say perfproof's profile
    did not run.
+   For Java and other JVM code, read [java.md](java.md) first: how to
+   launch the benchmark so the runtime is identified, how to warm it
+   up, how to profile it, and what usually goes wrong.
 3. **Ideas.** For each hotspot, work out the most a change there could
    save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:

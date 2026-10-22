@@ -1,0 +1,129 @@
+{
+  "id": "fasterxml-jackson-core-pr1674",
+  "repository": "FasterXML/jackson-core",
+  "stars": 2379,
+  "pushed_at": "2026-10-20T22:34:48Z",
+  "task_commit": "1c360ab05ec5bd851961419e7b69cd87a47ec660",
+  "task_commit_basis": "first parent of https://github.com/FasterXML/jackson-core/commit/b3dcdf6352b5955b46f9df743d76182a9cf1b407, a squash merge; the compare of the two touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/FasterXML/jackson-core/pull/1674",
+    "title": "Encode base64 into exactly-sized char[] instead of StringBuilder",
+    "commit": "b3dcdf6352b5955b46f9df743d76182a9cf1b407",
+    "merged_at": "2026-09-08T04:53:47Z",
+    "files": [
+      "release-notes/VERSION",
+      "src/main/java/tools/jackson/core/Base64Variant.java",
+      "src/test/java/tools/jackson/core/unittest/base64/Base64CodecTest.java"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "java",
+  "workload": {
+    "command": "java -cp target/classes:eval-wl Base64Workload",
+    "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1674 (Base64Variant.encode): a program encoding 16 byte, 1 KiB and 64 KiB payloads in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java)",
+    "verified": false
+  },
+  "oracle": {
+    "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
+    "source": "Base64CodecTest, the test class https://github.com/FasterXML/jackson-core/pull/1674 extends; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/FasterXML/jackson-core/pull/1674",
+      "note": "description: Base64Variant.encode builds the result in a char[] of the exact length instead of a StringBuilder"
+    }
+  ],
+  "audit": null,
+  "status": "builds",
+  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 7.1,
+      "date": "2026-10-22T00:14:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java",
+      "exit_code": 0,
+      "duration_s": 0.28,
+      "date": "2026-10-22T00:14:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
+      "exit_code": 0,
+      "duration_s": 6.0,
+      "date": "2026-10-22T00:14:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "java -cp target/classes:eval-wl Base64Workload",
+      "exit_code": 0,
+      "duration_s": 0.98,
+      "date": "2026-10-22T00:14:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 7 21391 us\nwarmup 8 23096 us\nwarmup 9 23214 us\nwarmup 10 21691 us\nwarmup 11 20514 us\nwarmup 12 20189 us\nwarmup 13 22575 us\nwarmup 14 20104 us\nwarmup 15 23378 us\nwarmup 16 20112 us\nwarmup 17 22601 us\nwarmup 18 23117 us\nwarmup 19 22110 us\nwarmup 20 19824 us\nstabilised after 20 iterations"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 6.38,
+      "date": "2026-10-22T00:14:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java",
+      "exit_code": 0,
+      "duration_s": 0.26,
+      "date": "2026-10-22T00:14:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
+      "exit_code": 0,
+      "duration_s": 5.87,
+      "date": "2026-10-22T00:14:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "java -cp target/classes:eval-wl Base64Workload",
+      "exit_code": 0,
+      "duration_s": 0.45,
+      "date": "2026-10-22T00:15:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 8 8181 us\nwarmup 9 8564 us\nwarmup 10 8123 us\nwarmup 11 8059 us\nwarmup 12 10460 us\nwarmup 13 10370 us\nwarmup 14 8138 us\nwarmup 15 9399 us\nwarmup 16 9151 us\nwarmup 17 8062 us\nwarmup 18 8421 us\nwarmup 19 8292 us\nwarmup 20 8063 us\nwarmup 21 8617 us\nstabilised after 21 iterations"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T00:14:16+00:00",
+  "miner": "written by hand for T5.11 (no Java repository in the pool)"
+}

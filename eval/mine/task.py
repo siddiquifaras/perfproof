@@ -16,7 +16,9 @@ TASKS_DIR = Path(__file__).resolve().parents[1] / "tasks"
 Family = Literal[
     "known-change", "published-benchmark", "hidden-fix", "nothing-to-keep"
 ]
-TargetClass = Literal["python", "native", "web", "serving", "gpu", "agentic"]
+TargetClass = Literal[
+    "python", "native", "web", "serving", "gpu", "agentic", "java"
+]
 ChangeKind = Literal[
     "improvement",
     "after-landed",

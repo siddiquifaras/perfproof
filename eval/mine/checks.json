@@ -598,5 +598,71 @@
     "oracle": "python ../../../../tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py",
     "oracle_source": "written here, since the tree has no test for embedchain/utils/cli.py: read_env_file on a fixed file with comments, blank lines, padding and '=' in values, checked against the task tree's behaviour (eval/tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py)",
     "notes": "The repository was embedchain at this commit. Dependencies are its poetry.lock, exported with poetry 2.1.3 (main group). CPython 3.12.3, the last 3.12 release before the change: from 3.12.4 on, the locked pydantic.v1 (via langsmith) fails on ForwardRef._evaluate"
+  },
+  "fasterxml-jackson-core-pr1674": {
+    "setup": [
+      "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java"
+    ],
+    "workload": "java -cp target/classes:eval-wl Base64Workload",
+    "workload_source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1674 (Base64Variant.encode): a program encoding 16 byte, 1 KiB and 64 KiB payloads in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java)",
+    "oracle": "./mvnw -q -B test -Dtest=Base64CodecTest",
+    "oracle_source": "Base64CodecTest, the test class https://github.com/FasterXML/jackson-core/pull/1674 extends; targeted tests only",
+    "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "fasterxml-jackson-core-pr1706": {
+    "setup": [
+      "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java"
+    ],
+    "workload": "java -cp target/classes:eval-wl NumberWriteWorkload",
+    "workload_source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1706, whose harness is not in the tree: a program writing 30-digit BigDecimals (their text cached) through UTF8JsonGenerator with USE_FAST_DOUBLE_WRITER off, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java). In single runs on JDK 21 (macOS arm64), the last warm-up iterations in the recorded workload output took about 16 ms on the task tree and 16 to 20 ms on the reference tree; that is one run each, and no conclusion is drawn from it. The description's own table (JDK 17, another harness, an earlier form of the loop) shows the copy path halved.",
+    "oracle": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
+    "oracle_source": "GeneratorBasicTest, the test class https://github.com/FasterXML/jackson-core/pull/1706 extends; targeted tests only",
+    "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21). The workload ran; the recorded tails do not settle whether this change is faster, so that is open: labelling decides what the task is worth. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "google-guava-4802ac3c1b": {
+    "setup": [
+      "./mvnw -q -B -pl guava -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dmaven.test.skip=true package",
+      "javac -cp guava/target/classes -d eval-wl ../../../../tasks/workloads/google-guava-4802ac3c1b/HasherWorkload.java"
+    ],
+    "workload": "java -cp guava/target/classes:eval-wl HasherWorkload",
+    "workload_source": "written here from the commit message of https://github.com/google/guava/commit/4802ac3c1be4ac806b8ca4477e5e875bb5f84e16 (\"faster putInt, putChar, etc.\"): hashing a few primitives, a string and a byte array through a Hasher of Hashing.farmHashFingerprint64(), in process, warmed up until stable (eval/tasks/workloads/google-guava-4802ac3c1b/HasherWorkload.java)",
+    "oracle": "./mvnw -q -B -pl guava-tests -am package -Dtest=FarmHashFingerprint64Test,HashingTest -Dsurefire.failIfNoSpecifiedTests=false",
+    "oracle_source": "FarmHashFingerprint64Test and HashingTest, the tests of the hash package AbstractNonStreamingHashFunction belongs to; targeted tests only",
+    "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21); the jre flavour only. The oracle's surefire reports in the work tree, read after the run, show 47 tests run with no failure on each tree (FarmHashFingerprint64Test 6, HashingTest 40, collect.HashingTest 1); the recorded output tail does not carry them because the command runs with -q. The setup and oracle output tails say \"Unable to locate a Java Runtime\": that is printed by the macOS /usr/bin/java stub that the Maven wrapper probes (inference), and the build and the workload then ran with the JDK on the PATH (exit 0, jar built). The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "apache-commons-lang-pr1515": {
+    "setup": [
+      "mvn -q -B -DskipTests -Dmaven.javadoc.skip=true -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true compile",
+      "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/apache-commons-lang-pr1515/GetDigitsWorkload.java"
+    ],
+    "workload": "java -cp target/classes:eval-wl GetDigitsWorkload",
+    "workload_source": "written here: StringUtils.getDigits on random strings of 10 to 10,000 characters, in process, warmed up until stable (eval/tasks/workloads/apache-commons-lang-pr1515/GetDigitsWorkload.java). The tree's own JMH class StringUtilsGetDigitsBenchmark times copies of two implementations, not StringUtils.getDigits",
+    "oracle": "mvn -q -B -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true test -Dtest=StringUtilsTest",
+    "oracle_source": "StringUtilsTest, the test class for src/main/java/org/apache/commons/lang3/StringUtils.java, the file https://github.com/apache/commons-lang/pull/1515 changes; targeted tests only",
+    "notes": "The repository has no Maven wrapper and this Mac has no Maven, so it is built where Maven is installed (the Linux box eval/tasks/workloads/java/Dockerfile: Temurin 21 and apt's Maven. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "google-gson-pr3115-landed": {
+    "setup": [
+      "mvn -q -B -pl gson -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "javac -cp gson/target/classes -d eval-wl ../../../../tasks/workloads/google-gson-pr3115-landed/RemoveIfWorkload.java"
+    ],
+    "workload": "java -cp gson/target/classes:eval-wl RemoveIfWorkload",
+    "workload_source": "written here from the description of https://github.com/google/gson/pull/3115: removing two thirds of a 20,000 element JsonArray through asList().removeIf, in process, warmed up until stable (eval/tasks/workloads/google-gson-pr3115-landed/RemoveIfWorkload.java)",
+    "oracle": "mvn -q -B -pl gson test -Dtest=JsonArrayAsListTest",
+    "oracle_source": "JsonArrayAsListTest, the test class https://github.com/google/gson/pull/3115 extends; targeted tests only",
+    "notes": "The repository has no Maven wrapper and this Mac has no Maven, so it is built where Maven is installed (the Linux box eval/tasks/workloads/java/Dockerfile: Temurin 21 and apt's Maven. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "fasterxml-jackson-core-pr1704-landed": {
+    "setup": [
+      "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java"
+    ],
+    "workload": "java -cp target/classes:eval-wl DoubleWriteWorkload",
+    "workload_source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1704: doubles written through WriterBasedJsonGenerator with USE_FAST_DOUBLE_WRITER on, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java), run on the tree where the change is already in",
+    "oracle": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
+    "oracle_source": "FastDoubleCharBufferBoundaryTest and SchubfachWriteCharBufferTest, tests https://github.com/FasterXML/jackson-core/pull/1704 adds for the change; targeted tests only",
+    "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
   }
 }

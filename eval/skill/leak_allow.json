@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "file": "perfproof/java.md",
+    "task": "berriai-litellm-pr45252",
+    "line": "| Streams in a hot path | `java.util.stream.*`, `ReferencePipeline`, lambda frames wrapping a tiny body | allocation by class (stream and lambda objects per call); the same body as a plain loop gives the same output and no allocation |",
+    "reason": "The task's change keeps stream-end output strings and Redis cache debug strings off the proxy's event loop (litellm/_logging.py, caching/redis_cache.py, proxy/utils.py), in Python. This line is the playbook row about the Java Streams API (java.util.stream pipelines) in a hot path; the shared words 'output' and 'stream' are generic vocabulary and the line names no litellm file or logging change."
+  },
+  {
+    "file": "perfproof/java.md",
+    "task": "berriai-litellm-pr45252",
+    "line": "| JIT deoptimisation | a method compiled, then slow again; iterations that never settle (the program says `did not stabilise`) | `jfr print --events jdk.Deoptimization` after the warm-up: each event names the method, line and `reason` (for example `unstable_if`); a growing count in the steady state is the sign; or `-Xlog:deoptimization=debug` |",
+    "reason": "The task's change keeps Redis cache debug strings off the event loop in Python. This line is the playbook row about JIT deoptimisation, whose cheap test is the JDK's jdk.Deoptimization event or -Xlog:deoptimization=debug; 'debug' and 'event' are shared words only, and the line names no litellm file or logging change."
+  },
+  {
+    "file": "perfproof/spec.md",
+    "task": "fasterxml-jackson-core-pr1706",
+    "line": "or `bytes` otherwise. Make the benchmark write its result to a file",
+    "reason": "The task's change writes number text as ASCII bytes straight into UTF8JsonGenerator's output buffer. This line is spec-authoring advice on the benchmark's output files ('bytes' is a comparison mode, 'write' is the benchmark writing its result); it predates the task and has nothing to do with a JSON generator."
+  }
+]

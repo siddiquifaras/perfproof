@@ -1,0 +1,128 @@
+{
+  "id": "google-gson-pr3115-landed",
+  "repository": "google/gson",
+  "stars": 24238,
+  "pushed_at": "2026-10-11T21:06:39Z",
+  "task_commit": "115bcc7e1136f50eb89c9f7ae579e340fd27d117",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/google/gson/commit/115bcc7e1136f50eb89c9f7ae579e340fd27d117",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/google/gson/pull/3115",
+    "title": "Avoid quadratic removeIf in JsonArray list views",
+    "commit": "115bcc7e1136f50eb89c9f7ae579e340fd27d117",
+    "merged_at": "2026-09-16T00:17:50Z",
+    "files": [
+      "gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+      "gson/src/test/java/com/google/gson/JsonArrayAsListTest.java"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "java",
+  "workload": {
+    "command": "java -cp gson/target/classes:eval-wl RemoveIfWorkload",
+    "source": "written here from the description of https://github.com/google/gson/pull/3115: removing two thirds of a 20,000 element JsonArray through asList().removeIf, in process, warmed up until stable (eval/tasks/workloads/google-gson-pr3115-landed/RemoveIfWorkload.java)",
+    "verified": false
+  },
+  "oracle": {
+    "command": "mvn -q -B -pl gson test -Dtest=JsonArrayAsListTest",
+    "source": "JsonArrayAsListTest, the test class https://github.com/google/gson/pull/3115 extends; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/google/gson/pull/3115",
+      "note": "after-landed: NonNullElementWrapperList.removeIf delegates to ArrayList.removeIf instead of the quadratic iterator removal. The task tree is the merge"
+    }
+  ],
+  "audit": null,
+  "status": "builds",
+  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). The repository has no Maven wrapper and this Mac has no Maven, so it is built where Maven is installed (the Linux box eval/tasks/workloads/java/Dockerfile: Temurin 21 and apt's Maven. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "mvn -q -B -pl gson -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 63.43,
+      "date": "2026-10-22T00:16:53+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "[proguard] ProGuard, version 7.9.1"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "javac -cp gson/target/classes -d eval-wl ../../../../tasks/workloads/google-gson-pr3115-landed/RemoveIfWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.79,
+      "date": "2026-10-22T00:17:56+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "mvn -q -B -pl gson test -Dtest=JsonArrayAsListTest",
+      "exit_code": 0,
+      "duration_s": 6.65,
+      "date": "2026-10-22T00:17:57+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "Oct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=hz1Yr07Q46PbHOO3Dz_BCVjl5YjTnZsKTKgwwKVaJs4-1792628283.5872052-1.0.1.1-KduRcc41yqm9Mm68Y7v6_Z88qH2QsCaozmWqiCnLDTgOnprh6ijCZFIDZ2WrrZMh.OL870sz4Z1vNDIfxMihH1EPOQYNi1Wit2cu6HGFGfY8TpHX9M8IXiYc5BrDOZZZ; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=QGriS5hCNr_S1R_0m3s8qT_EWdLcqKy1IQkJVnN0qDY-1792628283.5320249-1.0.1.1-JqIIf7FnspP4c5TxXyJplLqvdkJYlq6rcD34jk0SXPnhFAjVcbjhH6V2CjDbSPxR92KyofsD4ZuIgB7soZIXDWZ9ya41AnKdGyUnu8pxnkm8hnNSQhNjZIJuuJgSkaVk; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=Ddlg9ib1ATkC0mKFsZ79NkcRcFXb9zMRI6JkQ2o072c-1792628283.5591843-1.0.1.1-n2IIdKkK_k0XdwUP6V6c6PPiO3m00CgnaH3E7PFyLOYPfj7xdi.jEB7ek3jX9Rt31OJAjO0ru3gvJeFrMg_IiXOrX3Gn0tufN7vKDIwXtdbcEv.1Pp.UUUcZFX8lcG9i; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=KEtK.QTRlmowWHIhtXgIOdIJvVcyIWOZq4j2aeVG8Mw-1792628283.6686518-1.0.1.1-FEAhR3_7cSencz15b638ow7FuvfJnSEAipVqDpZgZ4befO2JdKEuW9ou5GASOqggWd1YfYz2.0sAL4qP7fUZguPfhV3jiMuAXpGmFmeqpStj7EFy37kl3bCzdogLQsSX; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=YI5ItwVt3OIx0Ocb.xh6UHMRz9_rwR5kKnjttN6FWRY-1792628283.6971705-1.0.1.1-LlZT9wjh4ncCw733Nq07Zs39t1_p4HJ8jJ2F1cqGbnPwSS3nSPnHqqnCxZFDdIouy4xcDM92oc8BzcVQX3WXUxfAXU0GJUcBg5nVu3LWwb7UANrIqvq0EuUg6MYTfI4F; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=iUCE.C_kmm_B6.XboHaXSwEfzaCj0mn5q3IlwMz26HI-1792628283.5634367-1.0.1.1-wq4YdZrmTbaTE0HxO2.fIcb4bphia1_3I4nb3wNFNrsP7uTAO_K6w4KP9S2YMzaT3VrtlWePX..ZSGw8OPRrQFli6x0YN_Shfr5ACNpCskDJ47Lm9dnmg9_G9vtGruvP; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOct 22, 2026 12:18:03 AM org.apache.http.client.protocol.ResponseProcessCookies processCookies\nWARNING: Invalid cookie header: \"set-cookie: __cf_bm=fnDdBHC_J1_7jxJmQbgq1cSLn.X9FNZ3_sdufOVcbXQ-1792628283.8407588-1.0.1.1-DJEing7TbjTvcUAIXJ.F6IHEfoOIuReDc2kQ0pJFi5Fe37S_gAuEpTokPq89AaZpvKWNf1dGsJORu8OdgdmWRe0hdmuaTPfNJNy.spu6v.PY6TTc16F26Q3gf3PXZpmL; HttpOnly; SameSite=None; Secure; Path=/; Domain=repo.maven.apache.org; Expires=Thu, 22 Oct 2026 00:48:03 GMT\". Invalid 'expires' attribute: Thu, 22 Oct 2026 00:48:03 GMT\nOpenJDK 64-Bit Server VM warning: Ignoring option --illegal-access=deny; support was removed in 17.0"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "java -cp gson/target/classes:eval-wl RemoveIfWorkload",
+      "exit_code": 0,
+      "duration_s": 0.17,
+      "date": "2026-10-22T00:18:04+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "warmup 17 719 us\nwarmup 18 676 us\nwarmup 19 771 us\nwarmup 20 1367 us\nwarmup 21 671 us\nwarmup 22 781 us\nwarmup 23 6172 us\nwarmup 24 709 us\nwarmup 25 7390 us\nwarmup 26 1011 us\nwarmup 27 683 us\nwarmup 28 687 us\nwarmup 29 684 us\nwarmup 30 673 us\nstabilised after 30 iterations"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "mvn -q -B -pl gson -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 22.64,
+      "date": "2026-10-22T00:18:04+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "[proguard] ProGuard, version 7.9.1"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "javac -cp gson/target/classes -d eval-wl ../../../../tasks/workloads/google-gson-pr3115-landed/RemoveIfWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.6,
+      "date": "2026-10-22T00:18:27+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "mvn -q -B -pl gson test -Dtest=JsonArrayAsListTest",
+      "exit_code": 0,
+      "duration_s": 4.68,
+      "date": "2026-10-22T00:18:27+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "[proguard] ProGuard, version 7.9.1\nOpenJDK 64-Bit Server VM warning: Ignoring option --illegal-access=deny; support was removed in 17.0"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "java -cp gson/target/classes:eval-wl RemoveIfWorkload",
+      "exit_code": 0,
+      "duration_s": 0.15,
+      "date": "2026-10-22T00:18:32+00:00",
+      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "output_tail": "warmup 7 722 us\nwarmup 8 677 us\nwarmup 9 1232 us\nwarmup 10 1515 us\nwarmup 11 679 us\nwarmup 12 696 us\nwarmup 13 1781 us\nwarmup 14 1682 us\nwarmup 15 1469 us\nwarmup 16 1744 us\nwarmup 17 2017 us\nwarmup 18 706 us\nwarmup 19 725 us\nwarmup 20 676 us\nstabilised after 20 iterations"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T00:14:24+00:00",
+  "miner": "written by hand for T5.11 (no Java repository in the pool)"
+}

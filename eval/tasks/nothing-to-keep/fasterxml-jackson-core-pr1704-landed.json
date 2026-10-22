@@ -1,0 +1,135 @@
+{
+  "id": "fasterxml-jackson-core-pr1704-landed",
+  "repository": "FasterXML/jackson-core",
+  "stars": 2379,
+  "pushed_at": "2026-10-20T22:34:48Z",
+  "task_commit": "4ffb4dc27177a31a4dd3f5abc9d11bf0efb4bc5f",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/FasterXML/jackson-core/commit/4ffb4dc27177a31a4dd3f5abc9d11bf0efb4bc5f",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/FasterXML/jackson-core/pull/1704",
+    "title": "Add `NumberOutput.outputDouble/outputFloat(char[])`, use in `WriterBasedJsonGenerator`",
+    "commit": "4ffb4dc27177a31a4dd3f5abc9d11bf0efb4bc5f",
+    "merged_at": "2026-09-12T04:05:19Z",
+    "files": [
+      "release-notes/VERSION",
+      "src/main/java/tools/jackson/core/io/NumberOutput.java",
+      "src/main/java/tools/jackson/core/io/schubfach/DoubleToDecimal.java",
+      "src/main/java/tools/jackson/core/io/schubfach/FloatToDecimal.java",
+      "src/main/java/tools/jackson/core/json/UTF8JsonGenerator.java",
+      "src/main/java/tools/jackson/core/json/WriterBasedJsonGenerator.java",
+      "src/test/java/tools/jackson/core/unittest/io/schubfach/SchubfachWriteCharBufferTest.java",
+      "src/test/java/tools/jackson/core/unittest/write/FastDoubleCharBufferBoundaryTest.java",
+      "src/test/java/tools/jackson/core/unittest/write/FastDoubleQuotedWriteTest.java"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "java",
+  "workload": {
+    "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
+    "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1704: doubles written through WriterBasedJsonGenerator with USE_FAST_DOUBLE_WRITER on, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java), run on the tree where the change is already in",
+    "verified": false
+  },
+  "oracle": {
+    "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
+    "source": "FastDoubleCharBufferBoundaryTest and SchubfachWriteCharBufferTest, tests https://github.com/FasterXML/jackson-core/pull/1704 adds for the change; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/FasterXML/jackson-core/pull/1704",
+      "note": "after-landed: WriterBasedJsonGenerator writes doubles straight into its char buffer instead of through a String. The task tree is the merge"
+    }
+  ],
+  "audit": null,
+  "status": "builds",
+  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 12.88,
+      "date": "2026-10-22T00:50:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.54,
+      "date": "2026-10-22T00:50:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
+      "exit_code": 0,
+      "duration_s": 11.43,
+      "date": "2026-10-22T00:50:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
+      "exit_code": 0,
+      "duration_s": 0.75,
+      "date": "2026-10-22T00:50:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 15 13447 us\nwarmup 16 11293 us\nwarmup 17 8230 us\nwarmup 18 7498 us\nwarmup 19 7195 us\nwarmup 20 7384 us\nwarmup 21 7403 us\nwarmup 22 7030 us\nwarmup 23 6828 us\nwarmup 24 15944 us\nwarmup 25 13705 us\nwarmup 26 13548 us\nwarmup 27 15527 us\nwarmup 28 11220 us\nstabilised after 28 iterations"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
+      "exit_code": 0,
+      "duration_s": 10.92,
+      "date": "2026-10-22T00:50:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java",
+      "exit_code": 0,
+      "duration_s": 0.36,
+      "date": "2026-10-22T00:50:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
+      "exit_code": 0,
+      "duration_s": 6.44,
+      "date": "2026-10-22T00:50:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
+      "exit_code": 0,
+      "duration_s": 0.62,
+      "date": "2026-10-22T00:50:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 7 7890 us\nwarmup 8 7716 us\nwarmup 9 8912 us\nwarmup 10 7615 us\nwarmup 11 7646 us\nwarmup 12 7442 us\nwarmup 13 7817 us\nwarmup 14 7435 us\nwarmup 15 8518 us\nwarmup 16 7216 us\nwarmup 17 14880 us\nwarmup 18 24217 us\nwarmup 19 19836 us\nwarmup 20 23191 us\nstabilised after 20 iterations"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T00:49:56+00:00",
+  "miner": "written by hand for T5.11 (no Java repository in the pool)"
+}

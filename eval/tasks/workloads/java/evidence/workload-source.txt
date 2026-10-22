@@ -1,0 +1,81 @@
+import tools.jackson.core.Base64Variant;
+import tools.jackson.core.Base64Variants;
+
+import java.util.Arrays;
+
+/**
+ * Encode binary payloads to base64 text with Jackson's Base64Variant, as a
+ * JSON serializer does for byte[] properties. In-process iterations: the JIT
+ * is warmed until the iteration time is stable, then the median per-call time
+ * of the measured iterations is reported.
+ */
+public final class Base64Workload {
+    private static final int[] SIZES = {16, 1024, 65536};
+    private static final byte[][] PAYLOADS = new byte[SIZES.length][];
+    private static long sink;
+
+    private static int callsPerIteration(int size) {
+        return Math.max(1, (1 << 22) / size);
+    }
+
+    private static void iteration() {
+        Base64Variant variant = Base64Variants.MIME_NO_LINEFEEDS;
+        for (int s = 0; s < SIZES.length; s++) {
+            byte[] payload = PAYLOADS[s];
+            int calls = callsPerIteration(SIZES[s]);
+            for (int i = 0; i < calls; i++) {
+                sink += variant.encode(payload, false).length();
+            }
+        }
+    }
+
+    private static double median(long[] v, int from, int to) {
+        long[] w = Arrays.copyOfRange(v, from, to);
+        Arrays.sort(w);
+        return w[w.length / 2];
+    }
+
+    public static void main(String[] args) {
+        for (int s = 0; s < SIZES.length; s++) {
+            PAYLOADS[s] = new byte[SIZES[s]];
+            new java.util.Random(42 + s).nextBytes(PAYLOADS[s]);
+        }
+        final int block = 10;
+        final double tolerance = 0.05;
+        final int maxWarmup = 300;
+        final int measured = 20;
+        long[] times = new long[maxWarmup + measured];
+        int n = 0;
+        boolean stable = false;
+        while (n < maxWarmup && !stable) {
+            long t0 = System.nanoTime();
+            iteration();
+            times[n++] = System.nanoTime() - t0;
+            System.err.println("warmup " + n + " " + times[n - 1] / 1000 + " us");
+            if (n >= 2 * block) {
+                stable = Math.abs(median(times, n - block, n)
+                        - median(times, n - 2 * block, n - block))
+                        < tolerance * median(times, n - block, n);
+            }
+        }
+        if (!stable) {
+            System.err.println("did not stabilise in " + maxWarmup + " iterations");
+            System.exit(3);
+        }
+        long[] m = new long[measured];
+        for (int i = 0; i < measured; i++) {
+            long t0 = System.nanoTime();
+            iteration();
+            m[i] = System.nanoTime() - t0;
+        }
+        Arrays.sort(m);
+        long totalCalls = 0;
+        for (int size : SIZES) {
+            totalCalls += callsPerIteration(size);
+        }
+        double nsPerCall = (double) m[measured / 2] / totalCalls;
+        System.err.println("stabilised after " + n + " iterations");
+        System.out.println(sink);
+        System.out.println("PERFPROOF {\"value\": " + nsPerCall + "}");
+    }
+}

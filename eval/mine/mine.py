@@ -1166,7 +1166,7 @@ def stage_manifests() -> None:
 def stage_counts() -> None:
     """Print task counts per family and class as Markdown tables."""
     tasks = load_tasks()
-    classes = ["python", "native", "web", "serving", "gpu", "agentic"]
+    classes = ["python", "native", "web", "serving", "gpu", "agentic", "java"]
     families = sorted({t.family for t in tasks})
     by = Counter((t.family, t.target_class) for t in tasks)
     _out("| Family | " + " | ".join(classes) + " | Total |")

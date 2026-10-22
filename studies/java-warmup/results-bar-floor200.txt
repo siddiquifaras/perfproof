@@ -1,0 +1,6 @@
+rule new: tolerance 0.01, floor 200, seed 771390254, 2000 comparisons per row, 60 rounds
+control: both fast, ratio on the bar           S=1.03 | KEEP   10 REJECT   11 INCONC 1979 | false KEEP: 10/2000 =   0.5% (CP95 upper   0.8%) | bias of geo-mean ratio  +0.0% | median iterations b/c 200/200 | capped  0.0%
+baseline tau 60, candidate tau 3               S=1.03 | KEEP   37 REJECT   10 INCONC 1953 | false KEEP: 37/2000 =   1.9% (CP95 upper   2.4%) | bias of geo-mean ratio  +0.5% | median iterations b/c 200/200 | capped  0.0%
+baseline tau 75, candidate tau 3               S=1.03 | KEEP   55 REJECT    1 INCONC 1944 | false KEEP: 55/2000 =   2.8% (CP95 upper   3.4%) | bias of geo-mean ratio  +0.9% | median iterations b/c 200/200 | capped  0.0%
+baseline tau 90, candidate tau 3               S=1.03 | KEEP  153 REJECT    0 INCONC 1847 | false KEEP: 153/2000 =   7.7% (CP95 upper   8.7%) | bias of geo-mean ratio  +1.4% | median iterations b/c 200/200 | capped  0.0%
+baseline tau 120, candidate tau 3              S=1.03 | KEEP  540 REJECT    1 INCONC 1459 | false KEEP: 540/2000 =  27.0% (CP95 upper  28.7%) | bias of geo-mean ratio  +2.6% | median iterations b/c 200/200 | capped  0.0%

@@ -67,6 +67,7 @@ CLASSES: tuple[TargetClass, ...] = (
     "agentic",
     "serving",
     "gpu",
+    "java",
 )
 SLOTS: tuple[Family, ...] = (
     "known-change",

@@ -345,8 +345,9 @@ and apply to every class:
    `reference-fails`.** Buildability is judged on the task tree alone.
    Only that passes a candidate over: `failed` (the task tree's setup
    failed) or `builds` (the task tree's workload, or its oracle where
-   required, timed out, could not start or failed; a failure on both
-   trees, such as sanic#412's hang, is one of these). Anything that
+   required, timed out, could not start or failed; or the workload was run
+   only in an earlier form and must be re-run, as for the Java tasks; a
+   failure on both trees, such as sanic#412's hang, is one of these). Anything that
    happens only on the reference tree, whether a failed oracle or
    workload, a hang, a missing entry point or a setup that doesn't
    build, is `reference-fails`. Whether the change breaks behaviour or
@@ -392,8 +393,8 @@ type-checks `eval/mine` in strict mode.
 | `revert` | The pull request that reverted the change, same shape, or `null` | `gh pr view` |
 | `family` | `known-change`, `published-benchmark`, `hidden-fix`, `nothing-to-keep` | Rules below |
 | `change_kind` | `improvement`, `after-landed`, `reverted-no-gain`, `reverted-breaking`, `reverted-unknown-reason`, `regression`, `kernel-version`, `benchmark-instance` | Rules below |
-| `target_class` | `python`, `native`, `web`, `serving`, `gpu`, `agentic` | The seed list's class for the repository |
-| `workload` | `command`, `source` (where it came from, or `unknown`), `verified` (run here) | Quoted in the pull request, a dataset field, a file header, or a command run here |
+| `target_class` | `python`, `native`, `web`, `serving`, `gpu`, `agentic`, `java` | The seed list's class for the repository |
+| `workload` | `command`, `source` (where it came from, or `unknown`), `verified` (the command ran here and exited 0; it does not say the change showed a gain) | Quoted in the pull request, a dataset field, a file header, or a command run here |
 | `oracle` | Same shape: the independent correctness check | Test files the change touched, a dataset field, or a command run here |
 | `evidence` | Links with notes, one per source used above | |
 | `audit` | For published-benchmark tasks: the 2026 cross-machine audit's per-task row | Audit data repository, pinned commit |

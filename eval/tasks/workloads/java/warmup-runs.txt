@@ -1,0 +1,63 @@
+Excerpt of the output behind "Warm-up (Java)" in docs/method.md, copied from the
+terminal on 2026-10-22. JDK: Eclipse Temurin 21.0.12.1+1.
+
+== evidence/workload-source.txt (sha256
+   92868074da3506f1d65f8e67b875aeb4076213a868888ccd0b851409db32f5ec),
+   built against jackson-core 1c360ab05ec5, ten fresh JVMs each (the
+   file is kept as .txt; its public class is Base64Workload, so compile
+   it saved as Base64Workload.java):
+   java -cp target/classes:target/perfproof-wl Base64Workload
+   This is an excerpt, not the whole output: per JVM the PERFPROOF value
+   (ns per call, two decimals), the time of warm-up iterations 1 and 2, and
+   the iterations until stable; the other iteration times were not kept.
+   The source above is the exact one that ran; the copy under eval/tasks/workloads/fasterxml-jackson-core-pr1674 has
+   since been changed to print a one-iteration checksum.
+
+-- macOS 15.7.7 arm64, native JDK
+112.66 | warmup 1 53389 us, 2 31258 us | stable after 22
+109.03 | warmup 1 73626 us, 2 42490 us | stable after 31
+114.44 | warmup 1 54342 us, 2 33327 us | stable after 20
+108.53 | warmup 1 52461 us, 2 33063 us | stable after 27
+115.23 | warmup 1 56597 us, 2 34828 us | stable after 21
+110.33 | warmup 1 56553 us, 2 37805 us | stable after 24
+126.03 | warmup 1 56496 us, 2 30353 us | stable after 22
+129.69 | warmup 1 62537 us, 2 52276 us | stable after 21
+117.52 | warmup 1 55413 us, 2 32966 us | stable after 27
+114.03 | warmup 1 59720 us, 2 39643 us | stable after 24
+
+-- Linux arm64, Docker VM on the same Mac (perfproof-java:21)
+154.79 | warmup 1 94888 us, 2 48737 us | stable after 29
+177.39 | warmup 1 77969 us, 2 52417 us | stable after 20
+170.88 | warmup 1 64849 us, 2 40976 us | stable after 21
+178.46 | warmup 1 80786 us, 2 47452 us | stable after 24
+155.09 | warmup 1 76228 us, 2 45474 us | stable after 20
+169.41 | warmup 1 76312 us, 2 55393 us | stable after 20
+167.25 | warmup 1 91471 us, 2 35437 us | stable after 20
+175.32 | warmup 1 82739 us, 2 45215 us | stable after 24
+176.01 | warmup 1 72500 us, 2 36141 us | stable after 23
+166.47 | warmup 1 67572 us, 2 42315 us | stable after 20
+
+== commons-lang's own JMH class StringUtilsGetDigitsBenchmark, method
+   testGetDigitsManually, length=1000, through PerfproofJmh,
+   commons-lang ecdd2d3c91f1 (its source is in that repository).
+
+-- Linux box, -Djmh.forks=1 -Djmh.warmup=15 -Djmh.measure=5 -Djmh.time=2
+   run 1 warm-up iterations 1..15 (ns/op), then PERFPROOF value:
+   915.552 889.456 874.319 883.332 864.463 863.278 882.531 874.811
+   861.702 868.019 1059.505 1448.511 1362.255 1319.451 1372.646
+   measured 1347.191 1341.161 1445.210 1438.001 1498.342
+   PERFPROOF 1413.98
+   run 2 warm-up:
+   1371.702 1357.348 1533.032 1395.594 1274.500 1329.342 1361.219
+   1520.625 1449.722 1258.069 1150.836 1048.532 983.984 928.034 922.972
+   PERFPROOF 895.44
+   run 3 warm-up:
+   904.165 1183.690 1340.961 1497.754 1327.188 1294.722 1383.817
+   1310.353 1402.698 1436.339 1383.154 1514.583 1380.979 1419.074 1355.391
+   PERFPROOF 1354.36
+
+-- macOS, -Djmh.forks=1 -Djmh.warmup=10 -Djmh.measure=5 (10 s iterations)
+   warm-up (ns/op): 1197.311 1121.208 1103.313 1086.005 1011.742
+   1078.092 1099.292 1057.886 1075.309 1069.630
+   measured: 1074.377 1030.546 986.038 992.026 947.998
+   PERFPROOF 1006.20

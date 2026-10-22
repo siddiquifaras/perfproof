@@ -36,6 +36,19 @@ calibration don't apply, and the report says so.
 | Supported | Projects built with make, CMake or Cargo, on macOS arm64 and Linux x86_64 |
 | Outside | Windows, embedded targets, builds that need hardware not present |
 
+## Java and other JVM code
+
+| | |
+|---|---|
+| Workload | A JMH benchmark run through a runner that prints its primary score (`reported`), or a program that warms up in process and prints its post-warm-up time (`reported`), or the whole command for a short-lived tool (`wall`); see "Warm-up (Java)" in [method.md](method.md) |
+| Oracle | The project's tests (`./mvnw test -Dtest=...`, `./gradlew test --tests ...`) and the program's output compared between versions |
+| Coverage | JaCoCo on changed lines; not wired into the coverage gate until T2.24 lands, so reported as not checked |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | The command must start `java` itself, so that the runtime gate can identify it (version banner and a hash of the launcher). `./mvnw`, `mvn`, `./gradlew` and `gradle` are shell scripts, so they are `not_available`; the build runs in `setup` |
+| Profiling | Java Flight Recorder or async-profiler, turned into folded stacks with class, method, file and line by `perfproof.profilers.java` |
+| Supported | JDK 21 (Temurin) on macOS arm64 and on Linux arm64 in Docker, with the profiler wrapper's fixtures captured on both, as run for T5.11; other JDKs and x86_64 are expected to work and have not been run |
+| Outside | Source files of Kotlin and Scala classes (shown as library code), Android, GraalVM native images, JDK 8, code that needs a running application server |
+
 ## Web and CRUD services
 
 | | |

@@ -1,0 +1,9 @@
+rule old: tolerance 0.05, seed 913377451, 4000 comparisons per row, 60 rounds
+both settle at once                            S=1.00 | KEEP    0 REJECT 1501 INCONC 2499 | false KEEP: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -0.0% | median iterations b/c 20/20 | capped  0.0%
+both fast transient (tau 3)                    S=1.00 | KEEP    0 REJECT 1499 INCONC 2501 | false KEEP: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -0.0% | median iterations b/c 20/20 | capped  0.0%
+both slow transient (tau 60)                   S=1.00 | KEEP    0 REJECT 1486 INCONC 2514 | false KEEP: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -0.0% | median iterations b/c 20/20 | capped  0.0%
+baseline tau 60, candidate tau 3               S=1.00 | KEEP 3397 REJECT    0 INCONC  603 | false KEEP: 3397/4000 =  84.9% (CP95 upper  85.8%) | bias of geo-mean ratio  +9.2% | median iterations b/c 20/20 | capped  0.0%
+baseline tau 3, candidate tau 60               S=1.00 | KEEP    0 REJECT 3567 INCONC  433 | false KEEP: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -8.4% | median iterations b/c 20/20 | capped  0.0%
+both fast, candidate truly 6% faster           S=1.06 | KEEP 1401 REJECT    0 INCONC 2599 | false REJECT: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -0.0% | median iterations b/c 20/20 | capped  0.0%
+baseline tau 3, candidate tau 60, 6% faster    S=1.06 | KEEP    0 REJECT 3423 INCONC  577 | false REJECT: 3423/4000 =  85.6% (CP95 upper  86.5%) | bias of geo-mean ratio  -8.4% | median iterations b/c 20/20 | capped  0.0%
+baseline tau 60, candidate tau 3, 6% faster    S=1.06 | KEEP 3568 REJECT    0 INCONC  432 | false REJECT: 0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  +9.2% | median iterations b/c 20/20 | capped  0.0%

@@ -576,6 +576,204 @@ carries a `resolution_unknown` warning, and a KEEP is withheld. A
 REJECT on such values rests on the continuity check alone, a stated
 limit.
 
+### Warm-up (Java)
+
+A JVM starts every execution cold. It loads classes, interprets
+bytecode, and compiles hot methods on background threads (C1, then
+C2) while the program runs, so the time of an execution mixes warm-up
+with steady state. The spec's `warmup` executions do not warm the next
+one: each is a new process, and the JIT's work is not carried from one
+to the next. They still earn their place as a smoke test: a benchmark
+that fails to start (a missing class, a bad flag) fails in a discarded
+execution, before any measured round. (Class-data and ahead-of-time
+caches that a project may enable are not modelled here.) Three rules
+follow.
+
+- **Say what is being measured.** If the user's real use is a
+  short-lived command (a CLI, a test run), the warm-up is part of what
+  they feel: measure `wall` or `cpu` of the whole command, and do not
+  warm in process. For a library, a service or anything long-lived,
+  measure the steady state with a `reported` value taken inside the
+  process after warm-up, which also leaves JVM start-up out.
+- **The project's JMH first.** Where a project has JMH benchmarks, run
+  the one that covers the changed code, through a small runner that runs
+  JMH and prints its primary score as `PERFPROOF {"value": ...}`
+  (`skills/perfproof/java.md` has it). JMH forks, warms up and measures
+  by its own rules. The runner fails unless exactly one benchmark and
+  parameter set matched, and the spec's direction must match the
+  benchmark's mode (average time is lower-is-better, throughput
+  higher-is-better). A round runs both arms once, so its cost is
+  `2 x forks x (warm-up + measured) x seconds per iteration`, with the
+  iteration counts summed. The first look is at 10 rounds, so against
+  the default `max_seconds` of 1800 a round must cost well under 180 s. For the
+  settings the runs of this section used, the formula gives 80 s a round
+  (one fork, 15 warm-up and 5 measured iterations of 2 s: fits) and
+  300 s a round (one fork, 10 warm-up and 5 measured iterations of
+  10 s: ten rounds are 3000 s, which does not fit). Choose settings that
+  fit, or raise `max_seconds` and say why.
+- **Otherwise, iterate in process until stable.** The program repeats
+  one iteration of the workload (long enough to be far above the
+  clock's step, tens of milliseconds). It does not look at stability
+  before 200 iterations; from then on it stops warming up when the
+  median of the last 10 iteration times is within 1% of the median of
+  the 10 before. Then it times 20 more and reports their median per
+  operation, printed with all its digits so the resolution check
+  passes. If it has not stabilised after 600 iterations it reports the
+  median of the last 20 warm-up iterations, says so on stderr and
+  exits 0. It is not a failed execution: a failed execution is a
+  REJECT on correctness for a candidate and no verdict for a broken
+  baseline (see "Failed executions"), and a workload that sometimes
+  does not settle would turn into that. The value then carries the
+  settling noise, and the interval widens by it. Every execution ends
+  with one stderr line, `stabilised after N iterations`, or
+  `did not stabilise after N iterations` (the
+  committed task workloads also print every iteration's time before
+  it; the template in `skills/perfproof/java.md` prints only that
+  line).
+
+  The rule costs at least 220 iterations an execution: about 7 s at 30
+  ms an iteration and 18 s at 80 ms, 4.4 to 5.5 times the 40 to 50 of
+  the first form of the rule. For 220 iterations (the floor and the 20
+  timed ones) the span is 0.26 s to 17.5 s over the committed
+  workloads' iterations of 1.2 to 79 ms; whether settling follows
+  iterations or seconds is not measured. An execution that
+  reaches the cap costs 600 iterations, so the spec's `timeout_seconds`
+  must be above that, about `2 x (600 x seconds per iteration + 10)`: a
+  timeout is a failed execution, which the cap exists to avoid.
+
+Provisional: the constants of that rule (10 and 10 iterations, 1%, 20
+timed iterations, the floor of 200, the cap of 600, "tens of
+milliseconds", and the factor 2 and the 10 s in the timeout formula)
+were chosen by reasoning and by the model below, not
+measured or calibrated on JVM data. The tolerance of 1% is below the
+default bar (`min_effect`, 3%), so a bar-sized drift between two
+blocks does not pass as stable; but a drift check bounds the slope of
+the warm-up curve, not the distance to the steady state, so it does
+not by itself tell that warm-up is over.
+
+**Stated limit: settling.** The alternating rounds cover random
+JVM-to-JVM variation (each execution is a fresh JVM at its own level).
+They do not cover a systematic difference in how fast the two arms
+settle: with the floor, both arms discard about the same 200
+iterations whatever their curves look like, so an arm that is still
+settling at iteration 200 is read as slower. In a synthetic model
+(`studies/java-warmup/ab_model.py`; iteration times
+`T (1 + a exp(-k / tau))` with `a` 0.15, 2% noise an iteration, the
+model's cap at the floor plus 120 iterations rather than 600, a JVM
+level with 5% SD, production `run_looks`, 60 rounds, seed 913377451,
+4000 comparisons a row; command and outputs under
+`studies/java-warmup/`) a baseline settling
+with `tau` 60 iterations against a candidate with `tau` 3, and a true
+ratio of 1.00, gave a false KEEP:
+
+| Stop rule | False KEEP, baseline `tau` 60, candidate 3 | False REJECT, true 6% gain, baseline `tau` 3, candidate 60 | Bias of the ratio |
+|---|---|---|---|
+| 5% tolerance, from iteration 20 (the first form of the rule) | 84.9% | 85.6% | +9.2% and -8.4% |
+| 1% tolerance, from iteration 20 | 78.7% | 80.2% | +8.2% and -7.6% |
+| 1%, floor of 60 iterations (2000 comparisons) | 8.0% | 9.5% | +4.5% and -4.3% |
+| 1%, floor of 120 (2000 comparisons) | 0.2% | 0.1% | +1.7% and -1.7% |
+| 1%, floor of 200 (2000 comparisons) | 0.0% | 0.0% | +0.4% and -0.4% |
+
+Those rows are far from the bar (true ratios of 1.00 and 1.06 against
+a bar of 1.03), where a bias of 0.4% decides nothing. On the bar, at a
+true ratio of 1.03 with the floor of 200 (seed 771390254, 2000
+comparisons a row, outputs in `studies/java-warmup/`), a false KEEP is:
+
+| Baseline `tau`, candidate `tau` 3 | False KEEP | Upper 95% bound (Clopper-Pearson) | Bias of the ratio |
+|---|---|---|---|
+| Control: both arms `tau` 3 | 0.5% | 0.8% | +0.0% |
+| 60 | 1.9% | 2.4% | +0.5% |
+| 75 | 2.8% | 3.4% | +0.9% |
+| 90 | 7.7% | 8.7% | +1.4% |
+| 120 | 27.0% | 28.7% | +2.6% |
+
+The bias is about `a exp(-(floor + 10) / tau)` (0.15 times
+`exp(-210 / tau)` here), so the limit moves with the amplitude `a` and
+the settling time `tau`; the false KEEP rate crosses 2.5% near a bias
+of 0.7% (about a quarter of the bar), which is `tau` 68 for `a` of
+0.15. The stats auditor's amplitude rows (seed 462910583, 4000
+comparisons a row, `studies/java-warmup/audit-out-G7.txt`, command in
+`audit_model.py`) agree: at a predicted bias of 0.69% a false KEEP is
+2.2% for `a` 0.5 and 2.9% (bias 0.67%) for `a` 1.0, and at 1.5% it is
+7.2% and 8.5%. More noise an iteration lowers these rates, because it
+widens the interval: in the auditor's noise rows (same seed and size,
+`studies/java-warmup/audit-out-G8.txt`) a false KEEP at `tau` 60, 75, 90
+and 120 was 1.1, 2.3, 5.2 and 17.2% at 10% noise an iteration and 0.7,
+1.6, 1.4 and 3.9% at 31% noise, against a control of 0.9% at both.
+
+Tightening the tolerance barely helps, and the iterations the arms
+report until stable do not show the difference (medians 26 and 25 at 1%
+from iteration 20, and 200 and 200 at the floor, which is where most
+executions stop); what helps is the floor, which sets how much warm-up
+is discarded whatever the data look like. The floor of 200 is therefore
+the protection, and what it leaves is a limit: a JVM that settles more
+slowly than the model's `tau` of 60 iterations, or a transient the model
+does not have, is not covered. The model has no JVM data behind it, and
+its noise of 2% an iteration is below what the committed manifests'
+workload tails show: the iteration time's coefficient of variation over
+the last 14 iterations of one JVM is 2.9 to 9.2% in the 5 tails with
+iterations of 8.7 to 79 ms and 25 to 129% in the 7 tails with iterations
+of 1.2 to 16 ms (12 tails from the six Java manifests' `runs`, which are
+runs of the earlier form of the loop and will be re-run on a quiet
+machine). The stderr line the skill reads is `did not stabilise`. It
+detects an execution whose iterations are runaway or very noisy, not
+slow settling (a higher floor makes a cap more likely: for flat noisy
+iterations with a coefficient of variation of 95%, the cap rate went
+from 0.8% at a floor of 200 to 3.0, 9.5 and 30.0% at floors of 300, 400
+and 500, 20000 executions a cell, seed 462910583,
+`studies/java-warmup/audit-out-cap-vs-floor.txt`), so it is not a check
+on the limit above. The skill reports every capped execution and points
+it to the deoptimisation and noise rows of its playbook; the verdict
+perfproof gave stands, and the report says it includes warm-up medians.
+
+Measured on one workload, a CPU-bound Java loop of 266,304 calls an
+iteration, JDK 21.0.12.1 Temurin, in process, 10 fresh JVMs each, with
+the first form of the rule (5% tolerance from iteration 20):
+
+| Where | Iterations until stable | First iteration | Reported ns per call, 10 JVMs | First iteration against the stable one |
+|---|---|---|---|---|
+| macOS 15.7.7 arm64, native JDK | 20 to 31 | 52 to 74 ms | 108.5 to 129.7 | median 1.81, range 1.68 to 2.54 |
+| Linux arm64, Docker VM on the same Mac | 20 to 29 | 65 to 95 ms | 154.8 to 178.5 | median 1.70, range 1.43 to 2.30 |
+
+The last column divides each JVM's first iteration by its reported
+value times 266,304 calls (the stable iteration is taken from the
+reported value, not from the iteration list). The values of 10
+identical JVMs spread by 19.5% and 15.3% (max over min). These are
+single runs, not calibration; the two rows are different machines and
+are not to be compared with each other.
+`eval/tasks/workloads/java/warmup-runs.txt` is an excerpt of the output:
+per JVM the value to two decimals, the first two iteration times and the
+iterations until stable, not the whole iteration list. The exact source
+of the loop is `eval/tasks/workloads/java/evidence/workload-source.txt`
+(sha256
+`92868074da3506f1d65f8e67b875aeb4076213a868888ccd0b851409db32f5ec`).
+
+Stable is not final. A library's own JMH benchmark (one method, one
+parameter set), run through
+`eval/tasks/workloads/java/PerfproofJmh.java` with one fork, 15 warm-up
+iterations of 2 s and 5 measured (settings
+`-Djmh.forks=1 -Djmh.warmup=15 -Djmh.measure=5 -Djmh.time=2`), run
+three times in the same Linux VM,
+ended at 1414, 895 and 1354 ns/op. In the first run the score sat
+between 860 and 920 ns/op for ten iterations, then went to 1060 at
+the eleventh and 1450 at the twelfth and stayed near 1400 through the
+measured iterations. On the Mac itself (settings
+`-Djmh.forks=1 -Djmh.warmup=10 -Djmh.measure=5`, the default 10 s
+iterations), the ten warm-up
+iterations went 1197, 1121, 1103, 1086, 1012, 1078, 1099, 1058, 1075,
+1070 and the five measured iterations 1074, 1031, 986, 992, 948. The
+cause of the step is not established (a recompilation or noise on the
+host; no event log was captured). What it shows is that a warm-up that
+looks converged can be followed by a different level, so no
+in-process stop rule is trusted alone. The warm-up default of the
+runner (5 iterations of 2 s, 10 s a fork) is shorter than the level
+change in the Linux run above, which came about 20 to 24 s in, so
+JMH's own warm-up can end before such a change; raise `-Djmh.warmup`
+where the budget allows. What perfproof does when the
+rounds of a benchmark disagree widely is what it does for any noisy
+benchmark: the interval stays wide, and at the budget the verdict is
+INCONCLUSIVE (`insufficient_evidence`), which the skill explains.
+
 ### Assumptions
 
 The procedure assumes the log ratios `d_i = log(r_i)` of different

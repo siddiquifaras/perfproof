@@ -1,0 +1,1411 @@
+jdk.ExecutionSample {
+  startTime = 01:00:22.450 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.473 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.483 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.541 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.551 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3542
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.572 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.582 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.635 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.645 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.656 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.666 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 241
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.678 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.703 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.723 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.735 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.747 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.757 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.779 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.789 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.800 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.811 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 241
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.846 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 581
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.857 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.869 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.880 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.892 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.903 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.915 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.927 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.938 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.963 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.977 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 581
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:22.991 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.003 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.015 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 466
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.028 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.038 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.049 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.060 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.071 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.094 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.106 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 240
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.116 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.129 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOfRangeByte(byte[], int, int) line: 3863
+    java.util.Arrays.copyOfRange(byte[], int, int) line: 3854
+    java.lang.String.<init>(AbstractStringBuilder, Void) line: 4781
+    java.lang.String.<init>(StringBuilder) line: 1496
+    java.lang.StringBuilder.toString() line: 475
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 606
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.141 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.153 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.164 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.181 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.192 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.201 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.213 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.225 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.236 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 241
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.260 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 52
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.271 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.282 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.292 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.304 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.315 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 568
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.341 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.354 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 585
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.368 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOfRangeByte(byte[], int, int) line: 3863
+    java.util.Arrays.copyOfRange(byte[], int, int) line: 3854
+    java.lang.String.<init>(AbstractStringBuilder, Void) line: 4781
+    java.lang.String.<init>(StringBuilder) line: 1496
+    java.lang.StringBuilder.toString() line: 475
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 606
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.378 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.390 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.401 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.418 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.430 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.443 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.466 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.478 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.487 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.511 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.526 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.538 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.560 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.585 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOfRangeByte(byte[], int, int) line: 3865
+    java.util.Arrays.copyOfRange(byte[], int, int) line: 3854
+    java.lang.String.<init>(AbstractStringBuilder, Void) line: 4781
+    java.lang.String.<init>(StringBuilder) line: 1496
+    java.lang.StringBuilder.toString() line: 475
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 606
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.597 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.620 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 591
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.631 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.658 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.669 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 583
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.681 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.702 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.714 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.canEncode(char) line: 51
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.735 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.746 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.757 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.768 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.795 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.805 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.830 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.843 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.854 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.866 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 428
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.877 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.913 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.isLatin1() line: 1697
+    java.lang.AbstractStringBuilder.append(char) line: 812
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 429
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.924 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3541
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.936 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.util.Arrays.copyOf(byte[], int) line: 3541
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 242
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Partial(StringBuilder, int, int) line: 468
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 600
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.948 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.960 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 583
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.981 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 241
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:23.998 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.append(char) line: 813
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.011 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.034 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.AbstractStringBuilder.ensureCapacityInternal(int) line: 241
+    java.lang.AbstractStringBuilder.append(char) line: 811
+    java.lang.StringBuilder.append(char) line: 246
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.061 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 430
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.072 (2026-10-22)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    tools.jackson.core.Base64Variant.encodeBase64Chunk(StringBuilder, int) line: 431
+    tools.jackson.core.Base64Variant.encode(byte[], boolean) line: 584
+    Base64Workload.iteration() line: 27
+    Base64Workload.main(String[]) line: 68
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 01:00:24.102 (2026-10-22)
+  sampledThread = "JFR Shutdown Hook" (javaThreadId = 21)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.Thread.scopedValueBindings() line: 299
+    java.lang.Thread.run() line: 1582
+  ]
+}
+
