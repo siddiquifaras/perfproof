@@ -16,6 +16,10 @@ All agents stopped, hourly cron deleted. Still running on their own (no model us
 5. Recreate the hourly check-in cron only if Faras re-authorises auto-continue.
 Local main has unpushed worklog/plan commits; push when no PR merge is pending.
 
+### Decision 2026-10-22 ~21:00 PKT (Faras): Node PR #59 HELD until the T1.12 golden set reports
+
+Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap), margin 8, 12 processes. Errors <= 1.8% CP95 with and without outliers; but about 51% of pairs end "warm-up unknown" (KEEP withheld) at the busy-Mac noise level. Round 7 (no cap / 15% cap) and round 8 (24 / 36 processes) failed their pre-registered rules. Faras chose "wait for the real-hardware test". When resuming T1.12: report how the Node golden workload's warm-up behaved (per-execution settling, whether a fixed warm-up biased any cell) so the Node decision has real data; then bring the Node options back to Faras. Proposed follow-up if shipped: adaptive process count (record more only when 12 leave the pair unknown).
+
 ### Commits and merges on main
 
 | Commit | What |
