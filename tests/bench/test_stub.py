@@ -202,9 +202,12 @@ def make_spec(
 class Run:
     """One run of prog.py under the hook."""
 
-    def __init__(self, root: Path, work: Path) -> None:
+    def __init__(
+        self, root: Path, work: Path, python: str = sys.executable
+    ) -> None:
         self.root = root
         self.work = work
+        self.python = python
         self.hook = write_hook(work)
         self.calls = work / "calls"
         self.calls.mkdir()
@@ -240,7 +243,7 @@ class Run:
             "NS": numbers,
         }
         done = subprocess.run(
-            [sys.executable, "prog.py"],
+            [self.python, "prog.py"],
             cwd=self.root,
             env=env,
             capture_output=True,
@@ -263,6 +266,40 @@ def run(project: Path, tmp_path: Path) -> Run:
     work = tmp_path / "work"
     work.mkdir()
     return Run(project, work)
+
+
+def _local_python(version: str) -> str | None:
+    """An installed interpreter of ``version``; never downloads."""
+    found = subprocess.run(
+        ["uv", "python", "find", version],
+        env={**os.environ, "UV_PYTHON_DOWNLOADS": "never"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    path = found.stdout.strip()
+    return path if found.returncode == 0 and path else None
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("version", ["3.8", "3.9"])
+def test_the_hook_runs_in_interpreters_older_than_perfproofs(
+    project: Path, tmp_path: Path, version: str
+) -> None:
+    # Projects pinned to an old Python are still measured: the hook
+    # runs inside the project's own interpreter, not perfproof's.
+    python = _local_python(version)
+    if python is None:
+        pytest.skip(f"no Python {version} installed here")
+    work = tmp_path / "work"
+    work.mkdir()
+    old = Run(project, work, python)
+    recorded, rec_stats, _ = old.go("record", "heavy:work")
+    replayed, rep_stats, _ = old.go("replay", "heavy:work")
+    assert replayed == recorded
+    assert total(rec_stats, "calls") == 4
+    assert total(rep_stats, "replayed") == 4
 
 
 def total(stats: list[dict[str, Any]], field: str) -> float:

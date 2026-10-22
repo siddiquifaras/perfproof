@@ -2,7 +2,7 @@
 
 `perfproof.bench.stub` loads this file by path into the benchmark's own
 interpreter through a generated ``sitecustomize.py``, so it imports only
-the standard library and must run on any CPython 3.10 or later. It is
+the standard library and must run on any CPython 3.8 or later. It is
 never imported as part of perfproof.
 
 Two modes, chosen by the configuration file the hook is given:
@@ -216,10 +216,14 @@ class _Hook:
             return
         base = _HEADER + self.slot * _SLOT.size
         now = _SLOT.unpack_from(self.shared, base)
+        # zip(strict=) is Python 3.10+, and this runs in the project's
+        # own interpreter, which may be older.
+        if len(now) != len(values):
+            raise ValueError(f"slot has {len(now)} fields, got {len(values)}")
         _SLOT.pack_into(
             self.shared,
             base,
-            *(a + b for a, b in zip(now, values, strict=True)),
+            *(a + b for a, b in zip(now, values)),  # noqa: B905
         )
 
     def _slot_values(self, slot: int) -> tuple[int, ...]:
@@ -310,7 +314,8 @@ class _Hook:
                     before = pickle.dumps((args, kwargs), protocol=4)
                 except Exception:
                     before = None
-                call: dict[str, Any] = {"effects": set[str]()}
+                effects: set[str] = set()
+                call: dict[str, Any] = {"effects": effects}
                 hook.local.call = call
             finally:
                 hook.local.busy = False
