@@ -321,7 +321,12 @@ def _tool_bin(directory: Path, developer: str | None) -> Path | None:
     Putting the whole ``$DEVELOPER_DIR/usr/bin`` on ``PATH`` would also
     shadow ``python3`` and ``pip3`` (the Command Line Tools' own Python)
     over the project's. So only the tools named in ``_BYPASS_TOOLS`` are
-    linked, into a directory of their own.
+    linked, into a directory of their own. A linked ``git`` looks for
+    its helpers (``git-remote-https``, ``git-upload-pack``) under the
+    Xcode path compiled into it, absent on a Command Line Tools install,
+    so `agent_env` points ``GIT_EXEC_PATH`` at the developer directory's
+    own; the ``/usr/bin/git`` shim would instead try to write the xcrun
+    cache in the closed temp directory on every call.
 
     Parameters
     ----------
@@ -404,6 +409,9 @@ def agent_env(
     toolbin = _tool_bin(scratch / "toolbin", env.get("DEVELOPER_DIR"))
     if toolbin is not None:
         dirs.append(str(toolbin))
+        git_core = Path(env["DEVELOPER_DIR"], "usr", "libexec", "git-core")
+        if git_core.is_dir():
+            env["GIT_EXEC_PATH"] = str(git_core)
     env["PATH"] = os.pathsep.join([*dirs, base.get("PATH", os.defpath)])
     return env
 

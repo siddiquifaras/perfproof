@@ -1490,7 +1490,7 @@ def test_only_the_compiler_tools_are_put_ahead_of_path(
     for name in ("python3", "pip3"):
         assert resolved[name] == shutil.which(name, path=base["PATH"]), name
         assert not (resolved[name] or "").startswith(developer), name
-    # The compiler and git are the real binaries, not the shims.
+    # The compiler tools and git are the real binaries, not the shims.
     for name in ("clang", "git", "make"):
         found = resolved[name]
         assert found is not None, name
@@ -1499,6 +1499,41 @@ def test_only_the_compiler_tools_are_put_ahead_of_path(
             os.path.realpath(developer)
         ), name
         assert not os.path.realpath(found).startswith("/usr/bin/"), name
+
+
+def test_git_finds_its_helpers_under_the_agent_env(tmp_path: Path) -> None:
+    if not sandbox.toolchain_env().get("DEVELOPER_DIR"):
+        pytest.skip("no developer directory here")
+    base = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+    env = sandbox.agent_env(base, tmp_path / "s", [])
+    exec_path = subprocess.run(
+        ["git", "--exec-path"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    ).stdout.strip()
+    assert Path(exec_path, "git-upload-pack").exists(), exec_path
+    git = shutil.which("git", path=env["PATH"])
+    assert git is not None
+    assert git.startswith(str(tmp_path / "s")), git
+    origin = tmp_path / "origin.git"
+    subprocess.run(
+        ["git", "init", "-q", "--bare", str(origin)],
+        env=env,
+        timeout=30,
+        check=True,
+    )
+    # A clone needs git-upload-pack, which a linked git could not find.
+    done = subprocess.run(
+        ["git", "clone", "-q", origin.as_uri(), str(tmp_path / "work")],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert done.returncode == 0, done.stderr
 
 
 def test_docker_tasks_get_only_the_daemon_socket() -> None:
