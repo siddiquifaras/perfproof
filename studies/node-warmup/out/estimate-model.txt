@@ -1,0 +1,83 @@
+seed 5551230777, R = 4000 per row, JSD 0.042, 12 processes per tree, 60 rounds, K=6, margin 3
+== N per tree, sharp drop, 12 processes (tail rule, retries)
+   f=1: tail agrees on one recording 79.5%; after retries 99.3%; N median 5500 (5th 4500, 95th 7000); N/drop median 0.97
+   f=2: tail agrees on one recording 79.6%; after retries 99.1%; N median 11500 (5th 10500, 95th 14000); N/drop median 1.01
+   f=3: tail agrees on one recording 79.0%; after retries 99.0%; N median 17500 (5th 16000, 95th 20500); N/drop median 1.03
+
+== BEFORE: doublings rule, one recording of 320; WARM = 3 x larger N
+-- f_base=1 f_cand=1: N known for 100.0%; WARM/later drop median 2.65, 5th pct 2.38
+   BEFORE (1,1)                       S=1.00 | KEEP     1 REJECT   486 | false KEEP       1/4000 =  0.03% (CP95 upper  0.12%)
+   BEFORE (1,1)                       S=1.03 | KEEP    29 REJECT    15 | false KEEP      29/4000 =  0.72% (CP95 upper  0.99%)
+   BEFORE (1,1)                       S=1.06 | KEEP   490 REJECT     1 | false REJECT     1/4000 =  0.03% (CP95 upper  0.12%)
+-- f_base=3 f_cand=1: N known for 100.0%; WARM/later drop median 0.88, 5th pct 0.79
+   BEFORE (3,1)                       S=1.00 | KEEP  2819 REJECT     1 | false KEEP    2819/4000 = 70.47% (CP95 upper 71.66%)
+   BEFORE (3,1)                       S=1.03 | KEEP  3191 REJECT     0 | false KEEP    3191/4000 = 79.78% (CP95 upper 80.82%)
+   BEFORE (3,1)                       S=1.06 | KEEP  3484 REJECT     0 | false REJECT     0/4000 =  0.00% (CP95 upper  0.07%)
+-- f_base=1 f_cand=3: N known for 100.0%; WARM/later drop median 0.88, 5th pct 0.79
+   BEFORE (1,3)                       S=1.00 | KEEP     0 REJECT  3446 | false KEEP       0/4000 =  0.00% (CP95 upper  0.07%)
+   BEFORE (1,3)                       S=1.03 | KEEP     0 REJECT  3237 | false KEEP       0/4000 =  0.00% (CP95 upper  0.07%)
+   BEFORE (1,3)                       S=1.06 | KEEP     3 REJECT  2814 | false REJECT  2814/4000 = 70.35% (CP95 upper 71.54%)
+-- f_base=2 f_cand=1: N known for 100.0%; WARM/later drop median 1.32, 5th pct 1.19
+   BEFORE (2,1)                       S=1.00 | KEEP    10 REJECT   437 | false KEEP      10/4000 =  0.25% (CP95 upper  0.42%)
+   BEFORE (2,1)                       S=1.03 | KEEP    48 REJECT    21 | false KEEP      48/4000 =  1.20% (CP95 upper  1.52%)
+   BEFORE (2,1)                       S=1.06 | KEEP   542 REJECT     3 | false REJECT     3/4000 =  0.07% (CP95 upper  0.19%)
+-- f_base=1 f_cand=2: N known for 100.0%; WARM/later drop median 1.32, 5th pct 1.19
+   BEFORE (1,2)                       S=1.00 | KEEP     1 REJECT   561 | false KEEP       1/4000 =  0.03% (CP95 upper  0.12%)
+   BEFORE (1,2)                       S=1.03 | KEEP    22 REJECT    52 | false KEEP      22/4000 =  0.55% (CP95 upper  0.78%)
+   BEFORE (1,2)                       S=1.06 | KEEP   395 REJECT     3 | false REJECT     3/4000 =  0.07% (CP95 upper  0.19%)
+-- f_base=3 f_cand=3: N known for 100.0%; WARM/later drop median 0.09, 5th pct 0.09
+   BEFORE (3,3)                       S=1.00 | KEEP     2 REJECT   662 | false KEEP       2/4000 =  0.05% (CP95 upper  0.16%)
+   BEFORE (3,3)                       S=1.03 | KEEP    25 REJECT    30 | false KEEP      25/4000 =  0.62% (CP95 upper  0.87%)
+   BEFORE (3,3)                       S=1.06 | KEEP   619 REJECT     0 | false REJECT     0/4000 =  0.00% (CP95 upper  0.07%)
+
+== AFTER: tail rule, retries 320/640/1280; WARM = 3 x larger N
+-- f_base=1 f_cand=1: N known for 98.3%; WARM/later drop median 2.91, 5th pct 2.65
+   AFTER: (1,1)                       S=1.00 | KEEP     2 REJECT   465 | false KEEP       2/4000 =  0.05% (CP95 upper  0.16%)
+   AFTER: (1,1)                       S=1.03 | KEEP    27 REJECT    26 | false KEEP      27/4000 =  0.68% (CP95 upper  0.93%)
+   AFTER: (1,1)                       S=1.06 | KEEP   453 REJECT     0 | false REJECT     0/4000 =  0.00% (CP95 upper  0.07%)
+-- f_base=3 f_cand=1: N known for 98.0%; WARM/later drop median 3.18, 5th pct 2.82
+   AFTER: (3,1)                       S=1.00 | KEEP     1 REJECT   527 | false KEEP       1/4000 =  0.03% (CP95 upper  0.12%)
+   AFTER: (3,1)                       S=1.03 | KEEP    33 REJECT    25 | false KEEP      33/4000 =  0.82% (CP95 upper  1.10%)
+   AFTER: (3,1)                       S=1.06 | KEEP   488 REJECT     1 | false REJECT     1/4000 =  0.03% (CP95 upper  0.12%)
+-- f_base=1 f_cand=3: N known for 98.1%; WARM/later drop median 3.18, 5th pct 2.82
+   AFTER: (1,3)                       S=1.00 | KEEP     1 REJECT   481 | false KEEP       1/4000 =  0.03% (CP95 upper  0.12%)
+   AFTER: (1,3)                       S=1.03 | KEEP    30 REJECT    34 | false KEEP      30/4000 =  0.75% (CP95 upper  1.02%)
+   AFTER: (1,3)                       S=1.06 | KEEP   486 REJECT     0 | false REJECT     0/4000 =  0.00% (CP95 upper  0.07%)
+-- f_base=2 f_cand=1: N known for 98.2%; WARM/later drop median 3.04, 5th pct 2.78
+   AFTER: (2,1)                       S=1.00 | KEEP     0 REJECT   481 | false KEEP       0/4000 =  0.00% (CP95 upper  0.07%)
+   AFTER: (2,1)                       S=1.03 | KEEP    22 REJECT    28 | false KEEP      22/4000 =  0.55% (CP95 upper  0.78%)
+   AFTER: (2,1)                       S=1.06 | KEEP   442 REJECT     3 | false REJECT     3/4000 =  0.07% (CP95 upper  0.19%)
+-- f_base=1 f_cand=2: N known for 98.1%; WARM/later drop median 3.04, 5th pct 2.78
+   AFTER: (1,2)                       S=1.00 | KEEP     2 REJECT   487 | false KEEP       2/4000 =  0.05% (CP95 upper  0.16%)
+   AFTER: (1,2)                       S=1.03 | KEEP    23 REJECT    21 | false KEEP      23/4000 =  0.57% (CP95 upper  0.81%)
+   AFTER: (1,2)                       S=1.06 | KEEP   493 REJECT     1 | false REJECT     1/4000 =  0.03% (CP95 upper  0.12%)
+-- f_base=3 f_cand=3: N known for 98.1%; WARM/later drop median 3.26, 5th pct 3.00
+   AFTER: (3,3)                       S=1.00 | KEEP     2 REJECT   490 | false KEEP       2/4000 =  0.05% (CP95 upper  0.16%)
+   AFTER: (3,3)                       S=1.03 | KEEP    24 REJECT    19 | false KEEP      24/4000 =  0.60% (CP95 upper  0.84%)
+   AFTER: (3,3)                       S=1.06 | KEEP   493 REJECT     0 | false REJECT     0/4000 =  0.00% (CP95 upper  0.07%)
+
+== exponential tails, BEFORE: doublings rule, one recording of 800; candidate tau 300
+a     tau_b  | N known | N median | baseline excess at WARM (median, 95th) | false KEEP S=1.00 | S=1.03
+0.50   2000 | 100.0% |      500 |  4.69%,  4.69% |  137/4000 =   3.4% (<=   3.9%) | 1266/4000 =  31.6% (<=  32.9%)
+0.50   5000 | 100.0% |      500 | 16.01%, 16.01% | 2497/4000 =  62.4% (<=  63.7%) | 2714/4000 =  67.8% (<=  69.1%)
+0.50  10000 | 100.0% |      500 | 27.20%, 27.20% | 3395/4000 =  84.9% (<=  85.8%) | 3390/4000 =  84.8% (<=  85.7%)
+0.50  20000 | 100.0% |      500 | 36.50%, 36.50% | 3574/4000 =  89.3% (<=  90.1%) | 3613/4000 =  90.3% (<=  91.1%)
+0.50  40000 | 100.0% |      500 | 42.61%, 42.61% | 3632/4000 =  90.8% (<=  91.5%) | 3645/4000 =  91.1% (<=  91.9%)
+0.75   2000 | 100.0% |     1000 |  3.32%,  7.04% |  387/4000 =   9.7% (<=  10.5%) | 1254/4000 =  31.4% (<=  32.6%)
+0.75   5000 | 100.0% |     6000 |  0.89%, 24.02% |  581/4000 =  14.5% (<=  15.5%) |  692/4000 =  17.3% (<=  18.3%)
+0.75  10000 | 100.0% |      500 | 40.81%, 40.81% | 2371/4000 =  59.3% (<=  60.6%) | 2377/4000 =  59.4% (<=  60.7%)
+0.75  20000 | 100.0% |      500 | 54.76%, 54.76% | 3555/4000 =  88.9% (<=  89.7%) | 3606/4000 =  90.2% (<=  90.9%)
+0.75  40000 | 100.0% |      500 | 63.92%, 63.92% | 3639/4000 =  91.0% (<=  91.7%) | 3634/4000 =  90.8% (<=  91.6%)
+
+== exponential tails, AFTER: tail rule, retries 320/640/1280; candidate tau 300
+a     tau_b  | N known | N median | baseline excess at WARM (median, 95th) | false KEEP S=1.00 | S=1.03
+0.50   2000 |  97.9% |     1500 |  0.49%,  4.69% |   20/4000 =   0.5% (<=   0.7%) |  238/4000 =   6.0% (<=   6.6%)
+0.50   5000 |  98.2% |     7500 |  0.24%,  1.45% |    2/4000 =   0.1% (<=   0.2%) |   40/4000 =   1.0% (<=   1.3%)
+0.50  10000 |  98.2% |    18500 |  0.12%,  0.64% |    0/4000 =   0.0% (<=   0.1%) |   32/4000 =   0.8% (<=   1.1%)
+0.50  20000 |  98.1% |    40500 |  0.08%,  0.44% |    1/4000 =   0.0% (<=   0.1%) |   37/4000 =   0.9% (<=   1.2%)
+0.50  40000 |  98.2% |    78500 |  0.12%,  0.47% |    4/4000 =   0.1% (<=   0.2%) |   28/4000 =   0.7% (<=   1.0%)
+0.75   2000 |  98.0% |     2500 |  0.35%,  3.32% |   12/4000 =   0.3% (<=   0.5%) |   98/4000 =   2.5% (<=   2.9%)
+0.75   5000 |  98.3% |     9500 |  0.08%,  0.66% |    2/4000 =   0.1% (<=   0.2%) |   41/4000 =   1.0% (<=   1.3%)
+0.75  10000 |  98.0% |    22500 |  0.06%,  0.29% |    0/4000 =   0.0% (<=   0.1%) |   21/4000 =   0.5% (<=   0.8%)
+0.75  20000 |  98.1% |    48500 |  0.04%,  0.20% |    0/4000 =   0.0% (<=   0.1%) |   37/4000 =   0.9% (<=   1.2%)
+0.75  40000 |  98.1% |    91000 |  0.07%,  0.27% |    1/4000 =   0.0% (<=   0.1%) |   37/4000 =   0.9% (<=   1.2%)

@@ -22,14 +22,14 @@
   "change_kind": "after-landed",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
+    "command": "node --import tsx eval_bench.ts",
+    "source": "written here from the description of https://github.com/nestjs/nest/pull/10823 (formatting the timestamp of each log line): ConsoleLogger.log called with timestamps on and stdout discarded, a fixed warm-up then a fixed window, eval/tasks/workloads/nestjs-nest-pr10823-landed/bench.ts, run through tsx",
     "verified": false
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+    "source": "nest's logger.service tests (packages/common/test/services/logger.service.spec.ts), mocha-style tests run under vitest with a minimal config (eval/tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,9 +38,130 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "builds",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The tree's full toolchain (lerna, gulp, mocha, ts-node on a 2022 lockfile) is not installed; only what ConsoleLogger imports (reflect-metadata, rxjs, iterare, uid, tslib, uuid) at their versions before the merge, plus chai, sinon, tsx and vitest. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree The workload was edited after this run (its reported value is printed with toPrecision(12) instead of toFixed(9), and its window was raised from 120,000 to 250,000 iterations), and it has not been run again, so the workload is marked unverified and the status is builds: the workload was run only in an earlier form.",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npm install --prefix .eval-tools --before 2023-02-02 --no-audit --no-fund --ignore-scripts reflect-metadata rxjs iterare uid tslib chai@4 sinon@14 uuid@9",
+      "exit_code": 0,
+      "duration_s": 5.25,
+      "date": "2026-10-22T00:23:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 30 packages in 5s\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated @sinonjs/text-encoding@0.7.2: Deprecated: no longer maintained and no longer used by Sinon packages. See\nnpm warn deprecated   https://github.com/sinonjs/nise/issues/243 for replacement details.\nnpm warn deprecated loupe@2.3.6: Please upgrade to 2.3.7 which fixes GHSA-4q6p-r6v2-jvc5\nnpm warn deprecated uuid@9.0.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated sinon@14.0.2: 16.1.1"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund tsx vitest",
+      "exit_code": 0,
+      "duration_s": 23.58,
+      "date": "2026-10-22T00:23:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 48 packages in 24s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "ln -s .eval-tools/node_modules node_modules",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T00:23:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/bench.ts eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T00:23:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+      "exit_code": 0,
+      "duration_s": 1.09,
+      "date": "2026-10-22T00:23:39+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  \"randomError\": true\n}\n\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ErrorContext] \u001b[39m\u001b[31mrandom error with context\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 1\u001b[39m\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 2\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mrandom error\u001b[39m\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[31mrandom error without context\u001b[39m\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ErrorContext] \u001b[39m\u001b[31mrandom error with context\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 1\u001b[39m\n\u001b[31m[Nest] 30257  - \u001b[39m10/22/2026, 5:23:40 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 2\u001b[39m\nstacktrace"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "node --import tsx eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.38,
+      "date": "2026-10-22T00:23:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "PERFPROOF {\"value\": 0.000001432}\nchecksum true"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npm install --prefix .eval-tools --before 2023-02-02 --no-audit --no-fund --ignore-scripts reflect-metadata rxjs iterare uid tslib chai@4 sinon@14 uuid@9",
+      "exit_code": 0,
+      "duration_s": 0.66,
+      "date": "2026-10-22T00:23:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 30 packages in 586ms\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated @sinonjs/text-encoding@0.7.2: Deprecated: no longer maintained and no longer used by Sinon packages. See\nnpm warn deprecated   https://github.com/sinonjs/nise/issues/243 for replacement details.\nnpm warn deprecated loupe@2.3.6: Please upgrade to 2.3.7 which fixes GHSA-4q6p-r6v2-jvc5\nnpm warn deprecated uuid@9.0.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated sinon@14.0.2: 16.1.1"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund tsx vitest",
+      "exit_code": 0,
+      "duration_s": 1.69,
+      "date": "2026-10-22T00:23:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 48 packages in 2s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "ln -s .eval-tools/node_modules node_modules",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T00:23:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/bench.ts eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T00:23:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+      "exit_code": 0,
+      "duration_s": 1.02,
+      "date": "2026-10-22T00:23:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  \"randomError\": true\n}\n\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ErrorContext] \u001b[39m\u001b[31mrandom error with context\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 1\u001b[39m\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 2\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mrandom error\u001b[39m\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[31mrandom error without context\u001b[39m\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ErrorContext] \u001b[39m\u001b[31mrandom error with context\u001b[39m\nstacktrace\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 1\u001b[39m\n\u001b[31m[Nest] 30361  - \u001b[39m10/22/2026, 5:23:44 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[RandomContext] \u001b[39m\u001b[31mmessage 2\u001b[39m\nstacktrace"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "node --import tsx eval_bench.ts",
+      "exit_code": 0,
+      "duration_s": 0.41,
+      "date": "2026-10-22T00:23:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "PERFPROOF {\"value\": 0.000001586}\nchecksum true"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

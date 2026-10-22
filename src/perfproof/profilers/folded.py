@@ -26,8 +26,8 @@ Frames are normalised before they are counted:
   merges with a Python frame of the same name.
 - A frame is marked as library code unless it is shown to be the
   project's: a file under the project root that is not in a
-  ``site-packages`` or ``dist-packages`` directory, or a native frame
-  of a binary the caller names as the project's own.
+  ``site-packages``, ``dist-packages`` or ``node_modules`` directory,
+  or a native frame of a binary the caller names as the project's own.
 """
 
 import heapq
@@ -51,7 +51,9 @@ __all__ = [
 DEFAULT_TOP_N: Final = 20
 """Number of hotspots returned when the caller does not say."""
 
-_LIBRARY_DIRS: Final = frozenset({"site-packages", "dist-packages"})
+_LIBRARY_DIRS: Final = frozenset(
+    {"site-packages", "dist-packages", "node_modules"}
+)
 _PYTHON_SUFFIXES: Final = (".py", ".pyw")
 _LINE_SUFFIX: Final = re.compile(r"(?P<file>.+):(?P<line>[0-9]+)")
 _FILE_SUFFIX: Final = re.compile(r"(\.so(\.[0-9]+)?|\.dylib|\.dll|\.pyw?)$")

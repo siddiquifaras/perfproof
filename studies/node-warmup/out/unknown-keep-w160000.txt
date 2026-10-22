@@ -1,0 +1,91 @@
+seed 20261051, R = 2000 per row, tolerance robust, margin 8, WARM 160000 when a tree is unknown, 12 processes per tree
+UNKNOWN noise 0.1 outliers none false KEEP S=1.00: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers none false KEEP S=1.00: pooled 0/32000 =  0.00% (CP95  0.01%) | worst row CP95  0.15%
+UNKNOWN noise 0.1 outliers none false KEEP S=1.03: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers none false KEEP S=1.03: pooled 217/32000 =  0.68% (CP95  0.76%) | worst row CP95  1.57%
+UNKNOWN noise 0.1 outliers none false REJECT S=1.06: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers none false REJECT S=1.06: pooled 0/32000 =  0.00% (CP95  0.01%) | worst row CP95  0.15%
+UNKNOWN noise 0.1 outliers q=2% x10 false KEEP S=1.00: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x10 false KEEP S=1.00: pooled 59/32000 =  0.18% (CP95  0.23%) | worst row CP95  0.66%
+UNKNOWN noise 0.1 outliers q=2% x10 false KEEP S=1.03: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x10 false KEEP S=1.03: pooled 239/32000 =  0.75% (CP95  0.83%) | worst row CP95  1.45%
+UNKNOWN noise 0.1 outliers q=2% x10 false REJECT S=1.06: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x10 false REJECT S=1.06: pooled 51/32000 =  0.16% (CP95  0.20%) | worst row CP95  0.59%
+UNKNOWN noise 0.1 outliers q=2% x30 false KEEP S=1.00: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x30 false KEEP S=1.00: pooled 87/32000 =  0.27% (CP95  0.32%) | worst row CP95  0.85%
+UNKNOWN noise 0.1 outliers q=2% x30 false KEEP S=1.03: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x30 false KEEP S=1.03: pooled 183/32000 =  0.57% (CP95  0.65%) | worst row CP95  1.39%
+UNKNOWN noise 0.1 outliers q=2% x30 false REJECT S=1.06: 0/0 = n/a | unknown pairs 0.0% of 32000
+END-TO-END noise 0.1 outliers q=2% x30 false REJECT S=1.06: pooled 89/32000 =  0.28% (CP95  0.33%) | worst row CP95  0.91%
+UNKNOWN noise 0.5 outliers none false KEEP S=1.00: 0/1612 =  0.00% (CP95  0.19%) | unknown pairs 5.0% of 32000
+END-TO-END noise 0.5 outliers none false KEEP S=1.00: pooled 5/32000 =  0.02% (CP95  0.03%) | worst row CP95  0.31%
+UNKNOWN noise 0.5 outliers none false KEEP S=1.03: 13/1612 =  0.81% (CP95  1.28%) | unknown pairs 5.0% of 32000
+END-TO-END noise 0.5 outliers none false KEEP S=1.03: pooled 222/32000 =  0.69% (CP95  0.78%) | worst row CP95  1.39%
+UNKNOWN noise 0.5 outliers none false REJECT S=1.06: 0/1612 =  0.00% (CP95  0.19%) | unknown pairs 5.0% of 32000
+END-TO-END noise 0.5 outliers none false REJECT S=1.06: pooled 2/32000 =  0.01% (CP95  0.02%) | worst row CP95  0.24%
+UNKNOWN noise 0.5 outliers q=2% x10 false KEEP S=1.00: 3/1815 =  0.17% (CP95  0.43%) | unknown pairs 5.7% of 32000
+END-TO-END noise 0.5 outliers q=2% x10 false KEEP S=1.00: pooled 56/32000 =  0.17% (CP95  0.22%) | worst row CP95  0.78%
+UNKNOWN noise 0.5 outliers q=2% x10 false KEEP S=1.03: 16/1815 =  0.88% (CP95  1.34%) | unknown pairs 5.7% of 32000
+END-TO-END noise 0.5 outliers q=2% x10 false KEEP S=1.03: pooled 247/32000 =  0.77% (CP95  0.86%) | worst row CP95  1.57%
+UNKNOWN noise 0.5 outliers q=2% x10 false REJECT S=1.06: 6/1815 =  0.33% (CP95  0.65%) | unknown pairs 5.7% of 32000
+END-TO-END noise 0.5 outliers q=2% x10 false REJECT S=1.06: pooled 60/32000 =  0.19% (CP95  0.23%) | worst row CP95  0.72%
+UNKNOWN noise 0.5 outliers q=2% x30 false KEEP S=1.00: 7/1788 =  0.39% (CP95  0.73%) | unknown pairs 5.6% of 32000
+END-TO-END noise 0.5 outliers q=2% x30 false KEEP S=1.00: pooled 84/32000 =  0.26% (CP95  0.31%) | worst row CP95  0.85%
+UNKNOWN noise 0.5 outliers q=2% x30 false KEEP S=1.03: 8/1788 =  0.45% (CP95  0.81%) | unknown pairs 5.6% of 32000
+END-TO-END noise 0.5 outliers q=2% x30 false KEEP S=1.03: pooled 192/32000 =  0.60% (CP95  0.68%) | worst row CP95  1.33%
+UNKNOWN noise 0.5 outliers q=2% x30 false REJECT S=1.06: 10/1788 =  0.56% (CP95  0.95%) | unknown pairs 5.6% of 32000
+END-TO-END noise 0.5 outliers q=2% x30 false REJECT S=1.06: pooled 116/32000 =  0.36% (CP95  0.42%) | worst row CP95  1.09%
+UNKNOWN noise 1 outliers none false KEEP S=1.00: 7/16461 =  0.04% (CP95  0.08%) | unknown pairs 51.4% of 32000
+END-TO-END noise 1 outliers none false KEEP S=1.00: pooled 17/32000 =  0.05% (CP95  0.08%) | worst row CP95  0.52%
+UNKNOWN noise 1 outliers none false KEEP S=1.03: 132/16461 =  0.80% (CP95  0.93%) | unknown pairs 51.4% of 32000
+END-TO-END noise 1 outliers none false KEEP S=1.03: pooled 251/32000 =  0.78% (CP95  0.87%) | worst row CP95  1.74%
+UNKNOWN noise 1 outliers none false REJECT S=1.06: 7/16461 =  0.04% (CP95  0.08%) | unknown pairs 51.4% of 32000
+END-TO-END noise 1 outliers none false REJECT S=1.06: pooled 15/32000 =  0.05% (CP95  0.07%) | worst row CP95  0.39%
+UNKNOWN noise 1 outliers q=2% x10 false KEEP S=1.00: 34/17082 =  0.20% (CP95  0.26%) | unknown pairs 53.4% of 32000
+END-TO-END noise 1 outliers q=2% x10 false KEEP S=1.00: pooled 67/32000 =  0.21% (CP95  0.26%) | worst row CP95  0.72%
+UNKNOWN noise 1 outliers q=2% x10 false KEEP S=1.03: 131/17082 =  0.77% (CP95  0.89%) | unknown pairs 53.4% of 32000
+END-TO-END noise 1 outliers q=2% x10 false KEEP S=1.03: pooled 226/32000 =  0.71% (CP95  0.79%) | worst row CP95  1.39%
+UNKNOWN noise 1 outliers q=2% x10 false REJECT S=1.06: 40/17082 =  0.23% (CP95  0.30%) | unknown pairs 53.4% of 32000
+END-TO-END noise 1 outliers q=2% x10 false REJECT S=1.06: pooled 69/32000 =  0.22% (CP95  0.26%) | worst row CP95  0.72%
+UNKNOWN noise 1 outliers q=2% x30 false KEEP S=1.00: 73/17354 =  0.42% (CP95  0.51%) | unknown pairs 54.2% of 32000
+END-TO-END noise 1 outliers q=2% x30 false KEEP S=1.00: pooled 146/32000 =  0.46% (CP95  0.52%) | worst row CP95  1.03%
+UNKNOWN noise 1 outliers q=2% x30 false KEEP S=1.03: 127/17354 =  0.73% (CP95  0.85%) | unknown pairs 54.2% of 32000
+END-TO-END noise 1 outliers q=2% x30 false KEEP S=1.03: pooled 242/32000 =  0.76% (CP95  0.84%) | worst row CP95  1.51%
+UNKNOWN noise 1 outliers q=2% x30 false REJECT S=1.06: 60/17354 =  0.35% (CP95  0.43%) | unknown pairs 54.2% of 32000
+END-TO-END noise 1 outliers q=2% x30 false REJECT S=1.06: pooled 125/32000 =  0.39% (CP95  0.45%) | worst row CP95  1.03%
+UNKNOWN noise 1.5 outliers none false KEEP S=1.00: 18/27306 =  0.07% (CP95  0.10%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers none false KEEP S=1.00: pooled 20/32000 =  0.06% (CP95  0.09%) | worst row CP95  0.46%
+UNKNOWN noise 1.5 outliers none false KEEP S=1.03: 231/27306 =  0.85% (CP95  0.94%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers none false KEEP S=1.03: pooled 264/32000 =  0.82% (CP95  0.91%) | worst row CP95  2.09%
+UNKNOWN noise 1.5 outliers none false REJECT S=1.06: 21/27306 =  0.08% (CP95  0.11%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers none false REJECT S=1.06: pooled 25/32000 =  0.08% (CP95  0.11%) | worst row CP95  0.39%
+UNKNOWN noise 1.5 outliers q=2% x10 false KEEP S=1.00: 64/27403 =  0.23% (CP95  0.29%) | unknown pairs 85.6% of 32000
+END-TO-END noise 1.5 outliers q=2% x10 false KEEP S=1.00: pooled 71/32000 =  0.22% (CP95  0.27%) | worst row CP95  0.66%
+UNKNOWN noise 1.5 outliers q=2% x10 false KEEP S=1.03: 203/27403 =  0.74% (CP95  0.83%) | unknown pairs 85.6% of 32000
+END-TO-END noise 1.5 outliers q=2% x10 false KEEP S=1.03: pooled 233/32000 =  0.73% (CP95  0.81%) | worst row CP95  1.80%
+UNKNOWN noise 1.5 outliers q=2% x10 false REJECT S=1.06: 81/27403 =  0.30% (CP95  0.36%) | unknown pairs 85.6% of 32000
+END-TO-END noise 1.5 outliers q=2% x10 false REJECT S=1.06: pooled 96/32000 =  0.30% (CP95  0.36%) | worst row CP95  0.78%
+UNKNOWN noise 1.5 outliers q=2% x30 false KEEP S=1.00: 131/27297 =  0.48% (CP95  0.55%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers q=2% x30 false KEEP S=1.00: pooled 149/32000 =  0.47% (CP95  0.53%) | worst row CP95  1.33%
+UNKNOWN noise 1.5 outliers q=2% x30 false KEEP S=1.03: 218/27297 =  0.80% (CP95  0.89%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers q=2% x30 false KEEP S=1.03: pooled 249/32000 =  0.78% (CP95  0.86%) | worst row CP95  1.51%
+UNKNOWN noise 1.5 outliers q=2% x30 false REJECT S=1.06: 112/27297 =  0.41% (CP95  0.48%) | unknown pairs 85.3% of 32000
+END-TO-END noise 1.5 outliers q=2% x30 false REJECT S=1.06: pooled 130/32000 =  0.41% (CP95  0.47%) | worst row CP95  0.97%
+UNKNOWN noise 2 outliers none false KEEP S=1.00: 36/30363 =  0.12% (CP95  0.16%) | unknown pairs 94.9% of 32000
+END-TO-END noise 2 outliers none false KEEP S=1.00: pooled 37/32000 =  0.12% (CP95  0.15%) | worst row CP95  0.46%
+UNKNOWN noise 2 outliers none false KEEP S=1.03: 244/30363 =  0.80% (CP95  0.89%) | unknown pairs 94.9% of 32000
+END-TO-END noise 2 outliers none false KEEP S=1.03: pooled 258/32000 =  0.81% (CP95  0.89%) | worst row CP95  1.68%
+UNKNOWN noise 2 outliers none false REJECT S=1.06: 38/30363 =  0.13% (CP95  0.16%) | unknown pairs 94.9% of 32000
+END-TO-END noise 2 outliers none false REJECT S=1.06: pooled 39/32000 =  0.12% (CP95  0.16%) | worst row CP95  0.46%
+UNKNOWN noise 2 outliers q=2% x10 false KEEP S=1.00: 85/30455 =  0.28% (CP95  0.33%) | unknown pairs 95.2% of 32000
+END-TO-END noise 2 outliers q=2% x10 false KEEP S=1.00: pooled 89/32000 =  0.28% (CP95  0.33%) | worst row CP95  0.85%
+UNKNOWN noise 2 outliers q=2% x10 false KEEP S=1.03: 236/30455 =  0.77% (CP95  0.86%) | unknown pairs 95.2% of 32000
+END-TO-END noise 2 outliers q=2% x10 false KEEP S=1.03: pooled 244/32000 =  0.76% (CP95  0.85%) | worst row CP95  1.74%
+UNKNOWN noise 2 outliers q=2% x10 false REJECT S=1.06: 85/30455 =  0.28% (CP95  0.33%) | unknown pairs 95.2% of 32000
+END-TO-END noise 2 outliers q=2% x10 false REJECT S=1.06: pooled 90/32000 =  0.28% (CP95  0.34%) | worst row CP95  0.97%
+UNKNOWN noise 2 outliers q=2% x30 false KEEP S=1.00: 129/30445 =  0.42% (CP95  0.49%) | unknown pairs 95.1% of 32000
+END-TO-END noise 2 outliers q=2% x30 false KEEP S=1.00: pooled 134/32000 =  0.42% (CP95  0.48%) | worst row CP95  1.03%
+UNKNOWN noise 2 outliers q=2% x30 false KEEP S=1.03: 213/30445 =  0.70% (CP95  0.78%) | unknown pairs 95.1% of 32000
+END-TO-END noise 2 outliers q=2% x30 false KEEP S=1.03: pooled 226/32000 =  0.71% (CP95  0.79%) | worst row CP95  1.51%
+UNKNOWN noise 2 outliers q=2% x30 false REJECT S=1.06: 141/30445 =  0.46% (CP95  0.53%) | unknown pairs 95.1% of 32000
+END-TO-END noise 2 outliers q=2% x30 false REJECT S=1.06: pooled 146/32000 =  0.46% (CP95  0.52%) | worst row CP95  1.21%

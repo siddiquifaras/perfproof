@@ -24,6 +24,39 @@ calibration don't apply, and the report says so.
 | Supported | CPython 3.10 and later on macOS arm64 and Linux x86_64 |
 | Outside | Free-threaded builds, PyPy, notebooks as workloads |
 
+## Node and TypeScript
+
+| | |
+|---|---|
+| Workload | An existing benchmark, a slow test, or an entry point run with `node` (`node bench.js`, `node --import tsx bench.ts`, `node_modules/.bin/tsx bench.ts`, `npx --no-install tsx bench.ts`, `npm exec --no -- tsx bench.ts`); `reported` for in-process work, `wall` only when start-up is the work |
+| Oracle | The project's tests (`vitest`, `jest`, `node --test`), output comparison |
+| Coverage | `c8` (lcov) on changed lines: designed, not wired until the coverage gate takes a command that writes lcov (T2.24); until then reported as not checked |
+| Guardrails | Peak memory of the process tree, 10% |
+| Profiling | `python -m perfproof.profilers.node run` as a `--profiler-command`: V8's CPU profiler through a preload, source maps applied, so `tsx` and bundled TypeScript show TypeScript `file:line` |
+| Warm-up | In the process, a fixed count of iterations discarded and a fixed window reported ("Warm-up (Node)" in [method.md](method.md#warm-up-node)) |
+| Supported | Node 18.20.8, 20.20.2 and 24.13.0 (`tests/fixtures/node/versions` holds the profiler's output on each) on macOS arm64; TypeScript through `tsx` and Node's own type stripping (both with committed tests), or compiled with `esbuild` and a source map. `ts-node`, `esbuild-register` and `@swc-node/register` gave correct lines once on Node 20, with no committed fixture |
+| Outside | `pnpm`, `yarn`, `bun`, `deno` and `npm run` as the benchmark command (the runtime gate cannot follow them); browser code; Node programs that mostly wait on a service |
+
+What the runtime gate sees and does not (measured with
+`probe_environment` on Node 24.13.0): `node`, `node --import tsx`,
+`node --require esbuild-register`, `node -r ts-node/register`,
+`node --loader tsx`, `node --experimental-strip-types`,
+`node_modules/.bin/tsx` and `ts-node`, `npx --no-install tsx` and
+`npm exec --no -- tsx` are identified, with the Node's path, version
+and SHA-256. `npm run`, a bare `tsx` or `bun` that is not on `PATH`
+are not. The loader's own version (`tsx`, `esbuild`, `typescript`) is
+not in the runtime record; it is covered only by the lockfile hash, and
+`bun.lock` is not among the lockfiles hashed.
+
+TypeScript run through a loader is not the code that ships. `tsx` adds
+`__name` calls (esbuild's `keepNames`) around every function, which
+shows as time in `__name` at line 1 of the file: 1.4% of the total
+for one project file in the committed tsx fixture (1.4% total, 0.7% self;
+the only `__name` in it), and none in the project's files in the
+committed `esbuild` bundle fixture. A profile to find
+hotspots can use the loader; a number to compare versions should come
+from one launch form used for both versions.
+
 ## Native: C, C++, Rust
 
 | | |

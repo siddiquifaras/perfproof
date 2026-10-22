@@ -1,0 +1,4 @@
+drop positions (iterations): 6000, 4500, 4500, 6000, 6000, 6000, 6500, 4500, 6500, 6000, 5500, 6000
+mean 5667, sample sd 749, population sd 717
+process means sd/mean: 0.062
+spread in excess of batch noise (J): 0.042

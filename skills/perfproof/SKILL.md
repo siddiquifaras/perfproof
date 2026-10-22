@@ -193,7 +193,9 @@ No discovery. One candidate at a time, against its parent.
    the spec. Nothing is measured on a workload the user has not
    confirmed. After that, don't stop again before the report unless
    something comes up that only the user can decide.
-2. **Profile.** `perfproof profile <name> --json`. Print and read the
+2. **Profile.** For Node or TypeScript code read [node.md](node.md)
+   first: how to launch, warm up and profile it. `perfproof profile
+   <name> --json`. Print and read the
    top entries of `result.hotspots[]` (`function`, `file`, `line`,
    `total_fraction`), not a cut of the whole output, and the wall
    versus CPU time. If CPU is well below wall, the program is mostly

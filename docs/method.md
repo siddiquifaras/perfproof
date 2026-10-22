@@ -576,6 +576,567 @@ carries a `resolution_unknown` warning, and a KEEP is withheld. A
 REJECT on such values rests on the continuity check alone, a stated
 limit.
 
+### Warm-up (Node)
+
+Warmup executions (above) do not warm V8. Each execution is a new
+process, and the optimised code one process produced is not reused by
+the next, so a discarded execution leaves the next one just as cold. A Node
+benchmark has to warm up inside its own process and report only the
+steady window, with the `reported` metric: `wall` and `cpu` include the
+start-up and the warm-up they should leave out (a loader or `npx`
+adds to every start; how much was not measured here).
+
+The in-process timing is not flat. One workload (a web-framework
+app serving 60,000 requests in process, Node v24.13.0; the source and
+commit are in `tests/fixtures/node/SOURCE.md`), 12 processes of 60
+batches of 500 iterations. The Mac was busy with other jobs; the load
+was not recorded. The driver and the raw output are in
+`tests/fixtures/node/warmup/` (`tests/fixtures/node/SOURCE.md` has the
+commands), and `tests/profilers/test_node_warmup.py` recomputes every
+number in these tables from that output:
+
+| Iterations done | Median time per iteration, over the 12 processes | Against the steady value |
+|---|---|---|
+| 0 to 500 | 131.6 µs | 7.5x |
+| 500 to 1,000 | 39.2 µs | 2.2x |
+| 5,500 to 6,000 | 36.2 µs | 2.1x |
+| 6,000 to 6,500 | 18.3 µs | 1.05x |
+| 9,000 to 9,500 | 18.0 µs | 1.03x |
+| steady (batches 40 to 59) | 17.5 µs | 1x |
+
+The curve is not monotone, and it is not smooth after the drop. On the
+12 per-batch medians, 21 of the 48 batches from the 13th on were more
+than 10% above the steady value and the worst was 1.46x; on the 576 raw
+batches (12 processes) it is 301 of 576 and 2.79x (the cause was not
+isolated: collections and the load on the machine are the candidates).
+One batch is not a measurement; a window is. A window of 10,000 iterations started after N iterations had, over the
+same 12 processes (CV is the population standard deviation over the
+mean):
+
+| Warm-up | Mean per iteration | Spread over processes (CV) |
+|---|---|---|
+| 0 | 35.8 µs | 6.2% |
+| 2,000 | 27.8 µs | 4.9% |
+| 4,000 | 23.9 µs | 4.2% |
+| 6,000 | 21.6 µs | 7.4% |
+| 10,000 | 21.7 µs | 9.0% |
+| 15,000 | 21.1 µs | 9.1% |
+
+And as the `reported` value of 15 separate processes each, 10,000
+measured iterations: no warm-up 36.3 µs (CV 7.1%), 12,000 warm-up
+iterations 21.4 µs (CV 8.8%). The warm-up did not reduce the spread on
+that loaded machine; it removed a level (and a transient) that would
+otherwise be in every value. That is the case for it, and the
+arithmetic is an inference, not a measurement: if the transient adds a
+fixed 0.15 s to a window whose steady work is 0.21 s, a real 10% saving
+in the steady work reads as a 5.8% one, and a change that only shortens
+the transient (less code to compile) reads as a gain that production,
+which runs steady, never sees.
+
+**The rules.** The constants below (the tolerance floor 2%, the factor
+3 on the standard error, the tolerance cap 4%, the margin 8, 0.2 s, 12 processes, 20-batch
+windows, the recording lengths) are *Provisional: chosen by reasoning
+and by synthetic models, not calibrated on real data*. Real
+quiet-machine data does not exist yet: the one measured curve was taken
+on a busy Mac. The estimator's tolerance and the margin were each
+chosen by a rule written before the runs
+(`studies/node-warmup/PREREGISTRATION.md`, committed before them). The
+margin rule picked nothing, and margin 8 is the closest, not a pick
+("The margin" below). The robust estimator (window medians, a
+MAD-based `se`, the 4% cap) and its pass rule were written down before
+its runs; the 4% is one value, not chosen from a set.
+
+- The benchmark runs a **fixed** number of warm-up iterations, then
+  times a fixed number, the same in both versions. Never "until the
+  timing is stable": that ends at a different point in each run, and
+  puts the measured window at a different JIT state in the two
+  versions, which is a bias the interleaving cannot cancel.
+- Choose the counts on **both** trees, the baseline and the candidate,
+  each from its own recording: 12 fresh processes, each printing the
+  time per batch of 500 iterations for R batches (start with R = 320,
+  160,000 iterations; the recording has to be about 10 times the
+  settle point or longer).
+  - `W(s)` is the mean, over the processes, of the median of the 20
+    batches that start at batch `s`.
+  - The **tail windows** are `W(R - 20)`, `W(R - 40)` and `W(R - 60)`.
+    Their mean is the reference `ref`.
+  - The tolerance is `tol = min(max(0.02, 3 se), 0.04)`. `se` is a
+    robust relative standard error of a tail window value, taken from
+    the same 12 processes: divide each process's three tail window
+    values by their own mean, take the absolute deviations of those 36
+    ratios from their median over the processes in the same window,
+    take the median of those deviations, multiply it by 1.4826 and
+    divide by the square root of 12. (Dividing by the process's own
+    mean keeps a process that is simply slower from inflating it.) It
+    is 2% on a quiet machine, grows with the noise of the batches, and
+    stops at 4%, so a few huge batches cannot widen it.
+  - The tail windows **agree** when the largest is at most
+    `(1 + tol)` times the smallest.
+  - The tree's `N` is the smallest `s` for which `W(s)`, `W(s + 20)`
+    and `W(s + 40)` each satisfy `|W / ref - 1| <= tol`; in iterations,
+    `500 s`. Nothing else is checked: not the windows between `s + 40`
+    and the measured window, and not whether a window is below `ref`.
+  - When the tail windows do not agree, record again with fresh
+    processes at twice the length (640, then 1,280 batches, 640,000
+    iterations at most). If the longest recording still does not
+    agree, that tree's warm-up is **unknown**.
+  - `WARM` is 8 times the larger of the two trees' `N`, in iterations,
+    the same in both versions; `MEASURE` is the same for both, at
+    least 10,000 (20 batches).
+  - **Unknown is a note, not a gate.** If either tree's warm-up is
+    unknown, `WARM` is 160,000 iterations (or 8 times the other tree's
+    `N` if that is larger), and the comparison proceeds normally:
+    perfproof's verdict stands, a KEEP included. Nothing fails over
+    this, and an execution is never failed for it. The skill reports,
+    as a note, that the warm-up was not pinned down and that a long
+    warm-up was used, and says what would pin it (a longer recording or
+    a quieter machine). A noisy tail widens `tol` up to 4%; past that
+    the tail windows can disagree at every length and the tree is
+    unknown, which is common above noise 0.5 ("Why the tolerance is
+    robust and capped" in `docs/method.md`). In the model 51% of pairs
+    are unknown at noise 1.0, 5% at 0.5 and none at 0.1. Cost: on a busy
+    machine more pairs take the long warm-up, so their executions take
+    about 3.6 s each (435 s for 60 rounds) instead of about 1.3 s, and
+    comparisons take longer. Measured with unknown pairs allowed to KEEP
+    (`out/unknown-keep-w160000.txt`, seed 20261051, 2,000 comparisons
+    per row, sharp and exponential grid, clean and with outliers q 2%
+    x10 and x30, margin 8): all pairs combined, the worst row's CP95
+    upper bound is at most 1.74% at noise 0.1 to 1.0, and 2.09% at 1.5
+    and 1.74% at 2.0, as measured and not tuned. Among the pairs that
+    ended unknown, pooled over the grid, it is at most 1.34% at every
+    noise run. 640,000 was run on the same rows and seed
+    (`out/unknown-keep-w640000.txt`, at most 1.68% up to noise 1.0);
+    160,000 is used because it meets the same bar at a quarter of the
+    cost (13.4 s per execution).
+- **Why the tail.** A reference found by comparing windows at n, 2n
+  and 4n is fooled by the flat stretch before the drop. For a tree
+  that settles twice or more later than the committed one, the windows
+  at 500, 1,000 and 2,000 iterations all fall before the drop and
+  agree, so `N` came out as 500.
+- **Why the tolerance is robust and capped.** At a fixed 2%, the tail
+  windows of one tree agree on a 320-batch recording 98% of the time at
+  noise 0.25 and 23% of the time at 1.0, and a pair ends
+  unknown 8.25% of the time at noise 0.5 and 71% at 1.0
+  (`out/estimator-unknown.txt`, seed 20261022, 4,000 pairs per row,
+  sharp pair (1, 1)). A tolerance of 3 se from window means, `se` the
+  sample standard error, fixed that: unknown in 0.52% of pairs at noise
+  1.0 in that run. But it has no upper limit, and one batch 30 times
+  the usual in each process inside the tail windows made it 51% and `N`
+  0 batches, so `WARM` 0; random outliers in 1% to 2% of batches,
+  30 times the usual, put `N` at 1 batch or less in 27.5% to 32.0% of
+  recordings (`out/outlier-probe.txt`, part 1, noise 0.25, 400
+  recordings per row; `outlier_probe.py`). The rule above uses window
+  medians, a MAD-based `se` and a cap at 4%; on those same recordings
+  its `N` stayed at 9 to 10 batches and `tol` at 2.0%. The cost is in
+  the unknown rate: with the cap, `tol` cannot follow the noise past
+  4%. Per pair of trees (`out/estimator-unknown-robust.txt`, same
+  seed, pairs and sharp pair; "first recording" is per tree, 320
+  batches; times are the model's, start-up excluded, margin 8; `WARM`
+  and the execution columns are at 640,000 for an unknown pair, the
+  rule run when the table was made. The rule now uses 160,000 (3.6 s
+  per execution), so an unknown pair's costs are lower than shown):
+
+  | Noise | Median `tol` | First recording agrees (a tree) | Pair unknown | `N` median batches (5th, 95th), known trees | Choosing both trees (s) | Median `WARM` | Mean execution (s) | Choosing + 122 executions (s) |
+  |---|---|---|---|---|---|---|---|---|
+  | 0.10 | 2.0% | 100.0% | 0.00% | 7 (6, 9) | 82 | 28,000 | 0.98 | 202 |
+  | 0.25 | 2.0% | 85.1% | 0.68% | 10 (8, 13) | 114 | 40,000 | 1.36 | 280 |
+  | 0.50 | 3.5% | 70.7% | 5.13% | 10 (8, 17) | 156 | 44,000 | 2.09 | 411 |
+  | 1.00 | 4.0% | 32.3% | 51.25% | 13 (9, 85) | 334 | 640,000 | 8.63 | 1,387 |
+  | 1.50 | 4.0% | 14.2% | 84.97% | 24 (9, 175) | 449 | 640,000 | 12.67 | 1,995 |
+  | 2.00 | 4.0% | 8.8% | 94.97% | 52 (10, 260) | 496 | 640,000 | 13.88 | 2,189 |
+
+  **At the committed noise, 1.0, about half the pairs end unknown, and
+  they are measured like any other.** That is the price of the cap,
+  and it is not rare. An unknown pair costs about 435 s for 122
+  executions (3.6 s each, `WARM` 160,000; 13.4 s each and about 1,600 s
+  at 640,000) where a known one costs about 150 s to 280 s. The cap of 4% is provisional. Removing
+  it (round 7, "Earlier rules") makes about 5.8% of pairs unknown at
+  noise 1.0 but gives a false KEEP CP95 of 16.22% on the exponential
+  tails; a 15% cap was as often unknown and its error rows were not
+  run.
+- **The margin.** The margin runs below used the scaled-tolerance
+  estimator (`tol = max(0.02, 3 se)` from window means, the rule
+  before the robust one; `out/rule-sweep-scaled.txt` and the others
+  named `scaled`). Only margin 8 was run with the robust estimator,
+  at the end of this bullet. Margins 2, 3, 4, 5, 6 and 8 were run
+  through production `run_looks` (calibrated, bar 3%, 60 rounds) on the sharp
+  pairs and the exponential tails, which are the claimed coverage.
+  The rule for the choice, fixed before the runs and then widened once
+  (the amendment, with its reason, is in `PREREGISTRATION.md`): the
+  smallest margin whose CP95 upper bound is at most 2.5% on every row
+  of the sharp pairs and exponential tails, at every noise 0.1, 0.25,
+  0.5, 1.0, 1.5 and 2.0, counting every comparison. It was first run
+  over 2, 3 and 4, where none qualified (worst 29.9%, 18.9% and 14.4%
+  at noise 2.0, `out/rule-sweep-scaled-m234.txt`); the candidates were
+  then widened to 5, 6 and 8, a decision made after seeing that result.
+  **No margin qualifies.** Worst CP95 upper bound over those rows, in
+  percent (`out/margin-pick.txt`, seed 20261022, 4,000 comparisons per
+  row; a false KEEP of a true ratio of 1.00 or 1.03, or a false REJECT
+  of a true 1.06):
+
+  | Noise | Margin 2 | Margin 3 | Margin 4 | Margin 5 | Margin 6 | Margin 8 |
+  |---|---|---|---|---|---|---|
+  | 0.10 | 2.05 | 1.13 | 1.27 | 1.10 | 1.24 | 1.27 |
+  | 0.25 | 1.75 | 1.36 | 1.33 | 1.33 | 1.38 | 1.16 |
+  | 0.50 | 5.18 | 2.02 | 1.16 | 1.41 | 1.22 | 1.07 |
+  | 1.00 | 20.61 | 11.25 | 6.86 | 4.12 | 2.81 | 1.69 |
+  | 1.50 | 23.18 | 13.50 | 7.28 | 5.08 | 2.95 | 1.88 |
+  | 2.00 | 29.44 | 19.34 | 14.40 | 10.58 | 9.44 | 6.00 |
+
+  The sharp pairs alone are at most 1.5% for every margin at every
+  noise (false KEEP) and at most 0.4% (false REJECT). Every failure is
+  on the exponential tails, never on the sharp pairs, but not always on
+  the same ones: at margins 2 to 5 slow tails fail too (tau 10,000 to
+  40,000 at margin 2), and only at margins 6 and 8 are the failures
+  confined to fast tails (tau 2,000 to 5,000). At noise 1.0 and above
+  a fast tail is found settled too early, because a 20-batch window
+  dilutes it and the tolerance is wide. **Margin 8 is used because it
+  is the closest, not because the rule chose it.** On the sweep's grid
+  of tails it meets the 2.5% limit at every noise through 1.5 (1.88% at
+  most), and at noise 2.0 one row of that grid exceeds it (an
+  exponential tail with a = 0.5 and tau = 5,000: a false KEEP of a true
+  ratio of 1.03 5.4% of the time, CP95 upper 6.0%). That one row is the
+  edge of a band, not an isolated failure; see "What the rule covers".
+  With margin 8 and that estimator, `WARM` is about 44,000 iterations
+  at the committed noise (the median over pairs), against a drop at
+  5,667. A larger margin was not run.
+
+  *Margin 8 with the robust estimator.* Fixed before the runs
+  (`PREREGISTRATION.md`, round 6): the robust estimator replaces the
+  scaled one if, at margin 8 and noise 0.1, 0.25, 0.5 and 1.0, every
+  row of the six sharp pairs and ten exponential tails of the sweep
+  has a CP95 upper bound of at most 2.5%, with no outliers and with
+  outliers of q = 0.5%, 1% and 2% at m = 10 and 30 (in the recordings
+  and the executions of both trees). It passed: the worst bound over
+  every row, false KEEP and false REJECT, sharp and exponential, was
+  1.80% (`out/robust-sweep-a.txt`, `out/robust-sweep-b.txt`, seed
+  20261025, 2,000 comparisons per row; `out/robust-verdict.txt` has
+  each noise and outlier setting). The fine grid of `exp_grid.py`
+  (a of 0.5, 0.6 and 0.75, tau 2,500 to 30,000; 33 pairs, 99 cells
+  per noise, no outliers, `out/exp-grid-robust.txt`, seed 20261026,
+  2,000 per row) has no cell over 2.5% at noise 0.1 (worst 1.63%),
+  0.25 (1.80%), 0.5 (1.63%) or 1.0 (1.63%), and its 30 claimed cells
+  are at most 1.91%. Those rows counted a pair that ended
+  unknown as no KEEP, which the rule no longer does: the model's rows
+  run every pair, and with unknown pairs allowed to KEEP the end-to-end
+  bounds are in the unknown bullet above (worst row at most 1.74% up
+  to noise 1.0, `out/unknown-keep-w160000.txt`). Counted end to end
+  with unknown pairs withheld, the worst bound was 1.15% with outliers
+  at noise 1.0 and 1.68% at any noise. Within the known pairs alone it
+  is higher: up to 2.42% (noise
+  1.0, q 2% x10, exponential a 0.5, tau 2,000, 15 errors in 950 known
+  pairs, `out/robust-sweep-b.txt`), and up to 1.79% clean at noise
+  1.0.
+- Measure at least 0.2 s per execution, in one timed block. That
+  keeps the clock's step negligible; it is not a variance argument (the
+  10,000-iteration windows above, about 0.21 s, had a CV of 7% to 9%),
+  and a longer window was not measured.
+- Print the per-iteration mean in seconds at full precision:
+  `seconds.toPrecision(12)`. `toFixed(9)` prints `0.000000000` for a
+  fast enough workload (a failed execution, hence REJECT) and keeps four
+  significant digits at 2 µs; `JSON.stringify` prints 1.0 as `1`, which
+  `coarse_resolution` stops. `toPrecision` keeps trailing zeros, so the
+  step is known, and an exponent (`2.00000000000e-7`) is valid JSON.
+- Re-choose the counts when the workload or the Node version changes.
+  The candidate's own recording is made too, because a candidate that
+  settles later is the case at risk.
+
+On the committed curve the rule cannot be evaluated: the recording has
+60 batches, so the three tail windows would include the drop (the
+tail windows read 20.3, 21.7 and 35.8 µs, a spread of 76%,
+`out/rule-on-committed.txt`). For that curve extended by the model,
+`N` is a median of 13 batches (6,500 iterations; 5th to 95th
+percentile 9 to 85) at noise 1.0 in the trees whose tail agrees, and
+`WARM` a median of 640,000 when the table was made, because 51% of
+pairs end unknown (`out/estimator-unknown-robust.txt`; model output,
+not a measurement); an unknown pair now uses 160,000.
+
+**Cost.** An execution takes about `WARM x t_warm + MEASURE x t_steady`
+plus start-up (not measured here), where `t_warm` is the mean time per
+iteration over the warm-up, higher than `t_steady`. All the per-process
+times below are for this one workload on this one Mac
+(`studies/node-warmup/out/cost.txt`, 12 processes, start-up excluded,
+steady value used past the 30,000 recorded iterations). `WARM` 44,000
+and `MEASURE` 10,000 take 1.27 s (1.06 s of warm-up). On a tree that
+really settles 2 and 3 times later (the committed mean curve stretched
+along the iteration axis, `WARM` 88,000 and 132,000) an execution takes
+2.28 s and 3.30 s. The unknown path, `WARM` 160,000, takes 3.6 s per
+execution and 435 s for 60 rounds (at 640,000, which was tried and not
+used, 13.4 s and 1,606 s, `out/cost.txt`). On a busy machine more pairs
+take this path, so comparisons take longer. With the robust
+estimator it fires in 51.25% of pairs at the committed noise (4,000
+pairs, sharp pair (1, 1), one seed, no bound), 5.13% at noise 0.5 and
+85% to 95% at 1.5 to 2.0 (table above). It is not always the longest
+execution: a slow tail needs a larger `WARM`. At margin 8 the
+claimed exponential tails (a = 0.75, tau 40,000 is the slowest) take,
+over noise 0.1, 0.25, 0.5 and 1.0 in `out/exp-grid-robust.txt` (same
+cost model; 95th percentile of `WARM`), at most 18.75 s at the median
+`WARM` (noise 0.25) and 24.77 s at the 95th percentile (noise 1.0).
+60 rounds of 18.75 s executions take 2,250 s, above the default
+`max_seconds` of 1,800. These are the model's figures. The unknown
+path's 3.6 s is the longest execution only where no slow tail is
+present.
+
+Choosing the counts costs, per tree, 12 processes times the recording
+time: one process takes 3.4 s for 320 batches, 6.7 s for 640 and 13.2 s
+for 1,280. Expected over trials, both trees, with the robust
+estimator (the model's mean of the retries): 82 s at noise 0.1, 114 s
+at 0.25, 156 s at 0.5 and 334 s at 1.0 (41 s per tree when the first
+recording is enough, 121 s when it takes two, 280 s when it takes all
+three). A
+round is two executions, and `warmup` executions run for each version
+first. So, as *Provisional* limits: `timeout_seconds` at least 3 times
+the longest execution measured on either tree, whichever path chose
+its `WARM` (74.3 s for the 24.77 s above), and `budget.max_seconds` at
+least `1.2 x 2 x (warmup + max_rounds) x` that execution time (3,626 s
+for 24.77 s with one `warmup` and 60 rounds). A
+timeout is a failed execution ("Failed executions" above; `runner.py`,
+the `timed_out` branch of the execution). In the baseline it stops
+the comparison with no verdict (`broken_baseline`, in `compare.py`'s
+`_guard`). In the candidate, perfproof runs the baseline once more
+(`_recheck_baseline`): if that passes, the candidate is rejected on
+`correctness` with `timed_out` recorded; if the baseline fails too,
+there is no verdict. A timeout shorter than the slower arm needs is
+therefore a stop or a wrong REJECT, never a KEEP.
+
+**Stated limits.** `studies/node-warmup/` holds the models and their
+output (`run_all.sh` regenerates them). They are synthetic: built from
+the one committed curve (a sharp drop at 5,667 iterations, sample sd
+749, 12 processes; `out/drop-stats.txt` derives both from the
+definition of the drop and a process spread of 0.042 in excess of batch
+noise), or from an exponential tail `1 + a exp(-k / tau)` with the
+committed noise, production `run_looks` (calibrated, bar 3%), 60
+rounds, an arm's drop scaled by f, batches independent, settling in
+iterations not seconds, 12 independent processes per recording. Noise
+scales the committed batch deviations about their means: 1.0 is the
+committed curve, measured on a busy Mac; 0.1 to 0.5 are quieter, 1.5
+and 2.0 noisier. Error rates are false KEEP of a true ratio at or below
+the bar (1.00 and 1.03) and false REJECT of a true 6% gain; "CP95
+upper" is the upper end of a 95% binomial bound, and "at most 2.5%"
+includes 2.5%.
+
+*What the rule covers.* Up to noise 1.0 (the committed curve and
+quieter): the sharp-drop pairs (the drop at 1, 2 or 3 times the
+committed position for either tree) and exponential tails on a grid:
+a of 0.5 and 0.75, tau of 2,000, 5,000, 10,000, 20,000 and 40,000,
+each against a tail with tau 300, with and without heavy-tailed
+batches (outliers of 0.5% to 2% of batches at 10 or 30 times the
+usual), at margin 8 and the robust estimator. The CP95 upper bounds
+are at most 1.80% (false KEEP) and 1.21% (false REJECT) over every
+row (`out/robust-verdict.txt`, `robust_sweep.py`, seed 20261025, 2,000
+comparisons per row). The fine grid of `exp_grid.py` (seed 20261026,
+2,000 per row: a of 0.5, 0.6 and 0.75, tau at 2,500 to 8,000 in steps
+and at 15,000 and 30,000, `out/exp-grid-robust.txt`) has no cell over
+2.5% CP95 at noise 0.1, 0.25, 0.5 or 1.0 (worst 1.80%, 99 cells per
+noise). Nothing else is claimed: not the grids' gaps beyond what was
+run, not tails with a below 0.5 (a = 0.3 or 0.4 at noise 0.5 has one
+cell over, 4.63% CP95), not tau above 40,000, not noise above 1.0 with
+this estimator, and not a loaded host's other signatures (outliers
+in runs, not a sustained slowdown). The sharp-pair and exponential
+claim at noise 1.0 holds with about half the pairs unknown, which now
+take the long warm-up and may KEEP ("Why the tolerance is robust and
+capped").
+
+*Heavy-tailed batches.* A loaded host produces batches many times the
+usual. Against the mean-based scaled estimator (the previous rule),
+end to end at margin 8 and noise 1.0, outliers in 0.5% to 2% of
+batches gave a false KEEP of a true ratio of 1.03 of 8.00% to 8.25%
+on the exponential tail a = 0.5, tau 5,000 (CP95 up to 9.33%) and 3.40%
+(CP95 4.14%) on the sharp pair (3, 1) with q = 1% at 30 times
+(`out/outlier-probe.txt`, part 2, 2,000 comparisons per row, seed
+20261024). With the robust estimator the same rows gave at most 0.85%
+(CP95 1.27%). Outliers were multiplied into each batch independently,
+in the recordings (not the first batch) and the executions of both
+trees; nothing was run on outliers that cluster in time.
+
+*Above noise 1.0 the exponential cells over the limit are a stated
+limit of the scaled estimator, not re-run with the robust one.* They
+sit at and between the sweep's grid points, and which ones depends on
+the noise (cells where the false KEEP of a true ratio
+of 1.03 has a CP95 upper bound over 2.5%, `exp_grid.py`):
+- noise 1.25: one cell over (a = 0.5, tau 2,500: 2.25%, CP95 2.68%);
+- noise 1.5: five cells over, 2.20% to 3.05% (CP95 up to 3.54%): a =
+  0.5 at tau 3,000 to 4,500 and a = 0.6 at tau 2,500;
+- noise 1.75: eleven cells over, worst 4.33% (CP95 4.89%): a = 0.5 at
+  tau 2,500 to 5,500 (5,000 is a sweep grid point) and a = 0.6 at tau
+  2,500 to 4,000;
+- noise 2.0: 18 cells over (17 of 99 fine cells and the sweep grid's
+  a = 0.5, tau 5,000), worst 6.03% (CP95 6.68%): a = 0.5 at tau 2,500
+  to 7,000, a = 0.6 at 3,000 to 5,500 and a = 0.75 at 2,500 to 3,500;
+  the sweep's own row a = 0.5, tau 5,000 gave 5.4% in the sweep and
+  5.55% here.
+Fast tails (tau 2,500 to 7,000) are the ones at risk, for the reason
+given under "The margin". Amplitudes below the claimed range fail
+earlier: a = 0.3 at tau 5,000 gives 2.17% (CP95 2.59%) at noise 1.0,
+and noise above 2.0 was not run, so it is not claimed.
+
+*What the rule does not cover.* The shape tables, the mixed pairs and
+the held-out scenarios below were run with the scaled-tolerance
+estimator (`out/limits-table.txt`, `out/mixed-pair-scaled.txt`,
+`out/heldout-scaled-a.txt`, `out/heldout-scaled-b.txt`) and have not
+been re-run with the robust one, whose `N` and `WARM` differ (above):
+whether they carry over is unknown. **A hump or a drift that changes the
+steady value by more than the bar is not detected.** The rule looks at
+a window of 20 batches at three places after `N` and at the tail; a
+shape between them, or a slow drift that the tail windows treat as
+steady, is not seen, and which of these the measured window catches
+depends on where it falls, not on the rule. At margin 8, the worst
+CP95 upper bound over the shapes of each family, false KEEP, in percent
+(`out/limits-table.txt` has every margin and the false REJECT):
+
+| Family (columns: noise) | 0.10 | 0.25 | 0.50 | 1.00 | 1.50 | 2.00 |
+|---|---|---|---|---|---|---|
+| second plateau (+2%, +4%, +6%) | 7.26 | 6.60 | 10.06 | 19.23 | 20.05 | 13.91 |
+| drift (+2%, +4%) | 56.38 | 39.23 | 29.62 | 14.37 | 8.27 | 4.87 |
+| hump, +10% (two positions), and late tree with a hump | 89.83 | 88.13 | 76.99 | 32.30 | 33.36 | 31.59 |
+| narrow hump, +5% to +20% over 2,000 or 4,000 iterations, starting at 14,000 to 52,000 | 75.76 | 69.34 | 50.34 | 18.42 | 8.46 | 5.42 |
+| hump on the earlier tree of a mixed pair | 1.27 | 1.13 | 1.07 | 1.16 | 1.30 | 1.19 |
+
+The audit shapes (a second plateau of +2%, +4% and +6% until 80,000
+iterations, a drift of +2% and +4% falling to zero over 300,000, a +10%
+hump, a late tree with a +10% hump) at margin 8, as the false KEEP rate
+of a true ratio of 1.00 and of 1.03 (4,000 comparisons per cell):
+
+| Shape | Noise 0.25: 1.00 / 1.03 | Noise 1.0: 1.00 / 1.03 |
+|---|---|---|
+| second plateau +2% | 0.05% / 5.95% | 0.20% / 4.97% |
+| second plateau +4% | 0.03% / 0.82% | 1.60% / 16.75% |
+| second plateau +6% | 0.03% / 0.55% | 3.52% / 18.20% |
+| drift +2% over 300,000 | 0.10% / 12.28% | 0.10% / 3.98% |
+| drift +4% over 300,000 | 0.65% / 37.95% | 1.10% / 13.45% |
+| hump +10% 20,000 to 60,000 | 0.00% / 0.62% | 6.00% / 8.07% |
+| hump +10% 50,000 to 80,000 | 79.25% / 87.28% | 11.72% / 31.07% |
+| late f = 3 and hump 50,000 to 70,000 | 0.00% / 0.62% | 0.00% / 0.68% |
+| late f = 3 and hump 100,000 to 130,000 | 0.00% / 1.00% | 0.90% / 3.67% |
+
+The narrow-hump and mixed-pair rows need a reading. The mixed pairs put a hump of +10%
+or +20% between 40,000 and 75,000 on the earlier-settling tree, and
+the later tree (drop at 2 or 3 times) sets `WARM`, which at margin 8 is
+beyond the hump (5th percentile 68,000 for the tree at 2 times, 112,000
+at 3 times, at noise 2.0, `out/sharp-warm.txt`): they pass because of where the window falls,
+not because the hump was seen. The same five pairs had a worst CP95
+upper bound of 87% false KEEP at margin 3 (noise 0.10) and 76% at
+margin 4, where the window did fall on the hump
+(`out/limits-table.txt`). The narrow humps (an area of 40, 60 or 80
+percent-batches, so 2% to 4% of excess in a 20-batch window that holds
+the whole hump) that start before 30,000 end before the measured window
+at margin 8 (1.4% CP95 upper bound at most, over every noise), and the
+ones that start at 40,000 to 52,000 sit in it: their false KEEP of a
+true ratio of 1.03 at noise 1.0 is 1.57% to 17.40%, and the family's
+worst CP95 upper bound is 75.76% at noise 0.10 and 18.42% at 1.0.
+
+Held-out random scenarios (`heldout.py`; ranges written down before the
+runs: arm A with f of 1 to 3 and one or two of a plateau, a drift or a
+hump, arm A's drop-position spread 1 or 2 times the committed one, arm B
+with f of 1 to 2 and sometimes a small plateau or drift, process spread
+0.02 to 0.08; 30 scenarios per noise, 1,000
+comparisons per cell, 3 cells per scenario, so 90 cells): at margin
+8, the cells whose CP95 upper bound exceeds 2.5%, and how many of
+them are a false KEEP, were 8 (6) of 90 at noise 0.1, 24 (17) at 0.25,
+23 (17) at 0.5, 27 (21) at 1.0, 44 (33) at 1.5 and 42 (30) at 2.0
+(`out/heldout-scaled-a.txt`, `out/heldout-scaled-b.txt`). These
+scenarios are built to violate the rule's assumptions, so those counts
+are the size of what it does not cover, not an error rate.
+
+The golden set, T1.12, checks the Node workload end to end: it runs
+real `perfproof compare` with injected speedups of known size, Node
+included, on real hardware. It does not scan warm-up shapes, so it does
+not bound the shapes listed here. It has not run yet, and data from real
+hardware on warm-up shapes does not exist. Until both do, this rule's
+behaviour on real workloads is unknown, and so is whether margin 8 is
+enough or too much on a quiet machine.
+
+Earlier rules, kept as evidence for what this one replaced (the models
+behind the bullets after the first use the committed noise, 1.0):
+
+- *The rule before this revision* (a cover check through the measured
+  window, a 2% tolerance, an "unknown" verdict when the cover failed;
+  the figures are at noise 1.0 unless a noise is given):
+  its stats audit (figures reported by the audit, not reproduced in this
+  repository) found that the check ran per tree while both trees
+  are measured at 3 x the larger `N`, so a hump on the earlier-settling
+  tree was never checked (5.3% false KEEP on the bar at the committed
+  noise); that the 2% was chosen at noise 1.0 and 1.5, where noise
+  hides the shapes, and at noise 0.75 and below drift and plateau
+  shapes gave 6% to 55% false KEEP; and that about 83% of pairs at the
+  committed noise ended in "warm-up unknown", which withholds a KEEP on
+  a busy machine and contradicts the design that a busy machine widens
+  the interval and never blocks one. It was removed rather than tuned
+  again; its model and output are in the history of the pull request
+  (`e05f8ba`).
+- *The scaled tolerance from window means* (`tol = max(0.02, 3 se)`,
+  `se` the sample standard error of 20-batch window means, no cap):
+  unknown in 0.52% of pairs at noise 1.0, but heavy-tailed batches
+  moved it: one batch 30 times the usual in each process gave `tol` of
+  51% and `N` of 0, and outliers in 0.5% to 2% of batches gave a false
+  KEEP of 8.0% to 8.3% on an exponential tail at margin 8 (`out/outlier-probe.txt`). Replaced
+  by the robust estimator above; its margin runs are the `scaled`
+  files.
+- *The robust estimator with a different cap* (round 7, rejected,
+  `PREREGISTRATION.md`): with no cap the sharp pair (1, 1) is unknown
+  in 4.65%, 5.80% and 5.75% of pairs at noise 0.5, 1.0 and 1.5
+  (`out/estimator-unknown-r7.txt`; a 15% cap: 4.65%, 5.80%, 5.63%);
+  at noise 1.0 and 1.5 that is over the 5% the rule allowed, and with no cap the exponential tails
+  at noise 1.0 gave a CP95 upper bound of 16.22% (false KEEP, clean),
+  up to 7.43% with outliers (`out/r7-nocap-verdict.txt`). The 15%
+  variant's error rows were not run. The 4% cap stays.
+- *More processes per tree* (round 8, rejected, `PREREGISTRATION.md`):
+  with the 4% cap and margin 8, 24 processes gave a pair unknown in
+  18.53% and 61.22% of pairs at noise 1.0 and 1.5 and 36 processes
+  6.57% and 39.70% (12: 51.25% and 84.97%; limit 5%;
+  `out/estimator-unknown-r8-p24.txt`, `out/estimator-unknown-r8-p36.txt`).
+  Choosing both trees at noise 1.0 costs 446 s and 496 s (12 processes:
+  334 s). The error rows (part (a)) were not run. The 12-process rule
+  stays.
+- *`N` by windows at n, 2n and 4n* (noise 1.0, `WARM` 3 N, one recording
+  of 320 batches, `out/estimate-model.txt`, "BEFORE"): with trees that
+  settle like the committed one it was fine (0.72% on the bar), but a
+  baseline that settles 3 times later gave a false KEEP of a no-change
+  70.5% (CP95 71.7%) and 79.8% on the bar, and a candidate that
+  settles 3 times later a false REJECT of a true 6% gain 70.4% (CP95
+  71.5%); at 2 times it was 1.2% (CP95 1.5%) at worst. The cause is
+  the one above. On exponential tails with tau of 5,000 or more it
+  gave a false KEEP of 14.5% to 91.0% of no change.
+- *The tail rule at 5% without a cover* (noise 1.0, `estimate-model.txt`,
+  "AFTER"): the largest CP95 upper bound over the sharp pairs was
+  1.10% false KEEP and 0.19% false REJECT, and over the exponential
+  tails at most 1.3% on the bar except tau 2,000. It does not see a
+  stage between `N + 30,000` and `3 N + MEASURE`; the stats audit's
+  +10% hump on a late tree gave 59% false KEEP (79% on the bar) in its
+  own run of that rule, which this repository does not reproduce.
+- *Margin with the drop known exactly* (noise 1.0, `out/margin-model.txt`): with
+  margin 2, 3 and 4 and f up to 3 for either arm, the largest CP95
+  upper bounds were 1.1%, 1.1% and 1.4% for a false KEEP and 0.3%,
+  0.2% and 0.3% for a false REJECT. That is the margin alone, without
+  an estimate of `N`; the estimated-`N` runs above are what the rule
+  does.
+- *The earliest rule* (noise 1.0, `WARM` 12,000 from the baseline alone, 2.1 times
+  the drop; `out/ab-model.txt`): a baseline that settles 2.2 times
+  later gave a false KEEP of a no-change 10.8% of the time and, at 2.5
+  times, 83.8%; a candidate that settles 2.2 or 2.5 times later gave a
+  false REJECT of a true 6% gain 12.0% and 84.3% of the time.
+- *The hand check* "compare the first and second half of a window" has
+  little power and is not a safeguard. Pooled over 12 executions (a z
+  test on the mean log ratio of first against second half), it fired
+  3.5% of the time with no bias, 15.9% at a window-mean bias of +2.4%,
+  56.1% at +6.9% and 93.2% at +13.3% (`out/half-check-power.txt`); one
+  execution fires 25% of the time with no bias at all.
+- *Not covered:* noise above 1.0 with the robust estimator (the
+  scaled one was run to 2.0 and its exponential ridge is above);
+  exponential amplitudes below 0.5 (a = 0.3 at noise 1.0 is over the
+  limit with the scaled estimator, and one cell of a = 0.3 to 0.4 at
+  noise 0.5 with the robust one); outliers that cluster in time or a
+  sustained slowdown ("Heavy-tailed batches" above covers independent
+  outliers only); a cap other than 4%; shapes other than those above
+  (a periodic or growing
+  curve, a second stage not in the list), recordings whose processes
+  differ more than the committed 12 (spread 0.042), and any workload
+  other than the one measured. Also not covered: heap size and
+  collection settings (`NODE_OPTIONS` is recorded, not gated), and a
+  workload that never reaches a steady state (growing caches, data that
+  changes per iteration). The curve was measured under load; whether
+  the same counts are conservative on a quiet machine was not measured.
+
 ### Warm-up (Java)
 
 A JVM starts every execution cold. It loads classes, interprets

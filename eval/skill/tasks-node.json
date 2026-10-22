@@ -1,0 +1,91 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "real-fastify-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "fastify-fastify-pr7056",
+        "requires": [
+          "node",
+          "npm"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "lib/route.js",
+          "function": "routeHandler",
+          "match": "named"
+        }
+      }
+    },
+    {
+      "id": "real-fastify-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "fastify-fastify-pr6444",
+        "branch": "pr-6444",
+        "requires": [
+          "node",
+          "npm"
+        ]
+      },
+      "prompt": "Someone opened a PR that makes Fastify send web streams natively instead of wrapping them with Readable.fromWeb. It is on branch pr-6444, branched from main. Is it actually faster, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ]
+      }
+    },
+    {
+      "id": "real-nest-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "nestjs-nest-pr10823-landed",
+        "requires": [
+          "node",
+          "npm"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

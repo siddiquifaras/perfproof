@@ -1,0 +1,17 @@
+batches of 500 iterations, 12 processes, mean seconds
+beyond the 30,000 recorded iterations the steady value is used
+WARM  24000: warm-up  0.66 s, measured 10000:  0.20 s, total  0.86 s
+WARM  44000: warm-up  1.06 s, measured 10000:  0.20 s, total  1.27 s
+WARM  88000: warm-up  1.96 s, measured 10000:  0.20 s, total  2.16 s
+WARM 132000: warm-up  2.85 s, measured 10000:  0.20 s, total  3.05 s
+a tree that settles f times later (stretched curve):
+  f=1, WARM 44000:  1.27 s per execution
+  f=2, WARM 88000:  2.28 s per execution
+  f=3, WARM 132000:  3.30 s per execution
+unknown path, WARM 640000:  13.4 s per execution,   1606 s for 60 rounds (default max_seconds 1800)
+unknown path, WARM 160000:   3.6 s per execution,    435 s for 60 rounds
+recording one process (no measured window), seconds:
+    320 batches ( 160000 iterations):    3.4 s
+    640 batches ( 320000 iterations):    6.7 s
+   1280 batches ( 640000 iterations):   13.2 s
+steady 20.3 us/iteration (batches 40-59)

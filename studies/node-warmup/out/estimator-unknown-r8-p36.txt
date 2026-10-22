@@ -1,0 +1,8 @@
+seed 20261041, R = 4000 pairs per row, sharp pair (1, 1), 36 processes per tree
+mode   noise | median tolerance of a 320-batch recording | a tree's first recording agrees | pair unknown after retries | N median batches (5th, 95th), known trees | choosing both trees s | per margin: median WARM, mean execution s, choosing + 122 executions s
+robust  0.10 |   2.0% |  100.0% |   0.00% | 7 (6, 8) | 246 | m=8: 28000, 0.96 s, 364 s
+robust  0.25 |   2.0% |   99.6% |   0.00% | 10 (9, 11) | 249 | m=8: 40000, 1.20 s, 395 s
+robust  0.50 |   2.2% |   78.9% |   1.68% | 11 (9, 14) | 382 | m=8: 44000, 1.60 s, 578 s
+robust  1.00 |   4.0% |   67.8% |   6.57% | 11 (9, 18) | 496 | m=8: 48000, 2.29 s, 775 s
+robust  1.50 |   4.0% |   40.8% |  39.70% | 12 (10, 68) | 881 | m=8: 192000, 7.01 s, 1737 s
+robust  2.00 |   4.0% |   23.1% |  70.45% | 17 (10, 128) | 1174 | m=8: 640000, 11.08 s, 2526 s

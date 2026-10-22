@@ -1,0 +1,33 @@
+seed 5927014338, R = 4000 comparisons per row, 60 rounds, K = 6, JSD 0.042, WARM 12000, MEASURE 10000; production run_looks(calibrated=True)
+control: both arms drop at ~5.7k (f 1, 1)            S=1.00 | KEEP     0 REJECT   508 INCONC  3492 | false KEEP       0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.0%
+control, ON THE BAR (f 1, 1)                         S=1.03 | KEEP    31 REJECT    20 INCONC  3949 | false KEEP      31/4000 =   0.8% (CP95 upper   1.0%) | bias of geo-mean ratio   -0.0%
+control, truly 6% faster (f 1, 1)                    S=1.06 | KEEP   469 REJECT     0 INCONC  3531 | false REJECT     0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.0%
+control, truly 10% faster (f 1, 1)                   S=1.10 | KEEP  2584 REJECT     0 INCONC  1416 | false REJECT     0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.0%
+-- candidate settles later than the baseline (counts chosen on the baseline, as the doc says); true gain 10%
+candidate f=1.5 (drop at ~8500), truly 10% faster    S=1.10 | KEEP  2593 REJECT     0 INCONC  1407 | false REJECT     0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.1%
+candidate f=1.8 (drop at ~10200), truly 10% faster   S=1.10 | KEEP  2344 REJECT     0 INCONC  1656 | false REJECT     0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.4%
+candidate f=2.0 (drop at ~11334), truly 10% faster   S=1.10 | KEEP  1032 REJECT     0 INCONC  2968 | false REJECT     0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -2.2%
+candidate f=2.1 (drop at ~11900), truly 10% faster   S=1.10 | KEEP   284 REJECT     3 INCONC  3713 | false REJECT     3/4000 =   0.1% (CP95 upper   0.2%) | bias of geo-mean ratio   -3.9%
+candidate f=2.2 (drop at ~12467), truly 10% faster   S=1.10 | KEEP    35 REJECT    18 INCONC  3947 | false REJECT    18/4000 =   0.5% (CP95 upper   0.7%) | bias of geo-mean ratio   -6.2%
+candidate f=2.5 (drop at ~14167), truly 10% faster   S=1.10 | KEEP     0 REJECT  2478 INCONC  1522 | false REJECT  2478/4000 =  62.0% (CP95 upper  63.2%) | bias of geo-mean ratio  -14.1%
+candidate f=3.0 (drop at ~17001), truly 10% faster   S=1.10 | KEEP     0 REJECT  3610 INCONC   390 | false REJECT  3610/4000 =  90.2% (CP95 upper  91.0%) | bias of geo-mean ratio  -26.6%
+-- same, true gain 6%
+candidate f=2.0 (drop at ~11334), truly 6% faster    S=1.06 | KEEP    49 REJECT    17 INCONC  3934 | false REJECT    17/4000 =   0.4% (CP95 upper   0.6%) | bias of geo-mean ratio   -2.2%
+candidate f=2.2 (drop at ~12467), truly 6% faster    S=1.06 | KEEP     2 REJECT   479 INCONC  3519 | false REJECT   479/4000 =  12.0% (CP95 upper  12.9%) | bias of geo-mean ratio   -6.1%
+candidate f=2.5 (drop at ~14167), truly 6% faster    S=1.06 | KEEP     0 REJECT  3371 INCONC   629 | false REJECT  3371/4000 =  84.3% (CP95 upper  85.2%) | bias of geo-mean ratio  -14.1%
+candidate f=3, no real change (REJECT is correct)    S=1.00 | KEEP     0 REJECT  3594 INCONC   406 | false KEEP       0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio  -26.7%
+-- baseline settles later than WARM allows (counts NOT chosen on it): no real change
+baseline f=1.5 (drop at ~8500), no real change       S=1.00 | KEEP     0 REJECT   504 INCONC  3496 | false KEEP       0/4000 =   0.0% (CP95 upper   0.1%) | bias of geo-mean ratio   -0.0%
+baseline f=1.8 (drop at ~10200), no real change      S=1.00 | KEEP     3 REJECT   358 INCONC  3639 | false KEEP       3/4000 =   0.1% (CP95 upper   0.2%) | bias of geo-mean ratio   +0.4%
+baseline f=2.0 (drop at ~11334), no real change      S=1.00 | KEEP    14 REJECT    56 INCONC  3930 | false KEEP      14/4000 =   0.3% (CP95 upper   0.5%) | bias of geo-mean ratio   +2.3%
+baseline f=2.1 (drop at ~11900), no real change      S=1.00 | KEEP    65 REJECT     5 INCONC  3930 | false KEEP      65/4000 =   1.6% (CP95 upper   2.0%) | bias of geo-mean ratio   +4.1%
+baseline f=2.2 (drop at ~12467), no real change      S=1.00 | KEEP   431 REJECT     1 INCONC  3568 | false KEEP     431/4000 =  10.8% (CP95 upper  11.6%) | bias of geo-mean ratio   +6.5%
+baseline f=2.5 (drop at ~14167), no real change      S=1.00 | KEEP  3353 REJECT     0 INCONC   647 | false KEEP    3353/4000 =  83.8% (CP95 upper  84.8%) | bias of geo-mean ratio  +16.4%
+baseline f=3.0 (drop at ~17001), no real change      S=1.00 | KEEP  3593 REJECT     0 INCONC   407 | false KEEP    3593/4000 =  89.8% (CP95 upper  90.6%) | bias of geo-mean ratio  +36.4%
+-- same, ON THE BAR (true ratio 1.03)
+baseline f=1.8 (drop at ~10200), ON THE BAR          S=1.03 | KEEP    38 REJECT    15 INCONC  3947 | false KEEP      38/4000 =   0.9% (CP95 upper   1.2%) | bias of geo-mean ratio   +0.4%
+baseline f=2.0 (drop at ~11334), ON THE BAR          S=1.03 | KEEP   234 REJECT     3 INCONC  3763 | false KEEP     234/4000 =   5.8% (CP95 upper   6.5%) | bias of geo-mean ratio   +2.3%
+baseline f=2.1 (drop at ~11900), ON THE BAR          S=1.03 | KEEP   715 REJECT     0 INCONC  3285 | false KEEP     715/4000 =  17.9% (CP95 upper  18.9%) | bias of geo-mean ratio   +4.1%
+baseline f=2.2 (drop at ~12467), ON THE BAR          S=1.03 | KEEP  1868 REJECT     0 INCONC  2132 | false KEEP    1868/4000 =  46.7% (CP95 upper  48.0%) | bias of geo-mean ratio   +6.5%
+baseline f=2.5 (drop at ~14167), ON THE BAR          S=1.03 | KEEP  3494 REJECT     0 INCONC   506 | false KEEP    3494/4000 =  87.3% (CP95 upper  88.2%) | bias of geo-mean ratio  +16.4%
+baseline f=3.0 (drop at ~17001), ON THE BAR          S=1.03 | KEEP  3590 REJECT     0 INCONC   410 | false KEEP    3590/4000 =  89.8% (CP95 upper  90.5%) | bias of geo-mean ratio  +36.3%

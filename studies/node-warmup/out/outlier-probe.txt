@@ -1,0 +1,111 @@
+seed 20261024; part 1 uses 400 recordings per row
+== 1. the estimator alone, noise 0.25, sharp f = 1, R = 320
+  no outlier                               scaled  agree  98.0% | median tol  2.00% | median N  12.0 | N <= 1:   0.0%
+  no outlier                               robust  agree  83.5% | median tol  2.00% | median N  10.0 | N <= 1:   0.0%
+  one x30 batch, process 0, batch 305      scaled  agree  97.2% | median tol 14.00% | median N   7.0 | N <= 1:   0.0%
+  one x30 batch, process 0, batch 305      robust  agree  83.5% | median tol  2.00% | median N  10.0 | N <= 1:   0.0%
+  one x30 batch per process, batches 260-315 scaled  agree 100.0% | median tol 51.06% | median N   0.0 | N <= 1: 100.0%
+  one x30 batch per process, batches 260-315 robust  agree  83.8% | median tol  2.00% | median N   9.0 | N <= 1:   0.0%
+  random q=0.5% x10                        scaled  agree  83.0% | median tol 10.03% | median N   9.0 | N <= 1:   0.0%
+  random q=0.5% x10                        robust  agree  82.0% | median tol  2.00% | median N  10.0 | N <= 1:   0.0%
+  random q=1% x30                          scaled  agree  65.5% | median tol 33.50% | median N   3.0 | N <= 1:  27.5%
+  random q=1% x30                          robust  agree  84.5% | median tol  2.00% | median N  10.0 | N <= 1:   0.0%
+  random q=2% x30                          scaled  agree  64.8% | median tol 41.11% | median N   2.0 | N <= 1:  32.0%
+  random q=2% x30                          robust  agree  85.5% | median tol  2.00% | median N  10.0 | N <= 1:   0.0%
+== 2. end to end, margin 8, noise 1.0, 60 rounds, run_looks
+-- scaled: sharp (3,1), q=0% x1, N known in 99.7% of pairs
+   sharp (3,1) q=0% x1                                  m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   sharp (3,1) q=0% x1                                  m=8 S=1.03 false KEEP   all    15/2000 =  0.75% (CP95  1.15%) | known-N only    15 =  0.75% (CP95  1.15%)
+   sharp (3,1) q=0% x1                                  m=8 S=1.06 false REJECT all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- scaled: sharp (1,1), q=0% x1, N known in 99.6% of pairs
+   sharp (1,1) q=0% x1                                  m=8 S=1.00 false KEEP   all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+   sharp (1,1) q=0% x1                                  m=8 S=1.03 false KEEP   all    11/2000 =  0.55% (CP95  0.91%) | known-N only    11 =  0.55% (CP95  0.91%)
+   sharp (1,1) q=0% x1                                  m=8 S=1.06 false REJECT all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- scaled: exp a=0.5 tau=5000, q=0% x1, N known in 99.8% of pairs
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.00 false KEEP   all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.03 false KEEP   all    15/2000 =  0.75% (CP95  1.15%) | known-N only    15 =  0.75% (CP95  1.15%)
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+-- scaled: sharp (3,1), q=0.5% x10, N known in 98.8% of pairs
+   sharp (3,1) q=0.5% x10                               m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   sharp (3,1) q=0.5% x10                               m=8 S=1.03 false KEEP   all     5/2000 =  0.25% (CP95  0.52%) | known-N only     5 =  0.25% (CP95  0.52%)
+   sharp (3,1) q=0.5% x10                               m=8 S=1.06 false REJECT all     2/2000 =  0.10% (CP95  0.31%) | known-N only     2 =  0.10% (CP95  0.31%)
+-- scaled: sharp (1,1), q=0.5% x10, N known in 98.9% of pairs
+   sharp (1,1) q=0.5% x10                               m=8 S=1.00 false KEEP   all     2/2000 =  0.10% (CP95  0.31%) | known-N only     2 =  0.10% (CP95  0.31%)
+   sharp (1,1) q=0.5% x10                               m=8 S=1.03 false KEEP   all    16/2000 =  0.80% (CP95  1.21%) | known-N only    16 =  0.80% (CP95  1.21%)
+   sharp (1,1) q=0.5% x10                               m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+-- scaled: exp a=0.5 tau=5000, q=0.5% x10, N known in 99.0% of pairs
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.00 false KEEP   all    55/2000 =  2.75% (CP95  3.43%) | known-N only    55 =  2.75% (CP95  3.43%)
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.03 false KEEP   all   160/2000 =  8.00% (CP95  9.07%) | known-N only   160 =  8.00% (CP95  9.07%)
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.06 false REJECT all    43/2000 =  2.15% (CP95  2.76%) | known-N only    43 =  2.15% (CP95  2.76%)
+-- scaled: sharp (3,1), q=2% x10, N known in 98.5% of pairs
+   sharp (3,1) q=2% x10                                 m=8 S=1.00 false KEEP   all     9/2000 =  0.45% (CP95  0.78%) | known-N only     9 =  0.45% (CP95  0.78%)
+   sharp (3,1) q=2% x10                                 m=8 S=1.03 false KEEP   all    17/2000 =  0.85% (CP95  1.27%) | known-N only    15 =  0.75% (CP95  1.15%)
+   sharp (3,1) q=2% x10                                 m=8 S=1.06 false REJECT all     6/2000 =  0.30% (CP95  0.59%) | known-N only     6 =  0.30% (CP95  0.59%)
+-- scaled: sharp (1,1), q=2% x10, N known in 98.0% of pairs
+   sharp (1,1) q=2% x10                                 m=8 S=1.00 false KEEP   all     3/2000 =  0.15% (CP95  0.39%) | known-N only     2 =  0.10% (CP95  0.31%)
+   sharp (1,1) q=2% x10                                 m=8 S=1.03 false KEEP   all    11/2000 =  0.55% (CP95  0.91%) | known-N only    11 =  0.55% (CP95  0.91%)
+   sharp (1,1) q=2% x10                                 m=8 S=1.06 false REJECT all     4/2000 =  0.20% (CP95  0.46%) | known-N only     3 =  0.15% (CP95  0.39%)
+-- scaled: exp a=0.5 tau=5000, q=2% x10, N known in 98.0% of pairs
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.00 false KEEP   all    97/2000 =  4.85% (CP95  5.72%) | known-N only    97 =  4.85% (CP95  5.72%)
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.03 false KEEP   all   159/2000 =  7.95% (CP95  9.02%) | known-N only   159 =  7.95% (CP95  9.02%)
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.06 false REJECT all    84/2000 =  4.20% (CP95  5.01%) | known-N only    84 =  4.20% (CP95  5.01%)
+-- scaled: sharp (3,1), q=1% x30, N known in 88.8% of pairs
+   sharp (3,1) q=1% x30                                 m=8 S=1.00 false KEEP   all    58/2000 =  2.90% (CP95  3.60%) | known-N only    57 =  2.85% (CP95  3.54%)
+   sharp (3,1) q=1% x30                                 m=8 S=1.03 false KEEP   all    68/2000 =  3.40% (CP95  4.14%) | known-N only    67 =  3.35% (CP95  4.09%)
+   sharp (3,1) q=1% x30                                 m=8 S=1.06 false REJECT all    60/2000 =  3.00% (CP95  3.71%) | known-N only    60 =  3.00% (CP95  3.71%)
+-- scaled: sharp (1,1), q=1% x30, N known in 89.2% of pairs
+   sharp (1,1) q=1% x30                                 m=8 S=1.00 false KEEP   all     4/2000 =  0.20% (CP95  0.46%) | known-N only     4 =  0.20% (CP95  0.46%)
+   sharp (1,1) q=1% x30                                 m=8 S=1.03 false KEEP   all     5/2000 =  0.25% (CP95  0.52%) | known-N only     3 =  0.15% (CP95  0.39%)
+   sharp (1,1) q=1% x30                                 m=8 S=1.06 false REJECT all     3/2000 =  0.15% (CP95  0.39%) | known-N only     3 =  0.15% (CP95  0.39%)
+-- scaled: exp a=0.5 tau=5000, q=1% x30, N known in 89.0% of pairs
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.00 false KEEP   all    94/2000 =  4.70% (CP95  5.55%) | known-N only    93 =  4.65% (CP95  5.50%)
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.03 false KEEP   all   165/2000 =  8.25% (CP95  9.33%) | known-N only   165 =  8.25% (CP95  9.33%)
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.06 false REJECT all    95/2000 =  4.75% (CP95  5.61%) | known-N only    95 =  4.75% (CP95  5.61%)
+-- robust: sharp (3,1), q=0% x1, N known in 50.6% of pairs
+   sharp (3,1) q=0% x1                                  m=8 S=1.00 false KEEP   all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+   sharp (3,1) q=0% x1                                  m=8 S=1.03 false KEEP   all    16/2000 =  0.80% (CP95  1.21%) | known-N only     9 =  0.45% (CP95  0.78%)
+   sharp (3,1) q=0% x1                                  m=8 S=1.06 false REJECT all     0/2000 =  0.00% (CP95  0.15%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- robust: sharp (1,1), q=0% x1, N known in 48.4% of pairs
+   sharp (1,1) q=0% x1                                  m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   sharp (1,1) q=0% x1                                  m=8 S=1.03 false KEEP   all    12/2000 =  0.60% (CP95  0.97%) | known-N only     7 =  0.35% (CP95  0.66%)
+   sharp (1,1) q=0% x1                                  m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+-- robust: exp a=0.5 tau=5000, q=0% x1, N known in 47.1% of pairs
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.03 false KEEP   all    11/2000 =  0.55% (CP95  0.91%) | known-N only     3 =  0.15% (CP95  0.39%)
+   exp a=0.5 tau=5000 q=0% x1                           m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- robust: sharp (3,1), q=0.5% x10, N known in 47.2% of pairs
+   sharp (3,1) q=0.5% x10                               m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   sharp (3,1) q=0.5% x10                               m=8 S=1.03 false KEEP   all    10/2000 =  0.50% (CP95  0.85%) | known-N only     4 =  0.20% (CP95  0.46%)
+   sharp (3,1) q=0.5% x10                               m=8 S=1.06 false REJECT all     2/2000 =  0.10% (CP95  0.31%) | known-N only     1 =  0.05% (CP95  0.24%)
+-- robust: sharp (1,1), q=0.5% x10, N known in 46.7% of pairs
+   sharp (1,1) q=0.5% x10                               m=8 S=1.00 false KEEP   all     2/2000 =  0.10% (CP95  0.31%) | known-N only     0 =  0.00% (CP95  0.15%)
+   sharp (1,1) q=0.5% x10                               m=8 S=1.03 false KEEP   all    12/2000 =  0.60% (CP95  0.97%) | known-N only     5 =  0.25% (CP95  0.52%)
+   sharp (1,1) q=0.5% x10                               m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- robust: exp a=0.5 tau=5000, q=0.5% x10, N known in 49.4% of pairs
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.00 false KEEP   all     1/2000 =  0.05% (CP95  0.24%) | known-N only     1 =  0.05% (CP95  0.24%)
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.03 false KEEP   all     9/2000 =  0.45% (CP95  0.78%) | known-N only     6 =  0.30% (CP95  0.59%)
+   exp a=0.5 tau=5000 q=0.5% x10                        m=8 S=1.06 false REJECT all     1/2000 =  0.05% (CP95  0.24%) | known-N only     0 =  0.00% (CP95  0.15%)
+-- robust: sharp (3,1), q=2% x10, N known in 47.4% of pairs
+   sharp (3,1) q=2% x10                                 m=8 S=1.00 false KEEP   all     4/2000 =  0.20% (CP95  0.46%) | known-N only     2 =  0.10% (CP95  0.31%)
+   sharp (3,1) q=2% x10                                 m=8 S=1.03 false KEEP   all    17/2000 =  0.85% (CP95  1.27%) | known-N only     8 =  0.40% (CP95  0.72%)
+   sharp (3,1) q=2% x10                                 m=8 S=1.06 false REJECT all     4/2000 =  0.20% (CP95  0.46%) | known-N only     2 =  0.10% (CP95  0.31%)
+-- robust: sharp (1,1), q=2% x10, N known in 47.2% of pairs
+   sharp (1,1) q=2% x10                                 m=8 S=1.00 false KEEP   all     6/2000 =  0.30% (CP95  0.59%) | known-N only     4 =  0.20% (CP95  0.46%)
+   sharp (1,1) q=2% x10                                 m=8 S=1.03 false KEEP   all    14/2000 =  0.70% (CP95  1.09%) | known-N only     4 =  0.20% (CP95  0.46%)
+   sharp (1,1) q=2% x10                                 m=8 S=1.06 false REJECT all     6/2000 =  0.30% (CP95  0.59%) | known-N only     5 =  0.25% (CP95  0.52%)
+-- robust: exp a=0.5 tau=5000, q=2% x10, N known in 45.1% of pairs
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.00 false KEEP   all     2/2000 =  0.10% (CP95  0.31%) | known-N only     1 =  0.05% (CP95  0.24%)
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.03 false KEEP   all    14/2000 =  0.70% (CP95  1.09%) | known-N only     6 =  0.30% (CP95  0.59%)
+   exp a=0.5 tau=5000 q=2% x10                          m=8 S=1.06 false REJECT all     6/2000 =  0.30% (CP95  0.59%) | known-N only     4 =  0.20% (CP95  0.46%)
+-- robust: sharp (3,1), q=1% x30, N known in 47.8% of pairs
+   sharp (3,1) q=1% x30                                 m=8 S=1.00 false KEEP   all     2/2000 =  0.10% (CP95  0.31%) | known-N only     2 =  0.10% (CP95  0.31%)
+   sharp (3,1) q=1% x30                                 m=8 S=1.03 false KEEP   all    10/2000 =  0.50% (CP95  0.85%) | known-N only     9 =  0.45% (CP95  0.78%)
+   sharp (3,1) q=1% x30                                 m=8 S=1.06 false REJECT all     3/2000 =  0.15% (CP95  0.39%) | known-N only     2 =  0.10% (CP95  0.31%)
+-- robust: sharp (1,1), q=1% x30, N known in 46.7% of pairs
+   sharp (1,1) q=1% x30                                 m=8 S=1.00 false KEEP   all     6/2000 =  0.30% (CP95  0.59%) | known-N only     5 =  0.25% (CP95  0.52%)
+   sharp (1,1) q=1% x30                                 m=8 S=1.03 false KEEP   all     9/2000 =  0.45% (CP95  0.78%) | known-N only     3 =  0.15% (CP95  0.39%)
+   sharp (1,1) q=1% x30                                 m=8 S=1.06 false REJECT all     3/2000 =  0.15% (CP95  0.39%) | known-N only     2 =  0.10% (CP95  0.31%)
+-- robust: exp a=0.5 tau=5000, q=1% x30, N known in 48.1% of pairs
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.00 false KEEP   all     5/2000 =  0.25% (CP95  0.52%) | known-N only     1 =  0.05% (CP95  0.24%)
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.03 false KEEP   all     9/2000 =  0.45% (CP95  0.78%) | known-N only     5 =  0.25% (CP95  0.52%)
+   exp a=0.5 tau=5000 q=1% x30                          m=8 S=1.06 false REJECT all     2/2000 =  0.10% (CP95  0.31%) | known-N only     1 =  0.05% (CP95  0.24%)

@@ -599,6 +599,41 @@
     "oracle_source": "written here, since the tree has no test for embedchain/utils/cli.py: read_env_file on a fixed file with comments, blank lines, padding and '=' in values, checked against the task tree's behaviour (eval/tasks/workloads/mem0ai-mem0-pr1260/env_oracle.py)",
     "notes": "The repository was embedchain at this commit. Dependencies are its poetry.lock, exported with poetry 2.1.3 (main group). CPython 3.12.3, the last 3.12 release before the change: from 3.12.4 on, the locked pydantic.v1 (via langsmith) fails on ForwardRef._evaluate"
   },
+  "fastify-fastify-pr7056": {
+    "setup": [
+      "npm install --ignore-scripts --no-audit --no-fund --before 2026-09-27",
+      "cp ../../../../tasks/workloads/fastify-fastify-pr7056/bench.js eval_bench.js"
+    ],
+    "workload": "node eval_bench.js",
+    "workload_source": "written here from the description of https://github.com/fastify/fastify/pull/7056 (the per-request child logger, with request logging on): GET /item/:id served in process by app.inject with a pino logger writing to a discarded stream, a fixed warm-up then a fixed window, eval/tasks/workloads/fastify-fastify-pr7056/bench.js",
+    "oracle": "node --test test/child-logger-factory.test.js test/encapsulated-child-logger-factory.test.js test/logger/*.test.js",
+    "oracle_source": "fastify's child-logger-factory tests (changed by https://github.com/fastify/fastify/pull/7056) and its logger tests, run by node's own test runner; targeted tests only",
+    "notes": "Dependencies installed with npm install --ignore-scripts and --before the merge date (the repository has no lockfile). The workload and oracle command lines are run without a shell, so the oracle's globs are expanded by node --test itself. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree"
+  },
+  "fastify-fastify-pr6444": {
+    "setup": [
+      "npm install --ignore-scripts --no-audit --no-fund --before 2026-01-16",
+      "cp ../../../../tasks/workloads/fastify-fastify-pr6444/bench.js eval_bench.js"
+    ],
+    "workload": "node eval_bench.js",
+    "workload_source": "written here from examples/benchmark/webstream.js, the benchmark https://github.com/fastify/fastify/pull/6444 adds (a handler returning a web Response whose body is a ReadableStream): served in process by app.inject, a fixed warm-up then a fixed window, eval/tasks/workloads/fastify-fastify-pr6444/bench.js",
+    "oracle": "node --test test/reply-web-stream-locked.test.js test/stream.1.test.js test/stream.2.test.js test/web-api.test.js",
+    "oracle_source": "fastify's web-stream and stream tests, with test/web-api.test.js, which https://github.com/fastify/fastify/pull/6444 adds (so it is required on the reference tree only); targeted tests only",
+    "notes": "Dependencies installed with npm install --ignore-scripts and --before the merge date (the repository has no lockfile). Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree"
+  },
+  "nestjs-nest-pr10823-landed": {
+    "setup": [
+      "npm install --prefix .eval-tools --before 2023-02-02 --no-audit --no-fund --ignore-scripts reflect-metadata rxjs iterare uid tslib chai@4 sinon@14 uuid@9",
+      "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund tsx vitest",
+      "ln -s .eval-tools/node_modules node_modules",
+      "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/bench.ts eval_bench.ts"
+    ],
+    "workload": "node --import tsx eval_bench.ts",
+    "workload_source": "written here from the description of https://github.com/nestjs/nest/pull/10823 (formatting the timestamp of each log line): ConsoleLogger.log called with timestamps on and stdout discarded, a fixed warm-up then a fixed window, eval/tasks/workloads/nestjs-nest-pr10823-landed/bench.ts, run through tsx",
+    "oracle": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+    "oracle_source": "nest's logger.service tests (packages/common/test/services/logger.service.spec.ts), mocha-style tests run under vitest with a minimal config (eval/tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs); targeted tests only",
+    "notes": "The tree's full toolchain (lerna, gulp, mocha, ts-node on a 2022 lockfile) is not installed; only what ConsoleLogger imports (reflect-metadata, rxjs, iterare, uid, tslib, uuid) at their versions before the merge, plus chai, sinon, tsx and vitest. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree"
+  },
   "fasterxml-jackson-core-pr1674": {
     "setup": [
       "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",

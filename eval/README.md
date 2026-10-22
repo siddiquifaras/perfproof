@@ -21,7 +21,7 @@ with the text they matched so each one can be checked by hand.
 ## Counts
 
 Mined on 16 October 2026 (`uv run python eval/mine/mine.py counts`).
-There are 376 candidates from 102 repositories. These counts are after
+There are 382 candidates from 106 repositories. These counts are after
 the review fixes listed under "Removed after review" below.
 
 **This is a candidate pool, not a reviewed task set.** The rules are
@@ -34,36 +34,36 @@ task that is drawn: before the hash-order draw, each candidate's change
 is read, and misclassified candidates are removed with the reason
 recorded.
 
-| Family | python | native | web | serving | gpu | agentic | Total |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| hidden-fix | 7 | 6 | 3 | 2 | 12 | 0 | 30 |
-| known-change | 79 | 64 | 37 | 32 | 29 | 30 | 271 |
-| nothing-to-keep | 13 | 11 | 7 | 3 | 6 | 1 | 41 |
-| published-benchmark | 34 | 0 | 0 | 0 | 0 | 0 | 34 |
-| **Total** | 133 | 81 | 47 | 37 | 47 | 31 | 376 |
+| Family | python | native | web | serving | gpu | agentic | java | Total |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| hidden-fix | 7 | 6 | 3 | 2 | 12 | 0 | 1 | 31 |
+| known-change | 79 | 64 | 37 | 32 | 29 | 30 | 3 | 274 |
+| nothing-to-keep | 13 | 11 | 7 | 3 | 6 | 1 | 2 | 43 |
+| published-benchmark | 34 | 0 | 0 | 0 | 0 | 0 | 0 | 34 |
+| **Total** | 133 | 81 | 47 | 37 | 47 | 31 | 6 | 382 |
 
 | Change kind | Tasks |
 |---|---:|
-| improvement | 246 |
-| after-landed | 41 |
+| after-landed | 43 |
 | benchmark-instance | 34 |
-| reverted-unknown-reason | 28 |
+| improvement | 250 |
 | kernel-version | 12 |
 | regression | 8 |
 | reverted-breaking | 7 |
-| reverted-no-gain | 0 |
+| reverted-unknown-reason | 28 |
 
 | Status | Tasks |
 |---|---:|
-| runs | 45 |
+| builds | 11 |
+| candidate | 325 |
 | reference-fails | 1 |
-| builds | 2 |
-| candidate | 328 |
+| runs | 45 |
 
 Read these counts with these caveats:
 
-- **Missing commands.** 95 of the 376 have a workload command and 125
-  have an oracle command. The rest have `null` and have to be
+- **Missing commands.** 136 of the 382 have a workload command and 167
+  have an oracle command (counted from the manifests: a `command` that
+  is not `null`). The rest have `null` and have to be
   completed by hand.
 - **Workload commands.** A workload quoted over several lines with
   backslash continuations is joined into one command. If it can't be
@@ -804,7 +804,7 @@ faster. That is T4.2's job.
 
 - **Nothing has a label.** No performance or correctness label has
   been produced for any task.
-- **328 of 376 tasks are unbuilt.** Their workload and oracle fields
+- **325 of 382 tasks are unbuilt.** Their workload and oracle fields
   come from text and dataset fields, not from runs. That includes
   every serving and GPU task: the ten held-out picks in those classes
   are drawn but unbuilt, and any that fails on the GPU host moves its
