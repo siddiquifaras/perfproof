@@ -14,7 +14,8 @@ Client locations, from each client's skill documentation (checked
 The skill ships inside the wheel as data files (``pyproject.toml``,
 ``[tool.uv.build-backend.data]``), which the installer puts under the
 ``sysconfig`` data path. In a source checkout it is
-``skills/perfproof``.
+``skills/perfproof``, which wins: an editable install also has a data
+copy, frozen at the last build, that goes stale as the skill changes.
 """
 
 import hashlib
@@ -82,12 +83,13 @@ def skill_source() -> Path | None:
     Returns
     -------
     pathlib.Path or None
-        The wheel's data copy, else the checkout's ``skills/perfproof``,
-        else ``None`` when neither holds a ``SKILL.md``.
+        The checkout's ``skills/perfproof`` when perfproof runs from a
+        source checkout, else the wheel's data copy, else ``None`` when
+        neither holds a ``SKILL.md``.
     """
     data = Path(sysconfig.get_path("data")) / SKILL_NAME
     checkout = Path(__file__).resolve().parents[3] / "skills" / SKILL_NAME
-    for candidate in (data, checkout):
+    for candidate in (checkout, data):
         if (candidate / "SKILL.md").is_file():
             return candidate
     return None
