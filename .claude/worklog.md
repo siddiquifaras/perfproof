@@ -6,7 +6,7 @@ lead; task branches don't edit it.
 
 ## 2026-10-16, overnight session
 
-### PAUSED 2026-10-22 11:40 PKT (Faras: weekly limit; restart only on his word)
+### RESUMED 2026-10-22 15:35 PKT (Faras: "continue where you left off everything"); pause notes below kept for reference
 
 All agents stopped, hourly cron deleted. Still running on their own (no model use): Hetzner trace queue (linux-web then LLM then loaded passes, ETA ~17:00 PKT; do NOT wipe yet, T1.12 needs the box), Mac recorders `record_mac_ext.sh` and `record_mac_rerun.sh` STOPPED at 11:45 (Faras is using the Mac); restart both in the overnight quiet window (done before the stop: mac-agent quiet and loaded, 1000 pairs each, 09:19-09:56 PKT while agents were paused by the usage limit; still to do: web, LLM, then the reruns; old traces relabelled loaded-by-others). Resume order:
 1. PR #60 (worktree agent-a3c70e2204e271e70) head 68c1aee: rerun the final reviewer (it was stopped mid-review) and `scratch/queue_checks.sh <wt> pr60b`; merge on PASS + green. Then follow-up PR: harness runs agents as `ppeval` AND inside the sandbox (ppeval provisioned and signed in; see `scratch/ppeval-provision.md`: clipboard, Finder AppleScript and `open` reach faras's GUI session via sudo, so the sandbox Mach deny is required on top).
