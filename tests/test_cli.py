@@ -25,6 +25,7 @@ BUILT = (
     "compare",
     "doctor",
     "init",
+    "install-skills",
     "log",
     "measure",
     "profile",
@@ -255,10 +256,10 @@ def test_a_new_module_is_a_new_command(cli: Run, extra_commands: Path) -> None:
 def test_a_module_builds_a_listed_command(
     cli: Run, extra_commands: Path
 ) -> None:
-    add_module(extra_commands, "install_skills")
-    assert cli("install-skills") == (0, "hi\n", "")
+    add_module(extra_commands, "replay")
+    assert cli("replay") == (0, "hi\n", "")
     _, out, _ = cli("--help")
-    assert "install-skills" not in out[len(HELP) :]
+    assert "replay" not in out[len(HELP) :]
 
 
 def test_private_modules_are_not_commands(
@@ -653,14 +654,14 @@ def test_doctor_on_this_machine(cli: Run) -> None:
     status, out, err = cli("doctor")
     assert (status, err) == (0, "")
     sections = [line for line in out.splitlines() if line[:1].isalpha()]
-    assert sections == ["Machine", "Warnings", "Tools"]
+    assert sections == ["Machine", "Warnings", "Tools", "Install"]
     status, out, err = cli("doctor", "--json")
     assert (status, err) == (0, "")
     document = as_json(out)
     assert set(document) == {"command", "ok", "result"}
     assert (document["command"], document["ok"]) == ("doctor", True)
     result = document["result"]
-    assert set(result) == {"machine", "warnings", "tools"}
+    assert set(result) == {"machine", "warnings", "tools", "install"}
     fp = MachineFingerprint.model_validate(result["machine"])
     warnings = result["warnings"]
     assert [(w["code"], w["message"]) for w in warnings] == [

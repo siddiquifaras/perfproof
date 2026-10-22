@@ -99,3 +99,9 @@ markers = [
 ]
 xfail_strict = true
 filterwarnings = ["error"]
+
+[tool.uv.build-backend]
+wheel-exclude = ["AGENTS.md", "CLAUDE.md"]
+
+[tool.uv.build-backend.data]
+data = "skills"

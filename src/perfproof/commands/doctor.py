@@ -18,15 +18,29 @@ reason, never as a guessed value.
     Object keyed by tool name (``git``, ``perf``), each
     ``{"available", "used_for", "detail"}``: ``detail`` is the tool's
     version when available, else why it is not.
+``install``
+    ``{"cli_on_path", "python", "clients", "problems"}``. ``python`` is
+    the running ``major.minor``, listed in ``problems`` unless tested.
+    ``cli_on_path`` is whether ``perfproof`` resolves on PATH.
+    ``clients`` is keyed by
+    ``claude`` and ``codex``, each ``{"found", "version", "skill",
+    "skill_path"}``: ``found`` is whether the client's command is on
+    PATH, ``skill`` is ``missing``, ``current``, ``stale`` or
+    ``foreign`` (see `perfproof.commands._skills`). ``problems`` lists
+    ``{"what", "fix"}`` for everything that stops ``/perfproof`` from
+    being found; empty when nothing is missing. A client that is not
+    on PATH is not a problem: it may run elsewhere.
 """
 
 import argparse
 import shutil
 import subprocess
+import sys
 from typing import Final
 
 from perfproof.bench.runner import counter_unavailable_reason
 from perfproof.commands import JsonValue, Output
+from perfproof.commands import _skills as skills
 from perfproof.machine import fingerprint, machine_warnings
 from perfproof.schema import MachineFingerprint, RunWarning
 
@@ -34,6 +48,9 @@ __all__ = ["add_arguments", "run"]
 
 GIT_TIMEOUT_SECONDS: Final = 10.0
 """Time limit for ``git --version``, in seconds."""
+
+TESTED_PYTHON: Final = ("3.12",)
+"""Python versions perfproof is tested on; doctor warns on others."""
 
 COUNTER_EVENT: Final = "instructions"
 """``perf`` event checked for the ``counter`` metric."""
@@ -122,6 +139,122 @@ def _tools() -> dict[str, dict[str, JsonValue]]:
     }
 
 
+_FIX_SKILL: Final = "perfproof install-skills"
+
+
+def _client_version(exe: str | None) -> str | None:
+    """Return a client's ``--version`` line, or None if absent."""
+    if exe is None:
+        return None
+    try:
+        done = subprocess.run(
+            [exe, "--version"],
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=GIT_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return "version unknown"
+    lines = done.stdout.strip().splitlines()
+    return lines[0] if done.returncode == 0 and lines else "version unknown"
+
+
+def _install() -> dict[str, JsonValue]:
+    """Check that perfproof and its skill are findable."""
+    source = skills.skill_source()
+    problems: list[JsonValue] = []
+    on_path = shutil.which("perfproof") is not None
+    if not on_path:
+        problems.append(
+            {
+                "what": "perfproof is not on PATH (ignore this if you "
+                "run it with uvx; the skill falls back to uvx)",
+                "fix": "uv tool install <perfproof source>; then "
+                "`uv tool update-shell` if the shell still can't find it",
+            }
+        )
+    if source is None:
+        problems.append(
+            {
+                "what": "this perfproof has no skill files to install",
+                "fix": "uv tool install --reinstall <perfproof source>",
+            }
+        )
+    python = f"{sys.version_info.major}.{sys.version_info.minor}"
+    free_threaded = not getattr(sys, "_is_gil_enabled", lambda: True)()
+    tested = python in TESTED_PYTHON and not free_threaded
+    if not tested:
+        problems.append(
+            {
+                "what": f"perfproof runs on Python {python}"
+                f"{' (free-threaded)' if free_threaded else ''}, which "
+                f"is not tested; tested: {', '.join(TESTED_PYTHON)}",
+                "fix": "uv tool install --reinstall --python 3.12 "
+                "<perfproof source>",
+            }
+        )
+    clients: dict[str, JsonValue] = {}
+    for client in skills.CLIENTS:
+        state = skills.check(client, source)
+        exe = shutil.which(client)
+        clients[client] = {
+            "found": exe is not None,
+            "version": _client_version(exe),
+            "skill": state.state,
+            "skill_path": state.path,
+        }
+        if state.state in ("missing", "stale") and source is not None:
+            problems.append(
+                {
+                    "what": f"the /perfproof skill is {state.state} for "
+                    f"{client} ({state.path})",
+                    "fix": f"{_FIX_SKILL} --client {client}",
+                }
+            )
+        elif state.state == "foreign":
+            problems.append(
+                {
+                    "what": f"{state.path} exists and perfproof did not "
+                    "create it",
+                    "fix": f"move it away, then {_FIX_SKILL} --client "
+                    f"{client}",
+                }
+            )
+    return {
+        "cli_on_path": on_path,
+        "python": python,
+        "clients": clients,
+        "problems": problems,
+    }
+
+
+def _install_text(install: dict[str, JsonValue]) -> list[str]:
+    """Render the install check."""
+    path = "on PATH" if install["cli_on_path"] else "NOT on PATH"
+    lines = ["Install", f"  perfproof {path}"]
+    clients = install["clients"]
+    problems = install["problems"]
+    if isinstance(clients, dict):
+        for name, info in clients.items():
+            if not isinstance(info, dict):
+                continue
+            found = "found" if info["found"] else "not on PATH"
+            lines.append(
+                f"  {name:<6} {found} ({info['version'] or 'no version'})"
+                f"; skill {info['skill']}: {info['skill_path']}"
+            )
+    if isinstance(problems, list) and problems:
+        for problem in problems:
+            if isinstance(problem, dict):
+                lines.append(f"  Missing: {problem['what']}")
+                lines.append(f"    Fix: {problem['fix']}")
+    else:
+        lines.append("  nothing missing")
+    return lines
+
+
 def _value_text(fp: MachineFingerprint, field: str) -> str:
     """Spell one known fingerprint value for a person."""
     if field == "load_average" and fp.load_average is not None:
@@ -194,6 +327,7 @@ def run(args: argparse.Namespace) -> Output:
     fp = fingerprint()
     warnings = machine_warnings(fp)
     tools = _tools()
+    install = _install()
     result: dict[str, JsonValue] = {
         "machine": fp.model_dump(mode="json"),
         "warnings": [
@@ -205,6 +339,7 @@ def run(args: argparse.Namespace) -> Output:
             for w in warnings
         ],
         "tools": tools,
+        "install": install,
     }
     text = "\n".join(
         [
@@ -213,6 +348,8 @@ def run(args: argparse.Namespace) -> Output:
             *_warnings_text(warnings),
             "",
             *_tools_text(tools),
+            "",
+            *_install_text(install),
         ]
     )
     return Output(result=result, text=text)

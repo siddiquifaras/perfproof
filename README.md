@@ -28,6 +28,20 @@ It works on code you've never seen and on code you've worked on for
 years. It remembers what it has already tried and why it was rejected,
 so every session starts where the last one stopped.
 
+## Install
+
+One line puts the `perfproof` command on your PATH and the `/perfproof`
+skill where Claude Code and Codex find it:
+
+```bash
+uv tool install --python 3.12 git+https://github.com/siddiquifaras/perfproof && perfproof install-skills
+```
+
+Then run `/perfproof` in your agent, in any repository. `perfproof
+doctor` says what is missing and how to fix it. To remove everything:
+`perfproof install-skills --uninstall && uv tool uninstall perfproof`.
+Details: [docs/install.md](docs/install.md).
+
 ## How a session goes
 
 Run `/perfproof` in your agent:
