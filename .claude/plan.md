@@ -647,6 +647,24 @@ by `stats-auditor` before its PR opens.
     stats-auditor passes.
   - Effort: medium
 
+- [ ] **T3.20 Eval sessions run as a separate macOS user** (Faras, 2026-10-22: created `ppeval`)
+  - Owns: `eval/skill/eval_user.py` (new), `eval/skill/skill_eval.py`,
+    `eval/skill/sandbox.py`, `eval/skill/runner.py`,
+    `eval/skill/realrepo.py`, their tests, `docs/evaluation.md`
+  - Needs: T3.19 (PR #60, merged)
+  - Do: the harness stages perfproof (a wheel) and the skill into
+    `ppeval`'s home and runs setup, the agent, tests and the oracle as
+    `ppeval` (`sudo -n -u ppeval -H`) inside the existing `sandbox-exec`
+    profile; the token is read only by ppeval's process; redaction and
+    the secret scan run ppeval-side and fail closed; results are copied
+    back as data; `--no-eval-user` is an explicit fallback.
+  - Done when: the isolation probes (files, keychain, process env,
+    clipboard, Finder/System Events, open, sockets, writes) fail as
+    ppeval inside the profile and are recorded in `docs/evaluation.md`;
+    a hostile setup cannot tamper with the scanner; one end-to-end task
+    passes; reviewer passes.
+  - Effort: medium
+
 - [ ] **T1.12 Golden set: choose the statistics method on ground truth** (Faras, 2026-10-22: run before shipping the T1.11 split, which is held)
   - Owns: `studies/golden/`, `tests/golden/` (new), `eval/golden/` (new),
     a replay entry point in `src/perfproof/stats/` if needed, and the
