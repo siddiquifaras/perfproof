@@ -22,14 +22,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalQueryMap$ -benchtime 400000x .",
+    "source": "written here from the description of https://github.com/gin-gonic/gin/pull/4339 (getMapFromFormData): a Go benchmark that reads one map out of a query string of about 450 parameters, eval/tasks/workloads/gin-gonic-gin-pr4339/eval_formmap_bench_test.go, copied into the tree",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "go test -count 1 -run Map|Query|Form .",
+    "source": "gin's map, query and form tests (context_test.go is changed by https://github.com/gin-gonic/gin/pull/4339); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -38,9 +38,90 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/gin-gonic-gin-pr4339/eval_formmap_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T18:08:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 14.41,
+      "date": "2026-10-22T18:08:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "go: downloading google.golang.org/protobuf v1.36.8\ngo: downloading github.com/goccy/go-yaml v1.18.0\ngo: downloading github.com/pelletier/go-toml/v2 v2.2.4\ngo: downloading github.com/ugorji/go/codec v1.3.0\ngo: downloading github.com/go-playground/validator/v10 v10.27.0\ngo: downloading golang.org/x/sys v0.34.0\ngo: downloading github.com/davecgh/go-spew v1.1.1\ngo: downloading github.com/gabriel-vasile/mimetype v1.4.8\ngo: downloading github.com/go-playground/universal-translator v0.18.1\ngo: downloading github.com/leodido/go-urn v1.4.0\ngo: downloading golang.org/x/crypto v0.40.0\ngo: downloading golang.org/x/text v0.27.0\ngo: downloading github.com/quic-go/qpack v0.5.1\ngo: downloading gopkg.in/yaml.v3 v3.0.1\ngo: downloading github.com/go-playground/locales v0.14.1"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run Map|Query|Form .",
+      "exit_code": 0,
+      "duration_s": 0.77,
+      "date": "2026-10-22T18:09:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin\t0.335s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalQueryMap$ -benchtime 400000x .",
+      "exit_code": 0,
+      "duration_s": 1.97,
+      "date": "2026-10-22T18:09:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/gin-gonic/gin\ncpu: Apple M4\nBenchmarkEvalQueryMap-10    \t  400000\t      3171 ns/op\t     336 B/op\t       2 allocs/op\nPASS\nok  \tgithub.com/gin-gonic/gin\t1.510s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/gin-gonic-gin-pr4339/eval_formmap_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T18:09:11+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 1.25,
+      "date": "2026-10-22T18:09:11+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin\t0.369s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run Map|Query|Form .",
+      "exit_code": 0,
+      "duration_s": 0.75,
+      "date": "2026-10-22T18:09:12+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/gin-gonic/gin\t0.324s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalQueryMap$ -benchtime 400000x .",
+      "exit_code": 0,
+      "duration_s": 2.17,
+      "date": "2026-10-22T18:09:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/gin-gonic/gin\ncpu: Apple M4\nBenchmarkEvalQueryMap-10    \t  400000\t      3693 ns/op\t     336 B/op\t       2 allocs/op\nPASS\nok  \tgithub.com/gin-gonic/gin\t1.719s"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

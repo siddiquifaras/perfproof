@@ -1,0 +1,47 @@
+perfproof profile on a real repository, through the container launcher
+
+Repository: labstack/echo at the task commit of the manifest eval/tasks/hidden-fix/labstack-echo-pr1799.json
+(cffd3efa91c8, the parent of the pull request), with eval/tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go copied in.
+Go 1.25.14 linux/arm64 in the golang:1.25 image behind the launcher eval/skill/realrepo.py writes (eval/skill/realrepo.py write_shims),
+on a shared Mac, 2026-10-22. Spec: command = launcher go test -count 1 -run ^$ -bench ^BenchmarkEvalServeHTTPPath$ -benchtime 6000000x .
+
+Command (paths shown as <repo>, the working tree of the task; <python> is the python beside perfproof):
+
+  perfproof profile echo-serve --json --repo <repo> --profiler-command '["<python>", "-m", "perfproof.profilers.go", "record", "--output", "{output}", "--project-root", "<repo>", "--path-map", "/src=<repo>", "--profile-dir", "<repo>/.perfproof/pprof-<n>"<flags>, "--", "{command}"]'
+
+flags: (none) -- default view (the frame a sample ends in)
+  unprofiled run: wall 9.59 s, CPU 0.024 s (inference: the program runs in the container VM, outside perfproof's process tree); profiled run: wall 10.87 s
+  function  file:line  self share  library
+  net/url.shouldEscape  /usr/local/go/src/net/url/url.go:111  0.146  True
+  net/url.escape  /usr/local/go/src/net/url/url.go:331  0.130  True
+  net/url.shouldEscape  /usr/local/go/src/net/url/url.go:112  0.076  True
+  net/url.escape  /usr/local/go/src/net/url/url.go:297  0.054  True
+  net/url.escape  /usr/local/go/src/net/url/url.go:313  0.054  True
+  net/url.shouldEscape  /usr/local/go/src/net/url/url.go:115  0.054  True
+  Router.Find  router.go:451  0.049  False
+  net/url.escape  /usr/local/go/src/net/url/url.go:336  0.038  True
+
+flags: "--own-frames" -- --own-frames (library time charged to the project line)
+  unprofiled run: wall 8.60 s, CPU 0.023 s (inference: the program runs in the container VM, outside perfproof's process tree); profiled run: wall 8.86 s
+  function  file:line  self share  library
+  Echo.ServeHTTP  echo.go:632  0.745  False
+  Router.Find  router.go:408  0.038  False
+  Router.Find  router.go:451  0.027  False
+  node.findStaticChild  router.go:244  0.022  False
+  Echo.ServeHTTP  echo.go:651  0.022  False
+  applyMiddleware  echo.go:966  0.016  False
+  Router.Find  router.go:483  0.016  False
+  Router.Find  router.go:412  0.016  False
+
+flags: "--profile", "mem", "--own-frames" -- --profile mem --own-frames (alloc_space)
+  unprofiled run: wall 9.82 s, CPU 0.031 s (inference: the program runs in the container VM, outside perfproof's process tree); profiled run: wall 7.57 s
+  function  file:line  self share  library
+  Echo.ServeHTTP  echo.go:632  0.999  False
+  Echo.ServeHTTP  echo.go:651  0.000  False
+  runtime.allocm  /usr/local/go/src/runtime/proc.go:2339  0.000  True
+  runtime.makeProfStackFP  /usr/local/go/src/runtime/proc.go:1060  0.000  True
+  testing.(*B).ResetTimer  /usr/local/go/src/testing/benchmark.go:170  0.000  True
+  BenchmarkEvalServeHTTPPath  eval_servehttp_bench_test.go:24  0.000  False
+  regexp.onePassCopy  /usr/local/go/src/regexp/onepass.go:226  0.000  True
+  flag.(*FlagSet).Var  /usr/local/go/src/flag/flag.go:1036  0.000  True
+

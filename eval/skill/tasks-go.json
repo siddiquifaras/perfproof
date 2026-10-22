@@ -1,0 +1,87 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "go-echo-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "labstack-echo-pr1799",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "echo.go",
+          "function": "Echo.ServeHTTP",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "go-gin-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "gin-gonic-gin-pr4339",
+        "branch": "pr-4339",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "Is the change on branch pr-4339 (optimize getMapFromFormData) really faster than main, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "go-gin-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "gin-gonic-gin-pr4246-landed",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

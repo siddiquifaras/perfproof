@@ -1,0 +1,42 @@
+studies/go/runs/go-version.txt: go version go1.25.14 linux/arm64
+12 fresh processes, 60 blocks of 100000 requests each
+
+Per process (ns per request):
+process  first block  steady median  first/steady  steady CV%
+      1        324.5          265.7          1.22        10.0
+      2        249.3          262.5          0.95         9.8
+      3        248.4          264.6          0.94        36.5
+      4        266.3          263.9          1.01         6.0
+      5        271.5          275.6          0.99        13.7
+      6        249.1          263.0          0.95         8.5
+      7        265.4          258.6          1.03         7.3
+      8        253.3          256.1          0.99        32.1
+      9        263.9          261.6          1.01         7.8
+     10        261.7          264.3          0.99         6.9
+     11        243.8          253.8          0.96         5.8
+     12        245.0          264.7          0.93        29.2
+
+first block / steady median: min 0.93, median 0.99, max 1.22
+steady medians of the 12 identical processes: min 253.8, max 275.6, max/min 1.086
+
+Pooled over processes, median block time / that process's steady:
+  block  0: 0.987
+  block  1: 0.980
+  block  2: 0.969
+  block  3: 1.009
+  block  4: 1.004
+  block  5: 1.021
+  block  9: 1.058
+  block 10: 1.006
+  block 30: 0.994
+  block 59: 1.004
+
+Garbage collections in a steady block, pooled:
+  1 GC:  401 blocks, median 0.994 of steady
+  2 GC:  199 blocks, median 1.018 of steady
+  GCs in the first block, per process: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  GCs over all 60 blocks, per process: min 78, median 79, max 82
+
+Empty program, wall time per start (ms):
+  go-run  n=30 median 25.24, min 13.95, max 41.84
+  binary  n=30 median 1.30, min 0.84, max 3.49

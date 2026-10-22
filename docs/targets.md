@@ -82,6 +82,19 @@ from one launch form used for both versions.
 | Supported | JDK 21 (Temurin) on macOS arm64 and on Linux arm64 in Docker, with the profiler wrapper's fixtures captured on both, as run for T5.11; other JDKs and x86_64 are expected to work and have not been run |
 | Outside | Source files of Kotlin and Scala classes (shown as library code), Android, GraalVM native images, JDK 8, code that needs a running application server |
 
+## Go
+
+| | |
+|---|---|
+| Workload | A Go benchmark or program built in `setup` and timed as the built executable (`go test -c` and the test binary, or `go build -o`), by `wall` or by a `reported` median of in-process blocks; see "Warm-up (Go)" in [method.md](method.md) |
+| Oracle | The project's tests (`go test -run ... ./pkg`) and the program's output compared between versions |
+| Coverage | `go test -coverprofile` (or `go build -cover` with `go tool covdata textfmt`), turned into lcov by `perfproof.bench.go_coverage`; it plugs into the coverage gate when T2.24 lands and is reported as not checked until then |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | A native `go` with `run`, `test`, `build` or `vet` is identified by the toolchain `go.mod` selects (version, platform, settings and a hash of its `go`); a built executable is compared by the toolchain named in its header. A `go` that is a script (a version manager's shim, a container launcher) is a shell, so `not_available` |
+| Profiling | pprof (CPU, memory, mutex, block) turned into folded stacks by `perfproof.profilers.go`, which reads the profile itself and needs no Go on the machine that converts it |
+| Supported | Go 1.25 on Linux arm64 in Docker (the official `golang:1.25` image), with the fixtures captured there and the profiler's integration tests run there, as run for T5.12; macOS and x86_64 are expected to work for the converters and have not been run with a Go toolchain |
+| Outside | Windows, cgo-heavy programs (not run), programs with no way to write a profile (see `skills/perfproof/go.md`), Go older than 1.18 for the built-executable check |
+
 ## Web and CRUD services
 
 | | |

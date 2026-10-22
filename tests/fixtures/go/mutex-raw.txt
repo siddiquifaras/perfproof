@@ -1,0 +1,60 @@
+PeriodType: contentions count
+Period: 1
+Time: 2026-10-22 17:11:42.313947428 +0000 UTC
+Samples:
+contentions/count delay/nanoseconds
+       1287   12670267: 1 
+         22     128001: 2 3 4 5 
+          1      56791: 6 7 8 9 
+          1      46833: 10 11 12 13 14 
+          1      20291: 15 16 17 18 19 20 
+         32      16584: 21 7 8 9 
+         10       8417: 22 23 24 
+          1        208: 25 26 27 28 29 30 
+Locations
+     1: 0x126460 M=1 sync.(*Mutex).Unlock /usr/local/go/src/sync/mutex.go:65:0 s=64
+             example.com/prog.Contend.func1 /src/work.go:57:0 s=52
+     2: 0x66528 M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.semacquire1 /usr/local/go/src/runtime/sema.go:186:0 s=146
+     3: 0x86c37 M=1 internal/sync.runtime_SemacquireMutex /usr/local/go/src/runtime/sema.go:95:0 s=94
+     4: 0x905cf M=1 internal/sync.(*Mutex).lockSlow /usr/local/go/src/internal/sync/mutex.go:149:0 s=95
+     5: 0x126437 M=1 internal/sync.(*Mutex).Lock /usr/local/go/src/internal/sync/mutex.go:70:0 s=61
+             sync.(*Mutex).Lock /usr/local/go/src/sync/mutex.go:46:0 s=45
+             example.com/prog.Contend.func1 /src/work.go:55:0 s=52
+     6: 0x6678c M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.semrelease1 /usr/local/go/src/runtime/sema.go:223:0 s=207
+     7: 0x86dfb M=1 internal/sync.runtime_Semrelease /usr/local/go/src/runtime/sema.go:124:0 s=123
+     8: 0x9088f M=1 internal/sync.(*Mutex).unlockSlow /usr/local/go/src/internal/sync/mutex.go:221:0 s=202
+     9: 0x12649f M=1 internal/sync.(*Mutex).Unlock /usr/local/go/src/internal/sync/mutex.go:198:0 s=187
+             sync.(*Mutex).Unlock /usr/local/go/src/sync/mutex.go:65:0 s=64
+             example.com/prog.Contend.func1 /src/work.go:57:0 s=52
+    10: 0x38678 M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.(*scavengerState).wake /usr/local/go/src/runtime/mgcscavenge.go:455:0 s=436
+    11: 0x5f923 M=1 runtime.sysmon /usr/local/go/src/runtime/proc.go:6355:0 s=6228
+    12: 0x55167 M=1 runtime.mstart1 /usr/local/go/src/runtime/proc.go:1942:0 s=1911
+    13: 0x550a3 M=1 runtime.mstart0 /usr/local/go/src/runtime/proc.go:1895:0 s=1869
+    14: 0x8a91f M=1 runtime.mstart /usr/local/go/src/runtime/asm_arm64.s:179:0 s=178
+    15: 0x556d4 M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.forEachPInternal /usr/local/go/src/runtime/proc.go:2181:0 s=2148
+    16: 0x3091f M=1 runtime.gcMarkTermination.forEachP.func6 /usr/local/go/src/runtime/proc.go:2134:0 s=2115
+    17: 0x8aa27 M=1 runtime.systemstack /usr/local/go/src/runtime/asm_arm64.s:294:0 s=255
+    18: 0x2ff73 M=1 runtime.forEachP /usr/local/go/src/runtime/proc.go:2115:0 s=2114
+             runtime.gcMarkTermination /usr/local/go/src/runtime/mgc.go:1227:0 s=1037
+    19: 0x2f713 M=1 runtime.gcMarkDone /usr/local/go/src/runtime/mgc.go:1032:0 s=887
+    20: 0x31013 M=1 runtime.gcBgMarkWorker /usr/local/go/src/runtime/mgc.go:1600:0 s=1428
+    21: 0x66720 M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.semrelease1 /usr/local/go/src/runtime/sema.go:230:0 s=207
+    22: 0x5a28c M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.parkunlock_c /usr/local/go/src/runtime/proc.go:4224:0 s=4223
+    23: 0x5a443 M=1 runtime.park_m /usr/local/go/src/runtime/proc.go:4259:0 s=4229
+    24: 0x8a993 M=1 runtime.mcall /usr/local/go/src/runtime/asm_arm64.s:241:0 s=215
+    25: 0x4902c M=1 runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.(*spanSet).push /usr/local/go/src/runtime/mspanset.go:140:0 s=83
+    26: 0x3b80b M=1 runtime.(*sweepLocked).sweep /usr/local/go/src/runtime/mgcsweep.go:794:0 s=504
+    27: 0x3ad3b M=1 runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:395:0 s=358
+    28: 0x2e86b M=1 runtime.GC /usr/local/go/src/runtime/mgc.go:523:0 s=481
+    29: 0xdffff M=1 testing.(*B).runN /usr/local/go/src/testing/benchmark.go:207:0 s=197
+    30: 0xe0687 M=1 testing.(*B).run1.func1 /usr/local/go/src/testing/benchmark.go:245:0 s=238
+Mappings
+1: 0x10000/0x131000/0x0 /out/prog.test a89bcd49f6e0e196418fec30bba0ab055ef3c612 [FN]
+2: 0xffff970ab000/0xffff970ad000/0x0 [vdso]  

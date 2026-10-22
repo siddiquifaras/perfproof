@@ -1,0 +1,525 @@
+PeriodType: space bytes
+Period: 4096
+Time: 2026-10-22 17:11:42.201182137 +0000 UTC
+Samples:
+alloc_objects/count alloc_space/bytes[dflt] inuse_objects/count inuse_space/bytes
+          3       4840          3       4840: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+                bytes:[1408]
+         86       8288         86       8288: 16 11 17 
+                bytes:[96]
+       1369      32864          0          0: 18 11 17 
+                bytes:[24]
+       1156      37008          0          0: 18 11 17 
+                bytes:[32]
+       1332     170573          0          0: 18 11 17 
+                bytes:[128]
+       1630      78280          0          0: 18 11 17 
+                bytes:[48]
+        513      12324          0          0: 16 11 17 
+                bytes:[24]
+       1290      82561          0          0: 16 11 17 
+                bytes:[64]
+       1034      82722          0          0: 18 11 17 
+                bytes:[80]
+       1373      65920          0          0: 16 11 17 
+                bytes:[48]
+       2128     136226          0          0: 18 11 17 
+                bytes:[64]
+       1779     199308          0          0: 18 11 17 
+                bytes:[112]
+       1482     166090          0          0: 16 11 17 
+                bytes:[112]
+       1615     336070          0          0: 18 11 17 
+                bytes:[208]
+       1783     313847          0          0: 18 11 17 
+                bytes:[176]
+       1028      32896          0          0: 16 11 17 
+                bytes:[32]
+       2914    1025884          0          0: 18 11 17 
+                bytes:[352]
+       1597     153334          0          0: 18 11 17 
+                bytes:[96]
+       1602     128220          0          0: 16 11 17 
+                bytes:[80]
+       1493     358459          0          0: 18 11 17 
+                bytes:[240]
+       1467     140902          0          0: 16 11 17 
+                bytes:[96]
+       3063     882270          0          0: 18 11 17 
+                bytes:[288]
+       1653     370393          0          0: 18 11 17 
+                bytes:[224]
+       1454     302463          0          0: 16 11 17 
+                bytes:[208]
+       1282      20520          0          0: 16 11 17 
+                bytes:[16]
+        769      12312          0          0: 18 11 17 
+                bytes:[16]
+       2795    1163030          0          0: 18 11 17 
+                bytes:[416]
+       3092     890754          0          0: 16 11 17 
+                bytes:[288]
+       1667     426758          0          0: 16 11 17 
+                bytes:[256]
+       1650     237600          0          0: 16 11 17 
+                bytes:[144]
+       1397     178894          0          0: 16 11 17 
+                bytes:[128]
+          4       4698          4       4698: 19 20 21 22 23 24 25 26 27 
+                bytes:[1152]
+       2382    1220052          0          0: 18 11 17 
+                bytes:[512]
+       1566     250591          0          0: 16 11 17 
+                bytes:[160]
+       3140    1205770          0          0: 18 11 17 
+                bytes:[384]
+       3133    1102826          0          0: 16 11 17 
+                bytes:[352]
+       1670     267297          0          0: 18 11 17 
+                bytes:[160]
+        398    4901166          0          0: 16 11 17 
+                bytes:[12288]
+        787    9673015          0          0: 18 11 17 
+                bytes:[12288]
+      42802  465687773          0          0: 16 11 17 
+                bytes:[10880]
+      42881  466553690          0          0: 18 11 17 
+                bytes:[10880]
+      33993  348091838          0          0: 16 11 17 
+                bytes:[10240]
+      33965  347801789          0          0: 18 11 17 
+                bytes:[10240]
+      17165  166987487          0          0: 16 11 17 
+                bytes:[9728]
+      17177  167105469          0          0: 18 11 17 
+                bytes:[9728]
+      84949  804637874          0          0: 16 11 17 
+                bytes:[9472]
+      85303  807991495          0          0: 18 11 17 
+                bytes:[9472]
+      85266  698503792          0          0: 16 11 17 
+                bytes:[8192]
+      85134  697423734          0          0: 18 11 17 
+                bytes:[8192]
+       8825   61002308          0          0: 16 11 17 
+                bytes:[6912]
+       8760   60552826          0          0: 18 11 17 
+                bytes:[6912]
+      16856  114351304          0          0: 16 11 17 
+                bytes:[6784]
+      16768  113756030          0          0: 18 11 17 
+                bytes:[6784]
+      25438  166059617          0          0: 16 11 17 
+                bytes:[6528]
+      25458  166190695          0          0: 18 11 17 
+                bytes:[6528]
+      51060  313712845          0          0: 16 11 17 
+                bytes:[6144]
+      50865  312518637          0          0: 18 11 17 
+                bytes:[6144]
+      34511  185534884          0          0: 18 11 17 
+                bytes:[5376]
+      34747  186800079          0          0: 16 11 17 
+                bytes:[5376]
+      61038  296892598          0          0: 16 11 17 
+                bytes:[4864]
+      61650  299866913          0          0: 18 11 17 
+                bytes:[4864]
+      51161  209555974          0          0: 16 11 17 
+                bytes:[4096]
+      51556  211175919          0          0: 18 11 17 
+                bytes:[4096]
+      20447   70665712          0          0: 16 11 17 
+                bytes:[3456]
+      20277   70077488          0          0: 18 11 17 
+                bytes:[3456]
+      10450   33442116          0          0: 16 11 17 
+                bytes:[3200]
+      10400   33282756          0          0: 18 11 17 
+                bytes:[3200]
+      30784   94570380          0          0: 16 11 17 
+                bytes:[3072]
+      30559   93877536          0          0: 18 11 17 
+                bytes:[3072]
+      30444   81834249          0          0: 18 11 17 
+                bytes:[2688]
+      30708   82543665          0          0: 16 11 17 
+                bytes:[2688]
+      20389   46977873          0          0: 16 11 17 
+                bytes:[2304]
+      20306   46785077          0          0: 18 11 17 
+                bytes:[2304]
+      20039   41041266          0          0: 16 11 17 
+                bytes:[2048]
+      20314   41603404          0          0: 18 11 17 
+                bytes:[2048]
+      20699   37094018          0          0: 18 11 17 
+                bytes:[1792]
+      20186   36173621          0          0: 16 11 17 
+                bytes:[1792]
+      10402   15978371          0          0: 18 11 17 
+                bytes:[1536]
+      10258   15757336          0          0: 16 11 17 
+                bytes:[1536]
+      10213   14380395          0          0: 16 11 17 
+                bytes:[1408]
+       9948   14007695          0          0: 18 11 17 
+                bytes:[1408]
+      10604   13573368          0          0: 18 11 17 
+                bytes:[1280]
+      10432   13353981          0          0: 16 11 17 
+                bytes:[1280]
+       9887   11390289          0          0: 18 11 17 
+                bytes:[1152]
+      10340   11911874          0          0: 16 11 17 
+                bytes:[1152]
+      10271   10517794          0          0: 16 11 17 
+                bytes:[1024]
+      10149   10392803          0          0: 18 11 17 
+                bytes:[1024]
+      10438    9353216          0          0: 18 11 17 
+                bytes:[896]
+      10449    9362337          0          0: 16 11 17 
+                bytes:[896]
+       5030    3863113          0          0: 18 11 17 
+                bytes:[768]
+       5334    4096697          0          0: 16 11 17 
+                bytes:[768]
+       5363    3775992          0          0: 18 11 17 
+                bytes:[704]
+       5034    3544172          0          0: 16 11 17 
+                bytes:[704]
+       5025    3216487          0          0: 16 11 17 
+                bytes:[640]
+       5240    3353642          0          0: 18 11 17 
+                bytes:[640]
+       5305    3055960          0          0: 16 11 17 
+                bytes:[576]
+       5130    2954973          0          0: 18 11 17 
+                bytes:[576]
+       2442    1250554          0          0: 16 11 17 
+                bytes:[512]
+       3219    1545284          0          0: 16 11 17 
+                bytes:[480]
+       2658    1276161          0          0: 18 11 17 
+                bytes:[480]
+       2519    1128585          0          0: 16 11 17 
+                bytes:[448]
+       2200     985890          0          0: 18 11 17 
+                bytes:[448]
+       2702    1124262          0          0: 16 11 17 
+                bytes:[416]
+       3128    1201479          0          0: 16 11 17 
+                bytes:[384]
+       2834     906971          0          0: 16 11 17 
+                bytes:[320]
+       3166    1013423          0          0: 18 11 17 
+                bytes:[320]
+       1848     473237          0          0: 18 11 17 
+                bytes:[256]
+       1774     425934          0          0: 16 11 17 
+                bytes:[240]
+       1653     370393          0          0: 16 11 17 
+                bytes:[224]
+       1353     259950          0          0: 18 11 17 
+                bytes:[192]
+       1615     310263          0          0: 16 11 17 
+                bytes:[192]
+       1783     313847          0          0: 16 11 17 
+                bytes:[176]
+       1621     233431          0          0: 18 11 17 
+                bytes:[144]
+       1795      28728          0          0: 28 29 11 17 
+                bytes:[16]
+          1      32778          0          0: 30 29 11 17 
+                bytes:[32768]
+          1       6479          0          0: 31 32 33 34 35 36 37 38 35 39 9 10 11 12 13 14 15 
+                bytes:[4096]
+          1      12931          0          0: 16 11 40 
+                bytes:[12288]
+          2      25863          0          0: 18 11 40 
+                bytes:[12288]
+        107    1170157          0          0: 16 11 40 
+                bytes:[10880]
+        105    1146754          0          0: 18 11 40 
+                bytes:[10880]
+         86     881301          0          0: 16 11 40 
+                bytes:[10240]
+         90     925924          0          0: 18 11 40 
+                bytes:[10240]
+         42     418299          0          0: 16 11 40 
+                bytes:[9728]
+         45     439751          0          0: 18 11 40 
+                bytes:[9728]
+        209    1986941          0          0: 16 11 40 
+                bytes:[9472]
+        214    2028993          0          0: 18 11 40 
+                bytes:[9472]
+        217    1781148          0          0: 16 11 40 
+                bytes:[8192]
+        215    1762199          0          0: 18 11 40 
+                bytes:[8192]
+         24     169615          0          0: 16 11 40 
+                bytes:[6912]
+         22     152654          0          0: 18 11 40 
+                bytes:[6912]
+         42     285060          0          0: 18 11 40 
+                bytes:[6784]
+         42     285060          0          0: 16 11 40 
+                bytes:[6784]
+         66     434196          0          0: 16 11 40 
+                bytes:[6528]
+         67     442388          0          0: 18 11 40 
+                bytes:[6528]
+        131     806683          0          0: 18 11 40 
+                bytes:[6144]
+        128     790866          0          0: 16 11 40 
+                bytes:[6144]
+         88     478125          0          0: 16 11 40 
+                bytes:[5376]
+         84     456058          0          0: 18 11 40 
+                bytes:[5376]
+        164     797816          0          0: 16 11 40 
+                bytes:[4864]
+        161     783819          0          0: 18 11 40 
+                bytes:[4864]
+          4       4698          4       4698: 41 20 21 22 23 24 25 26 27 
+                bytes:[1152]
+          9       4324          9       4324: 42 43 20 21 22 23 24 25 26 27 
+                bytes:[448]
+          7      15614          7      15614: 44 21 22 23 24 25 26 27 
+                bytes:[2048]
+        121     498942          0          0: 16 11 40 
+                bytes:[4096]
+        131     537821          0          0: 18 11 40 
+                bytes:[4096]
+         56     194053          0          0: 18 11 40 
+                bytes:[3456]
+         52     181924          0          0: 16 11 40 
+                bytes:[3456]
+         27      88533          0          0: 18 11 40 
+                bytes:[3200]
+         29      94435          0          0: 16 11 40 
+                bytes:[3200]
+         68     209600          0          0: 18 11 40 
+                bytes:[3072]
+         85     262000          0          0: 16 11 40 
+                bytes:[3072]
+         95     256953          0          0: 18 11 40 
+                bytes:[2688]
+         87     234610          0          0: 16 11 40 
+                bytes:[2688]
+         60     139241          0          0: 16 11 40 
+                bytes:[2304]
+         62     144596          0          0: 18 11 40 
+                bytes:[2304]
+         40      83279          0          0: 18 11 40 
+                bytes:[2048]
+         43      88484          0          0: 16 11 40 
+                bytes:[2048]
+         56     101142          0          0: 16 11 40 
+                bytes:[1792]
+         45      80914          0          0: 18 11 40 
+                bytes:[1792]
+         22      34383          0          0: 16 11 40 
+                bytes:[1536]
+         31      49118          0          0: 18 11 40 
+                bytes:[1536]
+         34      48402          0          0: 16 11 40 
+                bytes:[1408]
+         30      43562          0          0: 18 11 40 
+                bytes:[1408]
+         29      38154          0          0: 16 11 40 
+                bytes:[1280]
+         33      42923          0          0: 18 11 40 
+                bytes:[1280]
+         24      28193          0          0: 16 11 40 
+                bytes:[1152]
+         44      51688          0          0: 18 11 40 
+                bytes:[1152]
+         45      46293          0          0: 16 11 40 
+                bytes:[1024]
+         31      32405          0          0: 18 11 40 
+                bytes:[1024]
+         25      22801          0          0: 18 11 40 
+                bytes:[896]
+         45      41042          0          0: 16 11 40 
+                bytes:[896]
+         11       8983          0          0: 16 11 40 
+                bytes:[768]
+         25      17832          0          0: 18 11 40 
+                bytes:[704]
+          6       4458          0          0: 16 11 40 
+                bytes:[704]
+         13       8848          0          0: 16 11 40 
+                bytes:[640]
+        256       4104        256       4104: 45 46 47 48 49 
+                bytes:[16]
+         13       8848          0          0: 18 11 40 
+                bytes:[640]
+          7       4390          0          0: 16 11 40 
+                bytes:[576]
+          7       4390          0          0: 18 11 40 
+                bytes:[576]
+          8       4357          0          0: 18 11 40 
+                bytes:[512]
+         17       8714          0          0: 16 11 40 
+                bytes:[512]
+          9       4340          0          0: 16 11 40 
+                bytes:[480]
+          9       4340          0          0: 18 11 40 
+                bytes:[480]
+         20       8615          0          0: 16 11 40 
+                bytes:[416]
+         20       8615          0          0: 18 11 40 
+                bytes:[416]
+         11       4290          0          0: 18 11 40 
+                bytes:[384]
+         24       8549          0          0: 18 11 40 
+                bytes:[352]
+         13       4258          0          0: 16 11 40 
+                bytes:[320]
+         14       4241          0          0: 16 11 40 
+                bytes:[288]
+         21       4192          0          0: 16 11 40 
+                bytes:[192]
+         23       4184          0          0: 16 11 40 
+                bytes:[176]
+         52       8353          0          0: 18 11 40 
+                bytes:[160]
+         32       4160          0          0: 18 11 40 
+                bytes:[128]
+       1026      16416          0          0: 28 29 11 40 
+                bytes:[16]
+          1      32778          0          0: 30 29 11 40 
+                bytes:[32768]
+          5       4560          0          0: 50 51 40 
+                bytes:[896]
+          5       4560          0          0: 50 51 12 13 14 15 
+                bytes:[896]
+        302      29009        302      29009: 52 53 54 55 
+                bytes:[96]
+         17       8714         17       8714: 56 
+                bytes:[512]
+         28      12972         28      12972: 42 57 58 59 
+                bytes:[448]
+          3       4840          0          0: 1 2 3 4 60 61 13 14 15 
+                bytes:[1408]
+         26       4176         26       4176: 62 63 64 65 66 13 14 15 
+                bytes:[160]
+          6       4458          6       4458: 67 68 69 70 71 63 64 65 66 13 14 15 
+                bytes:[704]
+         26       4176          0          0: 67 68 69 70 71 63 64 65 66 13 14 15 
+                bytes:[160]
+          3       4840          0          0: 1 2 3 72 73 74 64 65 75 76 14 15 
+                bytes:[1408]
+         43       4144          0          0: 77 78 79 63 64 65 75 76 14 15 
+                bytes:[96]
+        256       4104        256       4104: 80 81 14 15 
+                bytes:[16]
+          2       5204          2       5204: 44 21 22 23 24 25 82 83 84 
+                bytes:[2048]
+Locations
+     1: 0x91187 M=1 sync.(*Pool).pinSlow /usr/local/go/src/sync/pool.go:241:0 s=223
+     2: 0x90fab M=1 sync.(*Pool).pin /usr/local/go/src/sync/pool.go:220:0 s=202
+     3: 0x90d0f M=1 sync.(*Pool).Get /usr/local/go/src/sync/pool.go:135:0 s=131
+     4: 0xca723 M=1 fmt.newPrinter /usr/local/go/src/fmt/print.go:152:0 s=151
+     5: 0xcaac7 M=1 fmt.Fprintf /usr/local/go/src/fmt/print.go:223:0 s=222
+     6: 0xe0ccb M=1 testing.BenchmarkResult.String /usr/local/go/src/testing/benchmark.go:597:0 s=595
+     7: 0xe1ecf M=1 testing.(*benchState).processBench /usr/local/go/src/testing/benchmark.go:769:0 s=735
+     8: 0xe076f M=1 testing.(*B).run /usr/local/go/src/testing/benchmark.go:288:0 s=275
+     9: 0xe2637 M=1 testing.(*B).Run /usr/local/go/src/testing/benchmark.go:863:0 s=803
+    10: 0xe1abf M=1 testing.runBenchmarks.func1 /usr/local/go/src/testing/benchmark.go:721:0 s=719
+    11: 0xe0083 M=1 testing.(*B).runN /usr/local/go/src/testing/benchmark.go:219:0 s=197
+    12: 0xe1a27 M=1 testing.runBenchmarks /usr/local/go/src/testing/benchmark.go:730:0 s=686
+    13: 0xec77f M=1 testing.(*M).Run /usr/local/go/src/testing/testing.go:2353:0 s=2234
+    14: 0x126bdf M=1 main.main _testmain.go:57:0 s=54
+    15: 0x51b07 M=1 runtime.main /usr/local/go/src/runtime/proc.go:285:0 s=148
+    16: 0x12691f M=1 example.com/prog.Join /src/work.go:17:0 s=13
+             example.com/prog.BenchmarkJoin /src/work_test.go:33:0 s=29
+    17: 0xe0a83 M=1 testing.(*B).launch /usr/local/go/src/testing/benchmark.go:344:0 s=328
+    18: 0x1268b3 M=1 example.com/prog.Join /src/work.go:19:0 s=13
+             example.com/prog.BenchmarkJoin /src/work_test.go:33:0 s=29
+    19: 0x5343f M=1 runtime.makeProfStackFP /usr/local/go/src/runtime/proc.go:1060:0 s=1053
+             runtime.mProfStackInit /usr/local/go/src/runtime/proc.go:1047:0 s=1040
+             runtime.mcommoninit /usr/local/go/src/runtime/proc.go:1033:0 s=997
+    20: 0x55c5b M=1 runtime.allocm /usr/local/go/src/runtime/proc.go:2341:0 s=2284
+    21: 0x56873 M=1 runtime.newm /usr/local/go/src/runtime/proc.go:2875:0 s=2862
+    22: 0x56f2f M=1 runtime.startm /usr/local/go/src/runtime/proc.go:3101:0 s=3040
+    23: 0x85aab M=1 runtime.wakep /usr/local/go/src/runtime/proc.go:3248:0 s=3217
+    24: 0x59bc3 M=1 runtime.resetspinning /usr/local/go/src/runtime/proc.go:4022:0 s=4009
+    25: 0x5a0ff M=1 runtime.schedule /usr/local/go/src/runtime/proc.go:4175:0 s=4123
+    26: 0x5a56b M=1 runtime.park_m /usr/local/go/src/runtime/proc.go:4280:0 s=4229
+    27: 0x8a993 M=1 runtime.mcall /usr/local/go/src/runtime/asm_arm64.s:241:0 s=215
+    28: 0x12620b M=1 example.com/prog.Words /src/work.go:37:0 s=34
+    29: 0x126843 M=1 example.com/prog.BenchmarkJoin /src/work_test.go:30:0 s=29
+    30: 0x1261af M=1 example.com/prog.Words /src/work.go:35:0 s=34
+    31: 0xdab0f M=1 bufio.(*Scanner).Scan /usr/local/go/src/bufio/scan.go:209:0 s=139
+    32: 0xdb713 M=1 internal/sysinfo.osCPUInfoName /usr/local/go/src/internal/sysinfo/cpuinfo_linux.go:42:0 s=30
+    33: 0xdb3eb M=1 internal/sysinfo.init.func1 /usr/local/go/src/internal/sysinfo/sysinfo.go:19:0 s=14
+    34: 0xdb2c3 M=1 internal/sysinfo.init.OnceValue[go.shape.string].func2.1 /usr/local/go/src/sync/oncefunc.go:66:0 s=58
+    35: 0x90b0f M=1 sync.(*Once).doSlow /usr/local/go/src/sync/once.go:78:0 s=73
+    36: 0x90a03 M=1 sync.(*Once).Do /usr/local/go/src/sync/once.go:69:0 s=52
+    37: 0xdb23b M=1 internal/sysinfo.init.OnceValue[go.shape.string].func2 /usr/local/go/src/sync/oncefunc.go:58:0 s=57
+    38: 0xe0883 M=1 testing.(*B).run.func1 /usr/local/go/src/testing/benchmark.go:282:0 s=276
+    39: 0xe0757 M=1 sync.(*Once).Do /usr/local/go/src/sync/once.go:69:0 s=52
+             testing.(*B).run /usr/local/go/src/testing/benchmark.go:276:0 s=275
+    40: 0xe0687 M=1 testing.(*B).run1.func1 /usr/local/go/src/testing/benchmark.go:245:0 s=238
+    41: 0x533ef M=1 runtime.makeProfStackFP /usr/local/go/src/runtime/proc.go:1060:0 s=1053
+             runtime.mProfStackInit /usr/local/go/src/runtime/proc.go:1046:0 s=1040
+             runtime.mcommoninit /usr/local/go/src/runtime/proc.go:1033:0 s=997
+    42: 0x5c567 M=1 runtime.malg /usr/local/go/src/runtime/proc.go:5137:0 s=5136
+    43: 0x532bf M=1 runtime.mpreinit /usr/local/go/src/runtime/os_linux.go:391:0 s=390
+             runtime.mcommoninit /usr/local/go/src/runtime/proc.go:1015:0 s=997
+    44: 0x55c2b M=1 runtime.allocm /usr/local/go/src/runtime/proc.go:2339:0 s=2284
+    45: 0x70807 M=1 runtime.(*timers).addHeap /usr/local/go/src/runtime/time.go:462:0 s=450
+    46: 0x712a3 M=1 runtime.(*timer).maybeAdd /usr/local/go/src/runtime/time.go:746:0 s=708
+    47: 0x70fef M=1 runtime.(*timer).modify /usr/local/go/src/runtime/time.go:668:0 s=572
+    48: 0x3876f M=1 runtime.(*timer).reset /usr/local/go/src/runtime/time.go:760:0 s=759
+             runtime.(*scavengerState).sleep /usr/local/go/src/runtime/mgcscavenge.go:500:0 s=465
+    49: 0x38b3b M=1 runtime.bgscavenge /usr/local/go/src/runtime/mgcscavenge.go:662:0 s=649
+    50: 0xdfe4b M=1 testing.(*B).ResetTimer /usr/local/go/src/testing/benchmark.go:170:0 s=166
+    51: 0xe006b M=1 testing.(*B).runN /usr/local/go/src/testing/benchmark.go:217:0 s=197
+    52: 0x52113 M=1 runtime.acquireSudog /usr/local/go/src/runtime/proc.go:509:0 s=486
+    53: 0x66307 M=1 runtime.semacquire1 /usr/local/go/src/runtime/sema.go:163:0 s=146
+    54: 0x2f42b M=1 runtime.semacquire /usr/local/go/src/runtime/sema.go:143:0 s=142
+             runtime.gcMarkDone /usr/local/go/src/runtime/mgc.go:890:0 s=887
+    55: 0x31013 M=1 runtime.gcBgMarkWorker /usr/local/go/src/runtime/mgc.go:1600:0 s=1428
+    56: 0x30cff M=1 runtime.gcBgMarkWorker /usr/local/go/src/runtime/mgc.go:1435:0 s=1428
+    57: 0x5c793 M=1 runtime.newproc1 /usr/local/go/src/runtime/proc.go:5185:0 s=5176
+    58: 0x5c6db M=1 runtime.newproc.func1 /usr/local/go/src/runtime/proc.go:5162:0 s=5161
+    59: 0x8aa27 M=1 runtime.systemstack /usr/local/go/src/runtime/asm_arm64.s:294:0 s=255
+    60: 0xcab9f M=1 fmt.Sprintf /usr/local/go/src/fmt/print.go:238:0 s=237
+    61: 0xe1677 M=1 testing.benchmarkName /usr/local/go/src/testing/benchmark.go:668:0 s=666
+             testing.runBenchmarks /usr/local/go/src/testing/benchmark.go:700:0 s=686
+    62: 0x106fe3 M=1 regexp.compile /usr/local/go/src/regexp/regexp.go:184:0 s=167
+    63: 0x12500f M=1 regexp.Compile /usr/local/go/src/regexp/regexp.go:131:0 s=130
+             testing/internal/testdeps.TestDeps.MatchString /usr/local/go/src/testing/internal/testdeps/deps.go:42:0 s=39
+    64: 0xe5913 M=1 testing.simpleMatch.verify /usr/local/go/src/testing/match.go:143:0 s=137
+    65: 0xe50e7 M=1 testing.newMatcher /usr/local/go/src/testing/match.go:61:0 s=55
+    66: 0xe1613 M=1 testing.runBenchmarks /usr/local/go/src/testing/benchmark.go:699:0 s=686
+    67: 0xf613b M=1 regexp/syntax.(*compiler).inst /usr/local/go/src/regexp/syntax/compile.go:164:0 s=161
+             regexp/syntax.(*compiler).rune /usr/local/go/src/regexp/syntax/compile.go:273:0 s=272
+    68: 0xf5833 M=1 regexp/syntax.(*compiler).compile /usr/local/go/src/regexp/syntax/compile.go:101:0 s=89
+    69: 0xf55c3 M=1 regexp/syntax.(*compiler).compile /usr/local/go/src/regexp/syntax/compile.go:147:0 s=89
+    70: 0xf4453 M=1 regexp/syntax.Compile /usr/local/go/src/regexp/syntax/compile.go:74:0 s=71
+    71: 0x106ef3 M=1 regexp.compile /usr/local/go/src/regexp/regexp.go:176:0 s=167
+    72: 0x103bab M=1 regexp.newOnePassMachine /usr/local/go/src/regexp/exec.go:384:0 s=383
+             regexp.(*Regexp).doOnePass /usr/local/go/src/regexp/exec.go:403:0 s=397
+    73: 0x10449f M=1 regexp.(*Regexp).doExecute /usr/local/go/src/regexp/exec.go:532:0 s=521
+    74: 0x125093 M=1 regexp.(*Regexp).doMatch /usr/local/go/src/regexp/exec.go:514:0 s=513
+             regexp.(*Regexp).MatchString /usr/local/go/src/regexp/regexp.go:527:0 s=526
+             testing/internal/testdeps.TestDeps.MatchString /usr/local/go/src/testing/internal/testdeps/deps.go:47:0 s=39
+    75: 0xed42f M=1 testing.runTests /usr/local/go/src/testing/testing.go:2460:0 s=2445
+    76: 0xec4cf M=1 testing.(*M).Run /usr/local/go/src/testing/testing.go:2337:0 s=2234
+    77: 0x10566b M=1 regexp.makeOnePass /usr/local/go/src/regexp/onepass.go:303:0 s=293
+    78: 0x106ca3 M=1 regexp.compileOnePass /usr/local/go/src/regexp/onepass.go:502:0 s=459
+    79: 0x106f07 M=1 regexp.compile /usr/local/go/src/regexp/regexp.go:187:0 s=167
+    80: 0xee3ab M=1 testing.(*M).startAlarm /usr/local/go/src/testing/testing.go:2668:0 s=2662
+    81: 0xec43f M=1 testing.(*M).Run /usr/local/go/src/testing/testing.go:2335:0 s=2234
+    82: 0x55197 M=1 runtime.mstart1 /usr/local/go/src/runtime/proc.go:1949:0 s=1911
+    83: 0x550a3 M=1 runtime.mstart0 /usr/local/go/src/runtime/proc.go:1895:0 s=1869
+    84: 0x8a91f M=1 runtime.mstart /usr/local/go/src/runtime/asm_arm64.s:179:0 s=178
+Mappings
+1: 0x10000/0x131000/0x0 /out/prog.test a89bcd49f6e0e196418fec30bba0ab055ef3c612 [FN]
+2: 0xffffb4738000/0xffffb473a000/0x0 [vdso]  

@@ -209,6 +209,9 @@ No discovery. One candidate at a time, against its parent.
    For Java and other JVM code, read [java.md](java.md) first: how to
    launch the benchmark so the runtime is identified, how to warm it
    up, how to profile it, and what usually goes wrong.
+   For Go, read [go.md](go.md) first: how to build and launch the
+   benchmark so the runtime is identified, how to profile it with
+   pprof, and what usually goes wrong.
 3. **Ideas.** For each hotspot, work out the most a change there could
    save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:

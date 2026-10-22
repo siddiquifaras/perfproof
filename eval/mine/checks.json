@@ -699,5 +699,47 @@
     "oracle": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
     "oracle_source": "FastDoubleCharBufferBoundaryTest and SchubfachWriteCharBufferTest, tests https://github.com/FasterXML/jackson-core/pull/1704 adds for the change; targeted tests only",
     "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
+  },
+  "labstack-echo-pr1799": {
+    "setup": [
+      "cp ../../../../tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go .",
+      "go test -count 1 -run ^$ ./..."
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalServeHTTPPath$ -benchtime 2000000x .",
+    "workload_source": "written here from the description of https://github.com/labstack/echo/pull/1799 (a performance regression from escaping the request path in ServeHTTP; its benchmarks are BenchmarkEcho* in the description and are not in the tree): a Go benchmark that serves a GET whose path has one percent-encoded segment through the router, eval/tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 . ./middleware/",
+    "oracle_source": "echo's own tests of the root package and of middleware, the packages https://github.com/labstack/echo/pull/1799 changes (echo.go and middleware/middleware.go); the whole of both",
+    "notes": "Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
+  },
+  "gin-gonic-gin-pr4339": {
+    "setup": [
+      "cp ../../../../tasks/workloads/gin-gonic-gin-pr4339/eval_formmap_bench_test.go .",
+      "go test -count 1 -run ^$ ."
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalQueryMap$ -benchtime 400000x .",
+    "workload_source": "written here from the description of https://github.com/gin-gonic/gin/pull/4339 (getMapFromFormData): a Go benchmark that reads one map out of a query string of about 450 parameters, eval/tasks/workloads/gin-gonic-gin-pr4339/eval_formmap_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 -run Map|Query|Form .",
+    "oracle_source": "gin's map, query and form tests (context_test.go is changed by https://github.com/gin-gonic/gin/pull/4339); targeted tests only",
+    "notes": "Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
+  },
+  "gin-gonic-gin-pr4246-landed": {
+    "setup": [
+      "cp ../../../../tasks/workloads/gin-gonic-gin-pr4246-landed/eval_addroute_bench_test.go .",
+      "go test -count 1 -run ^$ ."
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalAddRoutes$ -benchtime 3000x .",
+    "workload_source": "written here from the description of https://github.com/gin-gonic/gin/pull/4246 (path parsing in tree.go): a Go benchmark that registers 240 routes with parameters and wildcards on a new engine, eval/tasks/workloads/gin-gonic-gin-pr4246-landed/eval_addroute_bench_test.go, copied into the tree, run on the tree where the change is already in",
+    "oracle": "go test -count 1 -run Tree|Route|Param|Path .",
+    "oracle_source": "gin's tree, route and parameter tests (tree_test.go covers the file https://github.com/gin-gonic/gin/pull/4246 changes); targeted tests only",
+    "notes": "Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
   }
 }

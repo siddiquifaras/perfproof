@@ -1,0 +1,483 @@
+PeriodType: cpu nanoseconds
+Period: 10000000
+Time: 2026-10-22 17:11:35.983327842 +0000 UTC
+Duration: 2.00
+Samples:
+samples/count cpu/nanoseconds
+          4   40000000: 1 2 3 4 5 6 7 8 9 
+          1   10000000: 10 11 12 13 14 15 
+          2   20000000: 16 17 18 19 20 21 
+          9   90000000: 16 17 18 22 20 21 
+          1   10000000: 23 24 25 26 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 36 37 38 12 13 14 15 
+         23  230000000: 39 17 18 22 20 21 
+          1   10000000: 40 41 42 43 44 45 12 46 47 48 34 35 18 19 20 21 
+          6   60000000: 49 17 18 22 20 21 
+          5   50000000: 50 51 52 53 12 54 
+          6   60000000: 55 17 18 22 20 21 
+          3   30000000: 49 17 18 19 20 21 
+          1   10000000: 56 57 8 9 
+          4   40000000: 58 59 60 61 62 63 64 12 54 
+          1   10000000: 65 66 67 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 69 70 71 72 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 73 74 75 76 11 12 13 14 77 78 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 1 2 3 4 5 79 80 12 81 82 33 34 35 18 22 20 21 
+          1   10000000: 83 84 15 
+         12  120000000: 55 17 18 19 20 21 
+          1   10000000: 50 51 52 85 12 54 
+          1   10000000: 86 87 52 64 12 54 
+          1   10000000: 88 89 90 91 92 93 94 95 64 12 54 
+          1   10000000: 96 97 60 98 99 100 12 101 102 
+          1   10000000: 103 52 53 12 54 
+          1   10000000: 69 104 105 12 106 107 108 109 
+          1   10000000: 110 111 112 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 113 37 38 12 13 14 15 
+          8   80000000: 114 115 116 105 12 106 107 108 109 
+          3   30000000: 117 17 18 22 20 21 
+          1   10000000: 118 119 120 112 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+         19  190000000: 39 17 18 19 20 21 
+          4   40000000: 121 17 18 22 20 21 
+          1   10000000: 122 18 22 20 21 
+          1   10000000: 123 124 125 92 93 94 95 64 12 54 
+          1   10000000: 126 127 
+          1   10000000: 128 129 41 42 43 44 45 12 46 47 48 34 35 18 19 20 21 
+          1   10000000: 130 131 132 93 94 95 64 12 54 
+          1   10000000: 133 134 112 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 128 87 52 64 12 54 
+          1   10000000: 135 112 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          2   20000000: 136 137 138 139 140 
+          1   10000000: 141 142 11 12 13 14 15 
+          1   10000000: 143 33 34 35 18 19 20 21 
+          3   30000000: 144 17 18 19 20 21 
+          1   10000000: 1 2 3 145 146 147 8 9 
+          1   10000000: 148 149 52 64 12 54 
+          1   10000000: 1 2 150 151 152 153 12 13 14 15 
+          1   10000000: 154 155 31 32 33 34 35 18 19 20 21 
+          1   10000000: 156 18 22 20 21 
+          2   20000000: 157 17 18 19 20 21 
+          4   40000000: 158 52 64 12 54 
+          2   20000000: 50 51 159 44 45 12 46 47 48 34 35 18 19 20 21 
+          1   10000000: 160 51 52 64 12 54 
+          1   10000000: 161 162 163 77 78 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 164 165 12 166 82 33 34 35 18 22 20 21 
+          1   10000000: 167 168 169 170 171 12 172 173 174 175 33 34 35 18 19 20 21 
+          1   10000000: 176 72 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 177 178 179 14 77 78 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 180 181 43 44 45 12 46 47 48 34 35 18 19 20 21 
+          1   10000000: 182 15 
+          1   10000000: 183 41 184 95 64 12 54 
+          1   10000000: 154 155 31 32 33 34 35 18 22 20 21 
+          1   10000000: 185 31 32 33 34 35 18 19 20 21 
+          1   10000000: 186 129 41 184 95 64 12 54 
+          1   10000000: 187 188 168 169 132 93 94 43 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 189 190 191 92 93 94 95 64 12 54 
+          1   10000000: 192 18 19 20 21 
+          1   10000000: 193 194 52 64 12 54 
+          1   10000000: 195 196 32 33 34 35 18 22 20 21 
+          1   10000000: 197 198 199 200 80 12 81 82 33 34 35 18 19 20 21 
+          1   10000000: 201 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 202 203 204 
+          1   10000000: 205 14 15 
+          1   10000000: 157 17 18 22 20 21 
+          1   10000000: 206 51 159 44 45 12 46 47 48 34 35 18 19 20 21 
+          1   10000000: 207 208 209 210 211 212 213 12 214 215 102 
+          1   10000000: 58 59 60 61 62 63 53 12 54 
+          1   10000000: 216 64 12 54 
+          3   30000000: 144 17 18 22 20 21 
+          1   10000000: 217 53 12 54 
+          1   10000000: 58 59 60 98 218 219 12 220 102 
+          1   10000000: 221 222 223 224 138 139 140 
+          1   10000000: 225 226 179 14 15 
+          1   10000000: 227 228 72 68 12 27 28 29 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 229 75 76 11 12 13 14 15 
+          1   10000000: 230 231 232 6 7 8 9 
+          1   10000000: 233 111 112 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+          3   30000000: 121 17 18 19 20 21 
+          1   10000000: 50 51 159 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 1 2 3 145 146 147 234 139 140 
+          1   10000000: 235 41 184 95 64 12 54 
+          1   10000000: 236 155 31 32 33 34 35 18 19 20 21 
+          1   10000000: 237 131 170 171 12 172 173 174 175 33 34 35 18 19 20 21 
+          1   10000000: 238 231 232 6 7 8 9 
+          1   10000000: 239 87 159 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 240 108 109 
+          1   10000000: 241 89 90 91 92 93 94 95 53 12 54 
+          1   10000000: 201 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 242 243 31 32 33 34 35 18 22 20 21 
+          1   10000000: 158 52 53 12 54 
+          1   10000000: 244 41 42 43 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 1 222 245 246 247 147 8 9 
+          1   10000000: 248 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 249 66 67 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 1 2 3 4 5 250 139 140 
+          1   10000000: 251 17 18 19 20 21 
+          1   10000000: 252 253 254 33 34 35 18 19 20 21 
+          1   10000000: 255 129 41 184 95 64 12 54 
+          1   10000000: 88 168 169 170 171 12 172 173 174 175 33 34 35 18 22 20 21 
+          1   10000000: 256 163 15 
+          1   10000000: 1 2 150 151 257 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 258 259 260 261 155 31 32 33 34 35 18 19 20 21 
+          1   10000000: 262 15 
+          1   10000000: 263 18 22 20 21 
+          1   10000000: 264 159 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 221 222 245 246 247 147 8 9 
+          1   10000000: 265 171 12 172 173 174 175 33 34 35 18 22 20 21 
+          1   10000000: 266 51 52 53 12 54 
+          1   10000000: 267 32 33 34 35 18 22 20 21 
+          1   10000000: 266 51 52 64 12 54 
+          1   10000000: 268 78 30 31 32 33 34 35 18 19 20 21 
+          1   10000000: 50 51 52 64 12 54 
+          1   10000000: 1 2 3 4 5 6 7 234 139 140 
+          1   10000000: 269 270 147 234 139 140 
+          1   10000000: 271 97 60 61 62 63 53 12 54 
+          1   10000000: 272 273 274 275 171 12 172 173 174 175 33 34 35 18 19 20 21 
+          1   10000000: 276 18 22 20 21 
+          1   10000000: 277 278 11 12 13 14 15 
+          1   10000000: 279 280 147 8 9 
+          1   10000000: 281 282 283 284 44 45 12 46 47 48 34 35 18 22 20 21 
+          1   10000000: 285 91 92 93 94 95 64 12 54 
+          1   10000000: 286 287 100 12 101 102 
+          1   10000000: 156 18 19 20 21 
+          1   10000000: 288 289 30 31 32 33 34 35 18 22 20 21 
+          1   10000000: 290 66 67 68 12 27 28 29 30 31 32 33 34 35 18 19 20 21 
+Locations
+     1: 0x8e1f0 M=1 runtime.futex /usr/local/go/src/runtime/sys_linux_arm64.s:652:0 s=643
+     2: 0x4b7c7 M=1 runtime.futexwakeup /usr/local/go/src/runtime/os_linux.go:89:0 s=88
+     3: 0x2308b M=1 runtime.notewakeup /usr/local/go/src/runtime/lock_futex.go:32:0 s=26
+     4: 0x56feb M=1 runtime.startm /usr/local/go/src/runtime/proc.go:3126:0 s=3040
+     5: 0x85aab M=1 runtime.wakep /usr/local/go/src/runtime/proc.go:3248:0 s=3217
+     6: 0x59bc3 M=1 runtime.resetspinning /usr/local/go/src/runtime/proc.go:4022:0 s=4009
+     7: 0x5a0ff M=1 runtime.schedule /usr/local/go/src/runtime/proc.go:4175:0 s=4123
+     8: 0x5a56b M=1 runtime.park_m /usr/local/go/src/runtime/proc.go:4280:0 s=4229
+     9: 0x8a993 M=1 runtime.mcall /usr/local/go/src/runtime/asm_arm64.s:241:0 s=215
+    10: 0x3f5c0 M=1 internal/runtime/atomic.(*Uintptr).Add /usr/local/go/src/internal/runtime/atomic/types.go:420:0 s=419
+             runtime.(*mheap).freeSpanLocked /usr/local/go/src/runtime/mheap.go:1712:0 s=1696
+    11: 0x3c0f7 M=1 runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2 /usr/local/go/src/runtime/mheap.go:1660:0 s=1633
+    12: 0x8aa27 M=1 runtime.systemstack /usr/local/go/src/runtime/asm_arm64.s:294:0 s=255
+    13: 0x3b837 M=1 runtime.(*mheap).freeSpan /usr/local/go/src/runtime/mheap.go:1633:0 s=1632
+             runtime.(*sweepLocked).sweep /usr/local/go/src/runtime/mgcsweep.go:787:0 s=504
+    14: 0x3ad3b M=1 runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:395:0 s=358
+    15: 0x3aa8f M=1 runtime.bgsweep /usr/local/go/src/runtime/mgcsweep.go:300:0 s=272
+    16: 0x8d7ac M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:176:0 s=29
+    17: 0x6d2f3 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:56:0 s=28
+    18: 0x6d3af M=1 runtime.concatstring2 /usr/local/go/src/runtime/string.go:63:0 s=62
+    19: 0x1268b3 M=1 example.com/prog.Join /src/work.go:19:0 s=13
+             example.com/prog.BenchmarkJoin /src/work_test.go:33:0 s=29
+    20: 0xe0083 M=1 testing.(*B).runN /usr/local/go/src/testing/benchmark.go:219:0 s=197
+    21: 0xe0a83 M=1 testing.(*B).launch /usr/local/go/src/testing/benchmark.go:344:0 s=328
+    22: 0x12691f M=1 example.com/prog.Join /src/work.go:17:0 s=13
+             example.com/prog.BenchmarkJoin /src/work_test.go:33:0 s=29
+    23: 0x3ab98 M=1 runtime.(*sweepLocker).tryAcquire /usr/local/go/src/runtime/mgcsweep.go:350:0 s=341
+    24: 0x3e13f M=1 runtime.(*mheap).reclaimChunk /usr/local/go/src/runtime/mheap.go:950:0 s=912
+    25: 0x3dcab M=1 runtime.(*mheap).reclaim /usr/local/go/src/runtime/mheap.go:885:0 s=832
+    26: 0x3e353 M=1 runtime.(*mheap).alloc.func1 /usr/local/go/src/runtime/mheap.go:1015:0 s=1011
+    27: 0x3e2cb M=1 runtime.(*mheap).alloc /usr/local/go/src/runtime/mheap.go:1011:0 s=1006
+    28: 0x29233 M=1 runtime.(*mcentral).grow /usr/local/go/src/runtime/mcentral.go:253:0 s=251
+    29: 0x290af M=1 runtime.(*mcentral).cacheSpan /usr/local/go/src/runtime/mcentral.go:171:0 s=82
+    30: 0x2856b M=1 runtime.(*mcache).refill /usr/local/go/src/runtime/mcache.go:184:0 s=149
+    31: 0x24b53 M=1 runtime.(*mcache).nextFree /usr/local/go/src/runtime/malloc.go:916:0 s=906
+    32: 0x2515f M=1 runtime.mallocgcSmallNoscan /usr/local/go/src/runtime/malloc.go:1243:0 s=1214
+    33: 0x83e1b M=1 runtime.mallocgc /usr/local/go/src/runtime/malloc.go:1007:0 s=962
+    34: 0x6d70f M=1 runtime.rawstring /usr/local/go/src/runtime/string.go:319:0 s=318
+             runtime.rawstringtmp /usr/local/go/src/runtime/string.go:183:0 s=178
+    35: 0x6d267 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:54:0 s=28
+    36: 0x23670 M=1 runtime.lock2 /usr/local/go/src/runtime/lock_spinbit.go:157:0 s=155
+    37: 0x235ef M=1 runtime.lockWithRank /usr/local/go/src/runtime/lockrank_off.go:24:0 s=23
+             runtime.lock /usr/local/go/src/runtime/lock_spinbit.go:152:0 s=151
+    38: 0x3c0e7 M=1 runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2 /usr/local/go/src/runtime/mheap.go:1643:0 s=1633
+    39: 0x8d7a8 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:175:0 s=29
+    40: 0x35708 M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1429:0 s=1411
+    41: 0x3332f M=1 runtime.markrootBlock /usr/local/go/src/runtime/mgcmark.go:293:0 s=272
+    42: 0x330cf M=1 runtime.markroot /usr/local/go/src/runtime/mgcmark.go:177:0 s=163
+    43: 0x35587 M=1 runtime.gcDrainN /usr/local/go/src/runtime/mgcmark.go:1361:0 s=1328
+    44: 0x340a7 M=1 runtime.gcAssistAlloc1 /usr/local/go/src/runtime/mgcmark.go:690:0 s=653
+    45: 0x33f0f M=1 runtime.gcAssistAlloc.func2 /usr/local/go/src/runtime/mgcmark.go:581:0 s=580
+    46: 0x33b93 M=1 runtime.gcAssistAlloc /usr/local/go/src/runtime/mgcmark.go:580:0 s=441
+    47: 0x25ea3 M=1 runtime.deductAssistCredit /usr/local/go/src/runtime/malloc.go:1660:0 s=1646
+    48: 0x83dc7 M=1 runtime.mallocgc /usr/local/go/src/runtime/malloc.go:996:0 s=962
+    49: 0x8d790 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:169:0 s=29
+    50: 0x26b7c M=1 runtime.typePointers.next /usr/local/go/src/runtime/mbitmap.go:245:0 s=243
+    51: 0x358a3 M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1508:0 s=1453
+    52: 0x35157 M=1 runtime.gcDrain /usr/local/go/src/runtime/mgcmark.go:1267:0 s=1178
+    53: 0x3129f M=1 runtime.gcDrainMarkWorkerDedicated /usr/local/go/src/runtime/mgcmark.go:1139:0 s=1134
+             runtime.gcBgMarkWorker.func2 /usr/local/go/src/runtime/mgc.go:1556:0 s=1523
+    54: 0x30e9f M=1 runtime.gcBgMarkWorker /usr/local/go/src/runtime/mgc.go:1523:0 s=1428
+    55: 0x8d778 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:160:0 s=29
+    56: 0x57a50 M=1 runtime.execute /usr/local/go/src/runtime/proc.go:3365:0 s=3336
+    57: 0x5a21b M=1 runtime.schedule /usr/local/go/src/runtime/proc.go:4206:0 s=4123
+    58: 0x8dc04 M=1 runtime.tgkill /usr/local/go/src/runtime/sys_linux_arm64.s:181:0 s=175
+    59: 0x4c327 M=1 runtime.signalM /usr/local/go/src/runtime/os_linux.go:571:0 s=570
+    60: 0x5ff5b M=1 runtime.preemptM /usr/local/go/src/runtime/signal_unix.go:385:0 s=368
+             runtime.preemptone /usr/local/go/src/runtime/proc.go:6516:0 s=6495
+    61: 0x3708f M=1 runtime.(*gcControllerState).enlistWorker /usr/local/go/src/runtime/mgcpacer.go:746:0 s=697
+    62: 0x3cdff M=1 runtime.(*gcWork).balance /usr/local/go/src/runtime/mgcwork.go:361:0 s=342
+    63: 0x350c3 M=1 runtime.gcDrain /usr/local/go/src/runtime/mgcmark.go:1247:0 s=1178
+    64: 0x311ef M=1 runtime.gcDrainMarkWorkerDedicated /usr/local/go/src/runtime/mgcmark.go:1139:0 s=1134
+             runtime.gcBgMarkWorker.func2 /usr/local/go/src/runtime/mgc.go:1541:0 s=1523
+    65: 0x2e3cc M=1 runtime.(*fixalloc).alloc /usr/local/go/src/runtime/mfixalloc.go:87:0 s=74
+    66: 0x3e6bb M=1 runtime.(*mheap).allocMSpanLocked /usr/local/go/src/runtime/mheap.go:1172:0 s=1160
+    67: 0x3e8b7 M=1 runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1313:0 s=1224
+    68: 0x3e367 M=1 runtime.(*mheap).alloc.func1 /usr/local/go/src/runtime/mheap.go:1017:0 s=1011
+    69: 0x41d04 M=1 runtime.(*pageAlloc).update /usr/local/go/src/runtime/mpagealloc.go:553:0 s=488
+    70: 0x420ef M=1 runtime.(*pageAlloc).allocRange /usr/local/go/src/runtime/mpagealloc.go:604:0 s=573
+    71: 0x42e2b M=1 runtime.(*pageAlloc).alloc /usr/local/go/src/runtime/mpagealloc.go:918:0 s=875
+    72: 0x3e847 M=1 runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1296:0 s=1224
+    73: 0x43318 M=1 runtime.mergeSummaries /usr/local/go/src/runtime/mpagealloc.go:1047:0 s=1041
+    74: 0x41d7b M=1 runtime.(*pageAlloc).update /usr/local/go/src/runtime/mpagealloc.go:555:0 s=488
+    75: 0x4314b M=1 runtime.(*pageAlloc).free /usr/local/go/src/runtime/mpagealloc.go:972:0 s=936
+    76: 0x3f78f M=1 runtime.(*mheap).freeSpanLocked /usr/local/go/src/runtime/mheap.go:1747:0 s=1696
+    77: 0x3c67b M=1 runtime.deductSweepCredit /usr/local/go/src/runtime/mgcsweep.go:950:0 s=912
+    78: 0x28c07 M=1 runtime.(*mcentral).cacheSpan /usr/local/go/src/runtime/mcentral.go:85:0 s=82
+    79: 0x54fc3 M=1 runtime.startTheWorldWithSema /usr/local/go/src/runtime/proc.go:1825:0 s=1763
+    80: 0x2f2d7 M=1 runtime.gcStart.func4 /usr/local/go/src/runtime/mgc.go:821:0 s=820
+    81: 0x2f153 M=1 runtime.gcStart /usr/local/go/src/runtime/mgc.go:820:0 s=643
+    82: 0x2528b M=1 runtime.mallocgcSmallNoscan /usr/local/go/src/runtime/malloc.go:1294:0 s=1214
+    83: 0x3ab5c M=1 runtime.(*sweepLocker).tryAcquire /usr/local/go/src/runtime/mgcsweep.go:350:0 s=341
+    84: 0x3ad1f M=1 runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:392:0 s=358
+    85: 0x311c3 M=1 runtime.gcDrainMarkWorkerIdle /usr/local/go/src/runtime/mgcmark.go:1129:0 s=1128
+             runtime.gcBgMarkWorker.func2 /usr/local/go/src/runtime/mgc.go:1560:0 s=1523
+    86: 0x84458 M=1 runtime.findObject /usr/local/go/src/runtime/mbitmap.go:1320:0 s=1319
+    87: 0x358f3 M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1535:0 s=1453
+    88: 0x6f578 M=1 runtime.pcvalue /usr/local/go/src/runtime/symtab.go:1032:0 s=1005
+    89: 0x6f95b M=1 runtime.pcdatavalue /usr/local/go/src/runtime/symtab.go:1236:0 s=1232
+    90: 0x6cb1b M=1 runtime.(*stkframe).getStackMap /usr/local/go/src/runtime/stkframe.go:172:0 s=157
+    91: 0x34daf M=1 runtime.scanframeworker /usr/local/go/src/runtime/mgcmark.go:1079:0 s=1021
+    92: 0x349db M=1 runtime.scanstack /usr/local/go/src/runtime/mgcmark.go:925:0 s=856
+    93: 0x33243 M=1 runtime.markroot.func1 /usr/local/go/src/runtime/mgcmark.go:248:0 s=222
+    94: 0x32ef3 M=1 runtime.markroot /usr/local/go/src/runtime/mgcmark.go:222:0 s=163
+    95: 0x353af M=1 runtime.gcDrain /usr/local/go/src/runtime/mgcmark.go:1215:0 s=1178
+    96: 0x8dbe4 M=1 runtime.getpid /usr/local/go/src/runtime/sys_linux_arm64.s:171:0 s=169
+    97: 0x4c313 M=1 runtime.signalM /usr/local/go/src/runtime/os_linux.go:571:0 s=570
+    98: 0x5fe63 M=1 runtime.preemptall /usr/local/go/src/runtime/proc.go:6478:0 s=6472
+    99: 0x548db M=1 runtime.stopTheWorldWithSema /usr/local/go/src/runtime/proc.go:1656:0 s=1617
+   100: 0x2f8c7 M=1 runtime.gcMarkDone.func2 /usr/local/go/src/runtime/mgc.go:955:0 s=954
+   101: 0x2f5cf M=1 runtime.gcMarkDone /usr/local/go/src/runtime/mgc.go:954:0 s=887
+   102: 0x31013 M=1 runtime.gcBgMarkWorker /usr/local/go/src/runtime/mgc.go:1600:0 s=1428
+   103: 0x35878 M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1507:0 s=1453
+   104: 0x38fbf M=1 runtime.(*pageAlloc).scavengeOne /usr/local/go/src/runtime/mgcscavenge.go:770:0 s=732
+   105: 0x38c93 M=1 runtime.(*pageAlloc).scavenge.func1 /usr/local/go/src/runtime/mgcscavenge.go:683:0 s=682
+   106: 0x38c03 M=1 runtime.(*pageAlloc).scavenge /usr/local/go/src/runtime/mgcscavenge.go:682:0 s=675
+   107: 0x818d3 M=1 runtime.(*scavengerState).init.func2 /usr/local/go/src/runtime/mgcscavenge.go:395:0 s=393
+   108: 0x389c3 M=1 runtime.(*scavengerState).run /usr/local/go/src/runtime/mgcscavenge.go:602:0 s=576
+   109: 0x38aef M=1 runtime.bgscavenge /usr/local/go/src/runtime/mgcscavenge.go:656:0 s=649
+   110: 0x41300 M=1 runtime.newMarkBits /usr/local/go/src/runtime/mheap.go:2928:0 s=2921
+   111: 0x3ef2b M=1 runtime.newAllocBits /usr/local/go/src/runtime/mheap.go:2978:0 s=2977
+             runtime.(*mheap).initSpan /usr/local/go/src/runtime/mheap.go:1488:0 s=1439
+   112: 0x3eae3 M=1 runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1393:0 s=1224
+   113: 0x23658 M=1 runtime.lock2 /usr/local/go/src/runtime/lock_spinbit.go:165:0 s=155
+   114: 0x8e1c4 M=1 runtime.madvise /usr/local/go/src/runtime/sys_linux_arm64.s:638:0 s=632
+   115: 0x2b53f M=1 runtime.sysUnusedOS /usr/local/go/src/runtime/mem_linux.go:64:0 s=42
+   116: 0x3903b M=1 runtime.sysUnused /usr/local/go/src/runtime/mem.go:70:0 s=68
+             runtime.(*pageAlloc).scavengeOne /usr/local/go/src/runtime/mgcscavenge.go:778:0 s=732
+   117: 0x8d7a0 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:173:0 s=29
+   118: 0x4146c M=1 runtime.newArenaMayUnlock /usr/local/go/src/runtime/mheap.go:3029:0 s=3017
+   119: 0x41133 M=1 runtime.newMarkBits /usr/local/go/src/runtime/mheap.go:2943:0 s=2921
+   120: 0x3ef0b M=1 runtime.(*mheap).initSpan /usr/local/go/src/runtime/mheap.go:1487:0 s=1439
+   121: 0x8d7b0 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:177:0 s=29
+   122: 0x6d1cc M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:32:0 s=28
+   123: 0x3cfe8 M=1 runtime.(*lfstack).pop /usr/local/go/src/runtime/lfstack.go:44:0 s=36
+             runtime.getempty /usr/local/go/src/runtime/mgcwork.go:413:0 s=410
+   124: 0x3a2bf M=1 runtime.(*stackScanState).addObject /usr/local/go/src/runtime/mgcstack.go:274:0 s=270
+   125: 0x34f47 M=1 runtime.scanframeworker /usr/local/go/src/runtime/mgcmark.go:1112:0 s=1021
+   126: 0x8e3d8 M=1 runtime.save_g /usr/local/go/src/runtime/tls_arm64.s:51:0 s=32
+   127: 0x8aa33 M=1 runtime.systemstack /usr/local/go/src/runtime/asm_arm64.s:299:0 s=255
+   128: 0x8445c M=1 runtime.findObject /usr/local/go/src/runtime/mbitmap.go:1323:0 s=1319
+   129: 0x35757 M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1434:0 s=1411
+   130: 0x88944 M=1 runtime.findfunc /usr/local/go/src/runtime/symtab.go:940:0 s=915
+   131: 0x750d3 M=1 runtime.(*unwinder).next /usr/local/go/src/runtime/traceback.go:454:0 s=444
+   132: 0x349e3 M=1 runtime.scanstack /usr/local/go/src/runtime/mgcmark.go:924:0 s=856
+   133: 0x3e4fc M=1 runtime.(*mheap).allocNeedsZero /usr/local/go/src/runtime/mheap.go:1073:0 s=1072
+   134: 0x3ee1f M=1 runtime.(*mheap).initSpan /usr/local/go/src/runtime/mheap.go:1443:0 s=1439
+   135: 0x3ee3c M=1 runtime.spanAllocType.manual /usr/local/go/src/runtime/mheap.go:997:0 s=996
+             runtime.(*mheap).initSpan /usr/local/go/src/runtime/mheap.go:1447:0 s=1439
+   136: 0x8e2d8 M=1 runtime.osyield /usr/local/go/src/runtime/sys_linux_arm64.s:739:0 s=736
+   137: 0x23817 M=1 runtime.lock2 /usr/local/go/src/runtime/lock_spinbit.go:220:0 s=155
+   138: 0x5a6ff M=1 runtime.lockWithRank /usr/local/go/src/runtime/lockrank_off.go:24:0 s=23
+             runtime.lock /usr/local/go/src/runtime/lock_spinbit.go:152:0 s=151
+             runtime.goschedImpl /usr/local/go/src/runtime/proc.go:4306:0 s=4283
+   139: 0x6bc83 M=1 runtime.gopreempt_m /usr/local/go/src/runtime/proc.go:4331:0 s=4330
+             runtime.newstack /usr/local/go/src/runtime/stack.go:1155:0 s=1044
+   140: 0x8ab2f M=1 runtime.morestack /usr/local/go/src/runtime/asm_arm64.s:392:0 s=352
+   141: 0x49fe4 M=1 runtime.(*consistentHeapStats).acquire /usr/local/go/src/runtime/mstats.go:779:0 s=776
+   142: 0x3f6a7 M=1 runtime.(*mheap).freeSpanLocked /usr/local/go/src/runtime/mheap.go:1735:0 s=1696
+   143: 0x25114 M=1 runtime.nextFreeFast /usr/local/go/src/runtime/malloc.go:889:0 s=879
+             runtime.mallocgcSmallNoscan /usr/local/go/src/runtime/malloc.go:1241:0 s=1214
+   144: 0x8d79c M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:172:0 s=29
+   145: 0x55b4b M=1 runtime.runSafePointFn /usr/local/go/src/runtime/proc.go:2259:0 s=2247
+   146: 0x57b6b M=1 runtime.findRunnable /usr/local/go/src/runtime/proc.go:3396:0 s=3377
+   147: 0x5a08f M=1 runtime.schedule /usr/local/go/src/runtime/proc.go:4152:0 s=4123
+   148: 0x35d3c M=1 runtime.(*mspan).markBitsForIndex /usr/local/go/src/runtime/mgcmark_nogreenteagc.go:12:0 s=11
+             runtime.greyobject /usr/local/go/src/runtime/mgcmark.go:1674:0 s=1669
+   149: 0x3590f M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1536:0 s=1453
+   150: 0x23f77 M=1 runtime.semawakeup /usr/local/go/src/runtime/lock_futex.go:161:0 s=158
+             runtime.unlock2Wake /usr/local/go/src/runtime/lock_spinbit.go:461:0 s=345
+   151: 0x23bd7 M=1 runtime.unlock2 /usr/local/go/src/runtime/lock_spinbit.go:314:0 s=267
+   152: 0x23abf M=1 runtime.unlockWithRank /usr/local/go/src/runtime/lockrank_off.go:35:0 s=34
+             runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+   153: 0x3c0ff M=1 runtime.(*sweepLocked).sweep.(*mheap).freeSpan.func2 /usr/local/go/src/runtime/mheap.go:1661:0 s=1633
+   154: 0x377d4 M=1 runtime.(*gcControllerState).update /usr/local/go/src/runtime/mgcpacer.go:899:0 s=895
+   155: 0x285c3 M=1 runtime.(*mcache).refill /usr/local/go/src/runtime/mcache.go:214:0 s=149
+   156: 0x6d294 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:57:0 s=28
+   157: 0x8d7a4 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:174:0 s=29
+   158: 0x35870 M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1516:0 s=1453
+   159: 0x355cb M=1 runtime.gcDrainN /usr/local/go/src/runtime/mgcmark.go:1371:0 s=1328
+   160: 0x26b64 M=1 runtime.typePointers.next /usr/local/go/src/runtime/mbitmap.go:244:0 s=243
+   161: 0x4921c M=1 runtime.(*spanSet).pop /usr/local/go/src/runtime/mspanset.go:222:0 s=150
+   162: 0x3a583 M=1 runtime.(*mheap).nextSpanForSweep /usr/local/go/src/runtime/mgcsweep.go:105:0 s=96
+   163: 0x3acd7 M=1 runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:377:0 s=358
+   164: 0x54adb M=1 runtime.nanotime /usr/local/go/src/runtime/time_nofake.go:33:0 s=32
+             runtime.stopTheWorldWithSema /usr/local/go/src/runtime/proc.go:1686:0 s=1617
+   165: 0x2f367 M=1 runtime.gcStart.func2 /usr/local/go/src/runtime/mgc.go:744:0 s=743
+   166: 0x2ef93 M=1 runtime.gcStart /usr/local/go/src/runtime/mgc.go:743:0 s=643
+   167: 0x6f5a4 M=1 runtime.pcvalue /usr/local/go/src/runtime/symtab.go:1039:0 s=1005
+   168: 0x74ee7 M=1 runtime.funcspdelta /usr/local/go/src/runtime/symtab.go:1203:0 s=1202
+             runtime.(*unwinder).resolveInternal /usr/local/go/src/runtime/traceback.go:326:0 s=252
+   169: 0x751d7 M=1 runtime.(*unwinder).next /usr/local/go/src/runtime/traceback.go:518:0 s=444
+   170: 0x756ab M=1 runtime.tracebackPCs /usr/local/go/src/runtime/traceback.go:628:0 s=625
+   171: 0x770ef M=1 runtime.callers.func1 /usr/local/go/src/runtime/traceback.go:1105:0 s=1102
+   172: 0x89b17 M=1 runtime.callers /usr/local/go/src/runtime/traceback.go:1102:0 s=1097
+   173: 0x455ff M=1 runtime.mProf_Malloc /usr/local/go/src/runtime/mprof.go:447:0 s=437
+   174: 0x2605b M=1 runtime.profilealloc /usr/local/go/src/runtime/malloc.go:1783:0 s=1776
+   175: 0x25227 M=1 runtime.mallocgcSmallNoscan /usr/local/go/src/runtime/malloc.go:1287:0 s=1214
+   176: 0x42d2c M=1 runtime.(*pageAlloc).alloc /usr/local/go/src/runtime/mpagealloc.go:880:0 s=875
+   177: 0x49510 M=1 internal/runtime/atomic.(*Uint64).Add /usr/local/go/src/internal/runtime/atomic/types.go:344:0 s=343
+             runtime.(*atomicHeadTailIndex).incTail /usr/local/go/src/runtime/mspanset.go:386:0 s=385
+   178: 0x48ecb M=1 runtime.(*spanSet).push /usr/local/go/src/runtime/mspanset.go:85:0 s=83
+   179: 0x3b80b M=1 runtime.(*sweepLocked).sweep /usr/local/go/src/runtime/mgcsweep.go:794:0 s=504
+   180: 0x3356c M=1 runtime.markrootSpans /usr/local/go/src/runtime/mgcmark.go:362:0 s=335
+   181: 0x32e57 M=1 runtime.markroot /usr/local/go/src/runtime/mgcmark.go:201:0 s=163
+   182: 0x3ac7c M=1 runtime.(*activeSweep).begin /usr/local/go/src/runtime/mgcsweep.go:154:0 s=148
+             runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:367:0 s=358
+   183: 0x35748 M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1434:0 s=1411
+   184: 0x3313f M=1 runtime.markroot /usr/local/go/src/runtime/mgcmark.go:171:0 s=163
+   185: 0x284b4 M=1 runtime.(*mcache).refill /usr/local/go/src/runtime/mcache.go:165:0 s=149
+   186: 0x84414 M=1 runtime.findObject /usr/local/go/src/runtime/mbitmap.go:1319:0 s=1319
+   187: 0x6fb40 M=1 runtime.readvarint /usr/local/go/src/runtime/symtab.go:1305:0 s=1302
+             runtime.step /usr/local/go/src/runtime/symtab.go:1294:0 s=1277
+   188: 0x6f257 M=1 runtime.pcvalue /usr/local/go/src/runtime/symtab.go:1074:0 s=1005
+   189: 0x35db0 M=1 runtime.greyobject /usr/local/go/src/runtime/mgcmark.go:1697:0 s=1669
+   190: 0x35773 M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1435:0 s=1411
+   191: 0x34def M=1 runtime.scanframeworker /usr/local/go/src/runtime/mgcmark.go:1084:0 s=1021
+   192: 0x6d180 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:28:0 s=28
+   193: 0x26a28 M=1 runtime.getGCMask /usr/local/go/src/runtime/type.go:89:0 s=88
+             runtime.(*mspan).typePointersOfUnchecked /usr/local/go/src/runtime/mbitmap.go:166:0 s=135
+   194: 0x3585b M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1501:0 s=1453
+   195: 0x2776c M=1 runtime.(*mspan).nextFreeIndex /usr/local/go/src/runtime/mbitmap.go:1106:0 s=1093
+   196: 0x24b67 M=1 runtime.(*mcache).nextFree /usr/local/go/src/runtime/malloc.go:920:0 s=906
+   197: 0x13060 M=1 internal/runtime/syscall.Syscall6 /usr/local/go/src/internal/runtime/syscall/asm_linux_arm64.s:17:0 s=8
+   198: 0x12e8f M=1 internal/runtime/syscall.EpollWait /usr/local/go/src/internal/runtime/syscall/syscall_linux.go:33:0 s=26
+   199: 0x4b497 M=1 runtime.netpoll /usr/local/go/src/runtime/netpoll_epoll.go:119:0 s=99
+   200: 0x54d7b M=1 runtime.startTheWorldWithSema /usr/local/go/src/runtime/proc.go:1768:0 s=1763
+   201: 0x28cfc M=1 runtime.(*mcentral).cacheSpan /usr/local/go/src/runtime/mcentral.go:185:0 s=82
+   202: 0x23c24 M=1 runtime.unlock2 /usr/local/go/src/runtime/lock_spinbit.go:322:0 s=267
+   203: 0x3d46b M=1 runtime.unlockWithRank /usr/local/go/src/runtime/lockrank_off.go:35:0 s=34
+             runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.freeSomeWbufs /usr/local/go/src/runtime/mgcwork.go:530:0 s=526
+   204: 0x3aaff M=1 runtime.bgsweep /usr/local/go/src/runtime/mgcsweep.go:306:0 s=272
+   205: 0x3bb8c M=1 runtime.(*sweepLocked).sweep /usr/local/go/src/runtime/mgcsweep.go:671:0 s=504
+   206: 0x26ca0 M=1 runtime.typePointers.next /usr/local/go/src/runtime/mbitmap.go:246:0 s=243
+   207: 0x3b6b4 M=1 runtime.(*sweepLocked).sweep /usr/local/go/src/runtime/mgcsweep.go:764:0 s=504
+   208: 0x291b3 M=1 runtime.(*mcentral).uncacheSpan /usr/local/go/src/runtime/mcentral.go:237:0 s=205
+   209: 0x289ff M=1 runtime.(*mcache).releaseAll /usr/local/go/src/runtime/mcache.go:301:0 s=269
+   210: 0x28b1b M=1 runtime.(*mcache).prepareForSweep /usr/local/go/src/runtime/mcache.go:338:0 s=322
+   211: 0x81ae3 M=1 runtime.gcMarkTermination.func4 /usr/local/go/src/runtime/mgc.go:1228:0 s=1227
+   212: 0x556a3 M=1 runtime.forEachPInternal /usr/local/go/src/runtime/proc.go:2175:0 s=2148
+   213: 0x3091f M=1 runtime.gcMarkTermination.forEachP.func6 /usr/local/go/src/runtime/proc.go:2134:0 s=2115
+   214: 0x2ff73 M=1 runtime.forEachP /usr/local/go/src/runtime/proc.go:2115:0 s=2114
+             runtime.gcMarkTermination /usr/local/go/src/runtime/mgc.go:1227:0 s=1037
+   215: 0x2f713 M=1 runtime.gcMarkDone /usr/local/go/src/runtime/mgc.go:1032:0 s=887
+   216: 0x35068 M=1 runtime.gcDrain /usr/local/go/src/runtime/mgcmark.go:1240:0 s=1178
+   217: 0x350a8 M=1 runtime.gcDrain /usr/local/go/src/runtime/mgcmark.go:1240:0 s=1178
+   218: 0x55633 M=1 runtime.forEachPInternal /usr/local/go/src/runtime/proc.go:2165:0 s=2148
+   219: 0x2f92f M=1 runtime.gcMarkDone.forEachP.func5 /usr/local/go/src/runtime/proc.go:2134:0 s=2115
+   220: 0x2f537 M=1 runtime.forEachP /usr/local/go/src/runtime/proc.go:2115:0 s=2114
+             runtime.gcMarkDone /usr/local/go/src/runtime/mgc.go:914:0 s=887
+   221: 0x8e1ec M=1 runtime.futex /usr/local/go/src/runtime/sys_linux_arm64.s:651:0 s=643
+   222: 0x4b737 M=1 runtime.futexsleep /usr/local/go/src/runtime/os_linux.go:76:0 s=69
+   223: 0x234d3 M=1 runtime.semasleep /usr/local/go/src/runtime/lock_futex.go:146:0 s=139
+   224: 0x23963 M=1 runtime.lock2 /usr/local/go/src/runtime/lock_spinbit.go:250:0 s=155
+   225: 0x23ba8 M=1 runtime.unlock2 /usr/local/go/src/runtime/lock_spinbit.go:275:0 s=267
+   226: 0x49023 M=1 runtime.unlockWithRank /usr/local/go/src/runtime/lockrank_off.go:35:0 s=34
+             runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.(*spanSet).push /usr/local/go/src/runtime/mspanset.go:140:0 s=83
+   227: 0x42504 M=1 runtime.(*pageAlloc).find /usr/local/go/src/runtime/mpagealloc.go:860:0 s=650
+   228: 0x42dd3 M=1 runtime.(*pageAlloc).alloc /usr/local/go/src/runtime/mpagealloc.go:904:0 s=875
+   229: 0x41cc8 M=1 runtime.(*pageAlloc).update /usr/local/go/src/runtime/mpagealloc.go:555:0 s=488
+   230: 0x61113 M=1 runtime.nanotime /usr/local/go/src/runtime/time_nofake.go:33:0 s=32
+             runtime.pidleget /usr/local/go/src/runtime/proc.go:6989:0 s=6982
+   231: 0x612bb M=1 runtime.pidlegetSpinning /usr/local/go/src/runtime/proc.go:7013:0 s=7010
+   232: 0x859ef M=1 runtime.wakep /usr/local/go/src/runtime/proc.go:3233:0 s=3217
+   233: 0x41048 M=1 runtime.(*gcBitsArena).tryAlloc /usr/local/go/src/runtime/mheap.go:2911:0 s=2905
+             runtime.newMarkBits /usr/local/go/src/runtime/mheap.go:2927:0 s=2921
+   234: 0x5a783 M=1 runtime.goschedImpl /usr/local/go/src/runtime/proc.go:4314:0 s=4283
+   235: 0x356e0 M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1425:0 s=1411
+   236: 0x37798 M=1 runtime.(*gcControllerState).update /usr/local/go/src/runtime/mgcpacer.go:898:0 s=895
+   237: 0x88984 M=1 runtime.findfunc /usr/local/go/src/runtime/symtab.go:945:0 s=915
+   238: 0x610e0 M=1 runtime.pidleget /usr/local/go/src/runtime/proc.go:6982:0 s=6982
+   239: 0x84434 M=1 runtime.spanOf /usr/local/go/src/runtime/mheap.go:718:0 s=700
+             runtime.findObject /usr/local/go/src/runtime/mbitmap.go:1320:0 s=1319
+   240: 0x8195b M=1 runtime.(*scavengerState).init.func2 /usr/local/go/src/runtime/mgcscavenge.go:393:0 s=393
+   241: 0x6f0dc M=1 runtime.pcvalue /usr/local/go/src/runtime/symtab.go:1056:0 s=1005
+   242: 0x4a0d4 M=1 internal/runtime/atomic.(*Uint32).Add /usr/local/go/src/internal/runtime/atomic/types.go:291:0 s=290
+             runtime.(*consistentHeapStats).release /usr/local/go/src/runtime/mstats.go:807:0 s=805
+   243: 0x28507 M=1 runtime.(*mcache).refill /usr/local/go/src/runtime/mcache.go:173:0 s=149
+   244: 0x356fc M=1 runtime.scanblock /usr/local/go/src/runtime/mgcmark.go:1426:0 s=1411
+   245: 0x2318b M=1 runtime.notesleep /usr/local/go/src/runtime/lock_futex.go:47:0 s=35
+   246: 0x56d63 M=1 runtime.mPark /usr/local/go/src/runtime/proc.go:1974:0 s=1972
+             runtime.stopm /usr/local/go/src/runtime/proc.go:3013:0 s=2997
+   247: 0x58deb M=1 runtime.findRunnable /usr/local/go/src/runtime/proc.go:3784:0 s=3377
+   248: 0x3e728 M=1 runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1239:0 s=1224
+   249: 0x2e3d8 M=1 runtime.(*fixalloc).alloc /usr/local/go/src/runtime/mfixalloc.go:87:0 s=74
+   250: 0x5a77f M=1 runtime.goschedImpl /usr/local/go/src/runtime/proc.go:4311:0 s=4283
+   251: 0x8d738 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:133:0 s=29
+   252: 0x37adc M=1 runtime.(*gcControllerState).trigger /usr/local/go/src/runtime/mgcpacer.go:1180:0 s=1131
+   253: 0x2eb6f M=1 runtime.gcTrigger.test /usr/local/go/src/runtime/mgc.go:622:0 s=616
+   254: 0x25277 M=1 runtime.mallocgcSmallNoscan /usr/local/go/src/runtime/malloc.go:1293:0 s=1214
+   255: 0x84560 M=1 runtime.findObject /usr/local/go/src/runtime/mbitmap.go:1330:0 s=1319
+   256: 0x3a4fc M=1 runtime.(*mheap).nextSpanForSweep /usr/local/go/src/runtime/mgcsweep.go:98:0 s=96
+   257: 0x3e8cf M=1 runtime.unlockWithRank /usr/local/go/src/runtime/lockrank_off.go:35:0 s=34
+             runtime.unlock /usr/local/go/src/runtime/lock_spinbit.go:261:0 s=260
+             runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1315:0 s=1224
+   258: 0x379f0 M=1 runtime.(*gcControllerState).memoryLimitHeapGoal /usr/local/go/src/runtime/mgcpacer.go:1068:0 s=989
+   259: 0x3791f M=1 runtime.(*gcControllerState).heapGoalInternal /usr/local/go/src/runtime/mgcpacer.go:948:0 s=943
+   260: 0x36a4b M=1 runtime.(*gcControllerState).heapGoal /usr/local/go/src/runtime/mgcpacer.go:935:0 s=934
+             runtime.(*gcControllerState).revise /usr/local/go/src/runtime/mgcpacer.go:505:0 s=492
+   261: 0x378c3 M=1 runtime.(*gcControllerState).update /usr/local/go/src/runtime/mgcpacer.go:913:0 s=895
+   262: 0x3ae18 M=1 runtime.sweepone /usr/local/go/src/runtime/mgcsweep.go:427:0 s=358
+   263: 0x6d2f4 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:59:0 s=28
+   264: 0x35920 M=1 runtime.scanobject /usr/local/go/src/runtime/mgcmark.go:1524:0 s=1453
+   265: 0x75844 M=1 runtime.tracebackPCs /usr/local/go/src/runtime/traceback.go:635:0 s=625
+   266: 0x26bb0 M=1 runtime.typePointers.next /usr/local/go/src/runtime/mbitmap.go:263:0 s=243
+   267: 0x24b08 M=1 runtime.(*mcache).nextFree /usr/local/go/src/runtime/malloc.go:907:0 s=906
+   268: 0x3c660 M=1 internal/runtime/atomic.(*Uint64).Load /usr/local/go/src/internal/runtime/atomic/types.go:309:0 s=308
+             runtime.deductSweepCredit /usr/local/go/src/runtime/mgcsweep.go:949:0 s=912
+   269: 0x71a6f M=1 runtime.nanotime /usr/local/go/src/runtime/time_nofake.go:33:0 s=32
+             runtime.(*timers).check /usr/local/go/src/runtime/time.go:1017:0 s=1006
+   270: 0x57b83 M=1 runtime.findRunnable /usr/local/go/src/runtime/proc.go:3403:0 s=3377
+   271: 0x8dbe8 M=1 runtime.getpid /usr/local/go/src/runtime/sys_linux_arm64.s:172:0 s=169
+   272: 0x6f5ac M=1 runtime.pcvalue /usr/local/go/src/runtime/symtab.go:1039:0 s=1005
+   273: 0x6f9d7 M=1 runtime.pcdatavalue1 /usr/local/go/src/runtime/symtab.go:1244:0 s=1240
+   274: 0x88b9b M=1 runtime.(*inlineUnwinder).resolveInternal /usr/local/go/src/runtime/symtabinl.go:82:0 s=77
+             runtime.newInlineUnwinder /usr/local/go/src/runtime/symtabinl.go:74:0 s=67
+   275: 0x75713 M=1 runtime.tracebackPCs /usr/local/go/src/runtime/traceback.go:633:0 s=625
+   276: 0x6d2b0 M=1 runtime.concatstrings /usr/local/go/src/runtime/string.go:55:0 s=28
+   277: 0x49ee8 M=1 runtime.(*sysMemStat).add /usr/local/go/src/runtime/mstats.go:660:0 s=659
+   278: 0x3f67b M=1 runtime.(*mheap).freeSpanLocked /usr/local/go/src/runtime/mheap.go:1730:0 s=1696
+   279: 0x59308 M=1 internal/runtime/atomic.(*Uint8).Load /usr/local/go/src/internal/runtime/atomic/types.go:124:0 s=123
+             internal/runtime/atomic.(*Bool).Load /usr/local/go/src/internal/runtime/atomic/types.go:168:0 s=167
+             runtime.stealWork /usr/local/go/src/runtime/proc.go:3826:0 s=3816
+   280: 0x5808f M=1 runtime.findRunnable /usr/local/go/src/runtime/proc.go:3510:0 s=3377
+   281: 0x3cf88 M=1 runtime.getempty /usr/local/go/src/runtime/mgcwork.go:455:0 s=410
+   282: 0x3c84f M=1 runtime.(*gcWork).init /usr/local/go/src/runtime/mgcwork.go:144:0 s=143
+   283: 0x3cb77 M=1 runtime.(*gcWork).tryGetObj /usr/local/go/src/runtime/mgcwork.go:258:0 s=255
+   284: 0x354ff M=1 runtime.gcDrainN /usr/local/go/src/runtime/mgcmark.go:1351:0 s=1328
+   285: 0x6cd6c M=1 runtime.(*stkframe).getStackMap /usr/local/go/src/runtime/stkframe.go:259:0 s=157
+   286: 0x61204 M=1 internal/runtime/atomic.(*Int32).Add /usr/local/go/src/internal/runtime/atomic/types.go:56:0 s=55
+             runtime.pidleget /usr/local/go/src/runtime/proc.go:6994:0 s=6982
+   287: 0x54b03 M=1 runtime.stopTheWorldWithSema /usr/local/go/src/runtime/proc.go:1681:0 s=1617
+   288: 0x4918c M=1 runtime.(*spanSet).pop /usr/local/go/src/runtime/mspanset.go:177:0 s=150
+   289: 0x28cef M=1 runtime.(*mcentral).cacheSpan /usr/local/go/src/runtime/mcentral.go:114:0 s=82
+   290: 0x2e378 M=1 runtime.(*fixalloc).alloc /usr/local/go/src/runtime/mfixalloc.go:74:0 s=74
+Mappings
+1: 0x10000/0x131000/0x0 /tmp/go-build417140939/b001/prog.test a89bcd49f6e0e196418fec30bba0ab055ef3c612 [FN]
+2: 0xffff99bec000/0xffff99bee000/0x0 [vdso]  

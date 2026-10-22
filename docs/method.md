@@ -249,7 +249,7 @@ table):
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node and Java are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `go`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java and Go are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. A host identity that can't be read is `not_available`; one that is read and differs is `failed`. |
 
 **What can't be read is `not_available`, not `failed`.** A gate fails
@@ -287,14 +287,16 @@ comparison goes on and measures, and the verdict can't be a KEEP.
   `npm:` or `jsr:` specifier; `corepack` running a package manager
   that is not in corepack's cache (`COREPACK_HOME`, else
   `~/.cache/node/corepack`) unless `COREPACK_ENABLE_NETWORK=0`, and
-  `corepack prepare`, `install`, `up`, `use` and `pack`; and the
-  install forms of `npm`, `pnpm`, `yarn` and `bun` (`install`, `i`,
+  `corepack prepare`, `install`, `up`, `use` and `pack`; `go run` and
+  `go install` on a `module/path@version`, `go get` and `go mod
+  download`; and the install forms of `npm`, `pnpm`, `yarn` and `bun` (`install`, `i`,
   `ci`, `add`, `update`, `up`, `upgrade`, `create`, and a bare `yarn`).
   Options in front of the subcommand are skipped, so `npm --silent
   install` is the install form, and `yarn --version`, `-v`, `--help`
   and `corepack enable` are not on the list. The same commands are
   fine in `setup`. Build tools that fetch dependencies on their own
-  (`cargo`, `go`, `mvn`, `gradle`) are not on the list because
+  (`cargo`, `go test`, `go run` and `go build` of the project's own
+  packages, `mvn`, `gradle`) are not on the list because
   perfproof cannot tell when they will: declare the fetch in `setup`
   so the measured run has nothing left to fetch. The side-effect guard
   still reads their arguments and declared config.
@@ -309,11 +311,12 @@ comparison goes on and measures, and the verdict can't be a KEEP.
   wrapper whose options are not understood is identified as itself, an
   unknown.
 
-**Node and Java runtimes.** A command whose program name resolves
-(symlinks followed) to `node` or `nodejs` is a Node runtime, and to
-`java` a Java runtime, wherever the file lives, in the tree or outside
-it. A shell is unknown, because the program it runs is not the one
-perfproof launched.
+**Node, Java and Go runtimes.** A command whose program name resolves
+(symlinks followed) to `node` or `nodejs` is a Node runtime, to `java` a
+Java runtime, wherever the file lives, in the tree or outside it, and to
+a native `go` (an ELF or Mach-O file, not a script) with the subcommand
+`run`, `test`, `build` or `vet` a Go toolchain. A shell is unknown,
+because the program it runs is not the one perfproof launched.
 
 *Node* is asked, not derived. The gate runs the launch chain's own
 `node -e` in the benchmark's working directory and environment, with
@@ -333,6 +336,57 @@ gate is `not_available`.
 that `JAVA_TOOL_OPTIONS` adds dropped) and the SHA-256 of the resolved
 launcher. A `java` that exits non-zero, such as the macOS
 `/usr/bin/java` stub with no JDK behind it, is unknown.
+
+*Go* is asked, not derived, and only for `go run`, `go test`, `go build`
+and `go vet`, the subcommands that compile the code under test (`go
+install`, `go tool`, `go generate`, `go get`, `go mod` and the rest
+start other programs or fetch code, so they are unknown). The gate runs
+the command's own `go list -f '{{.Root}}' runtime` in the benchmark's
+working directory and environment, with stdin closed, a timeout and
+output capped at 4096 characters. `go env` and `go version` are not
+asked, because they do not read `go.mod`: with `go 1.99` in it and
+`GOTOOLCHAIN=local`, `go env GOVERSION` and `go version` printed the
+installed version and `go list` and `go test` failed with "go.mod
+requires go >= 1.99" (the integration test
+`test_go_env_and_go_version_do_not_read_the_go_mod_but_go_list_does`,
+run in the `golang:1.25` image). `go list`
+switches toolchain as `go test` does, when `go.mod`'s `go` or
+`toolchain` line asks for another one and `GOTOOLCHAIN` allows it, so
+the root it prints is that of the toolchain that will run. That
+toolchain's own `bin/go` is then asked for `go env -json`. The record
+carries the real path of that `go` and the version, platform and the
+settings that change generated code (`CGO_ENABLED`, `GOAMD64`,
+`GOARM64`, `GOEXPERIMENT`, `GOFLAGS`, the empty ones left out) followed
+by `; sha256 <digest>` of that file. A probe that cannot start, times
+out, exits non-zero (including a `go.mod` that asks for a toolchain
+that cannot be had), prints something that is not the report, or names
+a `bin/go` that is not a native file on this machine makes the runtime
+unknown. A switch to a toolchain that is not in the module cache is
+downloaded by the probe, as the first run of the benchmark would,
+within the probe's time limit (30 s in `compare`; a download that
+needs longer makes the runtime unknown)
+(`studies/go/toolchain-switch.txt`, run with a limit of 600 s: with `go 1.26.0` in `go.mod`, the
+installed 1.25.14 and `GOTOOLCHAIN=auto`, the record names the 1.26.0
+toolchain in the module cache; with `go 1.25.0` it names the installed
+one). A `go` that is a script, such as a version manager's shim or a
+launcher that runs Go in a container, is a shell, so unknown, and a
+KEEP is withheld.
+
+*A built Go program* is a native executable built in the tree, which
+the gate already compared by the libraries it links from outside the
+tree. Go also stamps the toolchain's version into every executable it
+builds (the header `\xff Go buildinf:`, read without running the file,
+Go 1.18 and later), so two executables built by different toolchains
+are a difference, `<path> go toolchain`, and one built by the same is
+named in the passed detail. An executable that is not a Go build, or
+whose header cannot be read, is compared as before. `go run` and `go
+test` start the toolchain, which compiles (from the build cache after
+the first time) and starts the program as a child, so their wall time
+includes the `go` command's own start-up: 25.2 ms at the median for an
+empty program, against 1.3 ms for its built binary, 30 starts each in
+one container (`studies/go/results.txt`, from `studies/go/run.sh`).
+Build in `setup` and time the executable (`go build -o`, or `go test -c`
+and the test binary) unless the command line is what the user waits for.
 
 *Scripts and launchers.* A `node_modules/.bin` script is followed
 through its `#!` line (`#!/usr/bin/env node` resolves `node` on the
@@ -361,7 +415,7 @@ form would also fetch code, `npx`, `pnpx`, `corepack` and the rest of
 the list above, the run stops instead. The launcher's own runtime is
 not recorded: only the command's is.
 
-Not seen for Node and Java: `NODE_OPTIONS` is recorded with its value
+Not seen for Node, Java and Go: `NODE_OPTIONS` is recorded with its value
 and `JAVA_TOOL_OPTIONS` by name only, and neither is gated (the
 Node probe runs with `NODE_OPTIONS` removed, so a preload can neither
 forge nor spoil the report); Node options set in an `.npmrc`
@@ -369,7 +423,12 @@ forge nor spoil the report); Node options set in an `.npmrc`
 class libraries are covered by the version banner only, not hashed,
 and a `java` shim that chooses between JDK homes is recorded as the
 shim, which passes; a Node program that spawns
-another runtime is recorded under its own.
+another runtime is recorded under its own. For Go, the toolchain's
+standard library and tools are covered by the version and the hash of
+`go` only, not hashed file by file; `go.work` and `vendor/` are not
+recorded (`go.sum` is, as a dependency lockfile); the C compiler that
+cgo calls is not recorded; and a `go` the gate cannot read makes the
+runtime unknown.
 
 **Recorded, not gated:** the environment each command ran with (names, and
 values for variables known to affect performance such as
@@ -1334,6 +1393,80 @@ where the budget allows. What perfproof does when the
 rounds of a benchmark disagree widely is what it does for any noisy
 benchmark: the interval stays wide, and at the budget the verdict is
 INCONCLUSIVE (`insufficient_evidence`), which the skill explains.
+
+### Warm-up (Go)
+
+Go compiles ahead of time to machine code. There is no interpreter and
+no JIT, so no execution has a phase that runs different code from the
+next; the warm-up of "Warm-up (Java)" does not exist, and its rules (an
+in-process loop that waits for the iteration time to settle, with a
+floor and a cap) are not used. What can still make the first
+iterations differ, a cold cache, page faults while the heap grows, the
+first collections, is the whole of what "warm-up" means here, and what
+is measured of it follows.
+
+The runs (`studies/go/run.sh`, summarised by `studies/go/analyze.py`
+into `studies/go/results.txt`; raw output in `studies/go/runs/`): one
+workload, an echo router serving one request through `ServeHTTP`, in
+12 fresh processes, each timing 60 blocks of 100,000 requests and
+reading the number of collections in each block. Go 1.25.14, linux/arm64
+in a Docker container on the Mac the work was done on, which was shared
+with other work while it ran, so its noise is higher than a quiet
+machine's.
+
+- *The first block is not slower.* Its time over the median of that
+  process's blocks 10 to 59 was 0.99 at the median of the 12 processes,
+  0.93 at least and 1.22 at most; the pooled medians of blocks 0 to 5
+  were 0.969 to 1.021 of steady. In this workload there is no warm-up
+  curve to discard. (For comparison, the first iteration of the Java
+  loop in "Warm-up (Java)" was 1.43 to 2.54 times its stable one.) That
+  is one workload with a small heap (48 bytes allocated a request); a
+  workload that builds a large structure first, or grows a heap to
+  hundreds of megabytes, pays for that in the first iterations, and
+  none was run.
+- *Processes differ.* The steady medians of the 12 identical processes
+  spread by 8.6% (maximum over minimum, 253.8 to 275.6 ns a request),
+  and a block's time varied with a coefficient of variation of 5.8 to
+  36.5% inside a process. Neither is warm-up, and both are what the
+  alternating rounds and the interval are for: a comparison of two
+  versions of such a benchmark needs enough rounds to cover them.
+- *Collections are part of the work, and part of the noise.* The
+  collector runs concurrently and its frequency follows the allocation
+  volume and the live heap, so a version that allocates less is faster
+  for it, which is the point. In the runs there were 78 to 82
+  collections over the 6,000,000 requests of a process, one or two in a
+  block; the steady blocks that held two collections took 1.018 of the
+  steady median and those that held one took 0.994 (199 and 401 blocks).
+  A cycle that falls inside or outside the timed region is therefore
+  worth a few percent of a run that holds one or two, and little of a
+  run that holds dozens.
+
+What follows for a Go benchmark:
+
+- Make one execution long enough to hold tens of collections (the
+  workload above had about 1.3 per 100,000 requests, so 2,000,000
+  requests are about 26); a `-benchtime Nx` that gives a hundred
+  iterations of a millisecond each may hold none, and then the
+  allocation cost is either all in or all out of the run.
+- Give both versions the same `GOGC`, `GOMAXPROCS` and `GOMEMLIMIT`.
+  The first two are recorded with their values in the environment of
+  every run, and a difference is a warning, not a gate; never set one
+  to change a single version's collector behaviour.
+- A `reported` metric from inside the process takes the median of
+  blocks, not one number over one long run, so that a collection or a
+  scheduling pause in one block does not decide it: the template is in
+  `skills/perfproof/go.md`. Its block count and size are provisional,
+  chosen by reasoning and the runs above, not calibrated. It has no
+  stop rule, so no execution can end in "did not settle", and a
+  non-zero exit, which is a failed execution and a REJECT on
+  correctness for a candidate, comes only from wrong output.
+- For a short-lived command, time the built executable as a whole
+  (`wall`), not `go run`, which adds the toolchain's own start-up (see
+  "Node, Java and Go runtimes").
+
+Not measured: workloads with a large live heap (where the collector's
+pacing, and so its share, changes), programs that are mostly goroutine
+scheduling or blocking, cgo, and any machine but the one above.
 
 ### Assumptions
 

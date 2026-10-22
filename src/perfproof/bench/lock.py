@@ -34,6 +34,7 @@ locked as harness, listed or not.
 """
 
 import hashlib
+import json
 import os
 import posixpath
 import re
@@ -42,10 +43,11 @@ import subprocess
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Literal, get_args
+from typing import Final, Literal, cast, get_args
 
 from pydantic import ValidationError
 
+from perfproof.bench.gobuildinfo import go_build_version
 from perfproof.bench.spec import (
     STATE_DIR,
     normalize_launch_path,
@@ -214,6 +216,25 @@ _INSTALL_DIRS: Final = frozenset(
     {"dist-packages", "node_modules", "site-packages"}
 )
 _NODE_NAMES: Final = frozenset({"node", "nodejs"})
+_GO_SUBCOMMANDS: Final = frozenset({"build", "run", "test", "vet"})
+"""The ``go`` subcommands whose runtime is the toolchain that runs them:
+they compile the code under test, and ``run`` and ``test`` then run it.
+Every other subcommand (``install``, ``tool``, ``generate``, ``get``,
+``mod``, ``work``, ``env``) starts other programs or fetches code."""
+_GO_ENV_NAMES: Final = (
+    "CGO_ENABLED",
+    "GOAMD64",
+    "GOARCH",
+    "GOARM64",
+    "GOEXPERIMENT",
+    "GOFLAGS",
+    "GOOS",
+    "GOROOT",
+    "GOVERSION",
+)
+"""What the Go probe asks ``go env`` for. The variables other than
+``GOROOT`` and ``GOVERSION`` change the code the toolchain generates."""
+_GO_MODULE_FETCH: Final = re.compile(r"[\w.-]+\.[\w.-]+/\S*@\S+")
 _SHELL_NAMES: Final = frozenset(
     {"ash", "bash", "csh", "dash", "fish", "ksh", "sh", "tcsh", "zsh"}
 )
@@ -1082,7 +1103,9 @@ def _compare_native(
     problems: list[str] = []
     unverified: list[str] = []
     differences: list[Difference] = []
-    paths = {arm: Path(str(envs[arm].runtime_executable)) for arm in _ARMS}
+    paths: dict[Arm, Path] = {
+        arm: Path(str(envs[arm].runtime_executable)) for arm in _ARMS
+    }
     status = {arm: _is_tracked(paths[arm]) for arm in _ARMS}
     for arm, state in status.items():
         if isinstance(state, str):
@@ -1136,12 +1159,15 @@ def _compare_native(
                 "two trees"
             )
             differences.extend(changed)
+    toolchains = _go_toolchains(rel, paths, problems, unverified, differences)
     how = (
         "tracked by git and identical in both trees"
         if tracked
         else "untracked, so treated as a build of the code under test and "
         "not compared itself"
     )
+    if toolchains is not None:
+        how += f"; built by {toolchains} in both"
     shared = "; ".join(
         f"{name} = {value}"
         for name, value in sorted(libraries.get("baseline", {}).items())
@@ -1152,6 +1178,57 @@ def _compare_native(
         f"{shared or 'none'}"
     )
     return problems, unverified, differences, detail
+
+
+def _go_toolchains(
+    rel: str,
+    paths: Mapping[Arm, Path],
+    problems: list[str],
+    unverified: list[str],
+    differences: list[Difference],
+) -> str | None:
+    """Compare the Go toolchain that built each arm's executable.
+
+    An executable built from Go source names its toolchain in the file
+    (`go_build_version`), so two trees whose executables were built by
+    different toolchains differ in more than the code under test. This
+    adds to ``problems`` and ``differences`` when both name one and the
+    names differ, and to ``unverified`` when only one does or a file
+    cannot be read.
+
+    Returns
+    -------
+    str or None
+        The toolchain both arms were built by, or ``None`` when neither
+        is a Go build or the arms differ.
+    """
+    found: dict[Arm, str | None] = {}
+    for arm in _ARMS:
+        try:
+            found[arm] = go_build_version(paths[arm])
+        except OSError as exc:
+            unverified.append(f"the {arm} {rel} cannot be read: {exc}")
+            return None
+    base, cand = found["baseline"], found["candidate"]
+    if base is None and cand is None:
+        return None
+    if base is None or cand is None:
+        unverified.append(
+            f"only the {'candidate' if base is None else 'baseline'} {rel} "
+            "is a Go build, so the toolchains cannot be compared"
+        )
+        return None
+    if base != cand:
+        problems.append(
+            f"{rel} was built by different Go toolchains ({base} and {cand})"
+        )
+        differences.append(
+            Difference(
+                item=f"{rel} go toolchain", baseline=base, candidate=cand
+            )
+        )
+        return None
+    return base
 
 
 def runtime_gate(
@@ -1515,6 +1592,8 @@ def _fetch_reason(
     always = sorted(names & _FETCH_ALWAYS)
     if always:
         return f"{always[0]} downloads a package and runs it"
+    if "go" in names:
+        return _go_fetch_reason(rest)
     known = sorted(names & _FETCH_TOOLS)
     if not known:
         return None
@@ -1544,6 +1623,27 @@ def _fetch_reason(
         return f"{tool} {sub} downloads a package and runs it"
     if sub in _FETCH_SUBCOMMANDS or (tool in {"yarn", "yarnpkg"} and not raw):
         return f"{tool} {sub or 'with no command'} installs from a registry"
+    return None
+
+
+def _go_fetch_reason(rest: Sequence[str]) -> str | None:
+    """Return why a ``go`` command fetches and runs code, or ``None``.
+
+    ``go run`` and ``go install`` on ``module/path@version`` download
+    that module and build it, and ``go get`` and ``go mod download``
+    download modules. ``go run``, ``test`` and ``build`` on the
+    project's own packages fetch dependencies only when the module cache
+    lacks them, which this does not tell; declare that in ``setup``.
+    """
+    sub = rest[0] if rest else ""
+    if sub == "get":
+        return "go get downloads modules"
+    if sub == "mod" and rest[1:2] == ["download"]:
+        return "go mod download downloads modules"
+    if sub in {"install", "run"} and any(
+        _GO_MODULE_FETCH.fullmatch(a) for a in rest[1:]
+    ):
+        return f"go {sub} on a module@version downloads and builds it"
     return None
 
 
@@ -1783,6 +1883,8 @@ class _Launch:
             return self.node([str(exe)], env, str(exe))
         if "java" in canon:
             return self.java(exe, real, env)
+        if "go" in canon and _native_kind(real) is not None:
+            return self.go(exe, real, argv[1:], env)
         if canon & _SHELL_NAMES:
             return _Runtime.unknown(
                 real,
@@ -1941,6 +2043,120 @@ class _Launch:
             return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
         version = f"{' / '.join(lines)}; sha256 {digest}"
         return _Runtime("interpreter", real, version, None, "java")
+
+    def go(
+        self,
+        exe: Path,
+        real: Path,
+        args: Sequence[str],
+        env: Mapping[str, str],
+    ) -> _Runtime:
+        """Identify the Go toolchain a ``go`` command runs.
+
+        Only ``go run``, ``test``, ``build`` and ``vet`` are followed
+        (`_GO_SUBCOMMANDS`). The ``go`` command is asked, as the
+        benchmark would run it, in its working directory and
+        environment. ``go list -f '{{.Root}}' runtime`` names the root
+        of the toolchain that would run: unlike ``go env`` and ``go
+        version``, ``go list`` is a command that switches toolchain when
+        ``go.mod``'s ``go`` or ``toolchain`` line asks for another one
+        (``GOTOOLCHAIN``), and that fails when it cannot. A switch to a
+        toolchain that is not yet in the module cache is downloaded by
+        the probe, as the first run of the benchmark would. That
+        toolchain's own ``bin/go`` is then asked for its settings
+        (``go env -json``) and hashed; it is the runtime. A ``go`` that
+        is a script (a version manager's shim, or a launcher that runs
+        Go in a container) is never asked, and a root whose ``bin/go``
+        is not a native file on this machine is unknown.
+
+        Returns
+        -------
+        _Runtime
+            An ``interpreter`` with family ``go``, whose version is
+            ``go1.25.14 linux/arm64`` followed by the settings that
+            change generated code and the SHA-256 of the toolchain's
+            ``go``; or unknown with the reason.
+        """
+        sub = args[0] if args else ""
+        if sub not in _GO_SUBCOMMANDS:
+            return _Runtime.unknown(
+                real,
+                f"{exe} {sub}: only go run, test, build and vet are "
+                "identified; other subcommands start other programs or "
+                "fetch code",
+            )
+        listed, _, failure = self.report(
+            [str(exe), "list", "-f", "{{.Root}}", "runtime"], env
+        )
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not report its go root: {failure}"
+            )
+        toolchain = Path(listed.strip()) / "bin" / "go"
+        found = toolchain.resolve()
+        if (
+            "\n" in listed.strip()
+            or not toolchain.is_absolute()
+            or _native_kind(found) is None
+        ):
+            return _Runtime.unknown(
+                real,
+                f"{exe} reports the go root {listed.strip()[:200]!r}, which "
+                "has no native bin/go on this machine, so the toolchain "
+                "that runs is not the one found here",
+            )
+        out, _, failure = self.report(
+            [str(toolchain), "env", "-json", *_GO_ENV_NAMES], env
+        )
+        if failure is not None:
+            return _Runtime.unknown(
+                found,
+                f"{toolchain} could not report its go version: {failure}",
+            )
+        try:
+            loaded: object = json.loads(out)
+        except ValueError:
+            loaded = None
+        info: dict[str, str] = (
+            {
+                k: v
+                for k, v in cast("dict[object, object]", loaded).items()
+                if isinstance(k, str) and isinstance(v, str)
+            }
+            if isinstance(loaded, dict)
+            else {}
+        )
+        if not info:
+            return _Runtime.unknown(
+                real,
+                f"{exe} env -json did not print a JSON object of strings: "
+                f"{out.strip()[:200]!r}",
+            )
+        version = info.get("GOVERSION", "")
+        if not version:
+            return _Runtime.unknown(
+                found, f"{toolchain} env did not report GOVERSION"
+            )
+        try:
+            digest, _ = hash_file(found)
+        except OSError as exc:
+            return _Runtime.unknown(found, f"{found} cannot be hashed: {exc}")
+        settings = [
+            f"{name}={info[name]}"
+            for name in (
+                "CGO_ENABLED",
+                "GOAMD64",
+                "GOARM64",
+                "GOEXPERIMENT",
+                "GOFLAGS",
+            )
+            if info.get(name)
+        ]
+        platform = f"{info.get('GOOS', '?')}/{info.get('GOARCH', '?')}"
+        text = "; ".join(
+            [f"{version} {platform}", *settings, f"sha256 {digest}"]
+        )
+        return _Runtime("interpreter", found, text, None, "go")
 
     def node_launcher(
         self,

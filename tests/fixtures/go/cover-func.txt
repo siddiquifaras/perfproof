@@ -1,0 +1,8 @@
+example.com/prog/work.go:13:	Join		100.0%
+example.com/prog/work.go:25:	Count		100.0%
+example.com/prog/work.go:34:	Words		0.0%
+example.com/prog/work.go:44:	Contend		0.0%
+example.com/prog/work.go:66:	Sign		60.0%
+example.com/prog/work.go:77:	Unused		0.0%
+example.com/prog/work.go:82:	Clamp		66.7%
+total:				(statements)	44.1%

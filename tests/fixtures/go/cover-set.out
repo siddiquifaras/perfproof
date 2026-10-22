@@ -1,0 +1,26 @@
+mode: set
+example.com/prog/work.go:13.34,15.26 2 1
+example.com/prog/work.go:15.26,16.12 1 1
+example.com/prog/work.go:16.12,18.4 1 1
+example.com/prog/work.go:19.3,19.11 1 1
+example.com/prog/work.go:21.2,21.12 1 1
+example.com/prog/work.go:25.43,27.26 2 1
+example.com/prog/work.go:27.26,29.3 1 1
+example.com/prog/work.go:30.2,30.15 1 1
+example.com/prog/work.go:34.28,36.23 2 0
+example.com/prog/work.go:36.23,38.3 1 0
+example.com/prog/work.go:39.2,39.14 1 0
+example.com/prog/work.go:44.42,50.31 2 0
+example.com/prog/work.go:50.31,52.13 2 0
+example.com/prog/work.go:52.13,54.35 2 0
+example.com/prog/work.go:54.35,58.5 3 0
+example.com/prog/work.go:61.2,62.14 2 0
+example.com/prog/work.go:66.22,67.11 1 1
+example.com/prog/work.go:67.11,69.3 1 0
+example.com/prog/work.go:70.2,70.12 1 1
+example.com/prog/work.go:70.12,72.3 1 0
+example.com/prog/work.go:73.2,73.10 1 1
+example.com/prog/work.go:77.22,79.2 1 0
+example.com/prog/work.go:82.23,83.11 1 1
+example.com/prog/work.go:83.11,83.23 1 0
+example.com/prog/work.go:84.2,84.10 1 1
