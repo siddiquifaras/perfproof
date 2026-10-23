@@ -207,6 +207,22 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   rerun done and copied off with sha256 checks; deleted by Faras on
   2026-10-23 (`perfproof-traces`, Primary IPs deleted with it).
 
+- **CALIBRATED flip prerequisites (stats-auditor on #85, 2026-10-23):**
+  (1) the gated primary's real-trace cell `linux-picolm/fixed20/gpu_kernels/1.03`
+  fails the per-cell rule at 2 of 3 seeds (85, 90, 98 of 4000; CP95 up to
+  2.89%); over 40 fresh seeds the pooled rate is 2.05% (95% 1.99 to 2.11),
+  so the true rate is under 2.5% but R=4000 cannot certify it: rerun that
+  cell at larger R, or adopt a rule for it, before the flip; (2)
+  `keep_blocked` must withhold KEEP for custom schedules and alpha other
+  than 0.05 (no acceptance evidence; the gated primary breaches 2.5% at
+  alpha 0.1 and 0.2); (3) `docs/method.md` must name the calibrated domain
+  (alpha 0.05, the four class schedules); (4) `tests/calibration/real_traces.py`
+  reads traces from another worker's scratch: point it at the committed
+  traces from #84.
+- **Eval toolchains (Faras, 2026-10-23):** install a native .NET SDK and a
+  current Ruby for the eval user `ppeval` (no Homebrew), so the C# and
+  Ruby/Rails eval tasks run natively; Docker stays unavailable to ppeval.
+
 ### In progress
 
 Resumed 2026-10-21 on Faras's "continue". Stop at the next 5-hour limit and do not restart.
