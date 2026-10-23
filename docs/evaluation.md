@@ -170,7 +170,12 @@ the manifest's build steps (Go and Ruby through the containers the
 manifests use, with launchers on `PATH`), installs the skill and sends
 the first message. A task whose toolchain is missing is recorded as
 skipped with the reason, not failed. Only development manifests are
-used; a held-out task never enters this set.
+used; a held-out task never enters this set. The rule
+(`realrepo.load_spec`): split `development` or `development-candidate`
+(the language batches are drawn as candidates) and status `runs` or
+`builds` (built here; the Java tasks are `builds`, their workload not run
+to a label, which this eval does not need); `held-out` is refused
+whatever its status.
 
 | Family | Seeded as | Prompt | Passes when |
 |---|---|---|---|
@@ -339,7 +344,24 @@ a denied binary, and by files nobody had listed.
    process handed out are kept in memory only; `run --archive-to` scans
    with them. A separate `archive` command knows only the current
    sign-in, and refuses when it cannot read one rather than scanning for
-   nothing. A token that expires within the hour stops the run.
+   nothing. Each sign-in path ends a run differently. The keychain's
+   access token (`--no-eval-user`) carries an expiry, and one that expires
+   within the hour stops the run before the task starts. The eval user's
+   token file is an opaque long-lived token with no expiry to read, so
+   two checks stand in for it: a tiny `claude -p` call, run once per
+   host run by a guest `auth-probe` before the first task (the task guests
+   are told `--sign-in-checked`; a guest started on its own probes before
+   its first task), stops the run with `SandboxUnavailableError` if it
+   fails or times out (recorded as `timed_out`, not signed in), and a call whose `result` event is an error with HTTP status 401
+   or 403 (observed for a rejected token: `is_error` true,
+   `api_error_status` 401, `terminal_reason` `api_error`) stops the run,
+   drops that task's partial record and is not scored as a task failure.
+   Both are stubbed unit tests. The classifier test reads a real capture,
+   `eval/skill/fixtures/claude-rejected-token.jsonl` (claude 2.1.291, in
+   `claude-rejected-token.version`): one `claude -p` call as `ppeval`
+   inside the profile with a made-up token, rc 1. The file holds no
+   token-shaped string (the made-up token is not echoed); it names
+   `/Users/ppeval` paths only.
    The harness's own unconfined reads of the agent's tree do not follow
    links: the test copy keeps symlinks as symlinks (a planted `ln -s
    ~/.ssh/id_rsa lnk` is only ever read by the confined test run),
@@ -371,6 +393,216 @@ tasks, and Rust under the private home (`cargo new`, `cargo add` and
 `cargo build` ran under the profile by hand; no archived record, no
 real repository such as `fd`).
 
+**Running as a separate macOS user (T3.20).** The profile above
+works by listing what is allowed, and review kept finding same-user
+leaks in the list. By default the eval now runs every agent session,
+and every harness step that touches an agent's tree, as the account
+`ppeval` (uid 502, its own group, hidden, home `/Users/ppeval`), inside
+that same profile: two layers. The owner's account may run commands as
+it with `sudo -n -u ppeval -H`, which grants that user only, never root.
+`--no-eval-user` is today's behaviour (the agent runs as the owner,
+behind the profile only). It is an explicit flag, never chosen
+automatically: with no flag and no `ppeval` (or no passwordless sudo to
+it) `skill_eval.py run` and `auth-probe` stop with a message that names
+the flag.
+
+*Layout.* The harness is split along the user boundary
+(`eval/skill/eval_user.py`):
+
+- The *host* (the owner) runs `uv build --wheel` on the checkout, packs
+  a bundle (the harness modules without their tests, `eval/tasks`,
+  `eval/mine/checks.json`, `examples/`, the skill, the task file and the
+  wheel) and extracts it as `ppeval` through `tar -x` on standard input,
+  so every file is owned by `ppeval`. It installs the wheel with `uv
+  tool install --force --reinstall --python 3.12 --with pytest` as
+  `ppeval`, so the agent's `perfproof` is the package a user would get
+  from the wheel (`pytest` is in the same environment for the examples
+  tasks' tests). The agent never needs the owner's checkout.
+- The *guest* is the ordinary `skill_eval.py run --no-eval-user`,
+  started as `ppeval` from the bundle, one task per call so the host can
+  honour `--pause-marker` between tasks. It seeds the task repositories
+  under `/Users/ppeval/eval-work/work/<run>/repos/<task>`, runs the
+  setup builds and the oracle, starts each agent behind the profile
+  (adapted by construction: `Path.home()` is `ppeval`'s, so the home
+  deny, the toolchain allow-list, `HOME` and `TMPDIR` are all under
+  `/Users/ppeval`; the `(deny mach-lookup)` allow-list, the unix-socket
+  deny and the process-introspection denies are unchanged), redacts and
+  scans, scores and archives into `eval-work/archive/<run>`.
+- `PATH`, `JAVA_HOME` and the toolchains come from `ppeval`'s own
+  installs (`~/.local/bin`, `~/.cargo/bin`, Temurin under
+  `~/.local/jdk`, node under `~/.nvm`), set by a launcher that its own
+  shell runs. `sudo` passes the owner's `PATH` through, so the command
+  is `env -i` plus a short list of names.
+
+*Results come back as data, by copy-out, not a drop directory.* The host
+runs `sudo -n -u ppeval -H tar -c` on the scanned archive and extracts
+the stream itself, accepting only regular files and directories with
+names that stay inside the target, up to 1 GiB (a link or device entry
+is refused, so nothing in the archive can aim a later write at the
+owner's files); then it re-scores the files as data. Nothing from them is
+ever executed as the owner. A drop directory would need a location that
+the owner can read and `ppeval` can write but not read back (an ACL
+setup that is itself easy to get wrong, and a second path by which an
+agent-controlled user writes into the owner's files); the copy-out has
+one direction, one command, and one filter.
+
+*Secret scanning and redaction run on the `ppeval` side, fail closed.*
+The token is in `/Users/ppeval/.config/perfproof-eval/token` (mode 0600,
+owned by `ppeval`). The host never reads it, so the host cannot redact
+or scan with it. This is a convention, not a barrier: `(ppeval) NOPASSWD:
+ALL` lets any process running as the owner run commands as `ppeval` and
+so read the token and every tree in its home. The guest harness reads the file itself
+(`PERFPROOF_EVAL_TOKEN_FILE` names the path; the value never appears on
+a command line, in an environment passed through `sudo`, or on disk
+elsewhere), hands it to the agent as `CLAUDE_CODE_OAUTH_TOKEN`, redacts
+every form from the recorded events and stderr as before, and
+`archive` scans with all forms before the copy, refusing on a hit (or
+when it has no token to scan with). A scan hit makes the guest exit
+non-zero before the archive directory exists, and the host copies
+nothing. I chose this over passing salted hashes or patterns to the
+owner's side because the scan needs the token's forms at the byte
+level in the files, which is cheaper and safer to do where the token
+already is than to approximate from hashes (a hash cannot find a token
+split by whitespace or re-encoded). The cost: the owner's side cannot
+re-verify the scan; the pulled run carries `eval-user.json` (the wheel
+and bundle hashes, the exit codes, "redaction and scan run by the eval
+user") and the owner's `archive` command, which has no way to scan for a
+different user's token, copies such a run without rescanning only when
+told to (`archive --scanned-by-eval-user`); the file's presence is not
+trusted. The host also kills every process of `ppeval` (`pkill -KILL
+-U`, `eval_user.sweep`: that account exists only for the evals) before
+staging and after every guest call, and when the host is interrupted,
+because `sudo` dying leaves the guest running and the owner cannot signal
+it. That would kill a second eval's guest, so one eval holds the eval
+user at a time: `eval_user.exclusive`, an `flock` on
+`~/.cache/perfproof-eval/eval-user.lock`; a second run stops with "another
+eval holds the eval user", `sweep` refuses to run without the lock, and the
+integration tests take the same lock or skip.
+
+*Setup builds.* The setup commands and the oracle run as `ppeval`
+and, for the eval user, behind the same profile as the agent
+(`realrepo.run_setup(..., confine=True)`): writes only in the task tree
+and the task's private home and temp directory, no clipboard, Apple
+Events or keychain, and the workload files readable. A repository's
+build script can therefore neither reach the owner's account nor
+rewrite `/Users/ppeval/eval-work/bundle`. Test: a setup script that
+touches a file in a "bundle" directory and asks Finder for the owner's
+home items fails at both (`touch` exit 1, Finder call fails), and the
+same script run unconfined does write the bundle
+(`test_a_hostile_setup_cannot_write_outside_its_tree_or_reach_the_gui`).
+With `--no-eval-user` setup is as it was: unconfined, as the owner. Not
+exercised: a real task's setup (for example `uv sync`, `cargo build`)
+under the profile; they ran as the agent's commands under it, but the
+whole setup of each task has not been run this way.
+
+*The harness that scans is tamper-evident.* At staging the host hashes
+the bundle: every entry's kind (file, directory, link), permission bits
+and length-prefixed name and payload (bytes, or a link's target). Before each guest and after
+it, the host runs a short script, passed on its own command line, as
+`ppeval` that hashes the bundle again; a difference, an extra file, a
+link or bytecode stops the run (`BundleTamperedError`) and nothing is
+copied. The guest runs with `PYTHONDONTWRITEBYTECODE=1` so the bundle
+stays byte-identical. Limits: the check runs outside the guest, so a
+tampered guest cannot skip it, but it relies on `ppeval`'s Python
+interpreter and the `uv tool` environment, which a confined process
+cannot write either (home is write-denied) and which are not hashed
+here; a change made and reverted between two checks is not seen.
+
+*`auth-probe` exit status.* `skill_eval.py auth-probe --no-eval-user`
+(the guest's form) exits 0 when the call is signed in and 2 when it is
+not or timed out; the host's once-per-run probe relies on that.
+
+*Docker.* `ppeval` has no Docker and the owner's Docker sockets are
+closed to it, so the Docker-backed Go and Ruby tasks are recorded in the
+report as skipped, with the reason "skipped: needs docker, not
+available to ppeval", without probing the daemon
+(`realrepo.NEEDS_DOCKER`; `test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user`).
+They still run with `--no-eval-user`.
+
+*Sudo scope.* `/etc/sudoers.d/ppeval` is `root:wheel` mode 0640 and not
+readable by the owner, so I did not read it. `sudo -n -l` as the owner
+lists `(ALL) ALL` (with a password; the owner's existing admin rule) and
+`(ppeval) NOPASSWD: ALL`: passwordless sudo reaches the `ppeval` user
+only, not root. A command run as root without a password is refused
+(`sudo -n` fails).
+
+*Probes.* Each row ran as `ppeval`, once bare and once inside the
+profile, on 2026-10-22 (macOS 24.6.0, arm64), from the throwaway driver
+`scratch/t320/` (not committed). The control rows show the probe can
+succeed. Real-account integration tests for the rows marked (T) are in
+`eval/skill/test_eval_user.py` (`pytest -m integration`; they skip where
+`ppeval` does not exist).
+
+| # | Probe (as `ppeval`) | Bare | Inside the profile |
+|---|---|---|---|
+| 1a | `ls /Users/faras` (T) | Permission denied | Permission denied |
+| 1b | `cat /Users/faras/.ssh/id_ed25519.pub` (T) | Permission denied | Permission denied |
+| 1c | `ls /Users/faras/.claude` | Permission denied | Permission denied |
+| 1d | `ls` the checkout, and `head` a file in it (T) | Permission denied | Permission denied |
+| 2a | `security find-generic-password -s "Claude Code-credentials"` | rc 44, item not found (inference: it searched `ppeval`'s own keychain, not the owner's) | rc 71, `execvp() of 'security' failed: Operation not permitted` |
+| 2b | Security framework query (`keychain_probe.py`) | -25300 (reached a keychain, found nothing) | -50 (service closed) |
+| 3 | `sysctl` KERN_PROCARGS2 on a faras process | rc -1, errno 22, 0 bytes | rc -1, errno 1, 0 bytes |
+| 4 | `pbpaste` with a 21-byte marker on the owner's clipboard (restored to empty afterwards; byte count only, contents never printed) | **21 bytes: succeeds** | 0 bytes |
+| 5a | AppleScript `tell application "Finder" to get name` | "Finder" | "Finder" with `Connection Invalid` on stderr (the name comes from the app bundle, no event is sent) |
+| 5b | AppleScript `tell application "Finder" to count items of home` (T) | 12 (the owner's home): **succeeds** | rc 1, `Connection invalid` |
+| 5c | AppleScript `tell application "System Events" to get name of current user` | the owner's user name: **succeeds** | rc 1, error -10827 |
+| 6 | `open -g -a Finder` (T) | rc 0: **succeeds** | rc 1, `Unable to find application named 'Finder'` |
+| 7a | connect to the owner's ssh-agent socket | PermissionError 13 | PermissionError 13 |
+| 7b | connect to `/private/tmp/cc-socks/<pid>.sock` | PermissionError 13 | PermissionError 13 |
+| 7c | connect to `/Users/faras/.docker/run/docker.sock` | PermissionError 13 | PermissionError 13 |
+| 7d | connect to `/var/run/docker.sock` | PermissionError 13 | PermissionError 13 |
+| 8a | `touch /Users/faras/.t320-probe` (T) | Permission denied | Permission denied |
+| 8b | `touch /private/tmp/claude-501/.t320-probe` | Permission denied | Permission denied |
+| 8c | `touch` in the checkout | Permission denied | Permission denied |
+| ctl | write in the task directory; run the system Python | works | works |
+| 9 | `claude -p "reply with the single word ok"` (`claude-sonnet-5-5`, budget 0.30 USD), token read from the file by the process that started it | n/a | rc 0, `ok`; the token was not in the argv (checked in the same process); observed in this session, no record archived |
+
+Interrupting the host (SIGINT) sends `sudo` a SIGTERM, which it relays;
+a `sleep` started through `run_guest` as `ppeval` was gone one second
+later (`test_interrupting_the_host_stops_the_guest_process`). The guest
+`skill_eval.py` turns SIGTERM into the unwinding that kills a running
+agent's process group (the handler is installed when it runs as a
+script). Observed once, not a test (2026-10-22): a guest started as
+`ppeval` with an agent running was sent SIGTERM through `sudo` with no
+host sweep afterwards; `sudo` exited by SIGINT (the handler's
+`KeyboardInterrupt`), and 3 seconds later `pgrep -u 502` found no
+`claude` or `skill_eval` process.
+
+*One end-to-end run as the eval user (2026-10-22, claude 2.1.291).*
+`skill_eval.py run --only find-rolling-light --label t320-e2e`, host
+wheel `perfproof-0.1.0-py3-none-any.whl` (sha256 in the run's
+`eval-user.json`), on a machine under ordinary load (load average 4.1
+at the task's start). The host built, staged and installed the wheel as
+`ppeval`, probed the sign-in once, ran the one task as `ppeval` behind
+the profile, and copied the scanned archive back (6 files); the host's
+re-score agrees with the guest's. Timings: 2 min 31 s of host wall time
+in all (54 s of the host's CPU, mostly `uv build`); the task 121 s (the
+guest's setup 0.3 s, then two `claude` calls of 14.9 s and 103.7 s);
+cost $0.28, 11 turns. Score: 1 of 1 passed; verdict INCONCLUSIVE
+(insufficient evidence), `Result:` line correct, hotspot found at
+rank 1, tree clean, no wording violations, no wrong KEEP. Sandbox
+denials in the recorded output: one, the agent writing `/tmp/cmp.json`
+(`Operation not permitted`; shared temp is closed on purpose, the agent
+carried on). `find-rolling-light` is an example task, so it has no setup
+commands: the confined setup path of a real repository was not exercised
+by this run (only by the unit tests above).
+
+Rows 1, 3, 7 and 8 are closed by the user boundary alone (the profile
+adds nothing there, the bare column already fails; on 7 the parent
+directory is 700 and owned by the owner, so the profile's socket rule
+was not exercised). Rows 4, 5b, 5c and 6 are the reason both layers
+exist: `sudo -u` keeps the process in the owner's GUI session, so a bare
+`ppeval` process reads the owner's clipboard, drives the owner's Finder
+(which runs as the owner and reads the owner's home) and System Events,
+and opens things in the owner's session. Only `(deny mach-lookup)` closes
+them. The "bare" column describes what the guest harness itself (not
+confined) could do; setup builds and the oracle run in the "profile"
+column. Row 3's errno differs (22, 1) but both fail.
+
+Not covered by a probe: Apple Events to apps other than Finder and
+System Events; `pbcopy` (write to the owner's clipboard); LaunchServices
+beyond `open -g -a`; whether another route into the GUI session exists.
+
 **What is still open after this.**
 - Process introspection beyond the three rules, and any reader in the
   harness's own session (see above): untested routes such as `lsof`,
@@ -393,10 +625,12 @@ real repository such as `fd`).
   holds the access token, and use CPU, memory and the network.
 - Unix sockets, Mach services and files are each a deny-by-default list
   that I tested only where I could name the route; a route I did not
-  think of stays open. The class of problem (a profile of a deprecated
-  Apple tool, on the owner's own account) is the reason to weigh a
-  separate macOS user or a VM, which closes by construction what this
-  closes by enumeration.
+  think of stays open. With the eval user (above) the owner's files,
+  keychain, process environments and sockets are closed by construction;
+  what the enumerated profile still has to close alone is the
+  GUI-session reach (clipboard, Apple Events, `open`), and anything
+  `ppeval` itself owns (its token, and the earlier runs and task trees
+  in its home, which the profile denies to the agent).
 - The network is open: anything the agent can read or holds (the access
   token, whatever the task tree contains) can be sent anywhere, and
   encoded exfiltration beyond the redacted forms (split, encrypted,
@@ -405,9 +639,13 @@ real repository such as `fd`).
   daemon is unconfined and can bind-mount `/Users`, so those tasks can
   read the whole disk through a container. Accepted as a residual until
   the native Go and Ruby work (T5.12, T5.14) removes the need for Docker.
-- Build steps (setup commands) run unconfined, with the clean
-  environment, because they read the task files; they execute the
-  repository's own build scripts.
+- Build steps (setup commands) run unconfined by the profile with
+  `--no-eval-user` (as the owner, clean environment); they execute the
+  repository's own build scripts. With the eval user they run behind the
+  profile (see above).
+- A resumed run restages the bundle, and `eval-user.json` keeps every
+  staging's hashes (`stagings`) because tasks finished earlier ran with
+  the earlier wheel and skill.
 - Whatever the agent writes into its private directory is read by the
   harness afterwards. Links in it are not followed, and anything it
   replaces in the private home (the toolchain links, its temp

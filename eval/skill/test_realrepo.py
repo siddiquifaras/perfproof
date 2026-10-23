@@ -270,3 +270,67 @@ def test_a_held_out_manifest_cannot_be_loaded() -> None:
     with pytest.raises(ValueError, match="development"):
         realrepo.load_spec("psf-black-pr3467")
     assert realrepo.load_spec("sharkdp-fd-pr853").setup
+
+
+def _manifest_dirs(
+    tmp_path: Path, split: str, status: str
+) -> tuple[Path, Path]:
+    tasks = tmp_path / "tasks"
+    (tasks / "x").mkdir(parents=True)
+    (tasks / "x" / "t.json").write_text(
+        json.dumps(
+            {
+                "split": split,
+                "status": status,
+                "repository": "o/r",
+                "task_commit": "a",
+                "reference_change": {"commit": "b", "url": "u", "title": ""},
+            }
+        ),
+        encoding="utf-8",
+    )
+    checks = tmp_path / "checks.json"
+    checks.write_text(json.dumps({"t": {"setup": [], "env": {}}}))
+    return tasks, checks
+
+
+@pytest.mark.parametrize(
+    ("split", "status", "loads"),
+    [
+        ("development", "runs", True),
+        ("development-candidate", "runs", True),
+        ("development-candidate", "builds", True),
+        ("held-out", "runs", False),
+        ("held-out", "builds", False),
+        ("development-candidate", "candidate", False),
+        ("development-candidate", "failed", False),
+    ],
+)
+def test_which_splits_and_statuses_may_load(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    split: str,
+    status: str,
+    loads: bool,
+) -> None:
+    tasks, checks = _manifest_dirs(tmp_path, split, status)
+    monkeypatch.setattr(realrepo, "TASKS_DIR", tasks)
+    monkeypatch.setattr(realrepo, "CHECKS_FILE", checks)
+    if loads:
+        assert realrepo.load_spec("t").repository == "o/r"
+    else:
+        with pytest.raises(ValueError, match="development"):
+            realrepo.load_spec("t")
+
+
+@pytest.mark.parametrize(
+    "path",
+    sorted((Path(__file__).parent).glob("tasks*.json")),
+    ids=lambda p: p.name,
+)
+def test_every_task_file_loads(path: Path) -> None:
+    found = taskset.load(path)
+    assert found.tasks
+    for task in found.tasks:
+        if task.repo is not None:
+            assert realrepo.load_spec(task.repo.manifest).repository

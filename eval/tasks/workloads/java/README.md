@@ -32,7 +32,8 @@ one). They run on the host with the JDK on the `PATH`, no container:
 
 ```bash
 PATH=$JAVA_HOME/bin:$PATH uv run python eval/skill/skill_eval.py \
-    --tasks-file eval/skill/tasks-java.json run --label java-1
+    --tasks-file eval/skill/tasks-java.json run --no-eval-user \
+    --label java-1
 ```
 
 The workload runs recorded in the six Java manifests predate the warm-up

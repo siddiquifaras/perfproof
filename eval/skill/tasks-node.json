@@ -27,7 +27,7 @@
         "hotspot": {
           "file": "lib/route.js",
           "function": "routeHandler",
-          "match": "named"
+          "top_n": 5
         }
       }
     },

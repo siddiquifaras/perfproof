@@ -19,6 +19,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,11 @@ CHECKS_FILE = REPO_ROOT / "eval" / "mine" / "checks.json"
 WORKLOADS = TASKS_DIR / "workloads"
 _WORKLOADS_RELATIVE = "../../../../tasks/workloads"
 """How ``checks.json`` reaches the workload files from its work dir."""
+_SPLITS = frozenset({"development", "development-candidate"})
+"""Splits the skill eval may use. ``held-out`` is never in it."""
+_STATUSES = frozenset({"runs", "builds"})
+"""Statuses that mean the task builds here (``builds``: its workload was
+not run to a label, which the skill eval does not need)."""
 GITHUB = "https://github.com"
 CONTAINER_LABEL = "perfproof-eval=1"
 FETCH_TIMEOUT_S = 1800.0
@@ -58,6 +64,10 @@ _SHIM_TEMPLATES = {
         ' "$(basename "$0")" "$@"'
     ),
 }
+
+
+NEEDS_DOCKER = "needs docker, not available to ppeval"
+"""Why a Docker-backed task is skipped for the eval user."""
 
 
 class SetupError(RuntimeError):
@@ -117,8 +127,9 @@ def load_spec(manifest_id: str) -> RepoSpec:
     FileNotFoundError
         If no manifest has this id.
     ValueError
-        If the manifest is not a development task that builds and
-        runs here; a held-out task never enters this eval.
+        If the manifest is not a ``development`` or
+        ``development-candidate`` task whose status is ``runs`` or
+        ``builds``; a held-out task never enters this eval.
     KeyError
         If ``checks.json`` has no entry for it.
     """
@@ -131,13 +142,13 @@ def load_spec(manifest_id: str) -> RepoSpec:
         CHECKS_FILE.read_text(encoding="utf-8")
     )[manifest_id]
     if (
-        manifest.get("split") != "development"
-        or manifest.get("status") != "runs"
+        manifest.get("split") not in _SPLITS
+        or manifest.get("status") not in _STATUSES
     ):
         msg = (
             f"{manifest_id} is {manifest.get('split')!r}/"
             f"{manifest.get('status')!r}: only built development tasks "
-            "may be used"
+            "may be used (never a held-out one)"
         )
         raise ValueError(msg)
     oracle: dict[str, Any] = manifest.get("oracle") or {}
@@ -336,6 +347,7 @@ def _run(
     timeout: float,
     *,
     confine: bool = False,
+    read: Sequence[Path] = (),
 ) -> tuple[int, str]:
     argv = shlex.split(command)
     if confine:
@@ -349,6 +361,7 @@ def _run(
                 cwd.parents[1] / "sandbox" / cwd.name,
                 REPO_ROOT / ".venv",
                 REPO_ROOT / "src",
+                *read,
             ],
             write=[cwd.parents[1] / "sandbox" / cwd.name / "private"],
         )
@@ -410,6 +423,8 @@ def run_setup(
     repo: Path,
     extra_path: list[Path],
     timeout: float = SETUP_TIMEOUT_S,
+    *,
+    confine: bool = False,
 ) -> None:
     """Run the build commands, then hide what they created from git.
 
@@ -423,6 +438,12 @@ def run_setup(
         Directories for ``PATH`` (the toolchain launchers).
     timeout : float, optional
         Seconds allowed for each command.
+    confine : bool, optional
+        Run each command behind the ``sandbox-exec`` profile, as the
+        agent runs: writes only in the repo and the task's private home
+        and temp directory, no clipboard, Apple Events or keychain, the
+        workload files readable. Used for the eval user, where a build
+        script must not be able to rewrite the staged harness.
 
     Raises
     ------
@@ -431,7 +452,14 @@ def run_setup(
     """
     env = task_env(spec, repo, extra_path)
     for command in spec.setup:
-        code, tail = _run(command, repo, env, timeout)
+        code, tail = _run(
+            command,
+            repo,
+            env,
+            timeout,
+            confine=confine,
+            read=[WORKLOADS],
+        )
         if code != 0:
             msg = f"setup `{command[:80]}` exited {code}: {tail}"
             raise SetupError(msg)
@@ -501,6 +529,10 @@ def missing_requirements(real: RealRepo) -> list[str]:
         launcher needs it and the daemon does not answer. Empty when
         the task can run.
     """
+    if real.shim is not None and sandbox.as_eval_user():
+        # Not a probe of the daemon: the eval user has no Docker and the
+        # owner's sockets are closed to it, by design.
+        return [NEEDS_DOCKER]
     provided = _PROVIDED.get(real.shim or "", ())
     missing = [
         r for r in real.requires if r not in provided and not shutil.which(r)

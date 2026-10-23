@@ -37,6 +37,25 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = REPO_ROOT / "examples"
 SKILL_SOURCE = REPO_ROOT / "skills" / "perfproof"
 """The skill as it is in the working tree."""
+VENV_ENV = "PERFPROOF_EVAL_VENV"
+"""Names the Python environment that holds ``perfproof``, when it is not
+this checkout's ``.venv``: the eval user's installed tool environment,
+which has no checkout to point at. A path, not a secret."""
+
+
+def venv_dir() -> Path:
+    """Find the Python environment the agent's ``perfproof`` runs from.
+
+    Returns
+    -------
+    Path
+        ``$PERFPROOF_EVAL_VENV`` if set (the eval user's ``uv tool``
+        environment), otherwise this checkout's ``.venv``.
+    """
+    named = os.environ.get(VENV_ENV)
+    return Path(named) if named else REPO_ROOT / ".venv"
+
+
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 """Tools allowed without a prompt; nobody is there to answer one."""
 TURN_TIMEOUT_SECONDS = 1500.0
@@ -327,7 +346,7 @@ def shim_dir(root: Path) -> Path:
     FileNotFoundError
         If the checkout has no ``.venv``.
     """
-    venv = REPO_ROOT / ".venv" / "bin"
+    venv = venv_dir() / "bin"
     if not (venv / "python").exists():
         msg = f"{venv} is missing; run `uv sync` first"
         raise FileNotFoundError(msg)
@@ -441,7 +460,7 @@ def build_real_repo(
         ".claude/\n", encoding="utf-8"
     )
     shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
-    realrepo.run_setup(spec, dest, extra_path)
+    realrepo.run_setup(spec, dest, extra_path, confine=sandbox.as_eval_user())
     return seeded
 
 
@@ -642,6 +661,28 @@ _WAITING_ON_MACHINE = re.compile(
     r"|governor)\b",
     re.IGNORECASE,
 )
+
+
+def auth_failed(result: dict[str, object] | None) -> bool:
+    """Tell whether a call ended because the sign-in was rejected.
+
+    Parameters
+    ----------
+    result : dict or None
+        The ``result`` event of the call.
+
+    Returns
+    -------
+    bool
+        True for an error result with HTTP status 401 or 403. Observed
+        for a rejected OAuth token (2026-10-22, claude 2.1.291): the
+        result has ``is_error`` true, ``api_error_status`` 401,
+        ``terminal_reason`` ``api_error`` and a "Failed to
+        authenticate" text. Such a call says nothing about the skill.
+    """
+    if result is None or result.get("is_error") is not True:
+        return False
+    return result.get("api_error_status") in (401, 403)
 
 
 def session_over(result: dict[str, object]) -> bool:
@@ -906,7 +947,7 @@ def capture_state(
     if real is not None:
         trees = _real_trees(repo, seeded, *real)
     else:
-        python = REPO_ROOT / ".venv" / "bin" / "python"
+        python = venv_dir() / "bin" / "python"
         work.mkdir(parents=True, exist_ok=True)
         refs = ["working", *sorted(b for b in branches if b not in seeded)]
         trees = [
@@ -1016,7 +1057,11 @@ def run_task(
     if task.repo is not None:
         missing = realrepo.missing_requirements(task.repo)
         if missing:
-            msg = "missing on this machine: " + ", ".join(missing)
+            msg = (
+                f"skipped: {realrepo.NEEDS_DOCKER}"
+                if missing == [realrepo.NEEDS_DOCKER]
+                else "missing on this machine: " + ", ".join(missing)
+            )
             raise realrepo.SetupError(msg)
         if task.repo.shim is not None:
             shims = work / "shims" / task.repo.shim
@@ -1088,6 +1133,16 @@ def run_task(
             launch,
             forms,
         )
+        if auth_failed(result):
+            # Not a task failure: the sign-in is dead, so this task and
+            # every later one would be scored on nothing. Drop the
+            # partial record, as for a task never started.
+            shutil.rmtree(out, ignore_errors=True)
+            msg = (
+                f"the claude sign-in was rejected during {task.id} "
+                "(HTTP 401/403); renew the token"
+            )
+            raise sandbox.SandboxUnavailableError(msg)
         turns.append(meta)
         if spec is not None:
             realrepo.kill_containers()

@@ -36,6 +36,11 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
+TOKEN_FILE_ENV = "PERFPROOF_EVAL_TOKEN_FILE"  # noqa: S105
+"""Names the file with the eval user's sign-in (a path, not a secret).
+
+Set only in the eval user's own harness process; ``agent_env`` drops it.
+"""
 SENTINEL = "perfproof-eval-denied"
 """``GH_TOKEN`` value: never valid; keeps ``gh`` off the keychain."""
 # Variables the ``claude`` CLI is known to need for its own sign-in.
@@ -448,6 +453,43 @@ def suspicious(env: Mapping[str, str]) -> list[str]:
     )
 
 
+def as_eval_user(environ: Mapping[str, str] | None = None) -> bool:
+    """Tell whether this process is the eval user's guest harness.
+
+    Returns
+    -------
+    bool
+        True when ``PERFPROOF_EVAL_TOKEN_FILE`` is set, which only the
+        host's launcher does, and only for the guest.
+    """
+    return bool(
+        (os.environ if environ is None else environ).get(TOKEN_FILE_ENV)
+    )
+
+
+def _token_from_file(path: Path) -> str:
+    """Read the eval user's sign-in from its token file.
+
+    The harness runs as the eval user, so the file (mode 0600, owned by
+    that user) is read inside the process that needs it. The value is
+    never put on a command line or written anywhere.
+
+    Raises
+    ------
+    SandboxUnavailableError
+        If the file is missing, unreadable or empty.
+    """
+    try:
+        token = path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        msg = f"cannot read the eval user's token file {path}: {exc.strerror}"
+        raise SandboxUnavailableError(msg) from exc
+    if not token:
+        msg = f"the eval user's token file {path} is empty"
+        raise SandboxUnavailableError(msg)
+    return token
+
+
 def claude_oauth_token(
     environ: Mapping[str, str] | None = None,
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
@@ -477,17 +519,23 @@ def claude_oauth_token(
     -------
     str or None
         ``None`` when the environment already carries a sign-in
-        (``ALLOWED_SECRETS``); otherwise the keychain's access token.
+        (``ALLOWED_SECRETS``); the contents of the file named by
+        ``PERFPROOF_EVAL_TOKEN_FILE`` when that is set (the eval user's
+        long-lived token, no keychain); otherwise the keychain's access
+        token.
 
     Raises
     ------
     SandboxUnavailableError
-        If the keychain has no usable sign-in, or its access token
-        expires within an hour (run ``claude`` once to refresh it).
+        If the token file is missing or empty, or the keychain has no
+        usable sign-in, or its access token expires within an hour (run
+        ``claude`` once to refresh it).
     """
     env = os.environ if environ is None else environ
     if any(env.get(name) for name in ALLOWED_SECRETS):
         return None
+    if env.get(TOKEN_FILE_ENV):
+        return _token_from_file(Path(env[TOKEN_FILE_ENV]))
     data: Any = None
     try:
         got = run(

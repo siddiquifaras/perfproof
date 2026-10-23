@@ -1294,6 +1294,7 @@ def test_a_run_stopped_by_the_sign_in_is_scored_and_archived(
     code = skill_eval.main(
         [
             "run",
+            "--no-eval-user",
             "--only",
             "prove-rolling-fix",
             "--label",
