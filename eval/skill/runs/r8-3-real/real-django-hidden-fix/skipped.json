@@ -1,0 +1,4 @@
+{
+  "task_id": "real-django-hidden-fix",
+  "reason": "setup `uv venv --python 3.14+gil .venv` exited 2: error: Failed to inspect Python interpreter from first executable in the search path at `/Users/ppeval/eval-work/runs/r8-3-real/bin/python`\n  cause: Querying Python at `/Users/ppeval/eval-work/runs/r8-3-real/bin/python` failed with exit status exit status: 126\n\n         [stderr]\n         /bin/sh: /Users/ppeval/eval-work/runs/r8-3-real/bin/python: Operation not permitted"
+}

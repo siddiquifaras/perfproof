@@ -1,0 +1,38 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "21fd01307313e7442670f6f2047371e465c53bba",
+    "perfproof/fd-light": "f9ffbad1e98e514fbf1e4e33e565eb98703fccf8"
+  },
+  "seeded": {
+    "main": "21fd01307313e7442670f6f2047371e465c53bba"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": null,
+      "tests_tail": ""
+    },
+    {
+      "ref": "perfproof/fd-light",
+      "changed": [
+        "src/output.rs",
+        "src/walk.rs"
+      ],
+      "tests_ok": true,
+      "tests_tail": "test test_simple ... ok\ntest test_type_executable ... ok\ntest test_smart_case ... ok\ntest test_type_empty ... ok\ntest test_type ... ok\ntest test_size ... ok\n\ntest result: ok. 69 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261023T103918Z-246f56",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "user": "ppeval",
+  "uid": 502,
+  "pulled_at": "2026-10-23T10:41:15Z",
+  "wheel": "perfproof-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "e71e975018eeff5ead9fc4a3d9d1e645a9dccebe6ffd3ec9293d22387e96d399",
+  "bundle_sha256": "6bfd2bc3bf7d96dea9244b0e1ddddcd6800dccda5e6cb224a13d022f73918303",
+  "perfproof": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/perfproof/__init__.py",
+  "redaction_and_scan": "run by the eval user before the copy",
+  "stagings": [],
+  "guest_exit_codes": [
+    0,
+    0,
+    0
+  ]
+}

@@ -1,0 +1,504 @@
+{
+  "name": "held_orders",
+  "spec_hash": "7eb9c9c061b11e5314992a8e701fc7dacf71ecc8117197b8b1d517b156d53be2",
+  "profiler": "pyinstrument",
+  "tool_version": "5.1.3",
+  "basis": "wall",
+  "weight_unit": "microseconds",
+  "hotspots": [
+    {
+      "function": "held_orders",
+      "file": "orders.py",
+      "line": 52,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.6797796662934035,
+      "total_fraction": 0.6797796662934035
+    },
+    {
+      "function": "compile",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.20310009803967122,
+      "total_fraction": 0.20310009803967122
+    },
+    {
+      "function": "Order.__init__",
+      "file": "<string>",
+      "line": 5,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.020908934620084658,
+      "total_fraction": 0.020908934620084658
+    },
+    {
+      "function": "make_book",
+      "file": "bench.py",
+      "line": 56,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0162601814895525,
+      "total_fraction": 0.03716911610963716
+    },
+    {
+      "function": "_call_with_frames_removed",
+      "file": "<frozen importlib._bootstrap>",
+      "line": 488,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0114023390128195,
+      "total_fraction": 0.27210422871586615
+    },
+    {
+      "function": "dumps",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0046952174296879,
+      "total_fraction": 0.0046952174296879
+    },
+    {
+      "function": "<module>",
+      "file": "bench.py",
+      "line": 93,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0036846189230504743,
+      "total_fraction": 0.7437470669411158
+    },
+    {
+      "function": "exec_builtin",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0035731046050766894,
+      "total_fraction": 0.0035731046050766894
+    },
+    {
+      "function": "create_dynamic",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.002876140117740534,
+      "total_fraction": 0.002876140117740534
+    },
+    {
+      "function": "ndarray.tolist",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.002597354322806072,
+      "total_fraction": 0.002597354322806072
+    },
+    {
+      "function": "mkdir",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.002355739967196205,
+      "total_fraction": 0.002355739967196205
+    },
+    {
+      "function": "make_book",
+      "file": "bench.py",
+      "line": 48,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0023394774624916946,
+      "total_fraction": 0.0023394774624916946
+    },
+    {
+      "function": "NamedTupleMeta.__new__",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/typing.py",
+      "line": 2843,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.00233483103257612,
+      "total_fraction": 0.00233483103257612
+    },
+    {
+      "function": "min",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023255381727449714,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "take_action",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 2003,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023255381727449714,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "add_newdoc",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/function_base.py",
+      "line": 544,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.006969644873361553
+    },
+    {
+      "function": "cleandoc",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/inspect.py",
+      "line": 898,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.004648753130532156
+    },
+    {
+      "function": "_path_split",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 134,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "len",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "str.lstrip",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.0023232149577871843
+    }
+  ],
+  "frames_by_total": [
+    {
+      "function": "main",
+      "file": "bench.py",
+      "line": 82,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.7400624480180653
+    },
+    {
+      "function": "held_orders",
+      "file": "orders.py",
+      "line": 52,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.6797796662934035,
+      "total_fraction": 0.6797796662934035
+    },
+    {
+      "function": "make_book",
+      "file": "bench.py",
+      "line": 56,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0185996589520442,
+      "total_fraction": 0.057957243551916886
+    },
+    {
+      "function": "__getattr__",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/__init__.py",
+      "line": 714,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.015851295656981956
+    },
+    {
+      "function": "cleandoc",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/inspect.py",
+      "line": 895,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006964998443445978,
+      "total_fraction": 0.013936966531765318
+    },
+    {
+      "function": "add_newdoc",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/function_base.py",
+      "line": 544,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023232149577871843,
+      "total_fraction": 0.013936966531765318
+    },
+    {
+      "function": "_add_docstring",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/function_base.py",
+      "line": 482,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.011613751573978134
+    },
+    {
+      "function": "_array_method_doc",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/_add_newdocs.py",
+      "line": 3408,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.004648753130532156
+    },
+    {
+      "function": "NamedTupleMeta.__new__",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/typing.py",
+      "line": 2843,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.00233483103257612,
+      "total_fraction": 0.00233483103257612
+    },
+    {
+      "function": "take_action",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 2003,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0023255381727449714,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "ArgumentParser.parse_args",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 1904,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "ArgumentParser.parse_known_args",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 1914,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "ArgumentParser._parse_known_args2",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 1943,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "ArgumentParser._parse_known_args",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 2184,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "consume_optional",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/argparse.py",
+      "line": 2113,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023255381727449714
+    },
+    {
+      "function": "decorator",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/overrides.py",
+      "line": 185,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "add_newdoc_for_scalar_type",
+      "file": "/Users/ppeval/.local/share/uv/tools/perfproof/lib/python3.12/site-packages/numpy/_core/_add_newdocs_scalars.py",
+      "line": 100,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "compile",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/re/__init__.py",
+      "line": 228,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "_compile",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/re/__init__.py",
+      "line": 307,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023232149577871843
+    },
+    {
+      "function": "compile",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/re/_compiler.py",
+      "line": 750,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0023232149577871843
+    }
+  ],
+  "unprofiled": {
+    "wall_seconds": 0.492413792,
+    "cpu_seconds": 0.463791,
+    "cpu_fraction": 0.9418724811022352
+  },
+  "profiled_wall_seconds": 3.4923825,
+  "load_average": 8.27490234375,
+  "cpu_count": 10,
+  "side_effects": {
+    "gate": "side_effects",
+    "status": "passed",
+    "detail": "every service address is local: 0 spec env and 8 other environment variables, the commands and 0 config files checked",
+    "differences": [],
+    "truncated": false,
+    "quarantined": [],
+    "differential": [],
+    "unverified": [],
+    "output": null
+  },
+  "argv": [
+    "/Users/ppeval/.local/bin/uv",
+    "run",
+    "--no-project",
+    "--with",
+    "pyinstrument==5.1.3",
+    "--python",
+    "/Users/ppeval/eval-work/runs/r8-1-ex/bin/python",
+    "--",
+    "python",
+    "-m",
+    "pyinstrument",
+    "--renderer",
+    "pyisession",
+    "--outfile",
+    "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/pyinstrument.pyisession",
+    "bench.py",
+    "--output",
+    "out/held.txt"
+  ],
+  "directory": "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b",
+  "raw": "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/pyinstrument.pyisession",
+  "folded": "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/pyinstrument.folded.txt",
+  "logs": [
+    "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/unprofiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/unprofiled.stderr",
+    "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/profiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/profiles/held_orders/20261023T110538Z-d3081b/profiled.stderr"
+  ],
+  "summary": {
+    "basis": "wall",
+    "weight_unit": "microseconds",
+    "frames": [
+      {
+        "function": "held_orders",
+        "file": "orders.py",
+        "line": 52,
+        "frame_kind": "python",
+        "is_library": false,
+        "self_fraction": 0.6797796662934035,
+        "total_fraction": 0.6797796662934035,
+        "cap": 3.122849784162223,
+        "cap_above_bar": true
+      },
+      {
+        "function": "compile",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.20310009803967122,
+        "total_fraction": 0.20310009803967122,
+        "cap": 1.254862746927257,
+        "cap_above_bar": true
+      },
+      {
+        "function": "Order.__init__",
+        "file": "<string>",
+        "line": 5,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.020908934620084658,
+        "total_fraction": 0.020908934620084658,
+        "cap": 1.0213554544203418,
+        "cap_above_bar": false
+      },
+      {
+        "function": "make_book",
+        "file": "bench.py",
+        "line": 56,
+        "frame_kind": "python",
+        "is_library": false,
+        "self_fraction": 0.0162601814895525,
+        "total_fraction": 0.03716911610963716,
+        "cap": 1.0386039923848864,
+        "cap_above_bar": true
+      },
+      {
+        "function": "_call_with_frames_removed",
+        "file": "<frozen importlib._bootstrap>",
+        "line": 488,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.0114023390128195,
+        "total_fraction": 0.27210422871586615,
+        "cap": 1.3738230656785206,
+        "cap_above_bar": true
+      }
+    ],
+    "frames_omitted": 15,
+    "time": {
+      "wall_seconds": 0.492413792,
+      "cpu_seconds": 0.463791,
+      "cpu_over_wall": 0.9418724811022352,
+      "load_average": 8.27490234375,
+      "cpu_count": 10,
+      "waiting_share_at_least": 0.058127518897764796,
+      "reading": "for at least this share of wall time no thread was on a CPU: the run was waiting, not computing",
+      "machine_loaded": false
+    },
+    "labels": {
+      "share": "estimate: a share of the profile, not of a calibrated run",
+      "cap": "bound: 1 / (1 - total share); not a measured effect",
+      "time": "measured once, on the machine as loaded at the time"
+    }
+  },
+  "evidence": {
+    "path": "/Users/ppeval/eval-work/work/r8-1-ex/repos/find-membership-light/.perfproof/evidence/held_orders/20261023T110542Z-profile-70b611.json",
+    "sha256": "198180c9419e5c5e77da9c63c046e8f851f42a3893e9b94f92874e46caf43b54"
+  },
+  "hypothesis": null,
+  "run_id": "20261023T110538Z-d3081b",
+  "finished_at": "2026-10-23T11:05:42.437016Z"
+}

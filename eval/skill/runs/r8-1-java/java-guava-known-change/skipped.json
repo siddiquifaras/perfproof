@@ -1,0 +1,4 @@
+{
+  "task_id": "java-guava-known-change",
+  "reason": "setup `./mvnw -q -B -pl guava -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.` exited 1: \tat java.base/sun.nio.fs.UnixFileSystemProvider.createDirectory(UnixFileSystemProvider.java:462)\n\tat java.base/java.nio.file.Files.createDirectory(Files.java:700)\n\tat java.base/java.nio.file.Files.createAndCheckIsDirectory(Files.java:808)\n\tat java.base/java.nio.file.Files.createDirectories(Files.java:794)\n\tat org.apache.maven.wrapper.DefaultDownloader.download(DefaultDownloader.java:80)\n\tat org.apache.maven.wrapper.Installer.createDist(Installer.java:84)\n\tat org.apache.maven.wrapper.WrapperExecutor.execute(WrapperExecutor.java:160)\n\tat org.apache.maven.wrapper.MavenWrapperMain.main(MavenWrapperMain.java:73)"
+}

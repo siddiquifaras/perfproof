@@ -1,0 +1,45 @@
+{
+  "task_id": "rust-fd-known-change",
+  "started_at": "2026-10-23T11:27:00+00:00",
+  "wall_seconds": 241.39,
+  "load_start": [
+    14.81201171875,
+    10.248046875,
+    9.50537109375
+  ],
+  "load_end": [
+    19.43994140625,
+    14.7900390625,
+    11.6533203125
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "7cbea51e4466",
+  "turns": [
+    {
+      "prompt": "Is the change on branch pr-1422 (the walker sends its results in batches) really faster than main, and still correct?",
+      "argv": [
+        "claude",
+        "-p",
+        "Is the change on branch pr-1422 (the walker sends its results in batches) really faster than main, and still correct?",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "3.00"
+      ],
+      "seconds": 195.6,
+      "exit_code": 0,
+      "session_id": "8c7aff0e-fda0-40d8-adf4-b0ec8d9afb9a"
+    }
+  ],
+  "setup_seconds": 45.54
+}

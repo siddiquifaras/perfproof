@@ -1,8 +1,11 @@
 # What to tell the user
 
 Build every message from the `compare --json` fields, never from the
-CLI's own text. Short sentences. End with one next step and the
-`Result:` line.
+CLI's own text. Short sentences. End a finished report with one next
+step and the `Result:` line. A message that only asks something you
+will go on from (the workload, the spec, the branch, which commit to
+prove) has no `Result:` line: the session is not over, and the line
+tells the user, and any tool reading it, that it is.
 
 ## The report after a compare
 
@@ -73,4 +76,6 @@ When `ok` is false, say what happened in one sentence from
 - Anything else: fix the cause if it is in what you wrote (the spec,
   the command); otherwise stop and tell the user.
 
-`Result: NO VERDICT (<plain reason>)` whenever no verdict exists.
+`Result: NO VERDICT (<plain reason>)` when the session ends and no
+verdict exists (you stopped before `compare`, or it answered `ok:
+false`), never on a question you will go on from.

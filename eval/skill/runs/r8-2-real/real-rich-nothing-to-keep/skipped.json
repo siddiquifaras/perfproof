@@ -1,0 +1,4 @@
+{
+  "task_id": "real-rich-nothing-to-keep",
+  "reason": "setup `uv venv --python 3.10 .venv` exited 2: error: Could not create temporary file\n  cause: Operation not permitted (os error 1) at path \"/Users/ppeval/eval-work/work/r8-2-real/sandbox/real-rich-nothing-to-keep/private/home/.local/share/uv/python/.tmpFT9TE8\""
+}

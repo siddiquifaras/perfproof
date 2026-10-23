@@ -1,0 +1,43 @@
+{
+  "run_id": "r8-3-dotnet",
+  "skill_sha": "",
+  "claude_version": "",
+  "summary": {
+    "tasks": 0,
+    "passed": 0,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 0,
+    "verdict_total": 0,
+    "wrong_keeps": 0,
+    "result_ok": 0,
+    "result_total": 0,
+    "hotspot_ok": 0,
+    "hotspot_total": 0,
+    "hotspot_by_rule": {},
+    "fix_ok": 0,
+    "fix_total": 0,
+    "tree_ok": 0,
+    "tree_total": 0,
+    "wording": {},
+    "cost_usd": 0.0,
+    "wall_seconds": 0.0,
+    "api_seconds": 0.0,
+    "agent_turns": 0
+  },
+  "skipped": [
+    {
+      "task_id": "dotnet-markdig-hidden-fix",
+      "reason": "missing on this machine: dotnet"
+    },
+    {
+      "task_id": "dotnet-markdig-known-change",
+      "reason": "missing on this machine: dotnet"
+    },
+    {
+      "task_id": "dotnet-serilog-nothing-to-keep",
+      "reason": "missing on this machine: dotnet"
+    }
+  ],
+  "tasks": []
+}

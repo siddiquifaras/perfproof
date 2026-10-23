@@ -91,6 +91,10 @@ command (`bin/bench ...`), not `make` or a script: the profiler attaches
 to the process it starts. Add `"--tool", "perf"` or `"sample"` to
 choose, `"--frequency", "<hz>"` for perf.
 
+- **Never find the program by name.** The recorder starts the program
+  and samples it (on macOS by process id). `pgrep <name>`, `sample <name>` and `ps`
+  look other processes up and can be refused where the sandbox hides
+  them; a profile made that way is not perfproof's.
 - **macOS: `sample`.** It needs no privileges for a process of your own.
   It attaches a moment after the program starts, so the first tens of
   milliseconds are not in the profile, and it records a thread whether

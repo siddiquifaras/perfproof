@@ -1,0 +1,4 @@
+{
+  "task_id": "dotnet-markdig-hidden-fix",
+  "reason": "missing on this machine: dotnet"
+}

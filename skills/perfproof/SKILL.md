@@ -1,6 +1,6 @@
 ---
 name: perfproof
-description: Use when the user wants code to run faster, asks why something is slow, or wants to know whether a change (theirs or an agent's) really is faster and still correct, but not for load testing a deployed service, memory leaks with no speed goal, or code that cannot run on this machine.
+description: Use when the user wants code or a function to run faster or to be sped up, says something takes forever or is slow, asks what is inefficient or wrong performance-wise in a project, or wants to know whether a change (theirs or an agent's) really is faster and still correct, but not for load testing a deployed service, memory leaks with no speed goal, or code that cannot run on this machine.
 ---
 
 # perfproof
@@ -165,8 +165,14 @@ No discovery. One candidate at a time, against its parent.
 4. Run `perfproof compare <name> --candidate <rev or dir> --baseline
    <rev> --json`, adding `--spec-hash <hash>` when the benchmark has more
    than one version (error `ambiguous_hash`). It can take minutes;
-   say so before you start. Never end your turn while it runs: wait for
-   its JSON, then report.
+   say so before you start. Never end your turn while it runs: run it
+   in the foreground; if your tool's time limit is shorter, add
+   `--detach` and follow it with `perfproof status <id> --json` (never
+   by looking its process up by name), and wait for the verdict, then
+   report. A finished `status` gives only a summary: read the record at
+   `verdict.record_path` for the full `verdict` (with `diagnostics` and
+   `calibration`), `gates` and `measured_metric`, and give the
+   `report.md` beside it as the run record.
 5. Report from the JSON with [messages.md](messages.md): what was
    checked and passed (only gates in `gates[]` with their `status`),
    what failed, the estimate (`verdict.estimate`, range
@@ -201,7 +207,16 @@ No discovery. One candidate at a time, against its parent.
    workload that runs the project's most-used public entry points
    over the first or most niche benchmark in a list: a function that
    every call goes through only shows up when the workload makes many
-   different calls. Profile the same workload you will measure. Prepare
+   different calls. A benchmark that exercises one feature hides cost
+   that every call into the library pays; for a library whose users make
+   many small calls, make the first workload a loop over many different
+   public operations at the input sizes those users have, and if the
+   calls are small, keep the arithmetic small so per-call overhead
+   shows in the profile. A profile covers the whole process, start-up
+   and imports included, so loop long enough that those are a minor
+   share. When you enlarge a workload, tell the user what it now does
+   (the input repeated many times), never how long a run took in
+   milliseconds. Profile the same workload you will measure. Prepare
    everything before you ask: your suggested answer to each question
    that matters (what "faster" means, what must not change), the spec
    built on them ([spec.md](spec.md)) or a locked benchmark that fits
@@ -209,7 +224,8 @@ No discovery. One candidate at a time, against its parent.
    the branch `perfproof/<name>` where attempts will go. Then ask in
    one message, your suggestion first for each: the workload and
    answers, the spec in one paragraph, permission for the branch, and
-   any machine warning from the checks above. On their yes, confirm in
+   any machine warning from the checks above. This message is a
+   question you will go on from, so it has no `Result:` line. On their yes, confirm in
    this order, since each needs the one before:
    `perfproof project confirm <target id> <workload id> --json`, then
    `perfproof project goal <workload id> --metric <m> --confirm --json`
@@ -220,7 +236,8 @@ No discovery. One candidate at a time, against its parent.
    something comes up that only the user can decide.
 2. **Profile.** For Node or TypeScript code read [node.md](node.md)
    first: how to launch, warm up and profile it. `perfproof profile
-   <name> --json`. Print the top 15
+   <name> --json`. Write profile output and other scratch files under
+   `.perfproof/`, not `/tmp`: shared temp may not be writable. Print the top 15
    entries of `result.hotspots[]` in the order the CLI gives them
    (by self share), one per line as `function file line
    self_fraction total_fraction`, not a cut of the whole output, and
@@ -235,12 +252,19 @@ No discovery. One candidate at a time, against its parent.
    more (a loop of calls inside the process, a larger input) and
    profile again before choosing an idea. If CPU is well below wall, the program is mostly
    waiting: look at I/O and services, not loops. For a native
-   program, give `profile` a profiler that writes folded stacks (samply
-   or perf) with `--profiler-command` and `--own-module <binary>`. If
-   none is installed, sample the program with the system sampler
-   instead (`sample` on macOS), call each function's share of the
-   samples an estimate, name the sampler, and say perfproof's profile
-   did not run.
+   C or C++ program, profile it through `perfproof profile` with the
+   native recorder in [native.md](native.md) (`--profiler-command`,
+   `--own-module <binary>`): it starts the program itself and runs the
+   system `sample` on macOS (by process id) or `perf` on Linux (which
+   must be on PATH). For Rust, use the recorder in [rust.md](rust.md).
+   Do not
+   look a process up by name (`pgrep`, `sample <name>`, `ps`): in a
+   restricted environment those fail, and the result would be a profile
+   perfproof did not make. If the recorder itself fails, read its error
+   and fix the command before falling back to anything else; if you must
+   sample by hand, use the pid of a child you started, call each
+   function's share an estimate, name the sampler, and say perfproof's
+   profile did not run.
    For Java and other JVM code, read [java.md](java.md) first: how to
    launch the benchmark so the runtime is identified, how to warm it
    up, how to profile it, and what usually goes wrong.
@@ -261,6 +285,12 @@ No discovery. One candidate at a time, against its parent.
    launch the benchmark so the toolchain is identified, how to profile
    it with `sample` or `perf`, how to check the change ran, and what
    usually goes wrong.
+   Then, before you read code or pick an idea, tell the user in plain
+   sentences which functions the profile points at, each by its name and
+   file, with its share as a fact about the profile ("<share> of the samples
+   are under `<function>` in `<file>`", from `total_fraction`; a self
+   share is "<share> of the samples end in it", from `self_fraction`), and which of them
+   you will look at first and why.
 3. **Ideas.** For each hotspot, work out the most a change there could
    save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:

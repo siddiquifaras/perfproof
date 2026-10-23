@@ -1,0 +1,502 @@
+{
+  "name": "api_loop",
+  "spec_hash": "03b3b3fb02d7e72d3d9b3b39a2c5888a1cba762af6c7c439128b204e2b44dd9c",
+  "profiler": "pyinstrument",
+  "tool_version": "5.1.3",
+  "basis": "wall",
+  "weight_unit": "microseconds",
+  "hotspots": [
+    {
+      "function": "compile",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.05116787380248491,
+      "total_fraction": 0.05116787380248491
+    },
+    {
+      "function": "_call_with_frames_removed",
+      "file": "<frozen importlib._bootstrap>",
+      "line": 228,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.04419278664930922,
+      "total_fraction": 0.26093257085223837
+    },
+    {
+      "function": "stat",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.02834939463779551,
+      "total_fraction": 0.02834939463779551
+    },
+    {
+      "function": "loads",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.022964383709120167,
+      "total_fraction": 0.022964383709120167
+    },
+    {
+      "function": "ufunc.reduce",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.020559083549475096,
+      "total_fraction": 0.020559083549475096
+    },
+    {
+      "function": "isinstance",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.018430718714453474,
+      "total_fraction": 0.018430718714453474
+    },
+    {
+      "function": "open_code",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.016668531789483822,
+      "total_fraction": 0.016668531789483822
+    },
+    {
+      "function": "len",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.016662157319096073,
+      "total_fraction": 0.016662157319096073
+    },
+    {
+      "function": "<listcomp>",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 123,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.01313424209671913,
+      "total_fraction": 0.016677739357821686
+    },
+    {
+      "function": "FileFinder.find_spec",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 1550,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.011330975251472857,
+      "total_fraction": 0.03509145948457449
+    },
+    {
+      "function": "hasattr",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.008019792022279482,
+      "total_fraction": 0.008019792022279482
+    },
+    {
+      "function": "getattr",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.007793852460758052,
+      "total_fraction": 0.007793852460758052
+    },
+    {
+      "function": "_maybe_cast_to_cftimeindex",
+      "file": "xarray/core/utils.py",
+      "line": 65,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.007793144186270524,
+      "total_fraction": 0.013458631812006952
+    },
+    {
+      "function": "Pattern.findall",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.00703883185705321,
+      "total_fraction": 0.00703883185705321
+    },
+    {
+      "function": "PandasIndexingAdapter.shape",
+      "file": "xarray/core/indexing.py",
+      "line": 1304,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.006380844858139703,
+      "total_fraction": 0.010629783508820143
+    },
+    {
+      "function": "IndexVariable.shape",
+      "file": "xarray/core/variable.py",
+      "line": 326,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.006373053838776895,
+      "total_fraction": 0.015569289784840377
+    },
+    {
+      "function": "Pattern.sub",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006068495809139858,
+      "total_fraction": 0.006068495809139858
+    },
+    {
+      "function": "DataArray.__setattr__",
+      "file": "xarray/core/common.py",
+      "line": 282,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.00567186209612418,
+      "total_fraction": 0.00567186209612418
+    },
+    {
+      "function": "implement_array_function",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.005669028998174068,
+      "total_fraction": 0.005669028998174068
+    },
+    {
+      "function": "_path_join",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 123,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.005667612449199012,
+      "total_fraction": 0.025178449757132678
+    }
+  ],
+  "frames_by_total": [
+    {
+      "function": "work",
+      "file": ".perfproof/harness/bench_api.py",
+      "line": 42,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0028366393225496183,
+      "total_fraction": 0.7390674291477617
+    },
+    {
+      "function": "DataArrayRolling._mean",
+      "file": "xarray/core/rolling.py",
+      "line": 136,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0007089827620155226,
+      "total_fraction": 0.2033222323111988
+    },
+    {
+      "function": "DataArrayRolling.method",
+      "file": "xarray/core/rolling.py",
+      "line": 122,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0007082744875279946,
+      "total_fraction": 0.2033222323111988
+    },
+    {
+      "function": "DataArrayRolling._numpy_or_bottleneck_reduce",
+      "file": "xarray/core/rolling.py",
+      "line": 532,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.2033222323111988
+    },
+    {
+      "function": "apply_ufunc",
+      "file": "xarray/core/computation.py",
+      "line": 1166,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0014165489750559892,
+      "total_fraction": 0.13537816899712582
+    },
+    {
+      "function": "DataArrayRolling.reduce",
+      "file": "xarray/core/rolling.py",
+      "line": 434,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0007082744875279946,
+      "total_fraction": 0.11760756210504844
+    },
+    {
+      "function": "concat",
+      "file": "xarray/core/concat.py",
+      "line": 242,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.10770800959286966
+    },
+    {
+      "function": "_dataset_concat",
+      "file": "xarray/core/concat.py",
+      "line": 431,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.10770800959286966
+    },
+    {
+      "function": "apply_dataarray_vfunc",
+      "file": "xarray/core/computation.py",
+      "line": 291,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0014165489750559892,
+      "total_fraction": 0.09706193577083637
+    },
+    {
+      "function": "DatasetGroupBy.mean",
+      "file": "xarray/core/_reductions.py",
+      "line": 506,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.09421183923302372
+    },
+    {
+      "function": "DatasetGroupBy.reduce",
+      "file": "xarray/core/groupby.py",
+      "line": 992,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.09421183923302372
+    },
+    {
+      "function": "merge_core",
+      "file": "xarray/core/merge.py",
+      "line": 634,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0021241151880964557,
+      "total_fraction": 0.08930916323035494
+    },
+    {
+      "function": "DatasetGroupBy.map",
+      "file": "xarray/core/groupby.py",
+      "line": 921,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08783736884527177
+    },
+    {
+      "function": "DatasetGroupBy._combine",
+      "file": "xarray/core/groupby.py",
+      "line": 943,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08783736884527177
+    },
+    {
+      "function": "align",
+      "file": "xarray/core/alignment.py",
+      "line": 365,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0014165489750559892,
+      "total_fraction": 0.08324562534262778
+    },
+    {
+      "function": "is_duck_dask_array",
+      "file": "xarray/core/pycompat.py",
+      "line": 56,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0007082744875279946,
+      "total_fraction": 0.08223279282546275
+    },
+    {
+      "function": "is_dask_collection",
+      "file": "xarray/core/pycompat.py",
+      "line": 47,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0007082744875279946,
+      "total_fraction": 0.08152451833793475
+    },
+    {
+      "function": "DuckArrayModule.__init__",
+      "file": "xarray/core/pycompat.py",
+      "line": 21,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.001417257249543517,
+      "total_fraction": 0.08081624385040677
+    },
+    {
+      "function": "DataArray.where",
+      "file": "xarray/core/common.py",
+      "line": 1291,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08005909842323934
+    },
+    {
+      "function": "DataArray.where_method",
+      "file": "xarray/core/ops.py",
+      "line": 176,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08005909842323934
+    }
+  ],
+  "unprofiled": {
+    "wall_seconds": 2.101314916,
+    "cpu_seconds": 3.952243,
+    "cpu_fraction": 1.8808427855846428
+  },
+  "profiled_wall_seconds": 4.400229625,
+  "load_average": 8.453125,
+  "cpu_count": 10,
+  "side_effects": {
+    "gate": "side_effects",
+    "status": "passed",
+    "detail": "every service address is local: 0 spec env and 8 other environment variables, the commands and 0 config files checked",
+    "differences": [],
+    "truncated": false,
+    "quarantined": [],
+    "differential": [],
+    "unverified": [],
+    "output": null
+  },
+  "argv": [
+    "/Users/ppeval/.local/bin/uv",
+    "run",
+    "--no-project",
+    "--with",
+    "pyinstrument==5.1.3",
+    "--python",
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.venv/bin/python3",
+    "--",
+    "python",
+    "-m",
+    "pyinstrument",
+    "--renderer",
+    "pyisession",
+    "--outfile",
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/pyinstrument.pyisession",
+    ".perfproof/harness/bench_api.py"
+  ],
+  "directory": "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5",
+  "raw": "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/pyinstrument.pyisession",
+  "folded": "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/pyinstrument.folded.txt",
+  "logs": [
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/unprofiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/unprofiled.stderr",
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/profiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_loop/20261023T111538Z-929df5/profiled.stderr"
+  ],
+  "summary": {
+    "basis": "wall",
+    "weight_unit": "microseconds",
+    "frames": [
+      {
+        "function": "compile",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.05116787380248491,
+        "total_fraction": 0.05116787380248491,
+        "cap": 1.0539272147197865,
+        "cap_above_bar": true
+      },
+      {
+        "function": "_call_with_frames_removed",
+        "file": "<frozen importlib._bootstrap>",
+        "line": 228,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.04419278664930922,
+        "total_fraction": 0.26093257085223837,
+        "cap": 1.3530565149557823,
+        "cap_above_bar": true
+      },
+      {
+        "function": "stat",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.02834939463779551,
+        "total_fraction": 0.02834939463779551,
+        "cap": 1.0291765316476365,
+        "cap_above_bar": false
+      },
+      {
+        "function": "loads",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.022964383709120167,
+        "total_fraction": 0.022964383709120167,
+        "cap": 1.023504141841113,
+        "cap_above_bar": false
+      },
+      {
+        "function": "ufunc.reduce",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.020559083549475096,
+        "total_fraction": 0.020559083549475096,
+        "cap": 1.020990631700359,
+        "cap_above_bar": false
+      }
+    ],
+    "frames_omitted": 15,
+    "time": {
+      "wall_seconds": 2.101314916,
+      "cpu_seconds": 3.952243,
+      "cpu_over_wall": 1.8808427855846428,
+      "load_average": 8.453125,
+      "cpu_count": 10,
+      "waiting_share_at_least": null,
+      "reading": "CPU time exceeds wall time: other threads used CPU alongside the main one, so this gap cannot show waiting",
+      "machine_loaded": false
+    },
+    "labels": {
+      "share": "estimate: a share of the profile, not of a calibrated run",
+      "cap": "bound: 1 / (1 - total share); not a measured effect",
+      "time": "measured once, on the machine as loaded at the time"
+    }
+  },
+  "evidence": {
+    "path": "/Users/ppeval/eval-work/work/r8-2-real/repos/real-xarray-hidden-fix/.perfproof/evidence/api_loop/20261023T111544Z-profile-d46316.json",
+    "sha256": "fe201e21a7da30c84d124f3c2a4ceab44d534981651de8f31b0f2e9a90b0c234"
+  },
+  "hypothesis": null,
+  "run_id": "20261023T111538Z-929df5",
+  "finished_at": "2026-10-23T11:15:44.574788Z"
+}

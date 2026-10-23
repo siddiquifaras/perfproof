@@ -1,0 +1,43 @@
+{
+  "run_id": "r8-2-java",
+  "skill_sha": "",
+  "claude_version": "",
+  "summary": {
+    "tasks": 0,
+    "passed": 0,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 0,
+    "verdict_total": 0,
+    "wrong_keeps": 0,
+    "result_ok": 0,
+    "result_total": 0,
+    "hotspot_ok": 0,
+    "hotspot_total": 0,
+    "hotspot_by_rule": {},
+    "fix_ok": 0,
+    "fix_total": 0,
+    "tree_ok": 0,
+    "tree_total": 0,
+    "wording": {},
+    "cost_usd": 0.0,
+    "wall_seconds": 0.0,
+    "api_seconds": 0.0,
+    "agent_turns": 0
+  },
+  "skipped": [
+    {
+      "task_id": "java-guava-known-change",
+      "reason": "setup `./mvnw -q -B -pl guava -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.` exited 1: \tat java.base/sun.nio.fs.UnixFileSystemProvider.createDirectory(UnixFileSystemProvider.java:462)\n\tat java.base/java.nio.file.Files.createDirectory(Files.java:700)\n\tat java.base/java.nio.file.Files.createAndCheckIsDirectory(Files.java:808)\n\tat java.base/java.nio.file.Files.createDirectories(Files.java:794)\n\tat org.apache.maven.wrapper.DefaultDownloader.download(DefaultDownloader.java:80)\n\tat org.apache.maven.wrapper.Installer.createDist(Installer.java:84)\n\tat org.apache.maven.wrapper.WrapperExecutor.execute(WrapperExecutor.java:160)\n\tat org.apache.maven.wrapper.MavenWrapperMain.main(MavenWrapperMain.java:73)"
+    },
+    {
+      "task_id": "java-jackson-core-hidden-fix",
+      "reason": "setup `./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true pack` exited 1: [ERROR] Could not create local repository at /Users/ppeval/.m2/repository -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/LocalRepositoryNotAccessibleException"
+    },
+    {
+      "task_id": "java-jackson-core-nothing-to-keep",
+      "reason": "setup `./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true pack` exited 1: [ERROR] Could not create local repository at /Users/ppeval/.m2/repository -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/LocalRepositoryNotAccessibleException"
+    }
+  ],
+  "tasks": []
+}

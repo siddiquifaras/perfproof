@@ -1,0 +1,47 @@
+{
+  "task_id": "pos-wrong-perf",
+  "started_at": "2026-10-23T11:44:47+00:00",
+  "wall_seconds": 7.66,
+  "load_start": [
+    11.15771484375,
+    12.31591796875,
+    12.45751953125
+  ],
+  "load_end": [
+    11.22607421875,
+    12.28955078125,
+    12.44580078125
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "7cbea51e4466",
+  "turns": [
+    {
+      "prompt": "what's wrong here performance-wise",
+      "argv": [
+        "claude",
+        "-p",
+        "what's wrong here performance-wise",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.30",
+        "--max-turns",
+        "2"
+      ],
+      "seconds": 6.0,
+      "exit_code": 1,
+      "session_id": "90c8b2c0-1be1-4fb7-98c2-5f91a37cde0f"
+    }
+  ],
+  "setup_seconds": 0.17
+}

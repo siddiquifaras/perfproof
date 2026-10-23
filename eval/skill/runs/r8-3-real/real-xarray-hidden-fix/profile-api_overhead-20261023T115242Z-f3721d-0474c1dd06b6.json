@@ -1,0 +1,504 @@
+{
+  "name": "api_overhead",
+  "spec_hash": "de5962934e47e3886ebaa1a25586ba7619f90108114e9447965bc71218502493",
+  "profiler": "pyinstrument",
+  "tool_version": "5.1.3",
+  "basis": "wall",
+  "weight_unit": "microseconds",
+  "hotspots": [
+    {
+      "function": "compile",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.04962189924515843,
+      "total_fraction": 0.04962189924515843
+    },
+    {
+      "function": "_call_with_frames_removed",
+      "file": "<frozen importlib._bootstrap>",
+      "line": 228,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.022144336346101395,
+      "total_fraction": 0.1747272000598373
+    },
+    {
+      "function": "stat",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.021373326614228434,
+      "total_fraction": 0.021373326614228434
+    },
+    {
+      "function": "isinstance",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.019927258386100218,
+      "total_fraction": 0.019927258386100218
+    },
+    {
+      "function": "exec_dynamic",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.019313774895379155,
+      "total_fraction": 0.019313774895379155
+    },
+    {
+      "function": "BufferedReader.read",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.017936459127417953,
+      "total_fraction": 0.017936459127417953
+    },
+    {
+      "function": "ufunc.reduce",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.012986659756162979,
+      "total_fraction": 0.012986659756162979
+    },
+    {
+      "function": "len",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.01133055653983223,
+      "total_fraction": 0.01133055653983223
+    },
+    {
+      "function": "loads",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.01017951947318994,
+      "total_fraction": 0.01017951947318994
+    },
+    {
+      "function": "getattr",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.009071924895114722,
+      "total_fraction": 0.009071924895114722
+    },
+    {
+      "function": "FileFinder.find_spec",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 1550,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.008686608909563315,
+      "total_fraction": 0.02531488248995723
+    },
+    {
+      "function": "_maybe_cast_to_cftimeindex",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/utils.py",
+      "line": 65,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.007933353933887333,
+      "total_fraction": 0.012842732902736423
+    },
+    {
+      "function": "is_dict_like",
+      "file": ".venv/lib/python3.9/site-packages/pandas/core/dtypes/inference.py",
+      "line": 288,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006802715948833059,
+      "total_fraction": 0.01397979282088322
+    },
+    {
+      "function": "ModuleSpec.parent",
+      "file": "<frozen importlib._bootstrap>",
+      "line": 402,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006799316101901723,
+      "total_fraction": 0.009444397014481081
+    },
+    {
+      "function": "PandasIndexingAdapter.shape",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/indexing.py",
+      "line": 1304,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006068726772434646,
+      "total_fraction": 0.014375686107998782
+    },
+    {
+      "function": "<listcomp>",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/variable.py",
+      "line": 1833,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0060577717101003405,
+      "total_fraction": 0.0060577717101003405
+    },
+    {
+      "function": "implement_array_function",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006057016188560044,
+      "total_fraction": 0.006057016188560044
+    },
+    {
+      "function": "<listcomp>",
+      "file": "<frozen importlib._bootstrap_external>",
+      "line": 123,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006045305604685442,
+      "total_fraction": 0.009067014005102793
+    },
+    {
+      "function": "asarray",
+      "file": "<built-in>",
+      "line": null,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.005667544834537005,
+      "total_fraction": 0.005667544834537005
+    },
+    {
+      "function": "IndexVariable.ndim",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/utils.py",
+      "line": 559,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.005665278269916115,
+      "total_fraction": 0.020418347387293187
+    }
+  ],
+  "frames_by_total": [
+    {
+      "function": "main",
+      "file": ".perfproof/harness/bench_api.py",
+      "line": 47,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.0011370599181467964,
+      "total_fraction": 0.8268231301408518
+    },
+    {
+      "function": "one_pass",
+      "file": ".perfproof/harness/bench_api.py",
+      "line": 27,
+      "frame_kind": "python",
+      "is_library": false,
+      "self_fraction": 0.004964532041290763,
+      "total_fraction": 0.8249184603377635
+    },
+    {
+      "function": "DataArrayRolling.method",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/rolling.py",
+      "line": 122,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0003777607701484373,
+      "total_fraction": 0.21871668622208254
+    },
+    {
+      "function": "DataArrayRolling._numpy_or_bottleneck_reduce",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/rolling.py",
+      "line": 532,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0003777607701484373,
+      "total_fraction": 0.2183389254519341
+    },
+    {
+      "function": "DataArrayRolling._mean",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/rolling.py",
+      "line": 136,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.2183389254519341
+    },
+    {
+      "function": "apply_ufunc",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/computation.py",
+      "line": 1166,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.002724788435080678,
+      "total_fraction": 0.16837024181977941
+    },
+    {
+      "function": "DataArrayRolling.reduce",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/rolling.py",
+      "line": 434,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0003777607701484373,
+      "total_fraction": 0.12708514501102683
+    },
+    {
+      "function": "apply_dataarray_vfunc",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/computation.py",
+      "line": 275,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.003399469170565787,
+      "total_fraction": 0.10443800907985787
+    },
+    {
+      "function": "is_duck_dask_array",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/pycompat.py",
+      "line": 56,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.001133282310445312,
+      "total_fraction": 0.08749657182101091
+    },
+    {
+      "function": "is_dask_collection",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/pycompat.py",
+      "line": 47,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.001133282310445312,
+      "total_fraction": 0.08598552874041715
+    },
+    {
+      "function": "DuckArrayModule.__init__",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/pycompat.py",
+      "line": 21,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0015110430805937492,
+      "total_fraction": 0.08485224642997184
+    },
+    {
+      "function": "Variable.reduce",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/variable.py",
+      "line": 1809,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006042283518524255,
+      "total_fraction": 0.08199486396456906
+    },
+    {
+      "function": "DataArray.where_method",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/ops.py",
+      "line": 176,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0007555215402968746,
+      "total_fraction": 0.08184829278575147
+    },
+    {
+      "function": "DataArray.where",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/common.py",
+      "line": 1291,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08184829278575147
+    },
+    {
+      "function": "align",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/alignment.py",
+      "line": 365,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.00491202329424013,
+      "total_fraction": 0.08081776140478653
+    },
+    {
+      "function": "deep_align",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/alignment.py",
+      "line": 435,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0011336600712154605,
+      "total_fraction": 0.07950050959927893
+    },
+    {
+      "function": "DataArray.__init__",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/dataarray.py",
+      "line": 406,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006042661279294403,
+      "total_fraction": 0.07789615960845851
+    },
+    {
+      "function": "DataArray._getitem_coord",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/dataarray.py",
+      "line": 734,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.006046816647766036,
+      "total_fraction": 0.07718823592520034
+    },
+    {
+      "function": "import_module",
+      "file": "/Users/ppeval/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/importlib/__init__.py",
+      "line": 127,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0007558993010670231,
+      "total_fraction": 0.0757848546640989
+    },
+    {
+      "function": "DataArrayRolling.count",
+      "file": ".venv/lib/python3.9/site-packages/xarray/core/rolling.py",
+      "line": 158,
+      "frame_kind": "python",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.0749994900229603
+    }
+  ],
+  "unprofiled": {
+    "wall_seconds": 2.273611125,
+    "cpu_seconds": 4.45526,
+    "cpu_fraction": 1.9595523398927774
+  },
+  "profiled_wall_seconds": 5.803510333,
+  "load_average": 8.88232421875,
+  "cpu_count": 10,
+  "side_effects": {
+    "gate": "side_effects",
+    "status": "passed",
+    "detail": "every service address is local: 0 spec env and 8 other environment variables, the commands and 0 config files checked",
+    "differences": [],
+    "truncated": false,
+    "quarantined": [],
+    "differential": [],
+    "unverified": [],
+    "output": null
+  },
+  "argv": [
+    "/Users/ppeval/.local/bin/uv",
+    "run",
+    "--no-project",
+    "--with",
+    "pyinstrument==5.1.3",
+    "--python",
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.venv/bin/python",
+    "--",
+    "python",
+    "-m",
+    "pyinstrument",
+    "--renderer",
+    "pyisession",
+    "--outfile",
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/pyinstrument.pyisession",
+    ".perfproof/harness/bench_api.py",
+    "--output",
+    "out/result.json"
+  ],
+  "directory": "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d",
+  "raw": "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/pyinstrument.pyisession",
+  "folded": "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/pyinstrument.folded.txt",
+  "logs": [
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/unprofiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/unprofiled.stderr",
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/profiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/profiles/api_overhead/20261023T115242Z-f3721d/profiled.stderr"
+  ],
+  "summary": {
+    "basis": "wall",
+    "weight_unit": "microseconds",
+    "frames": [
+      {
+        "function": "compile",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.04962189924515843,
+        "total_fraction": 0.04962189924515843,
+        "cap": 1.0522127974179394,
+        "cap_above_bar": true
+      },
+      {
+        "function": "_call_with_frames_removed",
+        "file": "<frozen importlib._bootstrap>",
+        "line": 228,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.022144336346101395,
+        "total_fraction": 0.1747272000598373,
+        "cap": 1.2117205366183232,
+        "cap_above_bar": true
+      },
+      {
+        "function": "stat",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.021373326614228434,
+        "total_fraction": 0.021373326614228434,
+        "cap": 1.0218401226897718,
+        "cap_above_bar": false
+      },
+      {
+        "function": "isinstance",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.019927258386100218,
+        "total_fraction": 0.019927258386100218,
+        "cap": 1.0203324279311,
+        "cap_above_bar": false
+      },
+      {
+        "function": "exec_dynamic",
+        "file": "<built-in>",
+        "line": null,
+        "frame_kind": "python",
+        "is_library": true,
+        "self_fraction": 0.019313774895379155,
+        "total_fraction": 0.019313774895379155,
+        "cap": 1.0196941431427964,
+        "cap_above_bar": false
+      }
+    ],
+    "frames_omitted": 15,
+    "time": {
+      "wall_seconds": 2.273611125,
+      "cpu_seconds": 4.45526,
+      "cpu_over_wall": 1.9595523398927774,
+      "load_average": 8.88232421875,
+      "cpu_count": 10,
+      "waiting_share_at_least": null,
+      "reading": "CPU time exceeds wall time: other threads used CPU alongside the main one, so this gap cannot show waiting",
+      "machine_loaded": false
+    },
+    "labels": {
+      "share": "estimate: a share of the profile, not of a calibrated run",
+      "cap": "bound: 1 / (1 - total share); not a measured effect",
+      "time": "measured once, on the machine as loaded at the time"
+    }
+  },
+  "evidence": {
+    "path": "/Users/ppeval/eval-work/work/r8-3-real/repos/real-xarray-hidden-fix/.perfproof/evidence/api_overhead/20261023T115251Z-profile-4d22c7.json",
+    "sha256": "bc005d1e773e01ba08b036dbf51f461b44926f2b2e90b2079e2d1b0b22b00667"
+  },
+  "hypothesis": null,
+  "run_id": "20261023T115242Z-f3721d",
+  "finished_at": "2026-10-23T11:52:51.083281Z"
+}

@@ -1,0 +1,529 @@
+{
+  "name": "fd-walk-long",
+  "spec_hash": "e640d9946b081522a4f96028f9b1150712202f4c40eeb7370781966807c49e7f",
+  "profiler": "command",
+  "tool_version": null,
+  "basis": "unknown",
+  "weight_unit": "unknown",
+  "hotspots": [
+    {
+      "function": "libsystem_kernel.dylib`__getdirentries64",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.38587464920486436,
+      "total_fraction": 0.38587464920486436
+    },
+    {
+      "function": "libsystem_kernel.dylib`write",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.2853133769878391,
+      "total_fraction": 0.2853133769878391
+    },
+    {
+      "function": "libsystem_kernel.dylib`__psynch_mutexdrop",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.08652946679139382,
+      "total_fraction": 0.08652946679139382
+    },
+    {
+      "function": "fd.deps`ignore::walk::Worker::run",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.03086997193638915,
+      "total_fraction": 0.6917680074836295
+    },
+    {
+      "function": "libsystem_platform.dylib`_platform_memmove",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.02666043030869972,
+      "total_fraction": 0.02666043030869972
+    },
+    {
+      "function": "libsystem_pthread.dylib`pthread_mutex_unlock",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.017305893358278764,
+      "total_fraction": 0.017305893358278764
+    },
+    {
+      "function": "libsystem_kernel.dylib`__open_nocancel",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.01637043966323667,
+      "total_fraction": 0.01637043966323667
+    },
+    {
+      "function": "libsystem_platform.dylib`_platform_memset",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.014967259120673527,
+      "total_fraction": 0.014967259120673527
+    },
+    {
+      "function": "libsystem_malloc.dylib`_nanov2_free",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.013564078578110383,
+      "total_fraction": 0.01403180542563143
+    },
+    {
+      "function": "libsystem_kernel.dylib`madvise",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.01216089803554724,
+      "total_fraction": 0.01216089803554724
+    },
+    {
+      "function": "fd.deps`std::path::Components::parse_next_component_back",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.011693171188026192,
+      "total_fraction": 0.011693171188026192
+    },
+    {
+      "function": "libsystem_pthread.dylib`pthread_mutex_lock",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.01028999064546305,
+      "total_fraction": 0.01028999064546305
+    },
+    {
+      "function": "fd.deps`std::sync::mpmc::Sender<T>::send",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.007951356407857811,
+      "total_fraction": 0.013096351730589336
+    },
+    {
+      "function": "fd.deps`<std::fs::ReadDir as core::iter::traits::iterator::Iterator>::next",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.007015902712815715,
+      "total_fraction": 0.4307764265668849
+    },
+    {
+      "function": "libsystem_malloc.dylib`nanov2_malloc_type",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.007015902712815715,
+      "total_fraction": 0.013096351730589336
+    },
+    {
+      "function": "fd`fd::walk::spawn_senders::{{closure}}::{{closure}}",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": false,
+      "self_fraction": 0.006548175865294668,
+      "total_fraction": 0.09869036482694106
+    },
+    {
+      "function": "fd.deps`regex::re_bytes::Regex::is_match",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.005144995322731525,
+      "total_fraction": 0.03554724041159962
+    },
+    {
+      "function": "fd.deps`<ignore::walk::FnVisitorImp as ignore::walk::ParallelVisitor>::visit",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.004677268475210477,
+      "total_fraction": 0.1028999064546305
+    },
+    {
+      "function": "libsystem_malloc.dylib`nanov2_allocate_outlined",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.00420954162768943,
+      "total_fraction": 0.007951356407857811
+    },
+    {
+      "function": "libsystem_malloc.dylib`nanov2_malloc",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.00420954162768943,
+      "total_fraction": 0.00608044901777362
+    }
+  ],
+  "frames_by_total": [
+    {
+      "function": "fd.deps`std::sys::backtrace::__rust_begin_short_backtrace",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0004677268475210477,
+      "total_fraction": 0.9990645463049579
+    },
+    {
+      "function": "fd.deps`ignore::walk::Worker::run",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.03086997193638915,
+      "total_fraction": 0.6917680074836295
+    },
+    {
+      "function": "fd.deps`<std::fs::ReadDir as core::iter::traits::iterator::Iterator>::next",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.007015902712815715,
+      "total_fraction": 0.4307764265668849
+    },
+    {
+      "function": "libsystem_c.dylib`_readdir_unlocked",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.001403180542563143,
+      "total_fraction": 0.3872778297474275
+    },
+    {
+      "function": "libsystem_kernel.dylib`__getdirentries64",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.38587464920486436,
+      "total_fraction": 0.38587464920486436
+    },
+    {
+      "function": "fd`fd::output::print_entry",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": false,
+      "self_fraction": 0.0023386342376052385,
+      "total_fraction": 0.293732460243218
+    },
+    {
+      "function": "fd.deps`<std::io::stdio::StdoutLock as std::io::Write>::write_all",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0018709073900841909,
+      "total_fraction": 0.2923292797006548
+    },
+    {
+      "function": "fd.deps`std::io::buffered::bufwriter::BufWriter<W>::flush_buf",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0004677268475210477,
+      "total_fraction": 0.28578110383536015
+    },
+    {
+      "function": "libsystem_kernel.dylib`write",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.2853133769878391,
+      "total_fraction": 0.2853133769878391
+    },
+    {
+      "function": "fd.deps`<ignore::walk::FnVisitorImp as ignore::walk::ParallelVisitor>::visit",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.004677268475210477,
+      "total_fraction": 0.1028999064546305
+    },
+    {
+      "function": "fd`fd::walk::spawn_senders::{{closure}}::{{closure}}",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": false,
+      "self_fraction": 0.006548175865294668,
+      "total_fraction": 0.09869036482694106
+    },
+    {
+      "function": "libsystem_pthread.dylib`_pthread_mutex_firstfit_unlock_slow",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0004677268475210477,
+      "total_fraction": 0.08699719363891488
+    },
+    {
+      "function": "libsystem_kernel.dylib`__psynch_mutexdrop",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.08652946679139382,
+      "total_fraction": 0.08652946679139382
+    },
+    {
+      "function": "libsystem_pthread.dylib`_pthread_mutex_firstfit_wake",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0,
+      "total_fraction": 0.08652946679139382
+    },
+    {
+      "function": "fd.deps`regex::re_bytes::Regex::is_match",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.005144995322731525,
+      "total_fraction": 0.03554724041159962
+    },
+    {
+      "function": "libsystem_platform.dylib`_platform_memmove",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.02666043030869972,
+      "total_fraction": 0.02666043030869972
+    },
+    {
+      "function": "fd.deps`regex::pool::Pool<T>::get_slow",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.001403180542563143,
+      "total_fraction": 0.018709073900841908
+    },
+    {
+      "function": "libsystem_pthread.dylib`pthread_mutex_unlock",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.017305893358278764,
+      "total_fraction": 0.017305893358278764
+    },
+    {
+      "function": "fd.deps`core::ptr::drop_in_place<fd::walk::DirEntry>",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.0009354536950420954,
+      "total_fraction": 0.017305893358278764
+    },
+    {
+      "function": "libsystem_kernel.dylib`__open_nocancel",
+      "file": null,
+      "line": null,
+      "frame_kind": "native",
+      "is_library": true,
+      "self_fraction": 0.01637043966323667,
+      "total_fraction": 0.01637043966323667
+    }
+  ],
+  "unprofiled": {
+    "wall_seconds": 0.813711625,
+    "cpu_seconds": 2.953877,
+    "cpu_fraction": 3.63012756515553
+  },
+  "profiled_wall_seconds": 1.215580334,
+  "load_average": 7.49365234375,
+  "cpu_count": 10,
+  "side_effects": {
+    "gate": "side_effects",
+    "status": "passed",
+    "detail": "every service address is local: 0 spec env and 8 other environment variables, the commands and 0 config files checked",
+    "differences": [],
+    "truncated": false,
+    "quarantined": [],
+    "differential": [],
+    "unverified": [],
+    "output": null
+  },
+  "argv": [
+    "/Users/ppeval/.local/share/uv/tools/perfproof/bin/python",
+    "-m",
+    "perfproof.profilers.rust",
+    "record",
+    "--output",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/command.folded.txt",
+    "--project-root",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix",
+    "--",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/target/release/fd",
+    "-H",
+    "-I",
+    ".",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/eval-tree"
+  ],
+  "directory": "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec",
+  "raw": "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/command.folded.txt",
+  "folded": "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/command.folded.txt",
+  "logs": [
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/unprofiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/unprofiled.stderr",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/profiled.stdout",
+    "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/profiles/fd-walk-long/20261023T103823Z-d42cec/profiled.stderr"
+  ],
+  "summary": {
+    "basis": "unknown",
+    "weight_unit": "unknown",
+    "frames": [
+      {
+        "function": "libsystem_kernel.dylib`__getdirentries64",
+        "file": null,
+        "line": null,
+        "frame_kind": "native",
+        "is_library": true,
+        "self_fraction": 0.38587464920486436,
+        "total_fraction": 0.38587464920486436,
+        "cap": 1.6283320639756282,
+        "cap_above_bar": true
+      },
+      {
+        "function": "libsystem_kernel.dylib`write",
+        "file": null,
+        "line": null,
+        "frame_kind": "native",
+        "is_library": true,
+        "self_fraction": 0.2853133769878391,
+        "total_fraction": 0.2853133769878391,
+        "cap": 1.399214659685864,
+        "cap_above_bar": true
+      },
+      {
+        "function": "libsystem_kernel.dylib`__psynch_mutexdrop",
+        "file": null,
+        "line": null,
+        "frame_kind": "native",
+        "is_library": true,
+        "self_fraction": 0.08652946679139382,
+        "total_fraction": 0.08652946679139382,
+        "cap": 1.094726062467998,
+        "cap_above_bar": true
+      },
+      {
+        "function": "fd.deps`ignore::walk::Worker::run",
+        "file": null,
+        "line": null,
+        "frame_kind": "native",
+        "is_library": true,
+        "self_fraction": 0.03086997193638915,
+        "total_fraction": 0.6917680074836295,
+        "cap": 3.244309559939302,
+        "cap_above_bar": true
+      },
+      {
+        "function": "libsystem_platform.dylib`_platform_memmove",
+        "file": null,
+        "line": null,
+        "frame_kind": "native",
+        "is_library": true,
+        "self_fraction": 0.02666043030869972,
+        "total_fraction": 0.02666043030869972,
+        "cap": 1.027390677558866,
+        "cap_above_bar": false
+      }
+    ],
+    "frames_omitted": 15,
+    "time": {
+      "wall_seconds": 0.813711625,
+      "cpu_seconds": 2.953877,
+      "cpu_over_wall": 3.63012756515553,
+      "load_average": 7.49365234375,
+      "cpu_count": 10,
+      "waiting_share_at_least": null,
+      "reading": "CPU time exceeds wall time: other threads used CPU alongside the main one, so this gap cannot show waiting",
+      "machine_loaded": false
+    },
+    "labels": {
+      "share": "estimate: a share of the profile, not of a calibrated run",
+      "cap": "bound: 1 / (1 - total share); not a measured effect",
+      "time": "measured once, on the machine as loaded at the time"
+    }
+  },
+  "evidence": {
+    "path": "/Users/ppeval/eval-work/work/r8-1-real/repos/real-fd-hidden-fix/.perfproof/evidence/fd-walk-long/20261023T103825Z-profile-1af0b3.json",
+    "sha256": "a82eeafdc45a6b4b2e556f725cb93bf1f923682f2168a11ac3f8cfb82f8f5caa"
+  },
+  "hypothesis": null,
+  "run_id": "20261023T103823Z-d42cec",
+  "finished_at": "2026-10-23T10:38:25.125384Z"
+}

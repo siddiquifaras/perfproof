@@ -1,0 +1,115 @@
+{
+  "run_id": "r8-2-real",
+  "skill_sha": "7cbea51e4466",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 2,
+    "passed": 1,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 0,
+    "verdict_total": 0,
+    "wrong_keeps": 0,
+    "result_ok": 2,
+    "result_total": 2,
+    "hotspot_ok": 1,
+    "hotspot_total": 2,
+    "hotspot_by_rule": {
+      "top5": [
+        1,
+        2
+      ]
+    },
+    "fix_ok": 2,
+    "fix_total": 2,
+    "tree_ok": 2,
+    "tree_total": 2,
+    "wording": {},
+    "cost_usd": 1.02,
+    "wall_seconds": 593.0,
+    "api_seconds": 588.3,
+    "agent_turns": 42
+  },
+  "skipped": [
+    {
+      "task_id": "real-arrow-known-change",
+      "reason": "missing on this machine: cmake, ninja"
+    },
+    {
+      "task_id": "real-django-hidden-fix",
+      "reason": "setup `uv venv --python 3.14+gil .venv` exited 2: error: Failed to inspect Python interpreter from first executable in the search path at `/Users/ppeval/eval-work/runs/r8-2-real/bin/python`\n  cause: Querying Python at `/Users/ppeval/eval-work/runs/r8-2-real/bin/python` failed with exit status exit status: 126\n\n         [stderr]\n         /bin/sh: /Users/ppeval/eval-work/runs/r8-2-real/bin/python: Operation not permitted"
+    },
+    {
+      "task_id": "real-echo-known-change",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rails-known-change",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rails-nothing-to-keep",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rich-nothing-to-keep",
+      "reason": "setup `uv venv --python 3.10 .venv` exited 2: error: Could not create temporary file\n  cause: Operation not permitted (os error 1) at path \"/Users/ppeval/eval-work/work/r8-2-real/sandbox/real-rich-nothing-to-keep/private/home/.local/share/uv/python/.tmpFT9TE8\""
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "real-xarray-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 5,
+      "hotspot_detail": "is_dask_collection is not in the first 5 of hotspots or frames_by_total of a saved profile: ['compile', '_call_with_frames_removed', 'stat', 'loads', 'ufunc.reduce', 'work', 'DataArrayRolling._mean', 'DataArrayRolling.method', 'DataArrayRolling._numpy_or_bottleneck_reduce', 'apply_ufunc']",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/light-1, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.4632,
+      "api_seconds": 359.1,
+      "wall_seconds": 361.4,
+      "agent_turns": 19,
+      "calls": 2,
+      "load_start": 8.21533203125,
+      "passed": false
+    },
+    {
+      "task_id": "real-fd-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": true,
+      "hotspot_top_n": 5,
+      "hotspot_detail": "fd::output::print_entry_colorized is in the profile's top 5 and is named",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/fd-light, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.5535,
+      "api_seconds": 229.2,
+      "wall_seconds": 231.6,
+      "agent_turns": 23,
+      "calls": 2,
+      "load_start": 5.0126953125,
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "agent-speedup": "b8292d0ff496207be7286eb7b8078a4d41fc3ccb",
+    "main": "692937e33b50bad15100bcf360ee6a79080a5709"
+  },
+  "seeded": {
+    "agent-speedup": "b8292d0ff496207be7286eb7b8078a4d41fc3ccb",
+    "main": "692937e33b50bad15100bcf360ee6a79080a5709"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": true,
+      "tests_tail": ".........                                                                [100%]\n9 passed in 0.42s"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261023T121935Z-4dc8eb",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

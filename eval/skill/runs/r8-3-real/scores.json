@@ -1,0 +1,122 @@
+{
+  "run_id": "r8-3-real",
+  "skill_sha": "c64ca63af438",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 2,
+    "passed": 0,
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 0,
+    "verdict_total": 0,
+    "wrong_keeps": 0,
+    "result_ok": 2,
+    "result_total": 2,
+    "hotspot_ok": 0,
+    "hotspot_total": 2,
+    "hotspot_by_rule": {
+      "top5": [
+        0,
+        2
+      ]
+    },
+    "fix_ok": 2,
+    "fix_total": 2,
+    "tree_ok": 2,
+    "tree_total": 2,
+    "wording": {
+      "cheap_timing": 1
+    },
+    "cost_usd": 1.08,
+    "wall_seconds": 601.1,
+    "api_seconds": 595.7,
+    "agent_turns": 43
+  },
+  "skipped": [
+    {
+      "task_id": "real-arrow-known-change",
+      "reason": "missing on this machine: cmake, ninja"
+    },
+    {
+      "task_id": "real-django-hidden-fix",
+      "reason": "setup `uv venv --python 3.14+gil .venv` exited 2: error: Failed to inspect Python interpreter from first executable in the search path at `/Users/ppeval/eval-work/runs/r8-3-real/bin/python`\n  cause: Querying Python at `/Users/ppeval/eval-work/runs/r8-3-real/bin/python` failed with exit status exit status: 126\n\n         [stderr]\n         /bin/sh: /Users/ppeval/eval-work/runs/r8-3-real/bin/python: Operation not permitted"
+    },
+    {
+      "task_id": "real-echo-known-change",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rails-known-change",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rails-nothing-to-keep",
+      "reason": "skipped: needs docker, not available to ppeval"
+    },
+    {
+      "task_id": "real-rich-nothing-to-keep",
+      "reason": "setup `uv venv --python 3.10 .venv` exited 2: error: Could not create temporary file\n  cause: Operation not permitted (os error 1) at path \"/Users/ppeval/eval-work/work/r8-3-real/sandbox/real-rich-nothing-to-keep/private/home/.local/share/uv/python/.tmpr7jXXJ\""
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "real-xarray-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 5,
+      "hotspot_detail": "is_dask_collection is not in the first 5 of hotspots or frames_by_total of a saved profile: ['compile', '_call_with_frames_removed', 'stat', 'isinstance', 'exec_dynamic', 'main', 'one_pass', 'DataArrayRolling.method', 'DataArrayRolling._numpy_or_bottleneck_reduce', 'DataArrayRolling._mean']",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/dask-check, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.5001,
+      "api_seconds": 491.7,
+      "wall_seconds": 494.7,
+      "agent_turns": 22,
+      "calls": 2,
+      "load_start": 13.24609375,
+      "passed": false
+    },
+    {
+      "task_id": "real-fd-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": null,
+      "verdict_source": "none",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "NO VERDICT (no change was tried, because the profile showed nothing in fd's own code above the 3% bar)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 5,
+      "hotspot_detail": "fd::output::print_entry_colorized is not in the first 5 of hotspots or frames_by_total of a saved profile: ['libsystem_kernel.dylib`__open_nocancel', 'libsystem_kernel.dylib`__getdirentries64', 'libsystem_kernel.dylib`write', 'libsystem_kernel.dylib`fstatfs', 'libsystem_kernel.dylib`__close_nocancel', 'fd.deps`ignore::walk::Worker::run', 'libsystem_c.dylib`__opendir2', 'libsystem_kernel.dylib`open$NOCANCEL', 'libsystem_kernel.dylib`__open_nocancel', 'fd.deps`<std::fs::ReadDir as core::iter::traits::iterator::Iterator>::next']",
+      "fix_ok": true,
+      "fix_detail": "no change kept",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "cheap_timing",
+          "text": "The benchmark changed from what you approved.** The `eval-tree` search takes about 13 ms."
+        }
+      ],
+      "cost_usd": 0.5814,
+      "api_seconds": 104.0,
+      "wall_seconds": 106.4,
+      "agent_turns": 21,
+      "calls": 2,
+      "load_start": 8.81982421875,
+      "passed": false
+    }
+  ]
+}
