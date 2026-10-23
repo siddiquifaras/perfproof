@@ -4539,3 +4539,40 @@ def test_measured_metric_is_only_the_counter_wall_fallback() -> None:
         record(spec=counted, measured_metric=wall, verdict=withheld_keep())
     with pytest.raises(ValidationError, match="wall-time fallback"):
         record(measured_metric=wall, warnings=note, verdict=withheld_keep())
+
+
+# The optional coverage command
+
+
+def test_a_coverage_command_needs_its_timeout_and_only_with_it() -> None:
+    data = as_json(spec())
+    data["correctness"]["coverage_command"] = ["lcov-tool"]
+    with pytest.raises(ValidationError, match="coverage_timeout_seconds"):
+        BenchmarkSpec.model_validate(data)
+    del data["correctness"]["coverage_command"]
+    data["correctness"]["coverage_timeout_seconds"] = 60.0
+    with pytest.raises(ValidationError, match="coverage_timeout_seconds"):
+        BenchmarkSpec.model_validate(data)
+
+
+def test_a_coverage_command_changes_the_hash_and_unset_does_not() -> None:
+    data = as_json(spec())
+    assert data["correctness"]["coverage_command"] is None
+    assert spec().spec_hash == PINNED_SPEC_HASH
+    data["correctness"]["coverage_command"] = ["lcov-tool"]
+    data["correctness"]["coverage_timeout_seconds"] = 60.0
+    declared_spec = BenchmarkSpec.model_validate(data)
+    assert declared_spec.spec_hash != PINNED_SPEC_HASH
+    assert (
+        BenchmarkSpec.model_validate_json(declared_spec.model_dump_json())
+        == declared_spec
+    )
+
+
+def test_a_spec_written_before_the_coverage_command_still_reads() -> None:
+    data = as_json(spec())
+    del data["correctness"]["coverage_command"]
+    del data["correctness"]["coverage_timeout_seconds"]
+    old = BenchmarkSpec.model_validate(data)
+    assert old.correctness.coverage_command is None
+    assert old.spec_hash == PINNED_SPEC_HASH

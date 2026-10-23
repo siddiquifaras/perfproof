@@ -58,6 +58,13 @@ install there would import its source in both versions.
   tolerance only if the user says results may differ slightly), `text`
   or `bytes` otherwise. Make the benchmark write its result to a file
   if it doesn't.
+- `correctness.coverage_command` (optional, with
+  `correctness.coverage_timeout_seconds`): only for a change in a
+  language other than Python, and only when the project has a coverage
+  tool. A command that runs the tests under it and writes lcov or
+  Cobertura to the path in `$PERFPROOF_COVERAGE_REPORT`. Python needs
+  none. Leave it out when unsure: changes in other languages are then
+  measured but not kept, with "no coverage command declared".
 
 ## Template
 

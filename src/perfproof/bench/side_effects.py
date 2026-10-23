@@ -951,11 +951,15 @@ def _is_keyword_dsn(arg: str) -> bool:
 
 
 def _check_commands(findings: _Findings, spec: BenchmarkSpec) -> None:
-    """Check the argv of the benchmark, correctness, reset and setup."""
+    """Check the argv of the benchmark, checks, reset and setup."""
     commands = [("command", spec.command, False)]
     if spec.correctness.command is not None:
         commands.append(
             ("correctness command", spec.correctness.command, False)
+        )
+    if spec.correctness.coverage_command is not None:
+        commands.append(
+            ("coverage command", spec.correctness.coverage_command, False)
         )
     if spec.reset is not None:
         commands.append(("reset command", spec.reset.command, False))

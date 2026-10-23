@@ -27,6 +27,8 @@ from perfproof.bench.compare import (
 )
 from perfproof.bench.lock import build_manifest
 from perfproof.bench.runner import Round, Runner, RunnerError
+from perfproof.bench.snapshot import add_baseline_worktree
+from perfproof.commands._runs import not_verified
 from perfproof.machine import fingerprint
 from perfproof.report import read_record
 from perfproof.schema import (
@@ -2620,3 +2622,110 @@ def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
         w["code"] for w in cast("list[dict[str, Any]]", warnings_json(shown))
     }
     assert codes >= {"high_load", "schedule_uncalibrated"}
+
+
+# The coverage gate on a real baseline checkout and a candidate that is
+# the repository's own tree, as `perfproof compare` sets them up
+
+
+def coverage_run(
+    project: Project, changes: Mapping[str, str]
+) -> CompareResult:
+    """Compare the edited tree to its commit."""
+    spec = twelve_rounds()
+    lock = build_manifest(spec, project.root)
+    baseline = add_baseline_worktree(project.root, project.commit, "baseline")
+    for rel, text in changes.items():
+        (project.root / rel).write_text(text)
+    project.runs += 1
+    return compare(
+        spec,
+        lock,
+        baseline_root=baseline,
+        baseline_commit=project.commit,
+        candidate_root=project.root,
+        run_dir=project.run_dir(),
+        process_env=os.environ,
+        order_seed=7,
+    )
+
+
+def coverage_gate_of(result: CompareResult) -> GateResult:
+    (found,) = (g for g in result.record.gates if g.gate == "coverage")
+    return found
+
+
+def test_a_covered_python_change_passes_the_coverage_gate(
+    project: Project,
+) -> None:
+    result = coverage_run(project, {"work.py": work(0.005)})
+    found = coverage_gate_of(result)
+    assert found.status == "passed", found.detail
+    assert found.unverified == ()
+    assert "measured with coverage.py" in found.detail
+
+
+def test_python_lines_no_test_runs_make_coverage_not_available(
+    project: Project,
+) -> None:
+    unused = work(0.03) + "\n\ndef unused():\n    return 1\n"
+    result = coverage_run(project, {"work.py": unused})
+    found = coverage_gate_of(result)
+    assert found.status == "not_available"
+    assert [(u.path, u.lines) for u in found.unverified] == [
+        ("work.py", (10,))
+    ]
+    assert "work.py lines 10 never ran" in found.detail
+    verdict = result.record.verdict
+    assert verdict.outcome == "INCONCLUSIVE"
+    assert verdict.reason == "insufficient_evidence"
+    items = [cast(dict[str, str], i) for i in not_verified(result.record)]
+    (reason,) = (i["reason"] for i in items if i["name"] == "coverage")
+    assert "work.py lines 10 never ran" in reason
+
+
+def test_a_candidate_that_is_not_a_repository_leaves_coverage_unknown(
+    project: Project,
+) -> None:
+    faster = project.candidate("fast", {"work.py": work(0.005)})
+    result = project.run(faster, twelve_rounds())
+    found = coverage_gate_of(result)
+    assert found.status == "not_available"
+    assert "could not be listed" in found.detail
+
+
+def test_a_malformed_coverage_report_is_inconclusive_not_a_crash(
+    project: Project,
+) -> None:
+    writer = (
+        "import os; open(os.environ['PERFPROOF_COVERAGE_REPORT'], 'wb')"
+        ".write(b'SF:a\\x00b.c\\nDA:1,1\\nend_of_record\\n')"
+    )
+    fields = spec_fields(
+        budget={"max_rounds": 12, "max_seconds": 300.0},
+        looks={"n0": 12, "k": 2, "max_looks": 1},
+    )
+    fields["correctness"] = {
+        **fields["correctness"],
+        "coverage_command": ["python", "-c", writer],
+        "coverage_timeout_seconds": 60.0,
+    }
+    spec = BenchmarkSpec.model_validate(fields)
+    lock = build_manifest(spec, project.root)
+    baseline = add_baseline_worktree(project.root, project.commit, "baseline")
+    (project.root / "data.c").write_text("int f(void) { return 1; }\n")
+    project.runs += 1
+    result = compare(
+        spec,
+        lock,
+        baseline_root=baseline,
+        baseline_commit=project.commit,
+        candidate_root=project.root,
+        run_dir=project.run_dir(),
+        process_env=os.environ,
+        order_seed=7,
+    )
+    found = coverage_gate_of(result)
+    assert found.status == "not_available"
+    assert "the coverage report is unreadable" in found.detail
+    assert result.record.verdict.outcome == "INCONCLUSIVE"

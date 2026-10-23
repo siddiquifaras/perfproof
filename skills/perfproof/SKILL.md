@@ -177,9 +177,12 @@ No discovery. One candidate at a time, against its parent.
    `not_verified` list: say each item in plain words and, where one
    exists, what would make the change keepable ("run the program
    directly instead of through a shell script"). Offer only a step that
-   would actually change the item: coverage isn't checked by perfproof
-   yet, so say "perfproof can't check which changed lines ran yet" and
-   don't offer a test for it. If `measured_metric` is set, say what was
+   would actually change the item. When the `coverage` reason names
+   lines ("... lines 12-14 never ran"), say those changed lines never
+   ran under any check and offer a test that reaches them and fails on
+   the original (a new spec, the user's call; messages.md R-5). When it
+   says no coverage command is declared or no report was written, say "perfproof can't see which
+   {language} lines ran" and don't offer a test for it. If `measured_metric` is set, say what was
    actually measured ("instructions weren't available here, so wall
    time was measured"). An unverified item is not a failure: the
    change was measured, it just can't be kept until that is checked.

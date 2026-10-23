@@ -1595,3 +1595,23 @@ def test_a_registry_url_in_the_reset_command_stays_refused() -> None:
         }
     )
     assert side_effects_gate(spec, Path("."), {}).status == "failed"
+
+
+def test_the_coverage_command_is_checked_too() -> None:
+    spec = make_spec(
+        correctness={
+            "command": ["python", "-m", "pytest", "-q"],
+            "timeout_seconds": 60.0,
+            "coverage_command": [
+                "sh",
+                "-c",
+                "run postgres://prod-db.example.com:5432/app",
+            ],
+            "coverage_timeout_seconds": 60.0,
+        },
+    )
+    result = side_effects_gate(spec, Path("."), {})
+    assert result.status == "failed"
+    assert "coverage command argument 2 points at prod-db.example.com" in (
+        result.detail
+    )

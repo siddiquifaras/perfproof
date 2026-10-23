@@ -171,9 +171,59 @@ in code no check executed is unverified, and an unverified change is
 not kept. It is not rejected either: the gate is `not_available`, with
 the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
-perfproof only cannot show it. For a target where perfproof cannot measure coverage yet, a
+perfproof only cannot show it. For a target where perfproof cannot measure coverage, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
-"coverage not checked".
+"coverage not checked", with the reason: no coverage command is
+declared, it wrote no report, or the report does not list the changed
+file.
+
+**Coverage reports (any language).** Python is measured by perfproof
+with coverage.py. For every other language, the spec declares a
+coverage command that writes a coverage report in a standard format,
+and perfproof reads it. The whole contract:
+
+- *How it is declared.* The optional spec field
+  `correctness.coverage_command` (an argv list) with
+  `correctness.coverage_timeout_seconds`, required with it and only
+  with it. It is absent by default: a spec without it is unchanged and
+  keeps its hash. When non-Python files changed and the field is
+  declared, perfproof runs the command once in the candidate tree, in
+  `correctness.cwd`, after the correctness gate passes, with the
+  environment variable `PERFPROOF_COVERAGE_REPORT` set to the absolute
+  path of a file that does not exist yet; the command runs the project's
+  checks under its coverage tool and writes the report there. When it
+  is not declared, nothing extra runs: the non-Python changes are
+  `not_available` ("no coverage command declared"), or `waived` with the
+  opt-in. A command that exits non-zero, times out, or writes no report
+  leaves them `not_available` with that reason, or `waived` with the
+  opt-in, as for any non-Python change the gate could not check.
+- *Format.* lcov (`SF:`, `DA:<line>,<hits>`, `end_of_record`) or
+  Cobertura XML (`class` elements with `filename`, `line` elements
+  with `number` and `hits`), told apart by the first non-blank
+  character (`<` is XML). Only line hits are read. A report larger
+  than 64 MiB (a provisional input bound, not measured and not a
+  memory bound), or one that does not parse, is unreadable and counts
+  as no report, with the error in the gate's detail.
+- *Which file.* A path inside the candidate tree names that file; an
+  absolute path outside it is ignored. A relative path is relative to
+  the correctness command's working directory (`correctness.cwd`), and
+  for Cobertura to each `<source>` directory first. A changed file the
+  report does not list is not checked.
+- *Which lines.* The changed lines are the lines `git diff` adds or
+  changes in the candidate (every line of a new file), as for Python.
+  A changed line the report lists with zero hits is unverified; with
+  hits above zero it ran; one the report does not list is not
+  executable and asks nothing. Lines only deleted ask nothing, and a
+  deleted file is not checked.
+- *What a hit proves.* A report has no per-test labels, so a hit
+  counts only when the command exited 0 and no test was quarantined or
+  a known failure (the lines may have run only for those tests);
+  otherwise the lines that ran are unverified too, and the gate says
+  why.
+- *Result.* Unverified lines make the gate `not_available`, naming
+  them by file. When every changed line of every non-Python file the
+  report lists ran, and no other non-Python file changed, the gate
+  passes.
 
 ## Side effects
 

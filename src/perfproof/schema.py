@@ -704,8 +704,9 @@ class CorrectnessSpec(_Model):
     Raises
     ------
     pydantic.ValidationError
-        If a command has no timeout or a timeout has no command, or if
-        an output path repeats.
+        If a command has no timeout or a timeout has no command (the
+        test command and the coverage command alike), or if an output
+        path repeats.
     """
 
     command: Argv | None = None
@@ -726,11 +727,28 @@ class CorrectnessSpec(_Model):
     differential_atol: NonNegative = 0.0
     """Absolute tolerance for those floating-point values, in their own
     units."""
+    coverage_command: Argv | None = None
+    """Command that runs the project's checks under a coverage tool and
+    writes lcov or Cobertura to the path in the environment variable
+    ``PERFPROOF_COVERAGE_REPORT``, as an argv list. Run in the candidate
+    tree, in ``cwd``, when non-Python files changed. ``None``: no
+    coverage command is declared, and non-Python changes are not
+    checked. Python is measured without it."""
+    coverage_timeout_seconds: Seconds | None = None
+    """Time limit for ``coverage_command``, in seconds."""
 
     @model_validator(mode="after")
     def _check_command_and_outputs(self) -> Self:
         if (self.command is None) != (self.timeout_seconds is None):
             msg = "timeout_seconds is required with command and only with it"
+            raise ValueError(msg)
+        if (self.coverage_command is None) != (
+            self.coverage_timeout_seconds is None
+        ):
+            msg = (
+                "coverage_timeout_seconds is required with "
+                "coverage_command and only with it"
+            )
             raise ValueError(msg)
         paths = [o.path for o in self.outputs]
         if len(set(paths)) != len(paths):
@@ -1010,11 +1028,16 @@ class BenchmarkSpec(_Model):
         """SHA-256 of the spec's canonical JSON, 64 hex digits.
 
         Covers every field above, nested ones included, independent of
-        key order. An unset ``setup`` is left out of the hashed JSON.
+        key order. An unset ``setup`` and an unset coverage command
+        are left out of the hashed JSON, so specs written before them
+        keep their hash.
         """
         payload = self.model_dump(mode="json", exclude_computed_fields=True)
         if self.setup is None:
             del payload["setup"]
+        if self.correctness.coverage_command is None:
+            del payload["correctness"]["coverage_command"]
+            del payload["correctness"]["coverage_timeout_seconds"]
         return _sha256_json(payload)
 
     @model_validator(mode="wrap")
@@ -1378,8 +1401,9 @@ class GateResult(_Model):
         ``quarantined`` or ``differential`` is set on a gate other than
         `correctness`, or ``unverified`` on one other than `coverage`;
         unverified lines come with a gate that neither failed nor is
-        `not_available`; a differential mismatch or ``output`` come with
-        a gate that did not fail; or a test, function or path repeats.
+        `not_available`; a differential mismatch or ``output`` come
+        with a gate that did not fail; or a test, function or path
+        repeats.
     """
 
     gate: GateName

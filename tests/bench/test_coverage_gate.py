@@ -5,6 +5,7 @@ import sys
 import sysconfig
 from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 import coverage.parser
 import pytest
@@ -20,6 +21,7 @@ from perfproof.bench.coverage_gate import (
     Deletion,
     FileChange,
     Need,
+    OtherChange,
     changed_lines,
     coverage_gate,
     untracked_files,
@@ -175,15 +177,26 @@ def make_spec(
     env: Mapping[str, str] | None = None,
     allow_unchecked_coverage: bool = False,
     outputs: Sequence[str] = (),
+    coverage_command: Sequence[str] | None = None,
 ) -> BenchmarkSpec:
     checks = tuple(OutputCheck(path=p, compare="text") for p in outputs)
+    cover: dict[str, Any] = {}
+    if coverage_command is not None:
+        cover = {
+            "coverage_command": tuple(coverage_command),
+            "coverage_timeout_seconds": timeout,
+        }
     if command is None:
         correctness = CorrectnessSpec(
-            outputs=checks or (OutputCheck(path="out.txt", compare="text"),)
+            outputs=checks or (OutputCheck(path="out.txt", compare="text"),),
+            **cover,
         )
     else:
         correctness = CorrectnessSpec(
-            command=tuple(command), timeout_seconds=timeout, outputs=checks
+            command=tuple(command),
+            timeout_seconds=timeout,
+            outputs=checks,
+            **cover,
         )
     return BenchmarkSpec(
         name="bench",
@@ -402,6 +415,11 @@ def test_new_deleted_untracked_and_non_python_files(tmp_path: Path) -> None:
         ),
         not_checked=(".gitattributes", "README.md", "pkg/_fast.c"),
         deleted=("pkg/old.py",),
+        other=(
+            OtherChange(".gitattributes", True),
+            OtherChange("README.md", False),
+            OtherChange("pkg/_fast.c", True),
+        ),
     )
 
 
@@ -411,7 +429,7 @@ def test_a_minus_diff_attribute_does_not_hide_a_change(tmp_path: Path) -> None:
     edit(cand, "pkg/calc.py", "s.upper()", "s.lower()")
     result = gate(trees, make_spec(), ids=(EXIT_STATUS_ID,))
     line = line_of(cand, "pkg/calc.py", "    return s.lower()")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (line,)}
 
 
@@ -456,14 +474,16 @@ def test_a_fully_covered_change_passes(tmp_path: Path) -> None:
     assert "1 changed executable lines and 0 deletions" in result.detail
 
 
-def test_a_change_in_a_branch_no_check_reaches_fails(tmp_path: Path) -> None:
+def test_a_change_in_a_branch_no_check_reaches_is_unverified(
+    tmp_path: Path,
+) -> None:
     trees = make_trees(tmp_path)
     cand = trees["candidate"]
     edit(cand, "pkg/calc.py", 'return "negative"', 'return "NEGATIVE"')
     edit(cand, "pkg/calc.py", "2 * x", "x + x")
     result = gate(trees, make_spec(), ids=(EXIT_STATUS_ID,))
     line = line_of(cand, "pkg/calc.py", '    return "NEGATIVE"')
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert unverified(result) == {"pkg/calc.py": (line,)}
     assert f"pkg/calc.py lines {line} never ran" in result.detail
 
@@ -491,7 +511,7 @@ def test_a_deleted_line_needs_its_block_to_run(tmp_path: Path) -> None:
     result = gate(trees, spec, ids=ids)
     shout = line_of(cand, "pkg/calc.py", "    return s")
     other = line_of(cand, "pkg/calc.py", "        hits = 0")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (shout, other)}
     assert f"deleted in the block of line {other}" in result.detail
 
@@ -530,7 +550,7 @@ def test_a_lambda_must_be_called_not_just_defined(tmp_path: Path) -> None:
     (change,) = changed_lines(trees["baseline"], cand).files
     assert [n.kind for n in change.needs] == ["entry"] * 3
     result = gate(trees, make_spec(), ids=(EXIT_STATUS_ID,))
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (up, down)}
 
 
@@ -544,7 +564,7 @@ def test_lambdas_sharing_a_line_cannot_be_checked(tmp_path: Path) -> None:
     assert result.status == "not_available"
 
 
-def test_a_change_reached_only_by_a_quarantined_test_fails(
+def test_a_change_reached_only_by_a_quarantined_test_is_unverified(
     tmp_path: Path,
 ) -> None:
     trees = make_trees(tmp_path)
@@ -555,7 +575,7 @@ def test_a_change_reached_only_by_a_quarantined_test_fails(
     flaky = ("test_calc::test_shout", *NOT_TRACED)
     result = gate(trees, spec, quarantined=flaky)
     line = line_of(cand, "pkg/calc.py", "    return s.upper().strip()")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (line,)}
     assert "ran only under tests left out of the judgement" in result.detail
     # The same lines, with nothing quarantined, ran under passing tests.
@@ -569,7 +589,7 @@ def test_a_passing_test_the_judgement_did_not_use_verifies_nothing(
     edit(trees["candidate"], "pkg/calc.py", "s.upper()", "s.upper().strip()")
     ids = [t for t in TEST_IDS if t != "test_calc::test_shout"]
     result = gate(trees, make_spec(PYTEST), known=NOT_TRACED, ids=ids)
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
 
 
 def test_lines_a_test_runs_in_a_child_process_are_the_tests(
@@ -589,7 +609,7 @@ def test_lines_a_test_runs_in_a_child_process_are_the_tests(
     assert gate(trees, spec, known=NOT_TRACED).status == "passed"
     child = ("test_calc::test_total_in_a_child",)
     result = gate(trees, spec, quarantined=child, known=NOT_TRACED)
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
 
 
 SERVER = """\
@@ -649,7 +669,7 @@ def test_a_child_that_outlives_its_test_is_unlabelled(tmp_path: Path) -> None:
         ids=ids,
     )
     line = line_of(cand, "pkg/calc.py", "    return s.upper().strip()")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (line,)}
     # It ran, in the server, labelled with the test that started it.
     assert "processes that outlived them" in result.detail
@@ -697,7 +717,7 @@ def test_unlabelled_lines_do_not_count_when_a_test_was_left_out(
     spec = make_spec()
     assert gate(trees, spec, ids=(EXIT_STATUS_ID,)).status == "passed"
     result = gate(trees, spec, known=(EXIT_STATUS_ID,), ids=(EXIT_STATUS_ID,))
-    assert result.status == "failed"
+    assert result.status == "not_available"
     assert "ran only under tests left out" in result.detail
 
 
@@ -715,10 +735,10 @@ def test_a_non_python_change_needs_the_opt_in(tmp_path: Path) -> None:
     waived = gate(trees, make_spec(allow_unchecked_coverage=True), ids=ids)
     assert waived.status == "waived"
     assert "waived by allow_unchecked_coverage" in waived.detail
-    # A Python line no check ran still fails, opt-in or not.
+    # A Python line no check ran stays not_available, opt-in or not.
     edit(cand, "pkg/calc.py", "s.upper()", "s.lower()")
     failed = gate(trees, make_spec(allow_unchecked_coverage=True), ids=ids)
-    assert failed.status == "failed"
+    assert failed.status == "not_available"
 
 
 def test_an_untracked_file_is_part_of_the_candidate(tmp_path: Path) -> None:
@@ -881,7 +901,7 @@ def test_a_really_flaky_test_does_not_verify_its_lines(tmp_path: Path) -> None:
         judged_tests=("test_calc::test_double", EXIT_STATUS_ID),
     )
     line = line_of(cand, "pkg/calc.py", "    return s.upper().strip()")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (line,)}
 
 
@@ -922,7 +942,7 @@ def test_lines_a_forked_child_runs_are_its_tests(tmp_path: Path) -> None:
     assert result.status == "passed", result.detail
     fork = ("test_calc::test_total_in_a_fork",)
     result = gate(trees, spec, quarantined=fork, known=known, ids=ids)
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
 
 
 def _other_python() -> str | None:
@@ -956,5 +976,227 @@ def test_coverage_runs_in_another_interpreter(tmp_path: Path) -> None:
     edit(cand, "pkg/calc.py", 'return "negative"', "return 0")
     result = gate(trees, spec, ids=ids)
     line = line_of(cand, "pkg/calc.py", "    return 0")
-    assert result.status == "failed", result.detail
+    assert result.status == "not_available", result.detail
     assert unverified(result) == {"pkg/calc.py": (line,)}
+
+
+WRITE_REPORT = """\
+import os
+import shutil
+
+shutil.copy("report.info", os.environ["PERFPROOF_COVERAGE_REPORT"])
+"""
+NATIVE = "int f(void) { return 1; }\n"
+
+
+def native_trees(tmp_path: Path, report: str | None) -> dict[Arm, Path]:
+    """Make trees with native.c changed, and a report to write."""
+    files = {"native.c": NATIVE, "report.py": WRITE_REPORT}
+    if report is not None:
+        files["report.info"] = report
+    trees = make_trees(tmp_path, files)
+    edit(trees["candidate"], "native.c", "return 1", "return 2")
+    return trees
+
+
+def report_spec(**changes: Any) -> BenchmarkSpec:
+    return make_spec(coverage_command=(PY, "report.py"), **changes)
+
+
+def test_a_changed_native_line_the_report_shows_ran_passes(
+    tmp_path: Path,
+) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:1,3\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "passed", result.detail
+    assert "1 non-Python files checked from the coverage report" in (
+        result.detail
+    )
+
+
+def test_a_changed_native_line_the_report_shows_never_ran(
+    tmp_path: Path,
+) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:1,0\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert unverified(result) == {"native.c": (1,)}
+    assert "native.c lines 1 never ran" in result.detail
+
+
+def test_a_changed_line_the_report_does_not_list_is_not_executable(
+    tmp_path: Path,
+) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:2,0\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "passed", result.detail
+
+
+def test_a_file_the_report_does_not_list_is_not_checked(
+    tmp_path: Path,
+) -> None:
+    trees = native_trees(tmp_path, "SF:other.c\nDA:1,1\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert result.unverified == ()
+    assert "coverage not checked for non-Python changes: native.c" in (
+        result.detail
+    )
+    opted_in = report_spec(allow_unchecked_coverage=True)
+    waived = gate(trees, opted_in, ids=(EXIT_STATUS_ID,))
+    assert waived.status == "waived"
+
+
+def test_no_coverage_command_means_no_extra_run(tmp_path: Path) -> None:
+    ran = "from pathlib import Path\nPath('ran.marker').write_text('x')\n"
+    trees = make_trees(tmp_path, {"native.c": NATIVE, "ran.py": ran})
+    edit(trees["candidate"], "native.c", "return 1", "return 2")
+    result = gate(trees, make_spec((PY, "ran.py")), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "no coverage command declared" in result.detail
+    assert not (trees["candidate"] / "ran.marker").exists()
+
+
+def test_a_coverage_command_that_writes_no_report_says_so(
+    tmp_path: Path,
+) -> None:
+    trees = make_trees(tmp_path, {"native.c": NATIVE})
+    edit(trees["candidate"], "native.c", "return 1", "return 2")
+    spec = make_spec(coverage_command=(PY, "-c", "pass"))
+    result = gate(trees, spec, ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "wrote no report to $PERFPROOF_COVERAGE_REPORT" in result.detail
+
+
+def test_a_failing_coverage_command_cannot_verify_lines(
+    tmp_path: Path,
+) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:1,3\nend_of_record\n")
+    failing = (
+        PY,
+        "-c",
+        "import os, shutil, sys\n"
+        "shutil.copy('report.info', os.environ['PERFPROOF_COVERAGE_REPORT'])\n"
+        "sys.exit(3)",
+    )
+    spec = make_spec(coverage_command=failing)
+    result = gate(trees, spec, ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "the coverage command exited non-zero" in result.detail
+
+
+def test_a_coverage_command_that_times_out_is_not_available(
+    tmp_path: Path,
+) -> None:
+    trees = make_trees(tmp_path, {"native.c": NATIVE})
+    edit(trees["candidate"], "native.c", "return 1", "return 2")
+    sleeper = (PY, "-c", "import time; time.sleep(30)")
+    spec = make_spec(coverage_command=sleeper, timeout=1.0)
+    result = gate(trees, spec, ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "the coverage command timed out" in result.detail
+
+
+def test_a_python_only_change_never_runs_the_coverage_command(
+    tmp_path: Path,
+) -> None:
+    ran = "from pathlib import Path\nPath('ran.marker').write_text('x')\n"
+    trees = make_trees(tmp_path, {"ran.py": ran})
+    edit(trees["candidate"], "pkg/calc.py", "2 * x", "x + x")
+    spec = make_spec(coverage_command=(PY, "ran.py"))
+    result = gate(trees, spec, ids=(EXIT_STATUS_ID,))
+    assert result.status == "passed", result.detail
+    assert not (trees["candidate"] / "ran.marker").exists()
+
+
+def test_an_unreadable_report_is_no_report(tmp_path: Path) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:one,1\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "the coverage report is unreadable" in result.detail
+    assert "coverage not checked for non-Python changes" in result.detail
+
+
+def test_hits_do_not_verify_when_a_test_was_left_out(tmp_path: Path) -> None:
+    trees = native_trees(tmp_path, "SF:native.c\nDA:1,3\nend_of_record\n")
+    result = gate(
+        trees,
+        report_spec(),
+        ids=(EXIT_STATUS_ID,),
+        quarantined=("test_calc::test_shout",),
+    )
+    assert result.status == "not_available"
+    assert unverified(result) == {"native.c": (1,)}
+    assert "may have run only for those" in result.detail
+
+
+PROBE = """\
+import os
+import sys
+
+path = os.environ["PERFPROOF_COVERAGE_REPORT"]
+sys.exit(0 if path != "/not/this" and not os.path.exists(path) else 1)
+"""
+
+
+def test_the_report_path_is_perfproofs_not_the_environments(
+    tmp_path: Path,
+) -> None:
+    trees = make_trees(tmp_path, {"native.c": NATIVE, "probe.py": PROBE})
+    edit(trees["candidate"], "native.c", "return 1", "return 2")
+    spec = make_spec(
+        coverage_command=(PY, "probe.py"),
+        env={"PERFPROOF_COVERAGE_REPORT": "/not/this"},
+    )
+    result = gate(trees, spec, ids=(EXIT_STATUS_ID,))
+    assert "no passing check" not in result.detail
+    assert "exit" not in result.detail
+    assert "wrote no report" in result.detail
+
+
+def test_every_line_of_a_new_native_file_counts(tmp_path: Path) -> None:
+    report = "SF:new.c\nDA:1,1\nDA:3,0\nend_of_record\n"
+    files = {"report.py": WRITE_REPORT, "report.info": report}
+    trees = make_trees(tmp_path, files)
+    (trees["candidate"] / "new.c").write_text("a;\nb;\nc;")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert unverified(result) == {"new.c": (3,)}
+
+
+def test_a_python_file_name_the_record_cannot_hold_still_withholds(
+    tmp_path: Path,
+) -> None:
+    odd = "pkg/back\\slash.py"
+    body = "def one():\n    return 1\n"
+    trees = make_trees(tmp_path, {odd: body})
+    edit(trees["candidate"], odd, "return 1", "return 2")
+    result = gate(trees, make_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert result.unverified == ()
+    assert "cannot be recorded" in result.detail
+    assert "never ran" in result.detail
+
+
+def test_a_native_file_name_the_record_cannot_hold_still_withholds(
+    tmp_path: Path,
+) -> None:
+    odd = "na\\tive.c"
+    files = {
+        odd: NATIVE,
+        "report.py": WRITE_REPORT,
+        "report.info": f"SF:{odd}\nDA:1,0\nend_of_record\n",
+    }
+    trees = make_trees(tmp_path, files)
+    edit(trees["candidate"], odd, "return 1", "return 2")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert result.unverified == ()
+    assert "cannot be recorded" in result.detail
+
+
+def test_a_report_with_a_nul_path_is_no_report(tmp_path: Path) -> None:
+    trees = native_trees(tmp_path, "SF:a\0b.c\nDA:1,1\nend_of_record\n")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "not_available"
+    assert "the coverage report is unreadable" in result.detail

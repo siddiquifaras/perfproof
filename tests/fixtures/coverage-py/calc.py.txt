@@ -1,0 +1,6 @@
+def double(x):
+    return 2 * x
+
+
+def never_called(x):
+    return x + 1

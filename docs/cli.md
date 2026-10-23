@@ -162,6 +162,32 @@ verdict. A `timed_out` run can't be resumed.
 | `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown` and `schedule_uncalibrated`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
 | `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
 
+When changed lines ran under no check, the `coverage` gate is
+`not_available` and its `not_verified` reason names them by file
+(`work.py lines 12-14 never ran`); the JSON fields are unchanged. The
+run record's `coverage` gate carries the same lines in `unverified`.
+
+### Coverage for other languages
+
+`compare` measures Python itself. For any other language, the spec
+declares an optional `correctness.coverage_command` (an argv list, with
+`correctness.coverage_timeout_seconds`, required with it and only with
+it) that writes a standard coverage report. It is backward compatible:
+absent by default, a spec without it keeps its hash, and `schema_version`
+stays 4.
+
+When non-Python files changed and the command is declared, `compare`
+runs it once in the candidate tree (in `correctness.cwd`) with the
+environment variable `PERFPROOF_COVERAGE_REPORT` set to a file path that
+does not exist, and reads lcov (`SF:`, `DA:`, `end_of_record`) or
+Cobertura XML from there. With no command declared nothing extra runs
+and those changes are `not_available` ("no coverage command declared").
+Paths in the report are relative to `correctness.cwd` (Cobertura: to
+each `<source>` first) or absolute inside the tree. A changed line
+listed with zero hits is unverified (gate `not_available`, lines
+named); a line not listed is not executable. The full contract is
+"Coverage reports" in `docs/method.md`.
+
 `status` carries the same `not_verified` and `warnings` in its `verdict`
 object for a finished detached run.
 

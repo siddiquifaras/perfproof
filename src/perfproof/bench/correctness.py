@@ -101,10 +101,12 @@ __all__ = [
     "OutputComparison",
     "SuiteComparison",
     "SuiteRun",
+    "check_correctness",
     "check_tests",
     "clear_outputs",
     "compare_outputs",
     "correctness_gate",
+    "run_command",
     "run_tests",
 ]
 
@@ -427,6 +429,45 @@ def _record_case(case: ET.Element, results: dict[str, str]) -> None:
     previous = results.get(test_id)
     if previous is None or _RANK[result] > _RANK[previous]:
         results[test_id] = result
+
+
+def run_command(
+    argv: Sequence[str],
+    cwd: Path,
+    env: Mapping[str, str],
+    timeout: float,
+    scratch: Path,
+) -> tuple[CommandOutput | None, str | None]:
+    """Run one command in its own session, keeping its output's tail.
+
+    Parameters
+    ----------
+    argv : sequence of str
+        The command, launched without a shell.
+    cwd : Path
+        Working directory.
+    env : mapping of str to str
+        The command's whole environment.
+    timeout : float
+        Time limit in seconds; the process group is killed after it.
+    scratch : Path
+        An existing directory for the output files.
+
+    Returns
+    -------
+    output : CommandOutput or None
+        ``None`` when the command could not be started.
+    abnormal : str or None
+        How it ended abnormally (could not start, timed out, killed by
+        a signal); ``None`` when it exited by itself.
+
+    Raises
+    ------
+    OSError
+        If the process could not be created for a reason other than the
+        command or its working directory.
+    """
+    return _execute(argv, cwd, env, timeout, scratch)
 
 
 def _test_env(env: Mapping[str, str], report: Path) -> dict[str, str]:
@@ -1284,6 +1325,48 @@ def correctness_gate(
 ) -> GateResult:
     """Run the correctness gate's tests and output comparisons.
 
+    The gate of `check_correctness`, without the tests' judgement.
+
+    Parameters
+    ----------
+    spec : BenchmarkSpec
+        The spec in force.
+    baseline_root, candidate_root : Path
+        Roots of the two trees.
+    env : mapping of str to str
+        Environment the test command inherits, before the spec's
+        declared variables are applied.
+
+    Returns
+    -------
+    GateResult
+        See `check_correctness`.
+
+    Raises
+    ------
+    BaselineBrokenError
+        If the baseline fails its own checks.
+    OSError
+        If a process cannot be created for a reason that is
+        perfproof's own.
+    """
+    return check_correctness(
+        spec,
+        baseline_root=baseline_root,
+        candidate_root=candidate_root,
+        env=env,
+    )[0]
+
+
+def check_correctness(
+    spec: BenchmarkSpec,
+    *,
+    baseline_root: Path,
+    candidate_root: Path,
+    env: Mapping[str, str],
+) -> tuple[GateResult, SuiteComparison | None]:
+    """Run the correctness gate's tests and output comparisons.
+
     Call after the benchmark has produced its declared outputs in both
     trees. Outputs are compared first, before the tests run and can
     touch them; then `check_tests` judges the candidate.
@@ -1325,14 +1408,17 @@ def correctness_gate(
         perfproof's own.
     """
     if spec.correctness.command is None and not spec.correctness.outputs:
-        return GateResult(
-            gate="correctness",
-            status="not_available",
-            detail=(
-                "the spec declares no correctness check (no test command "
-                "and no output to compare), so nothing was checked and a "
-                "KEEP is withheld"
+        return (
+            GateResult(
+                gate="correctness",
+                status="not_available",
+                detail=(
+                    "the spec declares no correctness check (no test "
+                    "command and no output to compare), so nothing was "
+                    "checked and a KEEP is withheld"
+                ),
             ),
+            None,
         )
     outputs = compare_outputs(
         spec.correctness.outputs,
@@ -1373,7 +1459,7 @@ def correctness_gate(
     if outputs.compared:
         summary.append(f"{outputs.compared} declared outputs compared")
     if problems:
-        return GateResult(
+        failed = GateResult(
             gate="correctness",
             status="failed",
             detail="; ".join(problems + summary),
@@ -1382,8 +1468,9 @@ def correctness_gate(
             quarantined=quarantined,
             output=output,
         )
+        return failed, tests
     if tests is not None and not tests.judged and not outputs.compared:
-        return GateResult(
+        unjudged = GateResult(
             gate="correctness",
             status="not_available",
             detail="every test is flaky or a known failure and no output "
@@ -1391,9 +1478,11 @@ def correctness_gate(
             + "; ".join(summary),
             quarantined=quarantined,
         )
-    return GateResult(
+        return unjudged, tests
+    passed = GateResult(
         gate="correctness",
         status="passed",
         detail="; ".join(summary),
         quarantined=quarantined,
     )
+    return passed, tests

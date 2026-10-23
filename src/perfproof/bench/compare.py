@@ -31,8 +31,11 @@ have passed:
 6. One output-producing execution of the benchmark in each tree, then
    the `correctness` gate (tests three times on the baseline, outputs
    compared); a spec with no check leaves the gate ``not_available``.
-   The `coverage` gate is ``not_available``: it is not
-   built yet (T2.14), and that blocks KEEP. Differential checks
+   The `coverage` gate then reruns the correctness command under
+   coverage (`perfproof.bench.coverage_gate`): changed lines no passing
+   check ran make it ``not_available``, which blocks KEEP and is never
+   a REJECT. The candidate's untracked files are listed before the
+   first command runs in its tree. Differential checks
    (T2.13) are not built either; a warning says so.
 7. Warmup, then rounds, with a look wherever
    `perfproof.stats.sequential.plan_looks` places one. Each look is
@@ -153,8 +156,15 @@ from perfproof import __version__
 from perfproof.bench.correctness import (
     OUTPUT_TAIL_BYTES,
     BaselineBrokenError,
+    SuiteComparison,
+    check_correctness,
     clear_outputs,
-    correctness_gate,
+)
+from perfproof.bench.coverage_gate import (
+    ALL_JUDGED,
+    CoverageGateError,
+    coverage_gate,
+    untracked_files,
 )
 from perfproof.bench.harness import install_harness
 from perfproof.bench.journal import Journal, Resumed, RoundEntry
@@ -497,6 +507,9 @@ class _Run:
         self.deadline: float | None = None
         self.time_limit_hit = False
         self.fallback_reason: str | None = None
+        self.suite: SuiteComparison | None = None
+        self.untracked: tuple[str, ...] | None = None
+        self.untracked_error = ""
 
     def stop(self, code: str, message: str) -> CompareStoppedError:
         """Build the no-verdict stop for this run."""
@@ -517,6 +530,7 @@ class _Run:
 
     def _execute(self) -> CompareResult:
         spec, trees = self.spec, self.trees
+        self._list_untracked()
         self._install_harness()
         self.gates["side_effects"] = _side_effects(spec, trees, self.env)
         if self._failed():
@@ -572,11 +586,7 @@ class _Run:
         )
         if self._failed():
             return self._finish_gate()
-        self.gates["coverage"] = GateResult(
-            gate="coverage",
-            status="not_available",
-            detail="the coverage gate is not built yet (plan task T2.14)",
-        )
+        self._coverage()
         ended = self._rounds(rounds_runner)
         self._note_resolution_unknown()
         samples = [s for m in self.measured for s in m.samples]
@@ -921,7 +931,7 @@ class _Run:
         )
         self._guard(producer.warmup, "the output-producing execution")
         try:
-            self.gates["correctness"] = correctness_gate(
+            self.gates["correctness"], self.suite = check_correctness(
                 spec,
                 baseline_root=trees["baseline"],
                 candidate_root=trees["candidate"],
@@ -931,6 +941,57 @@ class _Run:
             raise self.stop("broken_baseline", str(exc)) from exc
         except OSError as exc:
             msg = f"the correctness command could not run: {exc}"
+            raise self.stop("harness_fault", msg) from exc
+
+    def _list_untracked(self) -> None:
+        """List the candidate's untracked files before anything runs.
+
+        The coverage gate counts them as the candidate's changes, and
+        the runs create files (caches, build output) it must not count.
+        A failure is kept for the gate to report.
+        """
+        try:
+            self.untracked = untracked_files(self.trees["candidate"])
+        except CoverageGateError as exc:
+            self.untracked_error = str(exc)
+
+    def _coverage(self) -> None:
+        """Run the coverage gate on the changed lines.
+
+        Raises `CompareStoppedError` when perfproof's own process cannot
+        start the run.
+        """
+        spec, trees = self.spec, self.trees
+        if self.untracked is None:
+            self.gates["coverage"] = GateResult(
+                gate="coverage",
+                status="not_available",
+                detail=(
+                    "the candidate's changed lines could not be listed: "
+                    f"{self.untracked_error}"
+                ),
+            )
+            return
+        try:
+            self.gates["coverage"] = coverage_gate(
+                spec,
+                baseline_root=trees["baseline"],
+                candidate_root=trees["candidate"],
+                env=self.env,
+                tests=self.suite,
+                judged_tests=(
+                    None if spec.correctness.command is None else ALL_JUDGED
+                ),
+                untracked=self.untracked,
+            )
+        except CoverageGateError as exc:
+            self.gates["coverage"] = GateResult(
+                gate="coverage",
+                status="not_available",
+                detail=f"the changed lines could not be listed: {exc}",
+            )
+        except OSError as exc:
+            msg = f"the coverage run could not start: {exc}"
             raise self.stop("harness_fault", msg) from exc
 
     def _guard[T](self, step: Callable[[], T], what: str) -> T:

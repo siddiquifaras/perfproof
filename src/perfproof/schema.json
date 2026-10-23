@@ -260,7 +260,7 @@
           "description": "Per-tree preparation run before warmup; ``None`` when the trees\nneed none. Left out of ``spec_hash`` while ``None``, so a spec\nwritten before this field existed keeps its hash."
         },
         "spec_hash": {
-          "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order. An unset ``setup`` is left out of the hashed JSON.",
+          "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order. An unset ``setup`` and an unset coverage command\nare left out of the hashed JSON, so specs written before them\nkeep their hash.",
           "readOnly": true,
           "title": "Spec Hash",
           "type": "string"
@@ -626,7 +626,7 @@
     },
     "CorrectnessSpec": {
       "additionalProperties": false,
-      "description": "How the correctness gate decides the candidate is right.\n\nA spec may declare no check at all, for a project that has no test\ncommand and no output to compare. The gate is then\n``not_available``, never passed (`RunRecord` refuses a record that\npasses it), so a KEEP is withheld while the comparison still\nmeasures.\n\nRaises\n------\npydantic.ValidationError\n    If a command has no timeout or a timeout has no command, or if\n    an output path repeats.",
+      "description": "How the correctness gate decides the candidate is right.\n\nA spec may declare no check at all, for a project that has no test\ncommand and no output to compare. The gate is then\n``not_available``, never passed (`RunRecord` refuses a record that\npasses it), so a KEEP is withheld while the comparison still\nmeasures.\n\nRaises\n------\npydantic.ValidationError\n    If a command has no timeout or a timeout has no command (the\n    test command and the coverage command alike), or if an output\n    path repeats.",
       "properties": {
         "command": {
           "anyOf": [
@@ -688,6 +688,38 @@
           "minimum": 0,
           "title": "Differential Atol",
           "type": "number"
+        },
+        "coverage_command": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command that runs the project's checks under a coverage tool and\nwrites lcov or Cobertura to the path in the environment variable\n``PERFPROOF_COVERAGE_REPORT``, as an argv list. Run in the candidate\ntree, in ``cwd``, when non-Python files changed. ``None``: no\ncoverage command is declared, and non-Python changes are not\nchecked. Python is measured without it.",
+          "title": "Coverage Command"
+        },
+        "coverage_timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time limit for ``coverage_command``, in seconds.",
+          "title": "Coverage Timeout Seconds"
         }
       },
       "title": "CorrectnessSpec",
@@ -1194,7 +1226,7 @@
     },
     "GateResult": {
       "additionalProperties": false,
-      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines come with a gate that neither failed nor is\n    `not_available`; a differential mismatch or ``output`` come with\n    a gate that did not fail; or a test, function or path repeats.",
+      "description": "Result of one gate.\n\nRaises\n------\npydantic.ValidationError\n    If a gate that did not pass has no ``detail``; a gate other than\n    `side_effects`, `runtime`, `same_host` or `coverage` is waived;\n    ``quarantined`` or ``differential`` is set on a gate other than\n    `correctness`, or ``unverified`` on one other than `coverage`;\n    unverified lines come with a gate that neither failed nor is\n    `not_available`; a differential mismatch or ``output`` come\n    with a gate that did not fail; or a test, function or path\n    repeats.",
       "properties": {
         "gate": {
           "description": "`side_effects`, `lock`, `procedure`, `runtime` or `same_host`\n(integrity), or `correctness` or `coverage`.",

@@ -4,8 +4,10 @@ This is "Coverage gate" in ``docs/method.md``: the lines the candidate
 changed are taken from ``git diff``, the correctness command runs once
 more in the candidate tree under coverage.py, and every changed
 executable line must have run under a check that judged the candidate.
-A change in code no check ran is unverified, and the gate fails with
-the unverified lines listed.
+A change in code no check ran is unverified: the gate is
+``not_available`` (never failed, since the change may be right and
+perfproof only cannot show it) with the unverified lines listed, and
+the verdict is INCONCLUSIVE.
 
 Which lines changed
 -------------------
@@ -54,13 +56,19 @@ is the first thing to run. For each changed ``.py`` file it reads one
 - **Unparseable files.** A version that coverage.py's parser or
   perfproof's interpreter cannot parse (newer syntax, a bad encoding)
   means the file cannot be checked.
-- **Non-Python changes** are not measured: the gate reports "coverage
-  not checked" for them, which is ``not_available`` unless the spec sets
-  ``allow_unchecked_coverage``, and then ``waived``.
+- **Non-Python changes** are measured only through a coverage report
+  (`perfproof.bench.coverage_report`): the spec's
+  ``correctness.coverage_command``, run once when such files changed,
+  writes lcov or Cobertura to the path in `REPORT_ENV_VAR`. A changed
+  line of a file the report lists counts as `OtherChange` says; a line
+  the report does not list is not executable. With no coverage command
+  declared (nothing is run then), no report, or for a file it does not
+  list, the gate reports "coverage not checked", which is
+  ``not_available`` unless the spec sets ``allow_unchecked_coverage``,
+  and then ``waived``.
 
-A changed line that did not run fails the gate. A change that cannot be
-checked makes the gate ``not_available``, whatever the opt-in says,
-unless some other line failed it.
+A change that cannot be checked makes the gate ``not_available``,
+whatever the opt-in says.
 
 How coverage is measured
 ------------------------
@@ -165,24 +173,32 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Final, Literal
 
 import coverage
 from coverage.exceptions import CoverageException
 from coverage.parser import PythonParser
+from pydantic import ValidationError
 
 from perfproof.bench.correctness import (
     EXIT_STATUS_ID,
     SuiteComparison,
     SuiteRun,
+    run_command,
     run_tests,
+)
+from perfproof.bench.coverage_report import (
+    REPORT_ENV_VAR,
+    ReportError,
+    read_report,
 )
 from perfproof.bench.snapshot import SnapshotError, worktree_commit
 from perfproof.schema import BenchmarkSpec, GateResult, UnverifiedLines
 
 __all__ = [
+    "ALL_JUDGED",
     "CHILD_LABEL_PREFIX",
     "CONTEXT_ENV_VAR",
     "COVERAGE_TIMEOUT_FACTOR",
@@ -194,11 +210,16 @@ __all__ = [
     "Deletion",
     "FileChange",
     "Need",
+    "OtherChange",
     "changed_lines",
     "coverage_gate",
     "untracked_files",
 ]
 
+ALL_JUDGED: Final = "all"
+"""Value of ``judged_tests`` for a caller that has no ids: every test
+the run under coverage reports counts, except those left out by the
+`SuiteComparison` (quarantined, known failures)."""
 COVERAGE_TIMEOUT_FACTOR: Final = 4.0
 """The correctness command may take this many times its time limit
 under coverage, since tracing every line slows it down."""
@@ -220,6 +241,7 @@ _UNNAMED_PREFIX: Final = "unnamed "
 _HUNK: Final = re.compile(rb"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 _DIFF_HEADER: Final = b"diff --git "
 _LINE_BREAK: Final = re.compile(r"\r\n|\r|\n")
+_CHUNK_BYTES: Final = 1 << 20
 _FAILING: Final = frozenset({"failed", "error"})
 _ERROR_CHARS: Final = 300
 _TAIL_CHARS: Final = 500
@@ -470,6 +492,26 @@ class FileChange:
 
 
 @dataclass(frozen=True, slots=True)
+class OtherChange:
+    """A changed non-Python file that still exists.
+
+    Its changed lines are found only when a coverage report lists it
+    (`_other_lines`), so a large data file is never read for nothing.
+
+    Attributes
+    ----------
+    path : str
+        File, relative to the tree root, with ``/`` separators.
+    added : bool
+        Whether the file is new in the candidate (every line counts),
+        rather than modified (the lines ``git diff`` adds or changes).
+    """
+
+    path: str
+    added: bool
+
+
+@dataclass(frozen=True, slots=True)
 class ChangedLines:
     """What the candidate changed, as the coverage gate sees it.
 
@@ -483,11 +525,15 @@ class ChangedLines:
         sorted; coverage is not checked for them.
     deleted : tuple of str
         Python files the candidate deleted, sorted.
+    other : tuple of OtherChange
+        Each path in ``not_checked`` that still exists, for the
+        coverage report to judge; sorted by path.
     """
 
     files: tuple[FileChange, ...]
     not_checked: tuple[str, ...]
     deleted: tuple[str, ...]
+    other: tuple[OtherChange, ...] = ()
 
 
 class _Source:
@@ -928,9 +974,13 @@ def changed_lines(
     files: list[FileChange] = []
     not_checked: list[str] = []
     deleted: list[str] = []
+    other: list[OtherChange] = []
     for status, path in sorted(entries, key=lambda e: e[1]):
         if not path.endswith(".py"):
             not_checked.append(path)
+            if status == "D":
+                continue
+            other.append(OtherChange(path, status == "A"))
         elif status == "D":
             deleted.append(path)
         elif status == "A":
@@ -945,7 +995,79 @@ def changed_lines(
         files=tuple(f for f in files if f.needs or f.deletions or f.unparsed),
         not_checked=tuple(not_checked),
         deleted=tuple(deleted),
+        other=tuple(other),
     )
+
+
+def _other_lines(
+    baseline: Path,
+    candidate: Path,
+    changes: Collection[OtherChange],
+    timeout: float = GIT_TIMEOUT_SECONDS,
+) -> dict[str, tuple[int, ...]]:
+    """Find the changed lines of non-Python files, for these files only.
+
+    A new file counts every line, found by counting newlines in
+    fixed-size chunks; a modified one counts the lines one ``git diff
+    -U0`` over the listed files adds or changes.
+
+    Raises
+    ------
+    CoverageGateError
+        If git fails.
+    """
+    found: dict[str, tuple[int, ...]] = {}
+    modified = [c.path for c in changes if not c.added]
+    patches: dict[str, bytes] = {}
+    if modified:
+        try:
+            commit = worktree_commit(baseline)
+        except SnapshotError as exc:
+            raise CoverageGateError(str(exc)) from exc
+        patches = _split_patch(
+            _git(
+                candidate,
+                "diff",
+                "-U0",
+                "--text",
+                "--no-color",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--no-renames",
+                "--src-prefix=a/",
+                "--dst-prefix=b/",
+                commit,
+                "--",
+                *modified,
+                timeout=timeout,
+            )
+        )
+    for change in changes:
+        if change.added:
+            found[change.path] = _count_lines(candidate / change.path)
+        else:
+            found[change.path] = tuple(
+                n
+                for _, added in _hunks(patches.get(change.path, b""))
+                for n in added
+            )
+    return found
+
+
+def _count_lines(path: Path) -> tuple[int, ...]:
+    """List every line number of a file, reading it in chunks."""
+    count = 0
+    last = b"\n"
+    try:
+        with path.open("rb") as handle:
+            while chunk := handle.read(_CHUNK_BYTES):
+                count += chunk.count(b"\n")
+                last = chunk[-1:]
+    except OSError:
+        return ()
+    if last != b"\n":
+        count += 1
+    return tuple(range(1, count + 1))
 
 
 def _new_file(candidate: Path, path: str) -> FileChange:
@@ -1106,7 +1228,10 @@ def _hook_files(work: Path) -> tuple[Path, Path, Path, Path]:
 
 
 def _covered_env(
-    env: Mapping[str, str], spec: BenchmarkSpec, hook: Path, rcfile: Path
+    env: Mapping[str, str],
+    spec: BenchmarkSpec,
+    hook: Path,
+    rcfile: Path,
 ) -> dict[str, str]:
     """Build the run's environment: the caller's, the spec's, a hook."""
     merged = {
@@ -1333,7 +1458,8 @@ def _trust(
     judged = {
         t: r
         for t, r in run.results.items()
-        if t in judged_tests and t not in excluded
+        if (judged_tests == ALL_JUDGED or t in judged_tests)
+        and t not in excluded
     }
     passed = {t for t, r in judged.items() if r == "passed"}
     failing = sorted(t for t, r in judged.items() if r in _FAILING)
@@ -1386,7 +1512,7 @@ def _remaining_result(
     unchecked: Sequence[str],
     summary: Sequence[str],
 ) -> GateResult:
-    """Judge a change none of whose checkable lines failed."""
+    """Judge a change all of whose checkable lines ran."""
     if unchecked:
         return GateResult(
             gate="coverage",
@@ -1496,10 +1622,12 @@ def coverage_gate(
         The correctness gate's judgement of the tests
         (`perfproof.bench.correctness.check_tests`). ``None`` only when
         the spec has no correctness command.
-    judged_tests : collection of str or None
+    judged_tests : collection of str, ALL_JUDGED or None
         Ids of the tests that judgement used: neither quarantined nor
-        known failures. Only they verify lines. ``None`` only when the
-        spec has no correctness command.
+        known failures. Only they verify lines. `ALL_JUDGED` for every
+        test the run under coverage reports (the quarantined and known
+        failures of ``tests`` are still left out). ``None`` only when
+        the spec has no correctness command.
     untracked : collection of str, optional
         The candidate's untracked files, from `untracked_files` called
         before anything ran in the candidate tree. If not given, they
@@ -1516,9 +1644,9 @@ def coverage_gate(
     Returns
     -------
     GateResult
-        Gate ``coverage``: failed, with the unverified lines by file,
-        when a changed executable line did not run under a passing,
-        judged check; ``not_available`` when coverage could not tell or
+        Gate ``coverage``: ``not_available``, with the unverified lines
+        by file, when a changed executable line did not run under a
+        passing, judged check, and also when coverage could not tell or
         a change cannot be checked by line (see the module docstring),
         when the spec has no correctness command to measure, or when
         non-Python files changed without the spec's
@@ -1558,98 +1686,297 @@ def coverage_gate(
         if f.unparsed is None
     }
     required = {path: needs for path, needs in required.items() if needs}
-    if not required:
-        return _remaining_result(spec, changes, unchecked, summary)
     limit = spec.correctness.timeout_seconds
-    if (
-        command is None
-        or limit is None
-        or tests is None
-        or judged_tests is None
-    ):
-        return GateResult(
-            gate="coverage",
-            status="not_available",
-            detail="; ".join(
-                [
-                    "the spec has no correctness command, and only the "
-                    "correctness command runs under coverage, so nothing "
-                    "measured the changed lines",
-                    *summary,
-                ]
-            ),
+    if not required and not changes.not_checked:
+        return _remaining_result(spec, changes, unchecked, summary)
+    unverified: list[UnverifiedLines] = []
+    story: list[str] = []
+    problems: list[str] = []
+    unrecorded: list[tuple[str, tuple[int, ...]]] = []
+    if required:
+        if (
+            command is None
+            or limit is None
+            or tests is None
+            or judged_tests is None
+        ):
+            return GateResult(
+                gate="coverage",
+                status="not_available",
+                detail="; ".join(
+                    [
+                        "the spec has no correctness command, and only "
+                        "the correctness command runs under coverage, so "
+                        "nothing measured the changed lines",
+                        *summary,
+                    ]
+                ),
+            )
+        sources = {
+            path: (
+                _Source(candidate_root / path),
+                frozenset(n.target for n in needs if n.kind == "entry"),
+            )
+            for path, needs in required.items()
+        }
+        measured = _measure(
+            spec, candidate_root, env, sources, limit * timeout_factor
         )
-    sources = {
-        path: (
-            _Source(candidate_root / path),
-            frozenset(n.target for n in needs if n.kind == "entry"),
+        run = measured.run
+        summary.append(
+            f"measured with coverage.py {coverage.__version__} running "
+            f"{shlex.join(command)}"
         )
-        for path, needs in required.items()
-    }
-    measured = _measure(
-        spec, candidate_root, env, sources, limit * timeout_factor
+        if run.abnormal is not None:
+            tail = "" if run.output is None else _tail(run.output.stderr)
+            return GateResult(
+                gate="coverage",
+                status="not_available",
+                detail="; ".join(
+                    [
+                        f"the correctness command {run.abnormal} under "
+                        "coverage in the candidate tree",
+                        *summary,
+                        *measured.problems,
+                        *([f"stderr ends: {tail}"] if tail else []),
+                    ]
+                ),
+            )
+        trusted, failing = _trust(run, tests, judged_tests, measured.records)
+        unverified, story = _unverified(
+            changes, required, measured, trusted, unrecorded
+        )
+        problems = list(measured.problems)
+        if failing:
+            problems.append(
+                f"{len(failing)} judged tests did not pass under coverage: "
+                + ", ".join(failing)
+            )
+    left_out = tests is not None and bool(
+        tests.quarantined or tests.known_failures
     )
-    run = measured.run
-    summary.append(
-        f"measured with coverage.py {coverage.__version__} running "
-        f"{shlex.join(command)}"
+    reported = _judge_report(
+        changes,
+        spec,
+        candidate_root,
+        env,
+        lines_of=lambda listed: _other_lines(
+            baseline_root, candidate_root, listed
+        ),
+        left_out=left_out,
     )
-    if run.abnormal is not None:
-        tail = "" if run.output is None else _tail(run.output.stderr)
-        return GateResult(
-            gate="coverage",
-            status="not_available",
-            detail="; ".join(
-                [
-                    f"the correctness command {run.abnormal} under "
-                    "coverage in the candidate tree",
-                    *summary,
-                    *measured.problems,
-                    *([f"stderr ends: {tail}"] if tail else []),
-                ]
-            ),
-        )
-    trusted, failing = _trust(run, tests, judged_tests, measured.records)
-    unverified, story = _unverified(changes, required, measured, trusted)
-    problems = list(measured.problems)
-    if failing:
-        problems.append(
-            f"{len(failing)} judged tests did not pass under coverage: "
-            + ", ".join(failing)
-        )
-    if not unverified:
+    unverified = sorted([*unverified, *reported.unverified], key=_by_path)
+    unrecorded.extend(reported.unrecorded)
+    story = [*story, *reported.story]
+    story.extend(
+        f"{path} lines {_ranges(lines)} cannot be recorded: the file name "
+        "is not a plain relative path"
+        for path, lines in unrecorded
+    )
+    summary.extend(reported.summary)
+    problems.extend(reported.problems)
+    if not unverified and not unrecorded:
+        remaining = replace(changes, not_checked=reported.not_checked)
         return _remaining_result(
-            spec, changes, unchecked, [*summary, *problems]
+            spec, remaining, unchecked, [*summary, *problems]
         )
-    count = sum(len(u.lines) for u in unverified)
-    if problems:
-        return GateResult(
-            gate="coverage",
-            status="not_available",
-            detail="; ".join(
-                [
-                    "the run under coverage may have missed what the "
-                    f"judged run did, so it cannot tell whether {count} "
-                    "changed lines ran",
-                    *problems,
-                    *story,
-                    *unchecked,
-                    *summary,
-                ]
-            ),
-        )
+    count = sum(len(u.lines) for u in unverified) + sum(
+        len(lines) for _, lines in unrecorded
+    )
+    head = (
+        "a run under coverage may have missed what the judged run did, "
+        f"so it cannot tell whether {count} changed lines ran"
+        if problems
+        else f"{count} changed lines ran under no passing check"
+    )
     return GateResult(
         gate="coverage",
-        status="failed",
-        detail="; ".join(
-            [
-                f"{count} changed lines ran under no passing check",
-                *story,
-                *unchecked,
-                *summary,
-            ]
-        ),
-        unverified=tuple(unverified),
+        status="not_available",
+        detail="; ".join([head, *problems, *story, *unchecked, *summary]),
+        unverified=() if problems else tuple(unverified),
+    )
+
+
+def _record(
+    into: list[UnverifiedLines],
+    unrecorded: list[tuple[str, tuple[int, ...]]],
+    path: str,
+    lines: Sequence[int],
+) -> None:
+    """Add unverified lines, or note a file name the record refuses."""
+    try:
+        into.append(UnverifiedLines(path=path, lines=tuple(lines)))
+    except ValidationError:
+        unrecorded.append((path, tuple(lines)))
+
+
+def _by_path(lines: UnverifiedLines) -> str:
+    """Sort key: the file."""
+    return lines.path
+
+
+@dataclass(frozen=True, slots=True)
+class _Reported:
+    """What a coverage report says about the non-Python changes.
+
+    Attributes
+    ----------
+    unverified : tuple of UnverifiedLines
+        Changed lines that never ran, or that ran only where the run
+        cannot be trusted to say which checks ran them.
+    story : tuple of str
+        Why, by file.
+    not_checked : tuple of str
+        Non-Python changed paths the report does not cover.
+    summary : tuple of str
+        What was read, for the gate's detail.
+    problems : tuple of str
+        What went wrong running the coverage command or reading its
+        report.
+    unrecorded : tuple of tuple
+        ``(path, lines)`` of unverified lines in a file whose name the
+        record cannot hold (not a plain relative path); they still
+        withhold the KEEP.
+    """
+
+    unverified: tuple[UnverifiedLines, ...]
+    story: tuple[str, ...]
+    not_checked: tuple[str, ...]
+    summary: tuple[str, ...]
+    problems: tuple[str, ...] = ()
+    unrecorded: tuple[tuple[str, tuple[int, ...]], ...] = ()
+
+
+def _run_coverage_command(
+    spec: BenchmarkSpec,
+    candidate_root: Path,
+    env: Mapping[str, str],
+) -> tuple[Mapping[str, Mapping[int, int]] | None, bool, list[str]]:
+    """Run the spec's coverage command and read the report it wrote.
+
+    Returns the report (``None`` when none was written or it cannot be
+    read), whether the command exited 0, and what went wrong.
+
+    Raises
+    ------
+    ValueError
+        If the spec declares no coverage command.
+    OSError
+        If the process cannot be created for a reason that is
+        perfproof's own.
+    """
+    correctness = spec.correctness
+    command = correctness.coverage_command
+    limit = correctness.coverage_timeout_seconds
+    if command is None or limit is None:
+        msg = "the spec declares no coverage command"
+        raise ValueError(msg)
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="perfproof-coverage-") as tmp:
+        work = Path(tmp)
+        scratch = work / "scratch"
+        scratch.mkdir()
+        report_file = work / "report"
+        merged = {
+            name: value
+            for name, value in {**env, **spec.env}.items()
+            if name != REPORT_ENV_VAR
+        }
+        merged[REPORT_ENV_VAR] = str(report_file)
+        output, abnormal = run_command(
+            command, candidate_root / correctness.cwd, merged, limit, scratch
+        )
+        exited = output is not None and output.exit_code == 0
+        if abnormal is not None:
+            problems.append(f"the coverage command {abnormal}")
+        elif not exited:
+            problems.append("the coverage command exited non-zero")
+        if output is not None and not exited:
+            tail = _tail(output.stderr)
+            if tail:
+                problems.append(f"its stderr ends: {tail}")
+        report = None
+        if abnormal is None:
+            try:
+                report = read_report(
+                    report_file, candidate_root, correctness.cwd
+                )
+            except (ReportError, OSError) as exc:
+                problems.append(f"the coverage report is unreadable: {exc}")
+            else:
+                if report is None:
+                    problems.append(
+                        "the coverage command wrote no report to "
+                        f"${REPORT_ENV_VAR}"
+                    )
+    return report, exited, problems
+
+
+def _judge_report(
+    changes: ChangedLines,
+    spec: BenchmarkSpec,
+    candidate_root: Path,
+    env: Mapping[str, str],
+    *,
+    lines_of: Callable[
+        [Collection[OtherChange]], Mapping[str, tuple[int, ...]]
+    ],
+    left_out: bool,
+) -> _Reported:
+    """Match the non-Python changed lines against a coverage report.
+
+    Runs the spec's coverage command, when one is declared and
+    non-Python files changed. A path the report lists is judged by line:
+    zero hits is a line that never ran, a line the report does not list
+    is not executable and asks nothing. A report has no per-test labels,
+    so hits count only when the command exited 0 and no test was left
+    out of the judgement (``left_out``).
+    """
+    if not changes.not_checked:
+        return _Reported((), (), (), ())
+    if spec.correctness.coverage_command is None:
+        note = (
+            "no coverage command declared (correctness.coverage_command), "
+            "so no coverage tool covers the non-Python changes",
+        )
+        return _Reported((), (), changes.not_checked, note)
+    report, exited, problems = _run_coverage_command(spec, candidate_root, env)
+    reliable = exited and not left_out
+    if report is None:
+        return _Reported((), (), changes.not_checked, (), tuple(problems))
+    listed = [c for c in changes.other if c.path in report]
+    covered = {c.path for c in listed}
+    all_lines = lines_of(listed)
+    unverified: list[UnverifiedLines] = []
+    unrecorded: list[tuple[str, tuple[int, ...]]] = []
+    story: list[str] = []
+    for change in listed:
+        hits = report[change.path]
+        change_lines = all_lines[change.path]
+        never = [n for n in change_lines if hits.get(n) == 0]
+        maybe = [] if reliable else [n for n in change_lines if hits.get(n, 0)]
+        if never:
+            story.append(f"{change.path} lines {_ranges(never)} never ran")
+        if maybe:
+            story.append(
+                f"{change.path} lines {_ranges(maybe)} ran, but the "
+                "coverage command failed or tests were left out of the "
+                "judgement, so they may have run only for those"
+            )
+        lines = sorted({*never, *maybe})
+        if lines:
+            _record(unverified, unrecorded, change.path, lines)
+    remaining = tuple(p for p in changes.not_checked if p not in covered)
+    summary = (
+        f"{len(covered)} non-Python files checked from the coverage report",
+    )
+    return _Reported(
+        tuple(unverified),
+        tuple(story),
+        remaining,
+        summary if covered else (),
+        tuple(problems),
+        tuple(unrecorded),
     )
 
 
@@ -1658,6 +1985,7 @@ def _unverified(
     required: Mapping[str, Sequence[Need]],
     measured: _Measurement,
     trusted: Callable[[str], bool],
+    unrecorded: list[tuple[str, tuple[int, ...]]],
 ) -> tuple[list[UnverifiedLines], list[str]]:
     """Find the needs no trusted label met, and say why."""
     unverified: list[UnverifiedLines] = []
@@ -1677,7 +2005,7 @@ def _unverified(
         missed = sorted(never + untrusted)
         if not missed:
             continue
-        unverified.append(UnverifiedLines(path=path, lines=tuple(missed)))
+        _record(unverified, unrecorded, path, missed)
         if never:
             story.append(f"{path} lines {_ranges(never)} never ran")
         if untrusted:
