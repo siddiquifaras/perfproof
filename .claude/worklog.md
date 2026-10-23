@@ -240,7 +240,10 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   candidate reliably meets) and its gap to the cap. Skill follow-up
   (Faras): a missed or too-close cap becomes a goal; the skill finds
   and proves changes that close the gap, instead of stopping at "can't
-  tell".
+  tell". General rule for the skill (Faras): every outcome short of the
+  goal (cap missed, speedup short, INCONCLUSIVE) ends with where the
+  user stands, the gap, a concrete next step and "keep going?"; never a
+  dead end. Numbers are information, never a verdict.
 
 ### In progress
 
