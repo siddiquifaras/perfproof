@@ -23,6 +23,7 @@ import stat
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -425,6 +426,7 @@ def build_real_repo(
     skill_dir: Path,
     cache_dir: Path,
     extra_path: list[Path],
+    before_setup: Callable[[], None] | None = None,
 ) -> dict[str, str]:
     """Build a real repository: the commit, the skill, the build steps.
 
@@ -442,6 +444,12 @@ def build_real_repo(
         Where fetched repositories are cached between runs.
     extra_path : list of Path
         Directories for ``PATH`` while building.
+    before_setup : callable, optional
+        Run once the repository is seeded and before the build steps,
+        outside the profile. A Go task downloads its modules here: Go
+        on macOS verifies a certificate through ``trustd``, a Mach
+        service the profile closes, so a confined ``go test`` cannot
+        fetch anything and must find the module cache full.
 
     Returns
     -------
@@ -462,6 +470,8 @@ def build_real_repo(
         ".claude/\n", encoding="utf-8"
     )
     shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
+    if before_setup is not None:
+        before_setup()
     realrepo.run_setup(spec, dest, extra_path, confine=sandbox.as_eval_user())
     return seeded
 
@@ -1192,6 +1202,14 @@ def run_task(
             realrepo.write_shims(shims, task.repo.shim)
             extra_path.append(shims)
         spec = realrepo.load_spec(task.repo.manifest)
+        branch = task.repo.branch
+        fetch_go_modules = "go" in task.repo.requires and bool(toolchains)
+
+        def go_modules() -> None:
+            realrepo.prefill_go_modcache(
+                spec, repo, extra_path, [] if branch is None else [branch]
+            )
+
         seeded = build_real_repo(
             task,
             spec,
@@ -1199,14 +1217,8 @@ def run_task(
             skill_dir,
             cache_dir or run_dir.parent / "cache",
             extra_path,
+            go_modules if fetch_go_modules else None,
         )
-        if "go" in task.repo.requires and toolchains:
-            realrepo.prefill_go_modcache(
-                spec,
-                repo,
-                extra_path,
-                [] if task.repo.branch is None else [task.repo.branch],
-            )
         env = realrepo.task_env(spec, repo, extra_path)
     else:
         seeded = build_repo(task, repo, skill_dir)

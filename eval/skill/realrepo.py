@@ -535,7 +535,9 @@ def run_setup(
             env,
             timeout,
             confine=confine,
-            read=[WORKLOADS],
+            # The launchers on PATH sit in the run directory, which the
+            # profile closes; the agent may read them, so may setup.
+            read=[*extra_path, WORKLOADS],
         )
         if code != 0:
             msg = f"setup `{command[:80]}` exited {code}: {tail}"
@@ -586,6 +588,7 @@ def run_oracle(
         task_env(spec, repo, extra_path),
         timeout,
         confine=True,
+        read=extra_path,
     )
     return code == 0, tail
 
@@ -693,7 +696,10 @@ def prefill_go_modcache(
     if not (repo / "go.mod").is_file():
         return
     env = task_env(spec, repo, extra_path)
-    env["GOFLAGS"] = "-modcacherw"
+    # The proxy only (no ``direct``: a module path could name any
+    # host) and no edit of ``go.mod``/``go.sum``; this runs unconfined.
+    env["GOFLAGS"] = "-modcacherw -mod=readonly"
+    env["GOPROXY"] = "https://proxy.golang.org"
     # Never fetch and run a toolchain, and never use the owner's cache:
     # this runs outside the sandbox.
     env["GOTOOLCHAIN"] = "local"

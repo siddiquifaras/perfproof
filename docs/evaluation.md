@@ -240,8 +240,7 @@ a denied binary, and by files nobody had listed.
      denied; that run was not archived, so this is my observation, not
      a record, but `BASE_ENV_VARIABLES` in
      `src/perfproof/bench/side_effects.py` shows the cause). The
-     private home links the real `~/.rustup` and
-     `~/.local/share/uv/python` (read-only to the agent). The shared
+     private home links the real `~/.rustup` (read-only to the agent). The shared
      caches under the real home are not writable, because the unconfined
      setup builds and the owner's own work read them; the cost is that
      crates and wheels are downloaded again for every task. With writes
@@ -526,9 +525,10 @@ home items fails at both (`touch` exit 1, Finder call fails), and the
 same script run unconfined does write the bundle
 (`test_a_hostile_setup_cannot_write_outside_its_tree_or_reach_the_gui`).
 With `--no-eval-user` setup is as it was: unconfined, as the owner. Not
-exercised: a real task's setup (for example `uv sync`, `cargo build`)
-under the profile; they ran as the agent's commands under it, but the
-whole setup of each task has not been run this way.
+exercised until T3.8: a real task's whole setup under the profile. It
+ran one task of each of django, arrow, Go, native, Node and Java then
+(see "Real-repository setup" below); the other tasks' setups, and the
+Rust and rich/xarray ones beyond what the unit tests cover, have not.
 
 *The harness that scans is tamper-evident.* At staging the host hashes
 the bundle: every entry's kind (file, directory, link), permission bits
@@ -553,6 +553,73 @@ report as skipped, with the reason "skipped: needs docker, not
 available to ppeval", without probing the daemon
 (`realrepo.NEEDS_DOCKER`; `test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user`).
 They still run with `--no-eval-user`.
+
+*Real-repository setup under the profile (T3.8, found in skill round 8).*
+Five defects stopped most real tasks before the agent ran; each is
+reproduced and fixed, with a test that fails without the fix:
+
+- The bundle lacked `eval/mine/draw.py` and `task.py`, which
+  `realrepo.draw_state` imports for every development-candidate (the Go,
+  native and Node tasks). They are in the bundle now; the draw check is
+  unchanged (`test_every_task_file_loads_from_the_guests_bundle` loads
+  every task file from an extracted bundle and requires the same answers
+  as the checkout).
+- Setup ran the launchers on `PATH` (`runs/<id>/bin/python`) without read
+  access to them, so `uv` could not inspect `python` ("Operation not
+  permitted", exit 126). Setup is given the same `PATH` directories to
+  read as the agent (`test_a_confined_setup_can_run_the_launchers_on_its_path`).
+- `~/.local/share/uv/python` in a task's private home was one link to the
+  eval user's shared interpreters, read-only, so `uv venv --python 3.10`
+  could not write its temporary file. The link is gone: `uv` finds the
+  installed interpreters through the `~/.local/bin` links on `PATH` and
+  downloads a missing one into the private home's own
+  `~/.local/share/uv/python`, which the harness never touches (an
+  interpreter that is managed but has no `~/.local/bin` link, such as a
+  prerelease, is no longer found). `--python 3.14+gil` is a variant
+  filter and never downloads, so 3.14 is installed for `ppeval`
+  (`.claude/local/eval-user-setup.md`, untracked, as are `cmake` and
+  `ninja` for arrow, installed with `uv tool`;
+  `test_the_eval_user_has_the_build_tools_the_tasks_ask_for`).
+- A JVM takes `user.home` from the account database, not `$HOME`, so Maven
+  wanted `/Users/ppeval/.m2`. The private home has a `.mavenrc` that sets
+  `-Duser.home=$HOME` for `mvn` (also with `--no-eval-user`, where Java
+  setup now uses the task's private `~/.m2`, not the owner's); `perfproof` passes `HOME` to what it
+  runs, so benchmarks get it too, and the wrapper's script already uses
+  `$HOME` (`test_a_jvm_started_by_maven_has_the_private_home_as_user_home`;
+  the file is opened with `O_NOFOLLOW | O_EXCL`, and anything unexpected
+  is recorded in `TAMPERED` and skipped).
+- The harness manages `home/.rustup` and `home/.mavenrc` unconfined, in a
+  directory the agent can write, so a process of the agent that outlived
+  its group could swap one of them (or `home`, or `private`) for a link
+  between a check and the action. The profile denies the agent every
+  write to those four paths (`sandbox.guarded`); the rest of the private
+  home stays writable. `O_NOFOLLOW` covers only the last component; the
+  profile covers the rest
+  (`test_the_agent_cannot_swap_what_the_harness_manages`,
+  `test_the_maven_file_is_not_written_through_a_link_planted_mid_write`).
+  The Go prefill (unconfined) uses `GOPROXY=https://proxy.golang.org`
+  with no `direct` and `GOFLAGS=-modcacherw -mod=readonly`.
+- Go on macOS verifies certificates through `trustd`, a Mach service the
+  profile closes, so a confined `go test` could not download a module
+  (`x509: OSStatus -26276`). The module cache is now filled, outside the
+  profile, before the confined setup instead of after it
+  (`test_go_modules_are_fetched_after_the_seed_and_before_the_confined_setup`).
+  The agent's own `go get` of a new module still fails behind the profile.
+
+Measured after the fixes (2026-10-23, claude 2.1.291, one task of each
+fixed group, once each, as `ppeval`; $2.68 in all, plus a $0.57 django rerun after the review fixes; from the run
+reports and transcripts in the author's gitignored
+`scratch/runs/t38-*`, not archived in the repository): the setup of all six
+ran under the profile and the agent started. Passed: arrow
+(`real-arrow-known-change`), native (`native-lz4-known-change`), node
+(`real-fastify-known-change`). Not passed, for task reasons and not
+harness ones: django (`real-django-hidden-fix`, the agent's profile did
+not rank the target function in the first five), Java
+(`java-jackson-core-hidden-fix`, same check), Go (`go-gin-known-change`,
+the agent's own test wrote `/tmp/out_main.txt`, which the profile closes,
+so the correctness gate failed and the verdict was REJECT). One run per
+task: these say the harness reaches the agent, not how well the skill
+does. Docker tasks (echo, rails, ruby) and dotnet are still skipped.
 
 *Sudo scope.* `/etc/sudoers.d/ppeval` is `root:wheel` mode 0640 and not
 readable by the owner, so I did not read it. `sudo -n -l` as the owner

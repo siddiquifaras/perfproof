@@ -185,6 +185,17 @@ def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def _parents(home: Path, rel: str) -> None:
+    """Make every parent of ``home/rel`` a real directory."""
+    here = home
+    for part in Path(rel).parts[:-1]:
+        here = here / part
+        if here.is_symlink() or (here.exists() and not here.is_dir()):
+            TAMPERED.append(f"replaced {here} (was not a directory)")
+            _remove(here)
+    (home / rel).parent.mkdir(parents=True, exist_ok=True)
+
+
 def _link(home: Path, rel: str, target: Path) -> None:
     """Make ``home/rel`` a link to ``target``, whatever is in the way.
 
@@ -194,13 +205,7 @@ def _link(home: Path, rel: str, target: Path) -> None:
     inside the private home only, and recorded in ``TAMPERED``.
     """
     link = home / rel
-    here = home
-    for part in Path(rel).parts[:-1]:
-        here = here / part
-        if here.is_symlink() or (here.exists() and not here.is_dir()):
-            TAMPERED.append(f"replaced {here} (was not a directory)")
-            _remove(here)
-    link.parent.mkdir(parents=True, exist_ok=True)
+    _parents(home, rel)
     if link.is_symlink():
         if link.readlink() == target:
             return
@@ -213,6 +218,46 @@ def _link(home: Path, rel: str, target: Path) -> None:
         link.symlink_to(target)
     except OSError as exc:
         TAMPERED.append(f"could not link {link}: {exc}")
+
+
+# A JVM takes ``user.home`` from the account database, not from
+# ``$HOME``, so Maven would use the account's real ``~/.m2`` (closed to
+# the agent, or the eval user's shared one) however private ``HOME``
+# is. ``mvn`` sources ``$HOME/.mavenrc`` before it starts the JVM, and
+# ``perfproof`` passes ``HOME`` to every command it runs, so this file
+# reaches the benchmarks too, which an environment variable would not.
+_MAVENRC = 'MAVEN_OPTS="${MAVEN_OPTS:-} -Duser.home=${HOME}"\n'
+
+
+def _write_private(home: Path, rel: str, text: str) -> None:
+    """Write ``home/rel`` as a plain file, whatever is in the way.
+
+    The agent can leave a link or a directory where the file belongs;
+    writing through a link would aim the harness's write at a file the
+    agent cannot reach itself. The last component is opened with
+    ``O_NOFOLLOW | O_EXCL``; the profile (``guarded``) keeps the agent
+    from swapping a parent. Anything unexpected is recorded in
+    ``TAMPERED`` and skipped: the harness never crashes on it.
+    """
+    path = home / rel
+    try:
+        _parents(home, rel)
+        if path.is_symlink() or path.exists():
+            if not path.is_symlink() and path.is_file():
+                if path.read_text(encoding="utf-8") == text:
+                    return
+            else:
+                TAMPERED.append(f"replaced {path} (was not a plain file)")
+            _remove(path)
+        fd = os.open(
+            path,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o644,
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as sink:
+            sink.write(text)
+    except (OSError, UnicodeDecodeError) as exc:
+        TAMPERED.append(f"could not write {path}: {exc}")
 
 
 def private_env(base: Path) -> dict[str, str]:
@@ -234,20 +279,25 @@ def private_env(base: Path) -> dict[str, str]:
     dict of str to str
         ``HOME``, ``TMPDIR`` and zsh's ``TMPPREFIX`` inside ``base``,
         and ``RUSTUP_HOME`` at the real toolchains. The private home
-        links the real ``~/.rustup`` and ``~/.local/share/uv/python``
-        (read-only to an agent) so rustup and uv still find their
-        toolchains. Downloads
-        happen per task; the owner's own caches are never written by an
-        agent.
+        links the real ``~/.rustup`` (read-only to an agent) so rustup
+        still finds its toolchains. ``uv`` finds the installed
+        interpreters through ``PATH`` (``~/.local/bin`` links) and
+        downloads a missing one into the private home's own
+        ``~/.local/share/uv/python``, which the harness never touches.
+        Downloads happen per task; the owner's own caches are never
+        written by an agent. ``home``, ``.rustup`` and ``.mavenrc`` are
+        the paths the unconfined harness manages: the profile
+        (``guarded``) stops the agent renaming or removing them or
+        their parent.
     """
     tmp = base / "tmp"
     home = base / "home"
     _ensure_dir(tmp)
     _ensure_dir(home)
     real = Path.home()
-    for rel in (".rustup", ".local/share/uv/python"):
-        if (real / rel).exists():
-            _link(home, rel, real / rel)
+    if (real / ".rustup").exists():
+        _link(home, ".rustup", real / ".rustup")
+    _write_private(home, ".mavenrc", _MAVENRC)
     # zsh writes heredocs under TMPPREFIX (default /tmp/zsh), not in
     # TMPDIR.
     env = {
@@ -813,6 +863,37 @@ def _both(paths: Sequence[Path]) -> list[Path]:
     return found
 
 
+def guarded(write: Sequence[Path]) -> list[Path]:
+    """List the paths the unconfined harness manages in a private home.
+
+    ``private_env`` links, removes and writes ``home/.rustup`` and
+    ``home/.mavenrc`` with the owner's (or the eval user's) full
+    rights, in a directory the agent can write. A process of the agent
+    that outlives its group could swap one of those, or ``home`` or
+    ``private`` above them, for a link between the harness's check and
+    its action. Denying the agent every write to them, and to the two
+    directories above, closes that; the rest of the private home stays
+    writable.
+
+    Parameters
+    ----------
+    write : sequence of Path
+        The writable paths; each one named ``private`` holds a ``home``.
+
+    Returns
+    -------
+    list of Path
+        The private directory, its ``home``, ``.rustup`` and
+        ``.mavenrc``.
+    """
+    found: list[Path] = []
+    for path in write:
+        if path.name == "private":
+            home = path / "home"
+            found += [path, home, home / ".rustup", home / ".mavenrc"]
+    return found
+
+
 def _subpaths(verb: str, paths: Sequence[Path | str]) -> list[str]:
     return [f'({verb} (subpath "{p}"))' for p in paths]
 
@@ -894,6 +975,10 @@ def profile(
         temps + [home / p for p in _HOME_WRITE] + list(write),
     )
     lines.append(f'(deny file-write* (regex #"{_CLAUDE_TMP}"))')
+    # Last, so it wins over the allows above: what the harness manages.
+    lines += [
+        f'(deny file-write* (literal "{p}"))' for p in _both(guarded(write))
+    ]
     # Other processes of the same user: their arguments and environment
     # (``sysctl`` KERN_PROCARGS2: the harness's own environment, a live
     # claude's tokens), their memory maps and samples. The rules stop a

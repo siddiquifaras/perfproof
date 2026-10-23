@@ -497,7 +497,8 @@ def bundle_files(checkout: Path, skill_dir: Path) -> dict[str, Path]:
         mirrors the checkout's layout, so the harness finds its
         manifests and examples by the same relative paths: the harness
         modules without their tests, the task files, the mined
-        manifests and ``checks.json``, ``examples/`` and the skill.
+        manifests, ``checks.json``, the selection rule (``draw.py`` and
+        ``task.py``), ``examples/`` and the skill.
     """
     files: dict[str, Path] = {}
     skill = checkout / "eval" / "skill"
@@ -506,8 +507,12 @@ def bundle_files(checkout: Path, skill_dir: Path) -> dict[str, Path]:
             files[path.relative_to(checkout).as_posix()] = path
     for path in _tracked(checkout / "eval" / "tasks", ["**/*"]):
         files[path.relative_to(checkout).as_posix()] = path
-    checks = checkout / "eval" / "mine" / "checks.json"
-    files[checks.relative_to(checkout).as_posix()] = checks
+    # ``realrepo.draw_state`` imports the selection rule (``draw`` and
+    # the ``task`` schema it reads the manifests with); without them
+    # every task that is a development candidate dies in the guest.
+    for name in ("checks.json", "draw.py", "task.py"):
+        extra = checkout / "eval" / "mine" / name
+        files[extra.relative_to(checkout).as_posix()] = extra
     for path in _tracked(checkout / "examples", ["**/*"]):
         files[path.relative_to(checkout).as_posix()] = path
     for path in _tracked(skill_dir, ["**/*"]):

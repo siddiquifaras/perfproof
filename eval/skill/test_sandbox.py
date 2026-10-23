@@ -1357,33 +1357,171 @@ def test_the_private_home_survives_what_the_agent_does_to_it(
 ) -> None:
     real = tmp_path / "realhome"
     (real / ".rustup").mkdir(parents=True)
-    (real / ".local" / "share" / "uv" / "python").mkdir(parents=True)
     monkeypatch.setattr(Path, "home", lambda: real)
     monkeypatch.setattr(sandbox, "TAMPERED", [])
     base = tmp_path / "private"
     first = sandbox.private_env(base)
     home, tmp = Path(first["HOME"]), Path(first["TMPDIR"])
     assert (home / ".rustup").is_symlink()
-    # The agent swaps the link for a directory, a parent for a file, and
-    # the temp directory for a file.
+    # The agent swaps the link for a directory, the temp directory for a
+    # file, and the maven file for a directory.
     (home / ".rustup").unlink()
     (home / ".rustup").mkdir()
     (home / ".rustup" / "mine").write_text("x")
-    shutil.rmtree(home / ".local")
-    (home / ".local").write_text("not a directory")
     shutil.rmtree(tmp)
     tmp.write_text("not a directory")
+    (home / ".mavenrc").unlink()
+    (home / ".mavenrc").mkdir()
     again = sandbox.private_env(base)
     assert again == first
     assert (home / ".rustup").is_symlink()
     assert (home / ".rustup").readlink() == real / ".rustup"
-    assert (home / ".local/share/uv/python").readlink() == (
-        real / ".local/share/uv/python"
-    )
+    assert (home / ".mavenrc").is_file()
     assert tmp.is_dir()
     assert len(sandbox.TAMPERED) >= 3
     assert all("replaced" in m for m in sandbox.TAMPERED)
     sandbox.private_env(base)  # and again: nothing left to replace
+
+
+def test_the_maven_file_is_not_written_through_a_link_planted_mid_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The agent swaps the file for a link between check and open."""
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "realhome")
+    monkeypatch.setattr(sandbox, "TAMPERED", [])
+    home = tmp_path / "home"
+    home.mkdir()
+    secret = tmp_path / "secret"
+    secret.write_text("keep")
+    target = home / ".mavenrc"
+    original = Path.is_symlink
+    swapped: list[bool] = []
+
+    def swap_on_first_check(self: Path) -> bool:
+        found = original(self)
+        if self == target and not swapped:
+            swapped.append(True)
+            target.symlink_to(secret)
+        return found
+
+    monkeypatch.setattr(Path, "is_symlink", swap_on_first_check)
+    sandbox._write_private(home, ".mavenrc", "x\n")  # pyright: ignore[reportPrivateUsage]
+    assert swapped
+    assert secret.read_text() == "keep"
+    assert any(".mavenrc" in m for m in sandbox.TAMPERED)
+
+
+def test_a_parent_swapped_for_a_link_does_not_crash_the_harness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sandbox, "TAMPERED", [])
+    home = tmp_path / "home"
+    home.mkdir()
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (home / "d").symlink_to(elsewhere)
+    sandbox._write_private(home, "d/f", "x")  # pyright: ignore[reportPrivateUsage]
+    assert not (elsewhere / "f").exists()
+
+
+@pytest.mark.skipif(
+    not sandbox.confinement_available(), reason="needs macOS sandbox-exec"
+)
+def test_the_agent_cannot_swap_what_the_harness_manages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = tmp_path / "realhome"
+    (real / ".rustup").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", lambda: real)
+    scratch = tmp_path / "work" / "sandbox" / "t"
+    home = Path(sandbox.private_env(scratch / "private")["HOME"])
+    task = tmp_path / "work" / "repos" / "t"
+    task.mkdir(parents=True)
+
+    def confined(script: str) -> subprocess.CompletedProcess[str]:
+        argv = sandbox.wrap(
+            ["/bin/sh", "-c", script],
+            scratch,
+            checkout=tmp_path / "checkout",
+            allow_docker=False,
+            cwd=task,
+            write=[scratch / "private"],
+        )
+        return subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=60,
+        )
+
+    for script in (
+        f'rm -f "{home}/.mavenrc"',
+        f'echo x > "{home}/.mavenrc"',
+        f'mv "{home}" "{home}2"',
+        f'mv "{scratch / "private"}" "{scratch / "private"}2"',
+        f'rm "{home}/.rustup"',
+        f'ln -sfn "{tmp_path}" "{home}/.rustup"',
+    ):
+        done = confined(script)
+        assert done.returncode != 0, script
+    assert (home / ".mavenrc").read_text() == sandbox._MAVENRC  # pyright: ignore[reportPrivateUsage]
+    assert (home / ".rustup").readlink() == real / ".rustup"
+    # The rest of the private home stays writable, uv's own directory
+    # (where it downloads an interpreter) included.
+    ok = confined(
+        f'mkdir -p "{home}/.local/share/uv/python/x" "{home}/.cache" '
+        f'&& echo y > "{home}/notes" && mv "{home}/notes" "{home}/n2"'
+    )
+    assert ok.returncode == 0, ok.stderr
+
+
+def _java() -> Path | None:
+    for found in sorted((Path.home() / ".local" / "jdk").glob("*")):
+        java = found / "Contents" / "Home" / "bin" / "java"
+        if java.is_file():
+            return java
+    return None
+
+
+@pytest.mark.skipif(_java() is None, reason="needs a JDK under ~/.local/jdk")
+def test_a_jvm_started_by_maven_has_the_private_home_as_user_home(
+    tmp_path: Path,
+) -> None:
+    home = Path(sandbox.private_env(tmp_path / "private")["HOME"])
+    java = _java()
+    assert java is not None
+    # What ``mvn`` does: source ``$HOME/.mavenrc``, then pass
+    # ``MAVEN_OPTS`` to the JVM. Without the file the JVM's user.home is
+    # the account's, from the account database, whatever ``HOME`` says.
+    script = (
+        '. "$HOME/.mavenrc" 2>/dev/null; '
+        f'exec "{java}" $MAVEN_OPTS -XshowSettings:properties -version'
+    )
+    done = subprocess.run(
+        ["/bin/sh", "-c", script],
+        env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert f"user.home = {home}" in done.stderr
+
+
+def test_the_private_files_are_not_written_through_a_planted_link(
+    tmp_path: Path,
+) -> None:
+    base = tmp_path / "private"
+    home = Path(sandbox.private_env(base)["HOME"])
+    secret = tmp_path / "secret"
+    secret.write_text("keep")
+    (home / ".mavenrc").unlink()
+    (home / ".mavenrc").symlink_to(secret)
+    sandbox.private_env(base)
+    assert secret.read_text() == "keep"
+    assert not (home / ".mavenrc").is_symlink()
+    assert "user.home" in (home / ".mavenrc").read_text()
 
 
 def test_a_run_stopped_by_the_sign_in_is_scored_and_archived(

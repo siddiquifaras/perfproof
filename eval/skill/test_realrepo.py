@@ -460,7 +460,8 @@ def test_the_module_cache_is_filled_in_the_private_home_before_the_agent(
     log = tmp_path / "go.log"
     native = _fake_go(
         tmp_path / "native",
-        f'echo "$HOME|$GOFLAGS|$(pwd)|$*|$GOTOOLCHAIN|$GOPATH" >> {log}',
+        'echo "$HOME|$GOFLAGS|$(pwd)|$*|$GOTOOLCHAIN|$GOPATH|$GOPROXY"'
+        f" >> {log}",
     )
     monkeypatch.setenv("PATH", f"{native.parent}{os.pathsep}/usr/bin:/bin")
     realrepo.prefill_go_modcache(
@@ -468,13 +469,14 @@ def test_the_module_cache_is_filled_in_the_private_home_before_the_agent(
     )
     lines = log.read_text().splitlines()
     assert len(lines) == 2
-    home, flags, cwd, args, toolchain, gopath = lines[0].split("|")
+    home, flags, cwd, args, toolchain, gopath, proxy = lines[0].split("|")
     assert toolchain == "local"
     assert gopath == f"{home}/go", "a private GOPATH, not the owner's"
     # The agent's HOME is work/sandbox/<task>/private/home, and GOPATH
     # defaults to $HOME/go, so the cache lands where the agent looks.
     assert home == str(work / "sandbox" / "t" / "private" / "home")
-    assert flags == "-modcacherw"
+    assert flags == "-modcacherw -mod=readonly"
+    assert proxy == "https://proxy.golang.org"
     assert Path(cwd).resolve() == repo.resolve()
     assert args == "mod download"
     copy = work / "sandbox" / "t" / "modfiles" / "pr"

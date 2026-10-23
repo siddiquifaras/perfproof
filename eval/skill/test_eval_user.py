@@ -124,6 +124,56 @@ def test_the_bundle_holds_the_harness_without_its_tests() -> None:
     assert not [n for n in files if n.startswith((".claude", "scratch"))]
 
 
+_LOAD_ALL = r"""
+import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import realrepo, taskset
+out = {}
+for path in sorted(Path(sys.argv[1]).glob("tasks*.json")):
+    for task in taskset.load(path).tasks:
+        if task.repo is None:
+            continue
+        try:
+            spec = realrepo.load_spec(task.repo.manifest)
+            out[task.id] = ["ok", spec.repository, spec.task_commit]
+        except Exception as exc:  # noqa: BLE001
+            out[task.id] = [type(exc).__name__, str(exc)[:200]]
+print(json.dumps(out))
+"""
+
+
+def _load_every_task(root: Path) -> dict[str, list[str]]:
+    skill = root / "eval" / "skill"
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", _LOAD_ALL, str(skill)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={"PATH": os.environ["PATH"]},
+        cwd=root,
+        timeout=300,
+    )
+    assert done.returncode == 0, done.stderr[-800:]
+    return json.loads(done.stdout)
+
+
+def test_every_task_file_loads_from_the_guests_bundle(
+    tmp_path: Path,
+) -> None:
+    files = eval_user.bundle_files(runner.REPO_ROOT, runner.SKILL_SOURCE)
+    _extract_local(files, tmp_path / "guest")
+    from_bundle = _load_every_task(tmp_path / "guest")
+    from_checkout = _load_every_task(runner.REPO_ROOT)
+    assert from_bundle
+    assert not [
+        v for v in from_bundle.values() if v[0] == "ModuleNotFoundError"
+    ]
+    # The guest decides exactly as the checkout does, including which
+    # candidates the selection rule refuses.
+    assert from_bundle == from_checkout
+
+
 def test_remove_refuses_paths_outside_the_work_directory() -> None:
     with pytest.raises(RuntimeError, match="not under"):
         eval_user.remove(USER, Path("/Users/faras"))
@@ -437,6 +487,18 @@ def guest() -> Any:
 
 @integration
 @needs_user
+def test_the_eval_user_has_the_build_tools_the_tasks_ask_for() -> None:
+    # real-arrow-known-change needs cmake and ninja; the eval-user setup
+    # notes say how they were installed (uv tool, no brew).
+    user = eval_user.require()
+    for tool in ("cmake", "ninja"):
+        done = eval_user.run(user, ["/bin/sh", "-c", f"command -v {tool}"])
+        found = done.stdout.decode().strip()
+        assert found == f"{user.home}/.local/bin/{tool}", (tool, found)
+
+
+@integration
+@needs_user
 def test_the_guest_is_the_eval_user_with_no_owner_environment() -> None:
     user = eval_user.require()
     done = eval_user.run(user, ["/usr/bin/id", "-un"])
@@ -632,6 +694,61 @@ def test_a_hostile_setup_cannot_write_outside_its_tree_or_reach_the_gui(
     (repo / "result.txt").unlink()
     realrepo.run_setup(spec, repo, [], confine=False)
     assert (bundle / "planted").exists()
+
+
+@pytest.mark.skipif(
+    not sandbox.confinement_available(), reason="needs macOS sandbox-exec"
+)
+def test_a_confined_setup_can_run_the_launchers_on_its_path(
+    tmp_path: Path,
+) -> None:
+    launchers = tmp_path / "run" / "bin"
+    launchers.mkdir(parents=True)
+    tool = launchers / "mytool"
+    tool.write_text("#!/bin/sh\necho launched > launched.txt\n")
+    tool.chmod(0o755)
+    repo = tmp_path / "run" / "repos" / "t"
+    repo.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    spec = realrepo.RepoSpec(
+        repository="o/r",
+        task_commit="a",
+        reference_commit="b",
+        reference_number="",
+        reference_title="",
+        setup=["mytool"],
+        env={},
+        oracle=None,
+    )
+    realrepo.run_setup(spec, repo, [launchers], confine=True)
+    assert (repo / "launched.txt").read_text() == "launched\n"
+
+
+@pytest.mark.skipif(
+    not sandbox.confinement_available(), reason="needs macOS sandbox-exec"
+)
+def test_the_confined_oracle_can_run_the_launchers_on_its_path(
+    tmp_path: Path,
+) -> None:
+    launchers = tmp_path / "run" / "bin"
+    launchers.mkdir(parents=True)
+    tool = launchers / "mytool"
+    tool.write_text("#!/bin/sh\nexit 0\n")
+    tool.chmod(0o755)
+    repo = tmp_path / "run" / "repos" / "t"
+    repo.mkdir(parents=True)
+    spec = realrepo.RepoSpec(
+        repository="o/r",
+        task_commit="a",
+        reference_commit="b",
+        reference_number="",
+        reference_title="",
+        setup=[],
+        env={},
+        oracle="mytool",
+    )
+    ok, tail = realrepo.run_oracle(spec, repo, [launchers])
+    assert ok, tail
 
 
 def test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user(
@@ -933,6 +1050,45 @@ def test_setup_is_confined_exactly_when_running_as_the_eval_user(
             [],
         )
     assert seen == [True, False]
+
+
+def test_go_modules_are_fetched_after_the_seed_and_before_the_confined_setup(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    tasks = taskset.load(runner.REPO_ROOT / "eval/skill/tasks-real.json")
+    task = next(t for t in tasks.tasks if t.repo is not None)
+    spec = realrepo.RepoSpec(
+        repository="o/r",
+        task_commit="a",
+        reference_commit="b",
+        reference_number="",
+        reference_title="",
+        setup=[],
+        env={},
+        oracle=None,
+    )
+    order: list[str] = []
+
+    def seed(_s: Any, _r: Any, dest: Path, _c: Any) -> dict[str, str]:
+        (dest / ".git").mkdir(parents=True)
+        order.append("seed")
+        return {}
+
+    def setup(*_: Any, **__: Any) -> None:
+        order.append("setup")
+
+    monkeypatch.setattr(realrepo, "seed_repo", seed)
+    monkeypatch.setattr(realrepo, "run_setup", setup)
+    runner.build_real_repo(
+        task,
+        spec,
+        tmp_path / "t",
+        runner.SKILL_SOURCE,
+        tmp_path,
+        [],
+        lambda: order.append("modules"),
+    )
+    assert order == ["seed", "modules", "setup"]
 
 
 @integration
