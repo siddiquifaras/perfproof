@@ -564,8 +564,10 @@ def test_which_splits_and_statuses_may_load(
 
 
 # Task files whose manifests the selection rule's draw lets in. The
-# Java and Node candidates only `build`, and the dotnet class's
-# held-out draw has not finished, so they stay out until it has.
+# Java and Node candidates only `build`, and the dotnet and rust
+# classes' held-out draws have not finished, so they stay out until
+# they have. A file can mix both: the rust file also names fd-pr853, a
+# drawn development task.
 _LOADS = {
     "tasks.json",
     "tasks-real.json",
@@ -573,6 +575,7 @@ _LOADS = {
     "tasks-native.json",
     "tasks-ruby.json",
 }
+_ALSO_LOADS = {"sharkdp-fd-pr853"}
 
 
 @pytest.mark.parametrize(
@@ -586,7 +589,7 @@ def test_task_files_load_exactly_when_the_draw_allows(path: Path) -> None:
     for task in found.tasks:
         if task.repo is None:
             continue
-        if path.name in _LOADS:
+        if path.name in _LOADS or task.repo.manifest in _ALSO_LOADS:
             assert realrepo.load_spec(task.repo.manifest).repository
         else:
             with pytest.raises(ValueError, match="development"):
