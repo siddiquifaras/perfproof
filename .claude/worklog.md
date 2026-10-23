@@ -267,6 +267,8 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- `tests/bench/test_compare.py::test_looks_follow_the_schedule_and_budget[kth-look]` failed once in a full Mac run at load about 7 (`(1, 10) == (2, 14)`, a time stop at look 1), 2026-10-23; 72 isolated reruns passed. Load-sensitive budget test; not yet fixed.
+
 - `tests/profilers/test_{java,node}.py::test_a_command_that_keeps_forking_leaves_nothing_behind` failed together once in the Mac full suite on PR #81 (load about 3.5; a `sleep` from the forking loop outlived the kill) and passed alone. Load-sensitive; not yet fixed.
 
 - `tests/bench/test_stub.py::test_the_per_call_untimed_cost_is_added_to_the_hook_cost` is flaky under the emulated amd64 Linux check (overhead 3.3 ms vs a 2 ms bound): failed 2 of 3 on main 0fc398c and 1 of 3 on #55 in the same container, 2026-10-22. Timing bound too tight for emulation; not yet fixed.
