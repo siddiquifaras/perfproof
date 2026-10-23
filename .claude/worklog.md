@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `56219d0` | batch full check on main after #73-#79, #67, #78: Mac 5493 passed, Linux 5404 passed, 0 failed |
 | `a52e543` | eval draws merged (PR #78, T3.8): development-named tasks never held-out; an unfillable slot is recorded and the draw goes on; step-1 reviews for java, dotnet, rust; Node, Java tasks re-checked to `runs`; loader treats unfilled held-out slots as done. All 9 task files (29 entries) load. Held-out: java 3 of 5, dotnet 0, rust 0. Head 179f6ad: Mac 5493, Linux 5404 |
 | `3b97d5a` | coverage gate wired into compare merged (PR #67, T2.24): `correctness.coverage_command` runs the declared coverage command on the candidate and checks that the changed lines ran (lcov/Cobertura reports; Python built in). Head 3dceb1f: Mac 5456, Linux 5370; then main (#76, #79, worklog; no overlap) merged and its own plus eval tests rerun: 1878 passed (pytest exit 0) |
 | `f3de646` | task-file loading test fix merged (PR #79): checks each task, so `tasks-rust.json` (one drawn task, two refused candidates) passes; main was red on this one test after #69 and #76. Mac eval 472 passed (exit 0), Linux eval 439 passed, 34 skipped |
