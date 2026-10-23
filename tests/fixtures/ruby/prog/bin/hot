@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../lib/work"
+
+seconds = Float(ARGV.fetch(0, "2"))
+deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + seconds
+while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+  Work.join_slow(2000)
+  Work.histogram(20_000)
+  Work.checksum(50_000)
+end

@@ -1,0 +1,12 @@
+  Determining projects to restore...
+  Restored /work/Tests/Tests.csproj (in 6.74 sec).
+  1 of 2 projects are up-to-date for restore.
+  App -> /work/App/bin/Debug/net10.0/App.dll
+  Tests -> /work/Tests/bin/Debug/net10.0/Tests.dll
+Test run for /work/Tests/bin/Debug/net10.0/Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 12 ms - Tests.dll (net10.0)
+
+Attachments:
+  /work/results/8d45ee35-890d-4692-8c19-646aff894ca0/coverage.cobertura.xml

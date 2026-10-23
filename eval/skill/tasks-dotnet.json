@@ -1,0 +1,87 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "dotnet-markdig-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "xoofx-markdig-pr922",
+        "requires": [
+          "dotnet"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/Markdig/Parsers/InlineProcessor.cs",
+          "function": "Markdig.Parsers.InlineProcessor.ProcessInlineLeaf",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "dotnet-markdig-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "xoofx-markdig-pr866",
+        "branch": "pr-866",
+        "requires": [
+          "dotnet"
+        ]
+      },
+      "prompt": "Is the change on branch pr-866 (improve alert parsing performance) really faster than main, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "dotnet-serilog-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "serilog-serilog-pr2215-landed",
+        "requires": [
+          "dotnet"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

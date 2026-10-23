@@ -249,7 +249,7 @@ table):
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java, Go and the C and C++ compilers are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn`, `gradle`, `dotnet` and `ruby`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java, Go, Ruby, .NET and the C and C++ compilers are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn` and `gradle`, and `dotnet` with a subcommand other than `build`, `run`, `test` or `exec`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. A host identity that can't be read is `not_available`; one that is read and differs is `failed`. |
 
 **What can't be read is `not_available`, not `failed`.** A gate fails
@@ -311,11 +311,14 @@ comparison goes on and measures, and the verdict can't be a KEEP.
   wrapper whose options are not understood is identified as itself, an
   unknown.
 
-**Node, Java and Go runtimes.** A command whose program name resolves
+**Node, Java, Go, Ruby and .NET runtimes.** A command whose program name resolves
 (symlinks followed) to `node` or `nodejs` is a Node runtime, to `java` a
-Java runtime, wherever the file lives, in the tree or outside it, and to
+Java runtime, wherever the file lives, in the tree or outside it, to
 a native `go` (an ELF or Mach-O file, not a script) with the subcommand
-`run`, `test`, `build` or `vet` a Go toolchain. A shell is unknown,
+`run`, `test`, `build` or `vet` a Go toolchain, to `ruby` (or `jruby`,
+`truffleruby`, `ruby3.4`) a Ruby, and to a native `dotnet` with the
+subcommand `build`, `run`, `test` or `exec`, or a `.dll` argument, a .NET
+host. A shell is unknown,
 because the program it runs is not the one perfproof launched.
 
 *Node* is asked, not derived. The gate runs the launch chain's own
@@ -387,6 +390,53 @@ empty program, against 1.3 ms for its built binary, 30 starts each in
 one container (`studies/go/results.txt`, from `studies/go/run.sh`).
 Build in `setup` and time the executable (`go build -o`, or `go test -c`
 and the test binary) unless the command line is what the user waits for.
+
+*Ruby* is asked, not derived, as Node is. The gate runs the launch
+chain's own `ruby -e` in the benchmark's working directory and
+environment, with `RUBYOPT` removed (a `-r` in it could print a forged
+report), stdin closed, a timeout and output capped at 4096 characters;
+Ruby prints the real path of its own executable (`RbConfig.ruby`) and
+`RUBY_DESCRIPTION`, the line `ruby -v` prints. The runtime is the
+executable that answered, so a version manager's shim (`rbenv`, `asdf`,
+`mise`) named `ruby` is seen through; the record carries that path and
+the line followed by `; sha256 <digest>` of the file. `bundle exec
+COMMAND` is followed to its command, identified as if launched directly,
+which is how Bundler starts it (through `PATH`); a binstub or a gem
+executable is followed through its `#!` line. Unknown, so `runtime` is
+`not_available` with the reason: `bundle` with any other subcommand or
+an option before the command, `rbenv`, `rvm`, `asdf`, `mise` and
+`chruby-exec`, and a `ruby` that is a container launcher (the program
+launched is the launcher). `bundle install`, `update`, `add`, `lock`,
+`cache` and `outdated`, and `gem install`, `update` and `fetch`, download
+gems, so the run stops as a fetching launch. `RUBYOPT`, `RUBYLIB`,
+`RUBY_YJIT_ENABLE`, `RUBY_GC_HEAP_GROWTH_FACTOR` and
+`RUBY_GC_HEAP_INIT_SLOTS` are recorded with their values, and a
+difference is a warning, not a gate.
+
+*.NET* is asked, and only for `dotnet build`, `run`, `test` and `exec`
+and for a `.dll` argument; every other subcommand (`tool`, `new`, `add`,
+`restore`, `nuget`, `workload`) starts other programs or fetches code,
+so it is unknown (and `tool install`, `update` and `exec`, `dnx`, `add`,
+`restore` and `workload install` stop the run as fetching launches). The
+gate runs the command's own `dotnet --version` in the benchmark's
+working directory and environment (the SDK that `global.json` selects,
+and a failure when it asks for one that is not installed, which makes
+the runtime unknown) and `dotnet --list-runtimes` (what a target
+framework rolls forward to), with stdin closed, a timeout and output
+capped at 4096 characters; `exec` and a `.dll` ask only for the runtimes,
+which need no SDK. The record carries the real path of the `dotnet` host
+and a version of the form `sdk 10.0.402; runtimes
+Microsoft.AspNetCore.App 10.0.13, Microsoft.NETCore.App 10.0.13; sha256
+<digest>`, the runtimes sorted and without their directories, the digest
+that of the host. The SDK's compilers and the framework's assemblies are
+covered by those versions only, not hashed. A `dotnet` that is a script
+or a container launcher is a shell, so unknown. `DOTNET_TieredCompilation`,
+`DOTNET_TieredPGO`, `DOTNET_TC_QuickJitForLoops`, `DOTNET_ReadyToRun`,
+`DOTNET_gcServer`, `DOTNET_gcConcurrent` and `DOTNET_GCgen0size` are
+recorded with their values, and `packages.lock.json` as a dependency
+lockfile. The integration tests that run the real `dotnet` ran in the
+SDK 10.0.402 image (`tests/fixtures/dotnet/SOURCE.md`); this Mac has no
+.NET.
 
 *C and C++* programs are identified two ways. A command whose program
 resolves to a native `cc`, `c++`, `gcc`, `g++`, `clang` or `clang++`
@@ -1498,6 +1548,157 @@ What follows for a Go benchmark:
 Not measured: workloads with a large live heap (where the collector's
 pacing, and so its share, changes), programs that are mostly goroutine
 scheduling or blocking, cgo, and any machine but the one above.
+
+### Warm-up (Ruby)
+
+CRuby runs bytecode in an interpreter. With YJIT on (`--yjit`) it also
+compiles methods to machine code once they have been called enough
+times (`--yjit-call-threshold`), so the first iterations of a loop run
+a mixture of interpreted and compiled code. Each execution is a new
+process: the spec's `warmup` executions do not warm the next one, and
+serve as a smoke test, as for Java.
+
+The curve (`studies/ruby-warmup/run.sh`, summarised by
+`studies/warmup_analyze.py` into `studies/ruby-warmup/results.txt`; raw
+iteration times in `studies/ruby-warmup/runs/`): one workload, an
+iteration of 600 string concatenations, 36,000 hash updates and 90,000
+integer operations (`tests/fixtures/ruby/prog/lib/work.rb`), timed
+1,500 times in each of 8 fresh processes, one container each, with
+YJIT on and 8 with it off. Ruby 4.0.7, linux/arm64, the official
+`ruby:4.0` image under Docker Desktop on a Mac that other work was
+using, one CPU a container, so noise is higher than a quiet machine's.
+
+- *YJIT on.* The steady iteration took 5.5 ms at the median of the 8
+  processes (5.2 to 6.0). The first iteration took 3.1 times that at
+  the median (2.8 to 4.3); the median over processes of the first 30
+  iterations was 1.39 times it, and of the next 30 and every block of
+  30 up to the 300th was 0.98 to 1.00. Compilation was over within the
+  first two blocks in these runs.
+- *YJIT off.* The steady iteration took 8.1 ms (7.9 to 8.7). The first
+  iteration took 2.2 times that, the first block 1.14, the next 1.01.
+  YJIT made the steady state 1.47 times faster here (a comparison of
+  two medians of 8 processes, on one workload; not a measurement of
+  Ruby).
+- *The settle iteration is not a warm-up measure here.* The first
+  iteration after which every window of 30 iterations stays within 10%
+  of steady has a median of 330 and a maximum of 1,470 of 1,500 in the
+  YJIT runs; within 20% it is 15 at the median and 630 at the
+  maximum. Those late windows are single processes drifting by more
+  than the tolerance on a shared machine (noise, a collection), not
+  compilation, which the block medians above show as over. A rule that
+  waited for "stable" would stop on noise.
+
+What follows for a Ruby benchmark:
+
+- **A fixed warm-up, no stop rule.** The in-process loop runs 300
+  warm-up iterations (about ten times the 30 the curve needed), then 30
+  timed ones, and reports their median, printed with all its digits. It
+  never looks at stability, so no execution can end in "did not
+  settle": a workload that never settles (a cache that keeps growing)
+  still ends after the same number of iterations, and its spread is
+  what the interval widens by. A non-zero exit, a failed execution and
+  a REJECT on correctness for a candidate, comes only from wrong
+  output. The template is in `skills/perfproof/ruby.md`.
+- The count is by iterations, not seconds. An execution costs `(300 +
+  30) x seconds per iteration`, so a 50 ms iteration is 16 s and a
+  round of two executions about 33 s: the first look is at 10 rounds, so
+  against the default `max_seconds` of 1800 an iteration must be well
+  under 50 ms or `max_seconds` raised, with the reason said. One curve
+  of one small workload does not show that 300 is enough for a large
+  program, whose compiled code is larger; measure the curve of the real
+  workload when the first iterations matter.
+- Both versions get the same `--yjit` setting, which is in the
+  launched argument list and so in the procedure gate; `RUBY_YJIT_ENABLE`
+  and `RUBYOPT` are recorded as environment, and a difference is a
+  warning.
+- For a short-lived command (a CLI, a test run), the interpreter and the
+  start-up are what the user waits for: time the command (`wall`) and do
+  not warm in process.
+
+Not measured: Rails-sized code paths, JRuby and TruffleRuby, `--zjit`,
+`--yjit-call-threshold` values other than the default, a quiet machine,
+and any machine but the one above.
+
+### Warm-up (.NET)
+
+The .NET runtime compiles each method the first time it is called in a
+quick tier, counts calls, and recompiles hot methods in an optimising
+tier on a background thread after a delay (tiered compilation, with
+dynamic profile-guided optimisation and on-stack replacement for loops;
+the delay is time, `DOTNET_TC_CallCountingDelayMs`, not calls). Each
+execution is a new process: the spec's `warmup` executions do not warm
+the next one, and serve as a smoke test, as for Java. The collector is
+generational and concurrent by default.
+
+The curve (`studies/dotnet-warmup/run.sh`, summarised by
+`studies/warmup_analyze.py` into `studies/dotnet-warmup/results.txt`;
+raw iteration times in `studies/dotnet-warmup/runs/`): one workload, an
+iteration of 600 string concatenations, 36,000 dictionary updates and
+90,000 integer operations (`tests/fixtures/dotnet/prog/App/Work.cs`),
+timed 1,500 times in each of 8 fresh processes, one container each, with
+tiered compilation on (the default) and 8 with `DOTNET_TieredCompilation=0`.
+.NET 10.0.13, linux-arm64, the official SDK image under Docker Desktop
+on a Mac that other work was using, one CPU a container, so noise is
+higher than a quiet machine's. The iterations are timed inside the
+process, so the build and the runtime's start-up are not in them.
+
+- *Tiered on.* The steady iteration took 1.24 ms at the median of the 8
+  processes (1.21 to 2.11: one process was slower throughout). The
+  first iteration took 7.9 times that at the median (3.4 to 9.4); the
+  median over processes of the first 30 iterations was 1.34 times it,
+  of the next 30 1.07, and of every later block of 30 up to the 300th
+  1.00 to 1.05. The first block that is within 10% of steady is the
+  second at the median.
+- *Tiered off* (`DOTNET_TieredCompilation=0`, every method compiled once
+  with full optimisation). The steady iteration took 1.52 ms (1.47 to
+  1.59), 1.23 times the tiered one on this workload, which is a result
+  of this workload and not a property of the runtime. The first
+  iteration took 3.0 times that (1.8 to 23.1), the first block 1.30,
+  the next 1.05.
+- *The settle iteration is not a warm-up measure here.* The first
+  iteration after which every window of 30 stays within 10% of steady
+  has a median of 31 with tiering on and a maximum of 1,470 of 1,500:
+  that process drifted by more than the tolerance late in the run
+  (noise, a collection), not compilation. A rule that waited for
+  "stable" would stop on noise.
+
+What follows for a .NET benchmark:
+
+- **A fixed warm-up, no stop rule.** The in-process loop runs 300
+  warm-up iterations, then 30 timed ones, and reports their median,
+  printed with all its digits. It never looks at stability, so no
+  execution can end in "did not settle"; a workload that never settles
+  still ends after the same number of iterations, and its spread is what
+  the interval widens by. A non-zero exit, a failed execution and a
+  REJECT on correctness for a candidate, comes only from wrong output.
+  The template is in `skills/perfproof/csharp.md`.
+- **Keep an iteration at 1 ms or more.** Promotion waits on a timer as
+  well as on calls, so a count of iterations is only a count of
+  seconds if an iteration has some length. The curve above was measured
+  at 1.2 ms an iteration, so 300 iterations are 0.4 s there, and it was
+  within 10% of steady by the end of the second block of 30. Whether the
+  delay setting moves that was not measured. An execution costs `(300 +
+  30) x seconds per iteration`, so at 50 ms an iteration it is 16 s and
+  a round of two executions about 33 s: against the default
+  `max_seconds` of 1800 and a first look at 10 rounds, an iteration
+  must be well under 50 ms or `max_seconds` raised, with the reason
+  said. One curve of one small workload does not show that 300 is
+  enough for a large service; measure the real workload's curve when the
+  first iterations matter.
+- Both versions get the same `DOTNET_TieredCompilation`,
+  `DOTNET_TieredPGO`, `DOTNET_TC_QuickJitForLoops`, `DOTNET_ReadyToRun`,
+  `DOTNET_gcServer`, `DOTNET_gcConcurrent` and `DOTNET_GCgen0size`;
+  they are recorded with their values, and a difference is a warning.
+- A short-lived command (a CLI, a test run) pays the JIT and the
+  start-up every time: time `dotnet bin/App.dll` (`wall`) and do not
+  warm in process. Build in `setup` and time the application, not
+  `dotnet run`, which restores, builds and starts the program as a child
+  on every execution.
+
+Not measured: ASP.NET services, ReadyToRun or Native AOT builds, Server
+GC, `DOTNET_TC_CallCountingDelayMs` and `DOTNET_TieredPGO` other than
+the default, other runtimes than 10.0.13, a quiet machine, and any
+machine but the one above.
 
 ### Warm-up (C and C++)
 

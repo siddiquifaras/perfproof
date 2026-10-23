@@ -102,6 +102,14 @@ Salt `perfproof-heldout-2026-10-16`.
 0 of 5 slots filled.
 Stopped: apache-commons-lang-pr1515 needs its step-1 review.
 
+### held-out: dotnet
+
+| # | Task | Family | Slot | Outcome | Reason |
+|---:|---|---|---|---|---|
+
+0 of 5 slots filled.
+Stopped: xoofx-markdig-pr866 needs its step-1 review.
+
 ## development
 
 Salt `perfproof-development-2026-10-16`.
@@ -176,3 +184,11 @@ Not drawn yet: the held-out picks of this class are unbuilt (needs a GPU host).
 
 0 of 5 slots filled.
 Stopped: fasterxml-jackson-core-pr1706 needs its step-1 review.
+
+### development: dotnet
+
+| # | Task | Family | Slot | Outcome | Reason |
+|---:|---|---|---|---|---|
+
+0 of 5 slots filled.
+Stopped: xoofx-markdig-pr866 needs its step-1 review.

@@ -1,0 +1,14 @@
+yjit-on: 8 processes; # ruby 4.0.7 (2026-09-15 revision 229531a6cf) +YJIT +PRISM [aarch64-linux] yjit=on
+  first iteration / steady: median 3.12, min 2.79, max 4.29
+  iterations 1-10 median / steady: median 2, min 1.65, max 2.69
+  settle iteration, window 30, within 10%: median 330, min 17, max 1.47e+03
+  settle iteration, window 30, within 20%: median 15, min 5, max 630
+  steady ms per iteration: median 5.51, min 5.21, max 5.96
+  median over processes of the block median over steady, blocks of 30 iterations from the first: 1.39 1.00 0.98 0.98 0.98 0.99 0.99 0.99 1.00 0.98
+yjit-off: 8 processes; # ruby 4.0.7 (2026-09-15 revision 229531a6cf) +PRISM [aarch64-linux] yjit=off
+  first iteration / steady: median 2.15, min 1.53, max 3.58
+  iterations 1-10 median / steady: median 1.61, min 1.19, max 2.1
+  settle iteration, window 30, within 10%: median 506, min 2, max 1.46e+03
+  settle iteration, window 30, within 20%: median 2, min 0, max 1.45e+03
+  steady ms per iteration: median 8.11, min 7.9, max 8.65
+  median over processes of the block median over steady, blocks of 30 iterations from the first: 1.14 1.01 1.01 1.02 1.00 0.99 1.01 1.02 0.99 1.00

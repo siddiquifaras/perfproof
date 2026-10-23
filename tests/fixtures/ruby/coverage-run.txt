@@ -1,0 +1,11 @@
+-e:9:in 'block in <main>': [DEPRECATION] `SimpleCov.add_filter` is deprecated. Replace with `SimpleCov.skip` (same arguments, same behavior). Example: `SimpleCov.skip "/test/"`.
+Run options: --seed 58182
+
+# Running:
+
+...
+
+Finished in 0.001311s, 2288.8393 runs/s, 2288.8393 assertions/s.
+
+3 runs, 3 assertions, 0 failures, 0 errors, 0 skips
+Lcov style coverage report generated for Minitest to /out/coverage/simplecov.lcov

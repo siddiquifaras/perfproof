@@ -1,0 +1,93 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "ruby-rails-prove",
+      "kind": "prove",
+      "repo": {
+        "manifest": "rails-rails-pr58964",
+        "branch": "pr-58964",
+        "requires": [
+          "docker",
+          "bundle"
+        ],
+        "shim": "ruby"
+      },
+      "prompt": "This PR says it speeds up structured event logging. The branch is pr-58964; is it actually faster than main?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE"
+        ]
+      }
+    },
+    {
+      "id": "ruby-rails-find",
+      "kind": "find",
+      "repo": {
+        "manifest": "rails-rails-pr59030",
+        "requires": [
+          "docker",
+          "bundle"
+        ],
+        "shim": "ruby"
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "activesupport/lib/active_support/core_ext/object/blank.rb",
+          "function": "String#blank?",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "ruby-rails-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "rails-rails-pr58751-landed",
+        "requires": [
+          "docker",
+          "bundle"
+        ],
+        "shim": "ruby"
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

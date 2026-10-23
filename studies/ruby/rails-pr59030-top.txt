@@ -1,0 +1,8 @@
+0.817 0.8391089108910891 String#blank? activesupport/lib/active_support/core_ext/object/blank.rb:186 lib=False
+0.032 0.03217821782178218 Array#each <internal:array>:227 lib=True
+0.030 0.04702970297029703 Kernel.require <cfunc>:None lib=True
+0.025 0.9331683168316832 Integer#times <internal:numeric>:262 lib=True
+0.022 0.8613861386138614 block (2 levels) in <main> /work.rb:4 lib=True
+0.022 0.022277227722772276 String#ascii_only? <cfunc>:None lib=True
+0.015 0.01485148514851485 Integer#times <internal:numeric>:261 lib=True
+0.012 0.9084158415841584 block in <main> /work.rb:4 lib=True

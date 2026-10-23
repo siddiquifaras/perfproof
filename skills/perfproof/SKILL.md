@@ -238,6 +238,13 @@ No discovery. One candidate at a time, against its parent.
    For Go, read [go.md](go.md) first: how to build and launch the
    benchmark so the runtime is identified, how to profile it with
    pprof, and what usually goes wrong.
+   For Ruby, read [ruby.md](ruby.md) first: how to launch it so the
+   runtime is identified, how YJIT and the collector enter the noise,
+   how to profile it with stackprof, and what usually goes wrong.
+   For C# and other .NET code, read [csharp.md](csharp.md) first: how to
+   build and launch the application, how the tiered JIT enters the
+   noise, how to profile it with dotnet-trace, and what usually goes
+   wrong.
    For C and C++, read [native.md](native.md) first: how to build and
    launch the benchmark so the toolchain is identified, how to profile
    it with `sample` or `perf`, how to check the change ran, and what

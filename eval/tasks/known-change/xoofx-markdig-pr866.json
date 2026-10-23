@@ -1,0 +1,131 @@
+{
+  "id": "xoofx-markdig-pr866",
+  "repository": "xoofx/markdig",
+  "stars": 5347,
+  "pushed_at": "2026-10-19T19:14:10Z",
+  "task_commit": "40e5ab15146763f95a06ed98dec07255a8134a5c",
+  "task_commit_basis": "first parent of https://github.com/xoofx/markdig/commit/1e17dcdd08758501703cba3423cc585d9dbfbcb0; gh api compare 40e5ab15146763f95a06ed98dec07255a8134a5c...1e17dcdd0875 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/xoofx/markdig/pull/866",
+    "title": "Improve Alert parsing perf",
+    "commit": "1e17dcdd08758501703cba3423cc585d9dbfbcb0",
+    "merged_at": "2025-04-15T08:58:40Z",
+    "files": [
+      "src/Markdig/Extensions/Alerts/AlertBlock.cs",
+      "src/Markdig/Extensions/Alerts/AlertInlineParser.cs",
+      "src/Markdig/MarkdownPipeline.cs",
+      "src/Markdig/Syntax/MarkdownObject.cs",
+      "src/Markdig/Syntax/QuoteBlock.cs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "dotnet",
+  "workload": {
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
+    "source": "written here from the description of https://github.com/xoofx/markdig/pull/866 (AlertInlineParser): a .NET program that parses a document of 120 paragraphs with three links each and ten alert blocks, 200 parses an iteration (eval/tasks/workloads/xoofx-markdig-pr866/EvalAlerts), copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
+    "source": "Markdig's alert block spec tests and quote block tests, which cover the files https://github.com/xoofx/markdig/pull/866 changes; targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/xoofx/markdig/pull/866",
+      "note": "description: the fast-path check for the alert marker comes first, so text with many ordinary links costs less, and the per-alert class string is no longer built with substring, lowercase and concatenation (no timings in the description)"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp -r ../../../../tasks/workloads/xoofx-markdig-pr866/EvalAlerts .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-22T22:15:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalAlerts/EvalAlerts.csproj",
+      "exit_code": 0,
+      "duration_s": 10.24,
+      "date": "2026-10-22T22:15:03+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "/root/.nuget/packages/microsoft.sourcelink.common/8.0.0/build/Microsoft.SourceLink.Common.targets(53,5): warning : Source control information is not available - the generated source link is empty. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/src/src/Markdig/Extensions/Tables/TableHelper.cs(53,132): warning CS1573: Parameter 'delimiterCount' has no matching param tag in the XML comment for 'TableHelper.ParseColumnHeaderDetect(ref StringSlice, ref char, out TableColumnAlign?, out int)' (but other parameters do) [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> /src/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalAlerts -> /src/EvalAlerts/bin/Release/net10.0/EvalAlerts.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/root/.nuget/packages/microsoft.build.tasks.git/8.0.0/build/Microsoft.Build.Tasks.Git.targets(25,5): warning : Unable to locate repository with working directory that contains directory '/src/src/Markdig'. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/root/.nuget/packages/microsoft.sourcelink.common/8.0.0/build/Microsoft.SourceLink.Common.targets(53,5): warning : Source control information is not available - the generated source link is empty. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/src/src/Markdig/Extensions/Tables/TableHelper.cs(53,132): warning CS1573: Parameter 'delimiterCount' has no matching param tag in the XML comment for 'TableHelper.ParseColumnHeaderDetect(ref StringSlice, ref char, out TableColumnAlign?, out int)' (but other parameters do) [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    4 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:09.56"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
+      "exit_code": 0,
+      "duration_s": 14.11,
+      "date": "2026-10-22T22:15:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  Generating spec Globalization to /src/src/Markdig.Tests/Specs/GlobalizationSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to /src/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1537 spec tests in total\n  Markdig.Tests -> /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:   301, Skipped:     0, Total:   301, Duration: 137 ms - Markdig.Tests.dll (net9.0)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
+      "exit_code": 0,
+      "duration_s": 1.69,
+      "date": "2026-10-22T22:15:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "html bytes 23680 sha256 969C7589461449D117AD1ABECA40CBEFEBD5E81BF0B6AFE20A4F1FC980EB8E0E\nPERFPROOF {\"value\": 0.00022128350000000002}"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp -r ../../../../tasks/workloads/xoofx-markdig-pr866/EvalAlerts .",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-22T22:15:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalAlerts/EvalAlerts.csproj",
+      "exit_code": 0,
+      "duration_s": 5.84,
+      "date": "2026-10-22T22:15:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "/root/.nuget/packages/microsoft.sourcelink.common/8.0.0/build/Microsoft.SourceLink.Common.targets(53,5): warning : Source control information is not available - the generated source link is empty. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/src/src/Markdig/Extensions/Tables/TableHelper.cs(53,132): warning CS1573: Parameter 'delimiterCount' has no matching param tag in the XML comment for 'TableHelper.ParseColumnHeaderDetect(ref StringSlice, ref char, out TableColumnAlign?, out int)' (but other parameters do) [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> /src/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalAlerts -> /src/EvalAlerts/bin/Release/net10.0/EvalAlerts.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/root/.nuget/packages/microsoft.build.tasks.git/8.0.0/build/Microsoft.Build.Tasks.Git.targets(25,5): warning : Unable to locate repository with working directory that contains directory '/src/src/Markdig'. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/root/.nuget/packages/microsoft.sourcelink.common/8.0.0/build/Microsoft.SourceLink.Common.targets(53,5): warning : Source control information is not available - the generated source link is empty. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n/src/src/Markdig/Extensions/Tables/TableHelper.cs(53,132): warning CS1573: Parameter 'delimiterCount' has no matching param tag in the XML comment for 'TableHelper.ParseColumnHeaderDetect(ref StringSlice, ref char, out TableColumnAlign?, out int)' (but other parameters do) [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    4 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:05.33"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
+      "exit_code": 0,
+      "duration_s": 9.36,
+      "date": "2026-10-22T22:15:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "  Generating spec Globalization to /src/src/Markdig.Tests/Specs/GlobalizationSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to /src/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1537 spec tests in total\n  Markdig.Tests -> /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:   301, Skipped:     0, Total:   301, Duration: 109 ms - Markdig.Tests.dll (net9.0)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
+      "exit_code": 0,
+      "duration_s": 1.58,
+      "date": "2026-10-22T22:15:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "html bytes 23680 sha256 969C7589461449D117AD1ABECA40CBEFEBD5E81BF0B6AFE20A4F1FC980EB8E0E\nPERFPROOF {\"value\": 0.0002242575}"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T22:14:25+00:00",
+  "miner": "written by hand for T5.14 (no C# repository in the pool)"
+}

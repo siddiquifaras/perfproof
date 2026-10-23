@@ -575,6 +575,17 @@
     "oracle_source": "Active Support's EventReporter and its LogSubscriber tests (the latter changed by https://github.com/rails/rails/pull/58964); targeted tests only",
     "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
   },
+  "rails-rails-pr59030": {
+    "setup": [
+      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
+    "workload_source": "adapted from the benchmark-ips script in the description of https://github.com/rails/rails/pull/59030 (String#blank? on whitespace-only and short ASCII strings, the inputs it reports as faster, under YJIT): 200,000 passes over four strings",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/object/blank_test'\"",
+    "oracle_source": "Active Support's blank? tests (test/core_ext/object/blank_test.rb covers the file https://github.com/rails/rails/pull/59030 changes); targeted tests only",
+    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+  },
   "run-llama-llama-index-pr18289": {
     "setup": [
       "uv venv --python 3.12 .venv",
@@ -741,6 +752,39 @@
     "env": {
       "GOTOOLCHAIN": "local"
     }
+  },
+  "xoofx-markdig-pr922": {
+    "setup": [
+      "cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalPipeTable/EvalPipeTable.csproj"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
+    "workload_source": "written here from the description of https://github.com/xoofx/markdig/pull/922 (PipeTableParser): a .NET program that parses one pipe table of 600 rows to HTML (eval/tasks/workloads/xoofx-markdig-pr922/EvalPipeTable), copied into the tree",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~PipeTable\"",
+    "oracle_source": "Markdig's pipe table tests (the pull request changes no test file; the tests cover PipeTableParser); targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
+    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
+  },
+  "xoofx-markdig-pr866": {
+    "setup": [
+      "cp -r ../../../../tasks/workloads/xoofx-markdig-pr866/EvalAlerts .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalAlerts/EvalAlerts.csproj"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
+    "workload_source": "written here from the description of https://github.com/xoofx/markdig/pull/866 (AlertInlineParser): a .NET program that parses a document of 120 paragraphs with three links each and ten alert blocks, 200 parses an iteration (eval/tasks/workloads/xoofx-markdig-pr866/EvalAlerts), copied into the tree",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
+    "oracle_source": "Markdig's alert block spec tests and quote block tests, which cover the files https://github.com/xoofx/markdig/pull/866 changes; targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
+    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
+  },
+  "serilog-serilog-pr2215-landed": {
+    "setup": [
+      "cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
+      "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalJson/EvalJson.csproj"
+    ],
+    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
+    "workload_source": "written here from the description of https://github.com/serilog/serilog/pull/2215 (JsonFormatter): a .NET program that formats 20,000 events carrying trace and span ids to JSON (eval/tasks/workloads/serilog-serilog-pr2215-landed/EvalJson), copied into the tree, run on the tree where the change is already in",
+    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false --filter \"FullyQualifiedName~JsonFormatter\"",
+    "oracle_source": "Serilog's JsonFormatter tests (JsonFormatterTests.cs is changed by https://github.com/serilog/serilog/pull/2215); targeted tests only",
+    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
   },
   "lz4-lz4-pr1040": {
     "setup": [

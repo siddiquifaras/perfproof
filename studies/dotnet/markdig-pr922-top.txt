@@ -1,0 +1,10 @@
+0.742 0.9158802833731896 Markdig.Parsers.InlineProcessor.ProcessInlineLeaf src/Markdig/Parsers/InlineProcessor.cs:230 library=False
+0.069 0.06934705683831187 [unmanaged code] None:None library=True
+0.056 0.05611988464608044 System.Private.CoreLib`System.Threading.Thread.<PollGC>g__PollGCWorker|67_0 None:None library=True
+0.050 0.04967866314598702 Markdig.Parsers.InlineProcessor.FindLastContainer src/Markdig/Parsers/InlineProcessor.cs:303 library=False
+0.015 0.07342876634747833 System.Private.CoreLib`System.Array.Copy None:None library=True
+0.009 0.009236714528017937 Markdig.Helpers.StringSlice.CountAndSkipChar src/Markdig/Helpers/StringSlice.cs:280 library=False
+0.007 0.011499180906058398 Markdig.Parsers.InlineProcessor.GetSourcePosition src/Markdig/Parsers/InlineProcessor.cs:125 library=False
+0.006 0.029196245059002285 Markdig.Parsers.Inlines.EmphasisInlineParser.Match src/Markdig/Parsers/Inlines/EmphasisInlineParser.cs:144 library=False
+0.006 0.027272714105072877 Markdig.Extensions.Tables.PipeTableParser.PostProcess src/Markdig/Extensions/Tables/PipeTableParser.cs:115 library=False
+0.006 0.06335630079504981 System.Private.CoreLib`System.Collections.Generic.List.AddWithResize None:None library=True

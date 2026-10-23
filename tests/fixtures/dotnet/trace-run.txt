@@ -1,0 +1,15 @@
+No profile or providers specified, defaulting to trace profiles 'dotnet-common' + 'dotnet-sampled-thread-time'.
+
+Provider Name                           Keywords            Level               Enabled By
+Microsoft-Windows-DotNETRuntime         0x000000100003801D  Informational(4)    --profile
+Microsoft-DotNETCore-SampleProfiler     0x0000F00000000000  Informational(4)    --profile
+
+Launching: dotnet /work/bin/App.dll 2 
+Process        : /usr/share/dotnet/dotnet
+Output File    : /out/trace
+
+
+Trace completed.
+Processing trace data file '/out/trace' to create a new Speedscope file '/out/trace.speedscope.json'.
+Conversion complete
+Process exited with code '0'.

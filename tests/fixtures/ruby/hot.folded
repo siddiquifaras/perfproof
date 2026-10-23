@@ -1,0 +1,21 @@
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:262);Work.join_slow (/src/lib/work.rb:11);String#+ (<cfunc>) 127
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:262);Work.join_slow (/src/lib/work.rb:11) 151
+<main> (/src/bin/hot:10);Work.histogram (/src/lib/work.rb:17);Integer#times (<internal:numeric>:262);Work.histogram (/src/lib/work.rb:17) 858
+<main> (/src/bin/hot:11);Work.checksum (/src/lib/work.rb:23);Integer#times (<internal:numeric>:262) 128
+(garbage collection);(marking) 105
+(garbage collection);(sweeping) 208
+<main> (/src/bin/hot:10);Work.histogram (/src/lib/work.rb:17);Integer#times (<internal:numeric>:263) 12
+<main> (/src/bin/hot:10);Work.histogram (/src/lib/work.rb:17);Integer#times (<internal:numeric>:262) 69
+<main> (/src/bin/hot:11);Work.checksum (/src/lib/work.rb:23);Integer#times (<internal:numeric>:262);Work.checksum (/src/lib/work.rb:23) 179
+<main> (/src/bin/hot:11);Work.checksum (/src/lib/work.rb:23);Integer#times (<internal:numeric>:263) 54
+<main> (/src/bin/hot:11);Work.checksum (/src/lib/work.rb:23);Integer#times (<internal:numeric>:261) 54
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:262);Work.join_slow (/src/lib/work.rb:11);Integer#to_s (<cfunc>) 20
+<main> (/src/bin/hot:10);Work.histogram (/src/lib/work.rb:17);Integer#times (<internal:numeric>:261) 23
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:261) 2
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:263) 3
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:262) 6
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:10) 1
+<main> (/src/bin/hot:10);Work.histogram (/src/lib/work.rb:16) 1
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:10);String#+@ (<cfunc>) 1
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11);Integer#times (<internal:numeric>:266) 1
+<main> (/src/bin/hot:9);Work.join_slow (/src/lib/work.rb:11) 1

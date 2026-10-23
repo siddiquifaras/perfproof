@@ -108,6 +108,13 @@ PERFORMANCE_ENV_VARS: Final = frozenset(
     {
         "CUDA_VISIBLE_DEVICES",
         "DYLD_INSERT_LIBRARIES",
+        "DOTNET_GCgen0size",
+        "DOTNET_ReadyToRun",
+        "DOTNET_TC_QuickJitForLoops",
+        "DOTNET_TieredCompilation",
+        "DOTNET_TieredPGO",
+        "DOTNET_gcConcurrent",
+        "DOTNET_gcServer",
         "DYLD_LIBRARY_PATH",
         "GOGC",
         "GOMAXPROCS",
@@ -127,6 +134,11 @@ PERFORMANCE_ENV_VARS: Final = frozenset(
         "PYTHON_JIT",
         "PYTORCH_CUDA_ALLOC_CONF",
         "RAYON_NUM_THREADS",
+        "RUBYLIB",
+        "RUBYOPT",
+        "RUBY_GC_HEAP_GROWTH_FACTOR",
+        "RUBY_GC_HEAP_INIT_SLOTS",
+        "RUBY_YJIT_ENABLE",
         "TOKENIZERS_PARALLELISM",
         "UV_THREADPOOL_SIZE",
         "VECLIB_MAXIMUM_THREADS",
@@ -140,6 +152,7 @@ DEPENDENCY_LOCKFILES: Final = (
     "Pipfile.lock",
     "go.sum",
     "package-lock.json",
+    "packages.lock.json",
     "pdm.lock",
     "pixi.lock",
     "pnpm-lock.yaml",
@@ -180,7 +193,9 @@ _LIBRARIES_AT_GATE: Final = (
 """Why a native build's `TreeEnvironment.linked_libraries` is unset."""
 _LAUNCHER_NAMES: Final = frozenset(
     {
+        "asdf",
         "bun",
+        "chruby-exec",
         "conda",
         "corepack",
         "deno",
@@ -188,6 +203,7 @@ _LAUNCHER_NAMES: Final = frozenset(
         "invoke",
         "mamba",
         "micromamba",
+        "mise",
         "npm",
         "nox",
         "npx",
@@ -201,6 +217,8 @@ _LAUNCHER_NAMES: Final = frozenset(
         "pnpx",
         "pnx",
         "poetry",
+        "rbenv",
+        "rvm",
         "rye",
         "tox",
         "uvx",
@@ -242,6 +260,20 @@ _GO_ENV_NAMES: Final = (
 """What the Go probe asks ``go env`` for. The variables other than
 ``GOROOT`` and ``GOVERSION`` change the code the toolchain generates."""
 _GO_MODULE_FETCH: Final = re.compile(r"[\w.-]+\.[\w.-]+/\S*@\S+")
+_RUBY_NAME: Final = re.compile(r"(?:ruby|jruby|truffleruby)[0-9.]*")
+_BUNDLE_NAMES: Final = frozenset({"bundle", "bundler"})
+_RUBY_PROBE: Final = (
+    "require 'rbconfig'; puts RbConfig.ruby; puts RUBY_DESCRIPTION"
+)
+"""What a Ruby probe prints: the real path of its own executable, then
+the line ``ruby -v`` prints, one per line."""
+_DOTNET_SUBCOMMANDS: Final = frozenset({"build", "exec", "run", "test"})
+"""The ``dotnet`` subcommands whose runtime is the SDK and runtime that
+run them: they compile the code under test, and ``run``, ``test`` and
+``exec`` start it. Every other subcommand (``tool``, ``new``, ``add``,
+``restore``, ``nuget``, ``workload``) starts other programs or fetches
+code. A path ending in ``.dll`` is an application the host runs."""
+_RUNTIME_PATH: Final = re.compile(r"\s*\[[^\]]*\]\s*$")
 _SHELL_NAMES: Final = frozenset(
     {"ash", "bash", "csh", "dash", "fish", "ksh", "sh", "tcsh", "zsh"}
 )
@@ -1663,6 +1695,12 @@ def _fetch_reason(
         return f"{always[0]} downloads a package and runs it"
     if "go" in names:
         return _go_fetch_reason(rest)
+    if "dotnet" in names:
+        return _dotnet_fetch_reason(rest)
+    if names & _BUNDLE_NAMES:
+        return _bundle_fetch_reason(rest)
+    if "gem" in names:
+        return _gem_fetch_reason(rest)
     known = sorted(names & _FETCH_TOOLS)
     if not known:
         return None
@@ -1713,6 +1751,78 @@ def _go_fetch_reason(rest: Sequence[str]) -> str | None:
         _GO_MODULE_FETCH.fullmatch(a) for a in rest[1:]
     ):
         return f"go {sub} on a module@version downloads and builds it"
+    return None
+
+
+def _ruby_searches_path(args: Sequence[str]) -> bool:
+    """Whether a ``ruby`` command line may have ``-S`` as a flag.
+
+    ``-S`` makes Ruby run the program of that name found on ``PATH``,
+    so the script named is not the one that runs. Ruby's short flags
+    cluster (``-wS``, ``-W2S``, ``-00S``) and some flags take the next
+    argument, even ``--`` (``-I -- -S``), so this does not parse them:
+    it fails closed. Any argument that starts with one ``-`` and
+    contains ``S`` counts. A false positive (``-FS``, ``-- -S``, a
+    script's own ``-S`` argument) only makes the runtime unknown,
+    which withholds a KEEP.
+    """
+    return any(
+        arg.startswith("-") and not arg.startswith("--") and "S" in arg
+        for arg in args
+    )
+
+
+def _dotnet_fetch_reason(rest: Sequence[str]) -> str | None:
+    """Return why a ``dotnet`` command fetches code, or ``None``.
+
+    ``dotnet tool install``, ``update`` and ``exec``, ``dnx``,
+    ``add package``, ``restore`` and ``workload install`` download
+    packages or tools. ``build``, ``run`` and ``test`` restore the
+    project's own packages only when the NuGet cache lacks them, which
+    this does not tell; declare ``dotnet restore`` in ``setup``.
+    """
+    plain = [a for a in rest if not a.startswith("-")]
+    known = {"add", "build", "dnx", "exec", "package", "restore", "run"}
+    known |= {"test", "tool", "workload"}
+    at = next((i for i, a in enumerate(plain) if a in known), 0)
+    sub = plain[at] if plain else ""
+    after = plain[at + 1] if len(plain) > at + 1 else ""
+    if sub == "run" and any(a.endswith(".cs") for a in plain[1:]):
+        return "dotnet run on a .cs file restores its #:package lines"
+    if sub == "dnx":
+        return "dotnet dnx downloads a tool and runs it"
+    if sub == "tool" and after in {"install", "update", "exec"}:
+        return f"dotnet tool {after} downloads a tool"
+    if sub == "workload" and after in {"install", "update", "restore"}:
+        return f"dotnet workload {after} downloads workloads"
+    if sub in {"add", "package", "restore"}:
+        return f"dotnet {sub} downloads packages"
+    return None
+
+
+def _bundle_fetch_reason(rest: Sequence[str]) -> str | None:
+    """Return why a ``bundle`` command downloads gems, or ``None``."""
+    sub = next((a for a in rest if not a.startswith("-")), "")
+    if not sub:
+        return "bundle with no command runs bundle install"
+    if sub == "exec":
+        return None
+    named = {"add", "cache", "install", "lock", "outdated", "remove", "update"}
+    if sub in named or (len(sub) > 0 and "install".startswith(sub)):
+        return f"bundle {sub} downloads gems"
+    return None
+
+
+def _gem_fetch_reason(rest: Sequence[str]) -> str | None:
+    """Return why a ``gem`` command downloads gems, or ``None``.
+
+    Options before the subcommand are skipped, and RubyGems' unique
+    prefixes (``gem inst``) count as the subcommand.
+    """
+    sub = next((a for a in rest if not a.startswith("-")), "")
+    named = ("exec", "fetch", "install", "update")
+    if sub and any(n.startswith(sub) for n in named):
+        return f"gem {sub} downloads gems"
     return None
 
 
@@ -1954,6 +2064,18 @@ class _Launch:
             return self.java(exe, real, env)
         if "go" in canon and _native_kind(real) is not None:
             return self.go(exe, real, argv[1:], env)
+        if "dotnet" in canon and _native_kind(real) is not None:
+            return self.dotnet(exe, real, argv[1:], env)
+        if any(_RUBY_NAME.fullmatch(name) for name in canon):
+            if _ruby_searches_path(argv[1:]):
+                return _Runtime.unknown(
+                    real,
+                    f"{exe} -S runs a program found on the PATH, not the "
+                    "script named; it is not followed",
+                )
+            return self.ruby(exe, real, env)
+        if canon & _BUNDLE_NAMES:
+            return self.bundle(exe, real, argv[1:], env, depth)
         if (
             any(_COMPILER_NAME.fullmatch(c) for c in canon)
             and _native_kind(real) is not None
@@ -2117,6 +2239,155 @@ class _Launch:
             return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
         version = f"{' / '.join(lines)}; sha256 {digest}"
         return _Runtime("interpreter", real, version, None, "java")
+
+    def ruby(self, exe: Path, real: Path, env: Mapping[str, str]) -> _Runtime:
+        """Identify a Ruby by what it says it is, and a hash.
+
+        The interpreter is asked for the real path of its own
+        executable (``RbConfig.ruby``) and for ``RUBY_DESCRIPTION``,
+        the line ``ruby -v`` prints, so a version manager's shim
+        (rbenv, asdf, mise) reports the Ruby it starts, not itself. The
+        version is that line followed by the SHA-256 of the executable
+        that answered. ``RUBYOPT`` and ``RUBYLIB`` are removed from the
+        probe's environment, as ``NODE_OPTIONS`` is for Node: a ``-r``
+        or a forged ``rbconfig.rb`` could print a forged report. They
+        are recorded separately as environment.
+
+        Returns
+        -------
+        _Runtime
+            An ``interpreter`` with family ``ruby``, or unknown with the
+            reason: the probe could not run, failed, or did not print a
+            path and a description.
+        """
+        clean = {
+            k: v for k, v in env.items() if k not in ("RUBYOPT", "RUBYLIB")
+        }
+        out, _, failure = self.report([str(exe), "-e", _RUBY_PROBE], clean)
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not report its ruby version: {failure}"
+            )
+        lines = [line for line in out.split("\n") if line.strip()]
+        if len(lines) != 2 or not Path(lines[0]).is_absolute():
+            return _Runtime.unknown(
+                real,
+                f"{exe} did not report an executable and a version: "
+                f"{out.strip()[:200]!r}",
+            )
+        found = Path(lines[0])
+        try:
+            digest, _ = hash_file(found)
+        except OSError as exc:
+            return _Runtime.unknown(found, f"{found} cannot be hashed: {exc}")
+        return _Runtime(
+            "interpreter",
+            found,
+            f"{lines[1].strip()}; sha256 {digest}",
+            None,
+            "ruby",
+        )
+
+    def bundle(
+        self,
+        exe: Path,
+        real: Path,
+        args: Sequence[str],
+        env: Mapping[str, str],
+        depth: int,
+    ) -> _Runtime:
+        """Follow ``bundle exec COMMAND`` to its command.
+
+        Bundler starts the command through ``PATH`` in the Ruby
+        environment it sets up, so the command is identified as it
+        would be launched directly. Every other subcommand (``install``,
+        ``update``, ``add``, ``config``) is unknown: it fetches gems or
+        starts nothing that is the code under test. A shim that is not
+        followed to a Ruby stays unknown through the command's own
+        identification.
+        """
+        if not args or args[0] != "exec":
+            sub = args[0] if args else "with no command"
+            return _Runtime.unknown(
+                real, f"{exe} {sub}: only bundle exec is identified"
+            )
+        command = list(args[1:])
+        if not command or command[0].startswith("-"):
+            return _Runtime.unknown(
+                real, f"{exe} exec names no command, or starts with an option"
+            )
+        if depth >= _MAX_LAUNCH_DEPTH:
+            return _Runtime.unknown(real, f"{exe}: too many nested launchers")
+        return self.identify(command, env, depth + 1).explained(f"{exe} exec")
+
+    def dotnet(
+        self,
+        exe: Path,
+        real: Path,
+        args: Sequence[str],
+        env: Mapping[str, str],
+    ) -> _Runtime:
+        """Identify the .NET SDK and runtimes a ``dotnet`` command uses.
+
+        Only ``build``, ``run``, ``test`` and ``exec``, and a path to a
+        ``.dll``, are followed (`_DOTNET_SUBCOMMANDS`). The host is
+        asked as the benchmark would run it, in its working directory
+        and environment: ``dotnet --version`` names the SDK that
+        ``global.json`` selects (and fails when it asks for one that is
+        not installed), and ``dotnet --list-runtimes`` the runtimes
+        installed, which is what a project's target framework rolls
+        forward to. The version is both, followed by the SHA-256 of the
+        ``dotnet`` host. A ``.dll`` or ``exec`` needs no SDK, so only
+        the runtimes are asked. A ``dotnet`` that is a script is never
+        asked.
+
+        Returns
+        -------
+        _Runtime
+            An ``interpreter`` with family ``dotnet``, or unknown with
+            the reason.
+        """
+        sub = args[0] if args else ""
+        is_app = sub == "exec" or sub.endswith(".dll")
+        if sub not in _DOTNET_SUBCOMMANDS and not is_app:
+            return _Runtime.unknown(
+                real,
+                f"{exe} {sub}: only dotnet build, run, test and exec and a "
+                "path to a .dll are identified; other subcommands start "
+                "other programs or fetch code",
+            )
+        parts: list[str] = []
+        if not is_app:
+            sdk, _, failure = self.report([str(exe), "--version"], env)
+            if failure is not None:
+                return _Runtime.unknown(
+                    real,
+                    f"{exe} could not report its sdk version: {failure}",
+                )
+            parts.append(f"sdk {sdk.strip()}")
+        listed, _, failure = self.report([str(exe), "--list-runtimes"], env)
+        if failure is not None:
+            return _Runtime.unknown(
+                real, f"{exe} could not list its runtimes: {failure}"
+            )
+        runtimes = sorted(
+            _RUNTIME_PATH.sub("", line)
+            for line in listed.split("\n")
+            if line.strip()
+        )
+        if not runtimes or any(len(line.split()) != 2 for line in runtimes):
+            return _Runtime.unknown(
+                real,
+                f"{exe} --list-runtimes did not print name and version "
+                f"lines: {listed.strip()[:200]!r}",
+            )
+        parts.append("runtimes " + ", ".join(runtimes))
+        try:
+            digest, _ = hash_file(real)
+        except OSError as exc:
+            return _Runtime.unknown(real, f"{real} cannot be hashed: {exc}")
+        parts.append(f"sha256 {digest}")
+        return _Runtime("interpreter", real, "; ".join(parts), None, "dotnet")
 
     def compiler(
         self, exe: Path, real: Path, env: Mapping[str, str]

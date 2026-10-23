@@ -95,6 +95,32 @@ from one launch form used for both versions.
 | Supported | Go 1.25 on Linux arm64 in Docker (the official `golang:1.25` image), with the fixtures captured there and the profiler's integration tests run there, as run for T5.12; macOS and x86_64 are expected to work for the converters and have not been run with a Go toolchain |
 | Outside | Windows, cgo-heavy programs (not run), programs with no way to write a profile (see `skills/perfproof/go.md`), Go older than 1.18 for the built-executable check |
 
+## Ruby
+
+| | |
+|---|---|
+| Workload | A Ruby program or a gem's test or benchmark code run with a native `ruby`, timed as a whole (`wall`) or by a `reported` median of in-process iterations after a fixed warm-up (YJIT); see "Warm-up (Ruby)" in [method.md](method.md) |
+| Oracle | The project's tests (Minitest, RSpec) and the program's output compared between versions |
+| Coverage | SimpleCov's `.resultset.json`, turned into lcov by `perfproof.bench.ruby_coverage` (checked line by line against simplecov-lcov's own report); declared as `correctness.coverage_command` |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | A `ruby` (a version manager's shim included) is identified by `RUBY_DESCRIPTION` and a hash of the executable it reports; `bundle exec COMMAND` and binstubs are followed. `rbenv exec`, `rvm`, `asdf`, `mise`, other `bundle` subcommands and a `ruby` inside a container launcher are `not_available` |
+| Profiling | stackprof (CPU or wall) turned into folded stacks with method, file and line by `perfproof.profilers.ruby`, which starts it in every Ruby the command runs |
+| Supported | CRuby 4.0.7 with YJIT, stackprof 0.2.28 and SimpleCov 1.3.2 on Linux arm64 in Docker (the official `ruby:4.0` image), with the fixtures captured there and the wrapper's integration tests run there; the gate's probe also ran against this Mac's system Ruby 2.6.10. A Rails task runs only in Docker here (Rails needs a newer Ruby than the Mac's), so its runtime is `not_available` and a KEEP is withheld there until a native Ruby is installed |
+| Outside | JRuby and TruffleRuby (the probe may identify them; nothing else was run), `--zjit`, Windows, Ruby older than 3.0 (stackprof's `raw_lines` and the YJIT flags were not run on it) |
+
+## C# and .NET
+
+| | |
+|---|---|
+| Workload | A .NET application built in `setup` and timed as `dotnet bin/App.dll` by `wall`, or by a `reported` median of in-process iterations after a fixed warm-up (tiered JIT); see "Warm-up (.NET)" in [method.md](method.md) |
+| Oracle | The project's tests (`dotnet test`, xunit, NUnit, MSTest) and the program's output compared between versions |
+| Coverage | coverlet's Cobertura report (`dotnet test --collect:"XPlat Code Coverage"`), which the coverage check reads directly; declared as `correctness.coverage_command` |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | A native `dotnet` with `build`, `run`, `test` or `exec`, or a `.dll`, is identified by the SDK `global.json` selects, the installed runtimes and a hash of the host. A `dotnet` that is a script or a container launcher, and every other subcommand, is `not_available` |
+| Profiling | dotnet-trace (`--format Speedscope`) turned into folded stacks by `perfproof.profilers.dotnet`, with file and line found by reading the project's `.cs` files; the application is profiled as `dotnet bin/App.dll`, never `dotnet run` |
+| Supported | .NET SDK 10.0.402 and runtime 10.0.13 on Linux arm64 in Docker (the official `mcr.microsoft.com/dotnet/sdk:10.0` image), with the fixtures captured there and the integration tests run there, as run for T5.14. This Mac has no .NET, so the eval tasks run in Docker, where `runtime` is `not_available` and a KEEP is withheld until a native .NET is installed |
+| Outside | Windows and .NET Framework, Mono, Native AOT, ASP.NET services (not run), source files the regular-expression index cannot place (partial and generated types show their first file) |
+
 ## C and C++
 
 | | |
