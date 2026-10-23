@@ -691,7 +691,7 @@ by `stats-auditor` before its PR opens.
     passes; reviewer passes.
   - Effort: medium
 
-- [ ] **T1.12 Golden set: choose the statistics method on ground truth** (Faras, 2026-10-22: run before shipping the T1.11 split, which is held)
+- [x] **T1.12 Golden set: choose the statistics method on ground truth** (Faras, 2026-10-22: run before shipping the T1.11 split, which is held) — done 2026-10-23 (#82) under the owner's amendment: the registered every-cell bar cannot be met by any method (cells of 100); judged on the cells of 200, the split passes and was kept; the split shipped in #85
   - Owns: `studies/golden/`, `tests/golden/` (new), `eval/golden/` (new),
     a replay entry point in `src/perfproof/stats/` if needed, and the
     `/verify` hook for the golden eval; branches from
