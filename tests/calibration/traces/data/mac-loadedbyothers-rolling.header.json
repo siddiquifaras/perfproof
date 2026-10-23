@@ -1,0 +1,51 @@
+{
+  "label": "mac-loadedbyothers-rolling",
+  "target": "rolling",
+  "note": "M4 MacBook Pro, macOS, native (ran while other workers loaded the machine; no strict-quiet re-run was recorded)",
+  "command": [
+    "<worktree>/.venv/bin/python",
+    "bench.py",
+    "--output",
+    "output/sums.npy"
+  ],
+  "dirs": {
+    "A": "<worktree>/scratch/traces/rolling-A",
+    "B": "<worktree>/scratch/traces/rolling-B"
+  },
+  "rounds_requested": 1000,
+  "order_seed": 20261101,
+  "order_rule": "perfproof.bench.runner.round_orders; A=baseline",
+  "warmup": "one pair (pair -1, warmup=true), excluded from stats",
+  "tools": {
+    "python": "Python 3.12.12",
+    "numpy": "2.5.4",
+    "uv": "uv 0.12.20 (2274b80d6 2026-09-28 aarch64-apple-darwin)"
+  },
+  "machine": {
+    "system": "Darwin",
+    "release": "24.6.0",
+    "machine": "arm64",
+    "cpu_count": 10,
+    "machdep.cpu.brand_string": "Apple M4",
+    "hw.model": "Mac16,1",
+    "hw.memsize": "17179869184",
+    "macos": "15.7.7"
+  },
+  "idle_wait": {
+    "waited_seconds": 1322.2,
+    "load1_at_start": 2.94873046875,
+    "gave_up": false
+  },
+  "started_utc": "2026-10-21T14:07:39+00:00",
+  "resumed_from_pair": 0,
+  "fields": {
+    "wall_s": "perf_counter around spawn..wait4, includes the /usr/bin/time wrapper where used (same in both arms)",
+    "user_s_sys_s": "wait4 rusage of the child (and its children)",
+    "instructions_cycles": "/usr/bin/time -l; includes the wrapper's own startup, a constant in both arms",
+    "load1": "os.getloadavg()[0] at the start of the pair",
+    "cpu_speed_limit": "pmset -g therm CPU_Speed_Limit after the pair; 100 when no limit is recorded",
+    "power_source": "pmset -g batt after the pair"
+  },
+  "null_fields": {},
+  "finished_utc": "2026-10-21T14:22:35+00:00"
+}

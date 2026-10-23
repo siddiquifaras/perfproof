@@ -1,0 +1,23 @@
+{
+  "provenance": "hand-authored in the shape of a recorded model transcript; no model produced it. It is replayed, never regenerated, so the agent's tool work is identical in every run.",
+  "user": "Find the notes that mention timeouts or retries, and report the p95 latency per service from the events file.",
+  "assistant_turns": [
+    {
+      "content": "Plan: search the notes for timeout or retry, then load the events and summarise per service.",
+      "tool_calls": [
+        {"name": "search_files", "arguments": {"pattern": "timeout.*retry|retry.*timeout"}},
+        {"name": "load_events", "arguments": {"path": "corpus/events.json"}}
+      ]
+    },
+    {
+      "content": "Now the latency percentiles.",
+      "tool_calls": [
+        {"name": "p95_by_service", "arguments": {"path": "corpus/events.json"}}
+      ]
+    },
+    {
+      "content": "Done: the matching notes and the per-service p95 latencies are in the tool results above.",
+      "tool_calls": []
+    }
+  ]
+}

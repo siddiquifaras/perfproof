@@ -1,0 +1,61 @@
+{
+  "label": "linux-rolling",
+  "target": "rolling",
+  "note": "real Linux, Hetzner CCX13 KVM, 1 physical core / 2 SMT threads (2 dedicated vCPUs of AMD EPYC-Milan)",
+  "command": [
+    "/root/pp-work/venv/bin/python",
+    "bench.py",
+    "--output",
+    "output/sums.npy"
+  ],
+  "dirs": {
+    "A": "/root/pp-work/trees/rolling-A",
+    "B": "/root/pp-work/trees/rolling-B"
+  },
+  "rounds_requested": 1000,
+  "order_seed": 20261111,
+  "order_rule": "perfproof.bench.runner.round_orders; A=baseline",
+  "warmup": "one pair (pair -1, warmup=true), excluded from stats",
+  "tools": {
+    "python": "Python 3.14.4",
+    "numpy": "2.5.4",
+    "perf": "perf version 7.0.14",
+    "node": "v22.22.1",
+    "java": "openjdk version \"25.0.4.1\" 2026-08-18",
+    "javac": "javac 25.0.4.1",
+    "gcc": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "kernel": "7.0.0-30-generic",
+    "os": "Ubuntu 26.04.1 LTS"
+  },
+  "machine": {
+    "system": "Linux",
+    "release": "7.0.0-30-generic",
+    "machine": "x86_64",
+    "cpu_count": 2,
+    "cpu_model": "AMD EPYC-Milan Processor"
+  },
+  "idle_wait": {
+    "waited_seconds": 0.0,
+    "load1_at_start": 0.15673828125
+  },
+  "started_utc": "2026-10-21T15:39:41+00:00",
+  "resumed_from_pair": 0,
+  "fields": {
+    "wall_s": "perf_counter around spawn..wait4, includes the /usr/bin/time wrapper where used (same in both arms)",
+    "user_s_sys_s": "wait4 rusage of the child (and its children)",
+    "instructions_cycles": "/usr/bin/time -l; includes the wrapper's own startup, a constant in both arms",
+    "load1": "os.getloadavg()[0] at the start of the pair",
+    "cpu_speed_limit": "pmset -g therm CPU_Speed_Limit after the pair; 100 when no limit is recorded",
+    "power_source": "pmset -g batt after the pair",
+    "linux_perf": "perf stat -e instructions:u,cycles:u,cpu-migrations wraps the command (constant in both arms); instructions and cycles are user-space only",
+    "cpu_sampled_at_100ms": "field 39 of /proc/<child>/stat read once 100 ms after spawn; one sample, not the whole run",
+    "steal_ticks": "/proc/stat steal, all vCPUs, USER_HZ ticks elapsed across the execution; all_cpu_ticks likewise",
+    "taskset": null
+  },
+  "null_fields": {
+    "cpu_speed_limit": "no cpufreq in a KVM guest",
+    "power_source": "a server; not applicable",
+    "max_rss_bytes": "perf stat does not report it"
+  },
+  "finished_utc": "2026-10-21T15:58:33+00:00"
+}

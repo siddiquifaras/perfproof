@@ -1,0 +1,53 @@
+{
+  "label": "mac-loaded-agent",
+  "target": "agent",
+  "note": "M4 MacBook Pro, macOS, native. agent loop replaying a fixture, real local file search and JSON work. loaded: 4 steady + 1 bursty (20-60 s on/off) spinning python processes at nice 0 on 10 cores",
+  "command": [
+    "<worktree>/.venv/bin/python",
+    "agent.py"
+  ],
+  "dirs": {
+    "A": "<worktree>/scratch/traces/agent-A",
+    "B": "<worktree>/scratch/traces/agent-B"
+  },
+  "rounds_requested": 1000,
+  "order_seed": 20261151,
+  "order_rule": "perfproof.bench.runner.round_orders; A=baseline",
+  "warmup": "one pair (pair -1, warmup=true), excluded from stats",
+  "tools": {
+    "python": "Python 3.12.12"
+  },
+  "machine": {
+    "system": "Darwin",
+    "release": "24.6.0",
+    "machine": "arm64",
+    "cpu_count": 10,
+    "machdep.cpu.brand_string": "Apple M4",
+    "hw.model": "Mac16,1",
+    "hw.memsize": "17179869184",
+    "macos": "15.7.7"
+  },
+  "idle_wait": {
+    "waited_seconds": 0.0,
+    "load1_at_start": 2.14208984375
+  },
+  "started_utc": "2026-10-22T04:46:40+00:00",
+  "resumed_from_pair": 0,
+  "fields": {
+    "wall_s": "perf_counter around spawn..wait4, includes the /usr/bin/time wrapper where used (same in both arms)",
+    "user_s_sys_s": "wait4 rusage of the child (and its children)",
+    "instructions_cycles": "/usr/bin/time -l; includes the wrapper's own startup, a constant in both arms",
+    "load1": "os.getloadavg()[0] at the start of the pair",
+    "cpu_speed_limit": "pmset -g therm CPU_Speed_Limit after the pair; 100 when no limit is recorded",
+    "power_source": "pmset -g batt after the pair",
+    "linux_perf": "perf stat -e instructions:u,cycles:u,cpu-migrations wraps the command (constant in both arms); instructions and cycles are user-space only",
+    "cpu_sampled_at_100ms": "field 39 of /proc/<child>/stat read once 100 ms after spawn; one sample, not the whole run",
+    "steal_ticks": "/proc/stat steal, all vCPUs, USER_HZ ticks elapsed across the execution; all_cpu_ticks likewise",
+    "taskset": null,
+    "per_run_state": "with --per-run-state, cpu_speed_limit and power_source are sampled after each run, not each pair",
+    "loadavg_start_end": "Linux: /proc/loadavg 1-minute value at the start and end of each run",
+    "metrics": "the full PERFPROOF JSON the command printed, when it has more than one key"
+  },
+  "null_fields": {},
+  "finished_utc": "2026-10-22T04:56:52+00:00"
+}
