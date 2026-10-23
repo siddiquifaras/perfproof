@@ -176,6 +176,14 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   own work.
 - **T1.3 merged before T1.5 and T1.6**, as the plan allows; its
   checkbox stays open until T1.5 decides through it and T1.6 passes.
+- **Eval draws (lead, 2026-10-23), no result seen for either:** (1) a
+  task named in a development task file (`eval/skill/tasks*.json`) is
+  "used for development" and is never drawn held-out, enforcing the
+  existing rule in docs/evaluation.md; (2) a family slot with no
+  candidate left is recorded unfilled and the draw goes on to the next
+  slot, rather than ending the class's draw. The skill-eval loader keeps
+  the draw-based rule (#76) over #65's looser split check, so a
+  candidate a later draw could hold out never loads.
 
 ### In progress
 
