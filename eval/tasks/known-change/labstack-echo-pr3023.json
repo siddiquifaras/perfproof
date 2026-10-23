@@ -24,12 +24,12 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
-    "source": "written here from the description of https://github.com/labstack/echo/pull/3023 (BenchmarkBind_JSON): a Go benchmark that binds a JSON body through ServeHTTP, eval/tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go, copied into the tree; it runs in the official golang:1.25 image",
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
+    "source": "written here from the description of https://github.com/labstack/echo/pull/3023 (BenchmarkBind_JSON): a Go benchmark that binds a JSON body through ServeHTTP, eval/tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go, copied into the tree",
     "verified": true
   },
   "oracle": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Bind|JSON .",
+    "command": "go test -count 1 -run Bind|JSON .",
     "source": "echo's bind and JSON tests (bind_test.go and json_test.go are changed by https://github.com/labstack/echo/pull/3023); targeted tests only",
     "verified": true
   },
@@ -41,87 +41,87 @@
   ],
   "audit": null,
   "status": "runs",
-  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
-      "command": "cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
       "exit_code": 0,
-      "duration_s": 0.0,
-      "date": "2026-10-16T17:54:57+00:00",
+      "duration_s": 2.27,
+      "date": "2026-10-23T14:30:05+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-setup1 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
       "exit_code": 0,
-      "duration_s": 7.88,
-      "date": "2026-10-16T17:54:57+00:00",
+      "duration_s": 6.61,
+      "date": "2026-10-23T14:30:08+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.004s [no tests to run]"
+      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.318s [no tests to run]"
     },
     {
       "step": "oracle",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Bind|JSON .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run Bind|JSON .",
       "exit_code": 0,
-      "duration_s": 7.45,
-      "date": "2026-10-16T17:55:05+00:00",
+      "duration_s": 0.52,
+      "date": "2026-10-23T14:30:14+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.008s"
+      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.210s"
     },
     {
       "step": "workload",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
       "exit_code": 0,
-      "duration_s": 7.82,
-      "date": "2026-10-16T17:55:12+00:00",
+      "duration_s": 0.89,
+      "date": "2026-10-23T14:30:15+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "goos: linux\ngoarch: arm64\npkg: github.com/labstack/echo/v5\nBenchmarkEvalBindJSON-10    \t  200000\t      3625 ns/op\t    6878 B/op\t      31 allocs/op\nPASS\nok  \tgithub.com/labstack/echo/v5\t0.734s"
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/labstack/echo/v5\ncpu: Apple M4\nBenchmarkEvalBindJSON-10    \t  200000\t      1794 ns/op\t    6878 B/op\t      31 allocs/op\nPASS\nok  \tgithub.com/labstack/echo/v5\t0.568s"
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
       "exit_code": 0,
       "duration_s": 0.02,
-      "date": "2026-10-16T17:55:20+00:00",
+      "date": "2026-10-23T14:30:16+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-setup1 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
       "exit_code": 0,
-      "duration_s": 7.44,
-      "date": "2026-10-16T17:55:20+00:00",
+      "duration_s": 1.17,
+      "date": "2026-10-23T14:30:16+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.003s [no tests to run]"
+      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.324s [no tests to run]"
     },
     {
       "step": "oracle",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Bind|JSON .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run Bind|JSON .",
       "exit_code": 0,
-      "duration_s": 7.51,
-      "date": "2026-10-16T17:55:28+00:00",
+      "duration_s": 0.49,
+      "date": "2026-10-23T14:30:17+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.010s"
+      "output_tail": "ok  \tgithub.com/labstack/echo/v5\t0.214s"
     },
     {
       "step": "workload",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
       "exit_code": 0,
-      "duration_s": 7.58,
-      "date": "2026-10-16T17:55:35+00:00",
+      "duration_s": 1.04,
+      "date": "2026-10-23T14:30:17+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "goos: linux\ngoarch: arm64\npkg: github.com/labstack/echo/v5\nBenchmarkEvalBindJSON-10    \t  200000\t      3204 ns/op\t    6171 B/op\t      28 allocs/op\nPASS\nok  \tgithub.com/labstack/echo/v5\t0.646s"
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/labstack/echo/v5\ncpu: Apple M4\nBenchmarkEvalBindJSON-10    \t  200000\t      2721 ns/op\t    6170 B/op\t      28 allocs/op\nPASS\nok  \tgithub.com/labstack/echo/v5\t0.759s"
     }
   ],
   "split": "development",

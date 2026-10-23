@@ -136,10 +136,8 @@
         "manifest": "labstack-echo-pr3023",
         "branch": "pr-3023",
         "requires": [
-          "docker",
           "go"
-        ],
-        "shim": "go"
+        ]
       },
       "prompt": "Is the change on branch pr-3023 (pooled-buffer JSON deserialize) really faster than main?",
       "followups": [
@@ -163,10 +161,9 @@
         "manifest": "rails-rails-pr58964",
         "branch": "pr-58964",
         "requires": [
-          "docker",
+          "ruby",
           "bundle"
-        ],
-        "shim": "ruby"
+        ]
       },
       "prompt": "This PR says it speeds up structured event logging. The branch is pr-58964; is it actually faster than main?",
       "followups": [
@@ -217,10 +214,9 @@
       "repo": {
         "manifest": "rails-rails-pr58751-landed",
         "requires": [
-          "docker",
+          "ruby",
           "bundle"
-        ],
-        "shim": "ruby"
+        ]
       },
       "prompt": "/perfproof light",
       "followups": [

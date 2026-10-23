@@ -441,6 +441,50 @@ def test_a_native_go_satisfies_the_go_requirement(
     assert realrepo.missing_requirements(real) == []
 
 
+def test_native_ruby_and_dotnet_are_found_in_the_eval_users_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    assert realrepo.native_ruby() is None
+    assert realrepo.native_dotnet() is None
+    ruby = _binary(home / ".local" / "ruby" / "bin" / "ruby")
+    assert realrepo.native_ruby() is None, "bundle is missing"
+    (ruby.parent / "bundle").write_text("#!/usr/bin/env ruby\n")
+    assert realrepo.native_ruby() == ruby.parent
+    dotnet = _binary(home / ".local" / "dotnet" / "dotnet")
+    assert realrepo.native_dotnet() == dotnet.parent
+
+
+def test_the_system_ruby_is_not_a_native_ruby(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    assert realrepo.native_ruby() is None
+
+
+def test_ruby_and_dotnet_tasks_put_their_toolchains_first_on_the_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    ruby = _binary(home / ".local" / "ruby" / "bin" / "ruby")
+    (ruby.parent / "bundle").write_text("#!/usr/bin/env ruby\n")
+    dotnet = _binary(home / ".local" / "dotnet" / "dotnet")
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    rails = taskset.RealRepo(manifest="x", requires=["ruby", "bundle"])
+    assert realrepo.toolchain_dirs(rails) == [ruby.parent]
+    assert realrepo.missing_requirements(rails) == []
+    net = taskset.RealRepo(manifest="x", requires=["dotnet"])
+    assert realrepo.toolchain_dirs(net) == [dotnet.parent]
+    assert realrepo.missing_requirements(net) == []
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "other")
+    assert realrepo.missing_requirements(rails) == ["ruby", "bundle"]
+    assert realrepo.missing_requirements(net) == ["dotnet"]
+
+
 def test_the_module_cache_is_filled_in_the_private_home_before_the_agent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

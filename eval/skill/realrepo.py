@@ -635,6 +635,83 @@ def native_go() -> Path | None:
     return None
 
 
+_SYSTEM_BIN = ("/usr/bin", "/bin", "/usr/sbin", "/sbin")
+
+
+def _native_dir(name: str, install: Path) -> Path | None:
+    """Find the directory of a toolchain's real binary ``name``.
+
+    The harness's own ``PATH`` is searched first, then ``install``
+    (the place it is put for the eval user, under ``~/.local``). The
+    system directories are skipped: macOS ships a Ruby 2.6 in
+    ``/usr/bin``, which no task wants. A script is skipped, as for Go.
+
+    Parameters
+    ----------
+    name : str
+        The binary: ``ruby`` or ``dotnet``.
+    install : pathlib.Path
+        The directory holding the binary in the standard install.
+
+    Returns
+    -------
+    pathlib.Path or None
+        The directory, or ``None``.
+    """
+    on_path = [
+        Path(d)
+        for d in os.environ.get("PATH", "").split(os.pathsep)
+        if d and d not in _SYSTEM_BIN
+    ]
+    for directory in (*on_path, install):
+        candidate = directory / name
+        if (
+            candidate.is_file()
+            and os.access(candidate, os.X_OK)
+            and not _is_script(candidate)
+        ):
+            return directory
+    return None
+
+
+def native_ruby() -> Path | None:
+    """Find the ``bin`` directory of a native CRuby on this machine.
+
+    Returns
+    -------
+    pathlib.Path or None
+        The directory holding ``ruby`` and ``bundle``, or ``None``
+        (``~/.local/ruby/bin`` is where the eval user has it).
+    """
+    found = _native_dir("ruby", Path.home() / ".local" / "ruby" / "bin")
+    if found is None or not (found / "bundle").is_file():
+        return None
+    return found
+
+
+def native_dotnet() -> Path | None:
+    """Find the directory of a native ``dotnet`` host on this machine.
+
+    Returns
+    -------
+    pathlib.Path or None
+        The directory holding ``dotnet`` (``~/.local/dotnet`` is where
+        the eval user has it), or ``None``.
+    """
+    return _native_dir("dotnet", Path.home() / ".local" / "dotnet")
+
+
+def _native(requirement: str) -> Path | None:
+    """Find the native toolchain directory a ``requires`` name needs."""
+    if requirement == "go":
+        return native_go()
+    if requirement in ("ruby", "bundle"):
+        return native_ruby()
+    if requirement == "dotnet":
+        return native_dotnet()
+    return None
+
+
 def toolchain_dirs(real: RealRepo) -> list[Path]:
     """List the native toolchain directories a task puts first on PATH.
 
@@ -646,14 +723,17 @@ def toolchain_dirs(real: RealRepo) -> list[Path]:
     Returns
     -------
     list of pathlib.Path
-        The native Go directory for a task that needs ``go``, so it
-        wins over any launcher that runs Go in a container; empty
-        otherwise, or when this machine has no native Go.
+        The native directory of each of ``go``, ``ruby`` (or
+        ``bundle``) and ``dotnet`` that the task requires and this
+        machine has, so it wins over any launcher that runs the same
+        toolchain in a container; empty otherwise.
     """
-    if "go" not in real.requires:
-        return []
-    found = native_go()
-    return [] if found is None else [found]
+    found: list[Path] = []
+    for requirement in real.requires:
+        directory = _native(requirement)
+        if directory is not None and directory not in found:
+            found.append(directory)
+    return found
 
 
 def prefill_go_modcache(
@@ -751,7 +831,11 @@ def missing_requirements(real: RealRepo) -> list[str]:
         r
         for r in real.requires
         if r not in provided
-        and not (native_go() if r == "go" else shutil.which(r))
+        and not (
+            _native(r)
+            if r in ("go", "ruby", "bundle", "dotnet")
+            else shutil.which(r)
+        )
     ]
     if real.shim is not None:
         try:

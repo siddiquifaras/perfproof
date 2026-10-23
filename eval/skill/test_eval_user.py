@@ -756,7 +756,13 @@ def test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user(
 ) -> None:
     monkeypatch.setenv(sandbox.TOKEN_FILE_ENV, "/x/token")
     tasks = taskset.load(runner.REPO_ROOT / "eval/skill/tasks-real.json")
-    task = next(t for t in tasks.tasks if t.repo and t.repo.shim)
+    # No task file names a launcher any more (the Go, Ruby and .NET
+    # tasks run natively); a task that still did would be skipped.
+    base = next(t for t in tasks.tasks if t.repo)
+    assert base.repo is not None
+    task = base.model_copy(
+        update={"repo": base.repo.model_copy(update={"shim": "go"})}
+    )
     with pytest.raises(realrepo.SetupError) as raised:
         runner.run_task(
             task, tasks, tmp_path / "r", runner.SKILL_SOURCE, tmp_path

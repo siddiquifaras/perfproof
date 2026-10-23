@@ -22,12 +22,12 @@
   "change_kind": "after-landed",
   "target_class": "dotnet",
   "workload": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
+    "command": "dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
     "source": "written here from the description of https://github.com/serilog/serilog/pull/2215 (JsonFormatter): a .NET program that formats 20,000 events carrying trace and span ids to JSON (eval/tasks/workloads/serilog-serilog-pr2215-landed/EvalJson), copied into the tree, run on the tree where the change is already in",
     "verified": true
   },
   "oracle": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false --filter \"FullyQualifiedName~JsonFormatter\"",
+    "command": "dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~JsonFormatter\"",
     "source": "Serilog's JsonFormatter tests (JsonFormatterTests.cs is changed by https://github.com/serilog/serilog/pull/2215); targeted tests only",
     "verified": true
   },
@@ -39,87 +39,87 @@
   ],
   "audit": null,
   "status": "runs",
-  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Runs natively with the .NET SDK 10.0.402 that the eval user has in ~/.local/dotnet (docs/evaluation.md, T3.8), so the runtime gate identifies it. Under the sandbox profile MSBuild hung for ten minutes and then failed with no error with its default worker nodes and shared compiler server (the cause is not isolated, and neither is which of the three flags below is the one that matters; the same build takes about a second outside the profile), so every dotnet build and test here passes -m:1 -nodeReuse:false -p:UseSharedCompilation=false. NuGet packages come from the local feed ~/.local/dotnet/nuget-feed (a confined restore could not reach nuget.org: bad certificate format; the cause is inferred, not isolated)",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
-      "command": "cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
       "exit_code": 0,
       "duration_s": 0.01,
-      "date": "2026-10-22T22:16:45+00:00",
+      "date": "2026-10-23T14:21:19+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalJson/EvalJson.csproj",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalJson/EvalJson.csproj",
       "exit_code": 0,
-      "duration_s": 5.42,
-      "date": "2026-10-22T22:16:45+00:00",
+      "duration_s": 2.44,
+      "date": "2026-10-23T14:21:19+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/EvalJson/EvalJson.csproj (in 49 ms).\n  Restored /src/src/Serilog/Serilog.csproj (in 710 ms).\n  Serilog -> /src/src/Serilog/bin/Release/net10.0/Serilog.dll\n  EvalJson -> /src/EvalJson/bin/Release/net10.0/EvalJson.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:04.83"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/task/EvalJson/EvalJson.csproj (in 39 ms).\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/task/src/Serilog/Serilog.csproj (in 108 ms).\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/task/src/Serilog/bin/Release/net10.0/Serilog.dll\n  EvalJson -> eval/mine/work/serilog-serilog-pr2215-landed/task/EvalJson/bin/Release/net10.0/EvalJson.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.31\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "oracle",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false --filter \"FullyQualifiedName~JsonFormatter\"",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~JsonFormatter\"",
       "exit_code": 0,
-      "duration_s": 8.78,
-      "date": "2026-10-22T22:16:51+00:00",
+      "duration_s": 4.34,
+      "date": "2026-10-23T14:21:22+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/test/TestDummies/TestDummies.csproj (in 107 ms).\n  Restored /src/src/Serilog/Serilog.csproj (in 105 ms).\n  Restored /src/test/Serilog.Tests/Serilog.Tests.csproj (in 115 ms).\n  Serilog -> /src/src/Serilog/bin/Debug/net10.0/Serilog.dll\n  Serilog -> /src/src/Serilog/bin/Debug/netstandard2.0/Serilog.dll\n  TestDummies -> /src/test/TestDummies/bin/Debug/netstandard2.0/TestDummies.dll\n  Serilog.Tests -> /src/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll\nTest run for /src/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll (.NETCoreApp,Version=v10.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    24, Skipped:     0, Total:    24, Duration: 137 ms - Serilog.Tests.dll (net10.0)"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/task/test/TestDummies/TestDummies.csproj (in 116 ms).\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/task/test/Serilog.Tests/Serilog.Tests.csproj (in 175 ms).\n  1 of 3 projects are up-to-date for restore.\n\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/task/src/Serilog/bin/Debug/net10.0/Serilog.dll\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/task/src/Serilog/bin/Debug/netstandard2.0/Serilog.dll\n  TestDummies -> eval/mine/work/serilog-serilog-pr2215-landed/task/test/TestDummies/bin/Debug/netstandard2.0/TestDummies.dll\n  Serilog.Tests -> eval/mine/work/serilog-serilog-pr2215-landed/task/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll\nTest run for eval/mine/work/serilog-serilog-pr2215-landed/task/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll (.NETCoreApp,Version=v10.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    24, Skipped:     0, Total:    24, Duration: 55 ms - Serilog.Tests.dll (net10.0)\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "workload",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
       "exit_code": 0,
-      "duration_s": 1.04,
-      "date": "2026-10-22T22:17:00+00:00",
+      "duration_s": 0.47,
+      "date": "2026-10-23T14:21:26+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "json bytes 4844890 sha256 A1B692377DD58F344FD6469A660BC745FEADA98F0F17392B383C4C9E02BA58FB\nPERFPROOF {\"value\": 1.838775E-06}"
+      "output_tail": "json bytes 4844890 sha256 A1B692377DD58F344FD6469A660BC745FEADA98F0F17392B383C4C9E02BA58FB\nPERFPROOF {\"value\": 1.46227E-06}"
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
       "exit_code": 0,
       "duration_s": 0.01,
-      "date": "2026-10-22T22:17:01+00:00",
+      "date": "2026-10-23T14:21:26+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalJson/EvalJson.csproj",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalJson/EvalJson.csproj",
       "exit_code": 0,
-      "duration_s": 5.65,
-      "date": "2026-10-22T22:17:01+00:00",
+      "duration_s": 2.34,
+      "date": "2026-10-23T14:21:26+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/EvalJson/EvalJson.csproj (in 76 ms).\n  Restored /src/src/Serilog/Serilog.csproj (in 698 ms).\n  Serilog -> /src/src/Serilog/bin/Release/net10.0/Serilog.dll\n  EvalJson -> /src/EvalJson/bin/Release/net10.0/EvalJson.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:04.98"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/reference/EvalJson/EvalJson.csproj (in 37 ms).\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/reference/src/Serilog/Serilog.csproj (in 52 ms).\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/reference/src/Serilog/bin/Release/net10.0/Serilog.dll\n  EvalJson -> eval/mine/work/serilog-serilog-pr2215-landed/reference/EvalJson/bin/Release/net10.0/EvalJson.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.23\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "oracle",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false --filter \"FullyQualifiedName~JsonFormatter\"",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~JsonFormatter\"",
       "exit_code": 0,
-      "duration_s": 9.58,
-      "date": "2026-10-22T22:17:06+00:00",
+      "duration_s": 4.51,
+      "date": "2026-10-23T14:21:29+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/src/Serilog/Serilog.csproj (in 169 ms).\n  Restored /src/test/TestDummies/TestDummies.csproj (in 169 ms).\n  Restored /src/test/Serilog.Tests/Serilog.Tests.csproj (in 173 ms).\n  Serilog -> /src/src/Serilog/bin/Debug/net10.0/Serilog.dll\n  Serilog -> /src/src/Serilog/bin/Debug/netstandard2.0/Serilog.dll\n  TestDummies -> /src/test/TestDummies/bin/Debug/netstandard2.0/TestDummies.dll\n  Serilog.Tests -> /src/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll\nTest run for /src/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll (.NETCoreApp,Version=v10.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    24, Skipped:     0, Total:    24, Duration: 135 ms - Serilog.Tests.dll (net10.0)"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/reference/test/TestDummies/TestDummies.csproj (in 60 ms).\n  Restored eval/mine/work/serilog-serilog-pr2215-landed/reference/test/Serilog.Tests/Serilog.Tests.csproj (in 60 ms).\n  1 of 3 projects are up-to-date for restore.\n\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/reference/src/Serilog/bin/Debug/net10.0/Serilog.dll\n  Serilog -> eval/mine/work/serilog-serilog-pr2215-landed/reference/src/Serilog/bin/Debug/netstandard2.0/Serilog.dll\n  TestDummies -> eval/mine/work/serilog-serilog-pr2215-landed/reference/test/TestDummies/bin/Debug/netstandard2.0/TestDummies.dll\n  Serilog.Tests -> eval/mine/work/serilog-serilog-pr2215-landed/reference/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll\nTest run for eval/mine/work/serilog-serilog-pr2215-landed/reference/test/Serilog.Tests/bin/Debug/net10.0/Serilog.Tests.dll (.NETCoreApp,Version=v10.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    24, Skipped:     0, Total:    24, Duration: 62 ms - Serilog.Tests.dll (net10.0)\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "workload",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
       "exit_code": 0,
-      "duration_s": 1.17,
-      "date": "2026-10-22T22:17:16+00:00",
+      "duration_s": 0.35,
+      "date": "2026-10-23T14:21:33+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "json bytes 4844890 sha256 A1B692377DD58F344FD6469A660BC745FEADA98F0F17392B383C4C9E02BA58FB\nPERFPROOF {\"value\": 2.02065E-07}"
+      "output_tail": "json bytes 4844890 sha256 A1B692377DD58F344FD6469A660BC745FEADA98F0F17392B383C4C9E02BA58FB\nPERFPROOF {\"value\": 1.133375E-06}"
     }
   ],
   "split": "development",

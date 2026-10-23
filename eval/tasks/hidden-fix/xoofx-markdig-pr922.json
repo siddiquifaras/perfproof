@@ -30,12 +30,12 @@
   "change_kind": "improvement",
   "target_class": "dotnet",
   "workload": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
+    "command": "dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
     "source": "written here from the description of https://github.com/xoofx/markdig/pull/922 (PipeTableParser): a .NET program that parses one pipe table of 600 rows to HTML (eval/tasks/workloads/xoofx-markdig-pr922/EvalPipeTable), copied into the tree",
     "verified": true
   },
   "oracle": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~PipeTable\"",
+    "command": "dotnet test src/Markdig.Tests -f net9.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~PipeTable\"",
     "source": "Markdig's pipe table tests (the pull request changes no test file; the tests cover PipeTableParser); targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
     "verified": true
   },
@@ -47,87 +47,87 @@
   ],
   "audit": null,
   "status": "runs",
-  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Runs natively with the .NET SDK 10.0.402 that the eval user has in ~/.local/dotnet (docs/evaluation.md, T3.8), so the runtime gate identifies it. Under the sandbox profile MSBuild hung for ten minutes and then failed with no error with its default worker nodes and shared compiler server (the cause is not isolated, and neither is which of the three flags below is the one that matters; the same build takes about a second outside the profile), so every dotnet build and test here passes -m:1 -nodeReuse:false -p:UseSharedCompilation=false. NuGet packages come from the local feed ~/.local/dotnet/nuget-feed (a confined restore could not reach nuget.org: bad certificate format; the cause is inferred, not isolated)",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
-      "command": "cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
       "exit_code": 0,
       "duration_s": 0.01,
-      "date": "2026-10-22T22:14:30+00:00",
+      "date": "2026-10-23T14:20:38+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalPipeTable/EvalPipeTable.csproj",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalPipeTable/EvalPipeTable.csproj",
       "exit_code": 0,
-      "duration_s": 7.34,
-      "date": "2026-10-22T22:14:30+00:00",
+      "duration_s": 4.09,
+      "date": "2026-10-23T14:20:38+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/EvalPipeTable/EvalPipeTable.csproj (in 64 ms).\n  Restored /src/src/Markdig/Markdig.csproj (in 1.53 sec).\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> /src/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalPipeTable -> /src/EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    1 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:06.60"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/xoofx-markdig-pr922/task/EvalPipeTable/EvalPipeTable.csproj (in 43 ms).\n  Restored eval/mine/work/xoofx-markdig-pr922/task/src/Markdig/Markdig.csproj (in 468 ms).\nMinVer : warning MINVER1001: 'eval/mine/work/xoofx-markdig-pr922/task/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [eval/mine/work/xoofx-markdig-pr922/task/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> eval/mine/work/xoofx-markdig-pr922/task/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalPipeTable -> eval/mine/work/xoofx-markdig-pr922/task/EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: 'eval/mine/work/xoofx-markdig-pr922/task/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [eval/mine/work/xoofx-markdig-pr922/task/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    1 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.86\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "oracle",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~PipeTable\"",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet test src/Markdig.Tests -f net9.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~PipeTable\"",
       "exit_code": 0,
-      "duration_s": 6.83,
-      "date": "2026-10-22T22:14:37+00:00",
+      "duration_s": 4.99,
+      "date": "2026-10-23T14:20:42+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "  Generating spec Globalization to /src/src/Markdig.Tests/Specs/GlobalizationSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to /src/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1542 spec tests in total\n  Markdig.Tests -> /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 75 ms - Markdig.Tests.dll (net9.0)"
+      "output_tail": "  Spec changed eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1542 spec tests in total\n  Markdig.Tests -> eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for eval/mine/work/xoofx-markdig-pr922/task/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 60 ms - Markdig.Tests.dll (net9.0)\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "workload",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
       "exit_code": 0,
-      "duration_s": 1.15,
-      "date": "2026-10-22T22:14:44+00:00",
+      "duration_s": 0.49,
+      "date": "2026-10-23T14:20:47+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "html bytes 61533 sha256 181180033D949D154EEDF4B4141B4AB7A78D58EBDB9F4B37F6009B6C626057EB\nPERFPROOF {\"value\": 0.0658013}"
+      "output_tail": "html bytes 61533 sha256 181180033D949D154EEDF4B4141B4AB7A78D58EBDB9F4B37F6009B6C626057EB\nPERFPROOF {\"value\": 0.0487645}"
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
       "exit_code": 0,
-      "duration_s": 0.0,
-      "date": "2026-10-22T22:14:45+00:00",
+      "duration_s": 0.01,
+      "date": "2026-10-23T14:20:47+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalPipeTable/EvalPipeTable.csproj",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalPipeTable/EvalPipeTable.csproj",
       "exit_code": 0,
-      "duration_s": 5.66,
-      "date": "2026-10-22T22:14:45+00:00",
+      "duration_s": 3.13,
+      "date": "2026-10-23T14:20:47+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Determining projects to restore...\n  Restored /src/EvalPipeTable/EvalPipeTable.csproj (in 106 ms).\n  Restored /src/src/Markdig/Markdig.csproj (in 769 ms).\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> /src/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalPipeTable -> /src/EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: '/src/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [/src/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    1 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:04.99"
+      "output_tail": "Determining projects to restore...\n  Restored eval/mine/work/xoofx-markdig-pr922/reference/EvalPipeTable/EvalPipeTable.csproj (in 41 ms).\n  Restored eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig/Markdig.csproj (in 53 ms).\nMinVer : warning MINVER1001: 'eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n  Markdig -> eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig/bin/Release/net9.0/Markdig.dll\n  EvalPipeTable -> eval/mine/work/xoofx-markdig-pr922/reference/EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll\n\nBuild succeeded.\n\nMinVer : warning MINVER1001: 'eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig' is not a valid Git working directory. Using default version 0.0.0-alpha.0. [eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig/Markdig.csproj::TargetFramework=net9.0]\n    1 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.95\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "oracle",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~PipeTable\"",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet test src/Markdig.Tests -f net9.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~PipeTable\"",
       "exit_code": 0,
-      "duration_s": 7.9,
-      "date": "2026-10-22T22:14:51+00:00",
+      "duration_s": 4.44,
+      "date": "2026-10-23T14:20:50+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "  Generating spec Globalization to /src/src/Markdig.Tests/Specs/GlobalizationSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to /src/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed /src/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to /src/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to /src/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to /src/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1542 spec tests in total\n  Markdig.Tests -> /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for /src/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 105 ms - Markdig.Tests.dll (net9.0)"
+      "output_tail": "  Spec changed eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.md. Need to regenerate\n  Generating spec Figures, Footers and Cites to eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/Specs/FigureFooterAndCiteSpecs.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/NormalizeSpecs/Headings.md. Need to regenerate\n  Generating spec Headings to eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/NormalizeSpecs/Headings.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.md. Need to regenerate\n  Generating spec Sample to eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/PlainTextSpecs/SamplePlainText.generated.cs...\n  Spec changed eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/RoundtripSpecs/CommonMark.md. Need to regenerate\n  Generating spec Roundtrip to eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/RoundtripSpecs/CommonMark.generated.cs...\n  There are 1542 spec tests in total\n  Markdig.Tests -> eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll\nTest run for eval/mine/work/xoofx-markdig-pr922/reference/src/Markdig.Tests/bin/Debug/net9.0/Markdig.Tests.dll (.NETCoreApp,Version=v9.0)\nA total of 1 test files matched the specified pattern.\n\nPassed!  - Failed:     0, Passed:    75, Skipped:     0, Total:    75, Duration: 58 ms - Markdig.Tests.dll (net9.0)\nCSSM_ModuleLoad(): One or more parameters passed to a function were not valid."
     },
     {
       "step": "workload",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
+      "command": "DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROLL_FORWARD=Major dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
       "exit_code": 0,
-      "duration_s": 0.63,
-      "date": "2026-10-22T22:14:59+00:00",
+      "duration_s": 0.17,
+      "date": "2026-10-23T14:20:55+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "html bytes 61533 sha256 181180033D949D154EEDF4B4141B4AB7A78D58EBDB9F4B37F6009B6C626057EB\nPERFPROOF {\"value\": 0.0256391}"
+      "output_tail": "html bytes 61533 sha256 181180033D949D154EEDF4B4141B4AB7A78D58EBDB9F4B37F6009B6C626057EB\nPERFPROOF {\"value\": 0.0111218}"
     }
   ],
   "split": "development",

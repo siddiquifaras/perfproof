@@ -1432,6 +1432,7 @@ def test_the_agent_cannot_swap_what_the_harness_manages(
 ) -> None:
     real = tmp_path / "realhome"
     (real / ".rustup").mkdir(parents=True)
+    (real / ".local" / "dotnet" / "nuget-feed").mkdir(parents=True)
     monkeypatch.setattr(Path, "home", lambda: real)
     scratch = tmp_path / "work" / "sandbox" / "t"
     home = Path(sandbox.private_env(scratch / "private")["HOME"])
@@ -1463,15 +1464,25 @@ def test_the_agent_cannot_swap_what_the_harness_manages(
         f'mv "{scratch / "private"}" "{scratch / "private"}2"',
         f'rm "{home}/.rustup"',
         f'ln -sfn "{tmp_path}" "{home}/.rustup"',
+        f'mv "{home}/.nuget" "{home}/.nuget.old"',
+        f'rm -rf "{home}/.nuget"',
+        f'mv "{home}/.nuget/NuGet" "{home}/.nuget/NuGet.old"',
+        f'echo x > "{home}/.nuget/NuGet/NuGet.Config"',
     ):
         done = confined(script)
         assert done.returncode != 0, script
     assert (home / ".mavenrc").read_text() == sandbox._MAVENRC  # pyright: ignore[reportPrivateUsage]
     assert (home / ".rustup").readlink() == real / ".rustup"
+    assert not (home / ".nuget").is_symlink()
+    assert (
+        "perfproof-eval"
+        in (home / ".nuget" / "NuGet" / "NuGet.Config").read_text()
+    )
     # The rest of the private home stays writable, uv's own directory
     # (where it downloads an interpreter) included.
     ok = confined(
         f'mkdir -p "{home}/.local/share/uv/python/x" "{home}/.cache" '
+        f'"{home}/.nuget/packages/p" '
         f'&& echo y > "{home}/notes" && mv "{home}/notes" "{home}/n2"'
     )
     assert ok.returncode == 0, ok.stderr
@@ -1522,6 +1533,34 @@ def test_the_private_files_are_not_written_through_a_planted_link(
     assert secret.read_text() == "keep"
     assert not (home / ".mavenrc").is_symlink()
     assert "user.home" in (home / ".mavenrc").read_text()
+
+
+def test_nuget_uses_only_the_eval_users_local_feed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = tmp_path / "realhome"
+    real.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: real)
+    monkeypatch.setattr(sandbox, "TAMPERED", [])
+    config = Path("home/.nuget/NuGet/NuGet.Config")
+    # Without the feed (the owner's home) NuGet keeps its defaults.
+    first = sandbox.private_env(tmp_path / "a")
+    assert not (Path(first["HOME"]).parent / config).exists()
+    feed = real / ".local" / "dotnet" / "nuget-feed"
+    feed.mkdir(parents=True)
+    env = sandbox.private_env(tmp_path / "b")
+    written = Path(env["HOME"]) / ".nuget" / "NuGet" / "NuGet.Config"
+    text = written.read_text(encoding="utf-8")
+    assert "<clear />" in text
+    assert f'value="{feed}"' in text
+    assert text.count("<add ") == 1, "nuget.org must not be a source"
+    # The agent swaps the file for a link; the next call restores it.
+    written.unlink()
+    written.symlink_to(tmp_path / "elsewhere")
+    sandbox.private_env(tmp_path / "b")
+    assert not written.is_symlink()
+    assert f'value="{feed}"' in written.read_text(encoding="utf-8")
+    assert any("NuGet.Config" in m for m in sandbox.TAMPERED)
 
 
 def test_a_run_stopped_by_the_sign_in_is_scored_and_archived(

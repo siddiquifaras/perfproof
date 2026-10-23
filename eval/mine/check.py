@@ -514,8 +514,11 @@ def check(task: Task, spec: dict[str, Any]) -> Task:
         (shell lines), and optional ``env`` (extra environment
         variables, recorded as a prefix on every command line),
         ``oracle_task_tree`` (bool, whether the oracle must also pass at
-        the task commit), ``workload_source``, ``oracle_source`` and
-        ``notes``.
+        the task commit), ``private_home`` (bool: run every command
+        with ``HOME`` set to ``eval/mine/work/<id>/home``, for a setup
+        that writes a user-level config such as ``bundle config set
+        --global``, so it never touches the real home),
+        ``workload_source``, ``oracle_source`` and ``notes``.
 
     Returns
     -------
@@ -566,6 +569,10 @@ def check(task: Task, spec: dict[str, Any]) -> Task:
         for tree, path in cast(dict[Tree, Path], trees).items():
             tree_env = dict(env, VIRTUAL_ENV=str(path / ".venv"))
             tree_env["PATH"] = f"{path / '.venv' / 'bin'}:{env['PATH']}"
+            if spec.get("private_home"):
+                home = WORK / task.id / "home"
+                home.mkdir(parents=True, exist_ok=True)
+                tree_env["HOME"] = str(home)
             setup_ok = True
             for line in spec["setup"]:
                 run = record(_run("setup", tree, line, path, tree_env))

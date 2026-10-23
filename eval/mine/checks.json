@@ -345,13 +345,16 @@
   "labstack-echo-pr3023": {
     "setup": [
       "cp ../../../../tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go .",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-setup1 -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ ."
+      "go test -count 1 -run ^$ ."
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-workload -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
-    "workload_source": "written here from the description of https://github.com/labstack/echo/pull/3023 (BenchmarkBind_JSON): a Go benchmark that binds a JSON body through ServeHTTP, eval/tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go, copied into the tree; it runs in the official golang:1.25 image",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-labstack-echo-pr3023-oracle -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/pkg/mod -w /src golang:1.25 go test -count 1 -run Bind|JSON .",
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalBindJSON$ -benchtime 200000x .",
+    "workload_source": "written here from the description of https://github.com/labstack/echo/pull/3023 (BenchmarkBind_JSON): a Go benchmark that binds a JSON body through ServeHTTP, eval/tasks/workloads/labstack-echo-pr3023/eval_bind_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 -run Bind|JSON .",
     "oracle_source": "echo's bind and JSON tests (bind_test.go and json_test.go are changed by https://github.com/labstack/echo/pull/3023); targeted tests only",
-    "notes": "Go is not installed here, so Go runs in the official golang image under Docker (a linux/arm64 VM on this Mac), with GOTOOLCHAIN=local and a shared module cache volume"
+    "notes": "Needs native Go on the PATH (tested with go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
   },
   "sharkdp-fd-pr853": {
     "setup": [
@@ -555,36 +558,51 @@
   },
   "rails-rails-pr58751-landed": {
     "setup": [
-      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+      "bundle config set --global without rubocop:mdl:doc:job:cable:storage:db",
+      "sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
+      "bundle install"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/time'; t = Time.utc(2026, 1, 1).in_time_zone('Eastern Time (US & Canada)'); 300_000.times { t.xmlschema; t.to_s; ActiveSupport::TimeZone.seconds_to_utc_offset(-18000) }\"",
+    "workload": "bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; require 'active_support/time'; t = Time.utc(2026, 1, 1).in_time_zone('Eastern Time (US & Canada)'); 300_000.times { t.xmlschema; t.to_s; ActiveSupport::TimeZone.seconds_to_utc_offset(-18000) }\"",
     "workload_source": "adapted from the benchmark-ips script in the description of https://github.com/rails/rails/pull/58751 (TimeWithZone#xmlschema and #to_s on a non-UTC zone, and TimeZone.seconds_to_utc_offset, under YJIT)",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58751-landed-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/time_with_zone_test'; require './test/time_zone_test'\"",
+    "oracle": "bundle exec ruby -C activesupport -Itest -e \"require './test/core_ext/time_with_zone_test'; require './test/time_zone_test'\"",
     "oracle_source": "Active Support's TimeWithZone and TimeZone tests (both changed by https://github.com/rails/rails/pull/58751); targeted tests only",
-    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+    "notes": "Runs natively with CRuby 4.0.9 and Bundler 4.0.20 that the eval user has in ~/.local/ruby (docs/evaluation.md, T3.8), so the runtime gate identifies it. Gems are the tree's Gemfile.lock, installed into $HOME/.bundle-gems (the tree's HOME, set in bundler's global config), without the rubocop, mdl, doc, job, cable, storage and db groups (the db group builds pg, mysql2 and trilogy, which need client libraries this Mac does not have, and Active Support does not use them). The commands start in the tree root, so Ruby changes into activesupport itself (ruby -C) where the Docker form used -w /src/activesupport. The sqlite3 gem is built against the SDK's sqlite (BUNDLE_BUILD__SQLITE3=--enable-system-libraries): bundler did not pick the lockfile's prebuilt arm64-darwin gem for Ruby 4.0.9, and the source build with the gem's own sqlite stopped for want of pkg-config, which this Mac does not have. check.py runs these with a private HOME (private_home) because the setup writes bundler's global config",
+    "env": {
+      "BUNDLE_BUILD__SQLITE3": "--enable-system-libraries"
+    },
+    "private_home": true
   },
   "rails-rails-pr58964": {
     "setup": [
-      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+      "bundle config set --global without rubocop:mdl:doc:job:cable:storage:db",
+      "sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
+      "bundle install"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
+    "workload": "bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; s = Object.new; def s.emit(event) = nil; r = ActiveSupport::EventReporter.new(s); 300_000.times { |i| r.notify('eval.event', id: i, name: 'x', ok: true, n: 3) }\"",
     "workload_source": "written here from the description of https://github.com/rails/rails/pull/58964 (EventReporter#notify on every structured event, measured there under YJIT): 300,000 notify calls with a four-key payload to one subscriber",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr58964-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
+    "oracle": "bundle exec ruby -C activesupport -Itest -e \"require './test/event_reporter_test'; require './test/event_reporter/log_subscriber_test'\"",
     "oracle_source": "Active Support's EventReporter and its LogSubscriber tests (the latter changed by https://github.com/rails/rails/pull/58964); targeted tests only",
-    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+    "notes": "Runs natively with CRuby 4.0.9 and Bundler 4.0.20 that the eval user has in ~/.local/ruby (docs/evaluation.md, T3.8), so the runtime gate identifies it. Gems are the tree's Gemfile.lock, installed into $HOME/.bundle-gems (the tree's HOME, set in bundler's global config), without the rubocop, mdl, doc, job, cable, storage and db groups (the db group builds pg, mysql2 and trilogy, which need client libraries this Mac does not have, and Active Support does not use them). The commands start in the tree root, so Ruby changes into activesupport itself (ruby -C) where the Docker form used -w /src/activesupport. The sqlite3 gem is built against the SDK's sqlite (BUNDLE_BUILD__SQLITE3=--enable-system-libraries): bundler did not pick the lockfile's prebuilt arm64-darwin gem for Ruby 4.0.9, and the source build with the gem's own sqlite stopped for want of pkg-config, which this Mac does not have. check.py runs these with a private HOME (private_home) because the setup writes bundler's global config",
+    "env": {
+      "BUNDLE_BUILD__SQLITE3": "--enable-system-libraries"
+    },
+    "private_home": true
   },
   "rails-rails-pr59030": {
     "setup": [
-      "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install"
+      "bundle config set --global without rubocop:mdl:doc:job:cable:storage:db",
+      "sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
+      "bundle install"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
+    "workload": "bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
     "workload_source": "adapted from the benchmark-ips script in the description of https://github.com/rails/rails/pull/59030 (String#blank? on whitespace-only and short ASCII strings, the inputs it reports as faster, under YJIT): 200,000 passes over four strings",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/object/blank_test'\"",
+    "oracle": "bundle exec ruby -C activesupport -Itest -e \"require './test/core_ext/object/blank_test'\"",
     "oracle_source": "Active Support's blank? tests (test/core_ext/object/blank_test.rb covers the file https://github.com/rails/rails/pull/59030 changes); targeted tests only",
-    "notes": "Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups"
+    "notes": "Runs natively with CRuby 4.0.9 and Bundler 4.0.20 that the eval user has in ~/.local/ruby (docs/evaluation.md, T3.8), so the runtime gate identifies it. Gems are the tree's Gemfile.lock, installed into $HOME/.bundle-gems (the tree's HOME, set in bundler's global config), without the rubocop, mdl, doc, job, cable, storage and db groups (the db group builds pg, mysql2 and trilogy, which need client libraries this Mac does not have, and Active Support does not use them). The commands start in the tree root, so Ruby changes into activesupport itself (ruby -C) where the Docker form used -w /src/activesupport. The sqlite3 gem is built against the SDK's sqlite (BUNDLE_BUILD__SQLITE3=--enable-system-libraries): bundler did not pick the lockfile's prebuilt arm64-darwin gem for Ruby 4.0.9, and the source build with the gem's own sqlite stopped for want of pkg-config, which this Mac does not have. check.py runs these with a private HOME (private_home) because the setup writes bundler's global config",
+    "env": {
+      "BUNDLE_BUILD__SQLITE3": "--enable-system-libraries"
+    },
+    "private_home": true
   },
   "run-llama-llama-index-pr18289": {
     "setup": [
@@ -778,35 +796,49 @@
   "xoofx-markdig-pr922": {
     "setup": [
       "cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalPipeTable/EvalPipeTable.csproj"
+      "dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalPipeTable/EvalPipeTable.csproj"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
+    "workload": "dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
     "workload_source": "written here from the description of https://github.com/xoofx/markdig/pull/922 (PipeTableParser): a .NET program that parses one pipe table of 600 rows to HTML (eval/tasks/workloads/xoofx-markdig-pr922/EvalPipeTable), copied into the tree",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr922-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~PipeTable\"",
+    "oracle": "dotnet test src/Markdig.Tests -f net9.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~PipeTable\"",
     "oracle_source": "Markdig's pipe table tests (the pull request changes no test file; the tests cover PipeTableParser); targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
-    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
+    "notes": "Runs natively with the .NET SDK 10.0.402 that the eval user has in ~/.local/dotnet (docs/evaluation.md, T3.8), so the runtime gate identifies it. Under the sandbox profile MSBuild hung for ten minutes and then failed with no error with its default worker nodes and shared compiler server (the cause is not isolated, and neither is which of the three flags below is the one that matters; the same build takes about a second outside the profile), so every dotnet build and test here passes -m:1 -nodeReuse:false -p:UseSharedCompilation=false. NuGet packages come from the local feed ~/.local/dotnet/nuget-feed (a confined restore could not reach nuget.org: bad certificate format; the cause is inferred, not isolated)",
+    "env": {
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+      "DOTNET_NOLOGO": "1",
+      "DOTNET_ROLL_FORWARD": "Major"
+    }
   },
   "xoofx-markdig-pr866": {
     "setup": [
       "cp -r ../../../../tasks/workloads/xoofx-markdig-pr866/EvalAlerts .",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalAlerts/EvalAlerts.csproj"
+      "dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalAlerts/EvalAlerts.csproj"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
+    "workload": "dotnet EvalAlerts/bin/Release/net10.0/EvalAlerts.dll",
     "workload_source": "written here from the description of https://github.com/xoofx/markdig/pull/866 (AlertInlineParser): a .NET program that parses a document of 120 paragraphs with three links each and ten alert blocks, 200 parses an iteration (eval/tasks/workloads/xoofx-markdig-pr866/EvalAlerts), copied into the tree",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-xoofx-markdig-pr866-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e DOTNET_ROLL_FORWARD=Major -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test src/Markdig.Tests -f net9.0 -nologo --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
+    "oracle": "dotnet test src/Markdig.Tests -f net9.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~Alert|FullyQualifiedName~Quote\"",
     "oracle_source": "Markdig's alert block spec tests and quote block tests, which cover the files https://github.com/xoofx/markdig/pull/866 changes; targeted tests only, built for net9.0 and run on the .NET 10 runtime through DOTNET_ROLL_FORWARD=Major",
-    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
+    "notes": "Runs natively with the .NET SDK 10.0.402 that the eval user has in ~/.local/dotnet (docs/evaluation.md, T3.8), so the runtime gate identifies it. Under the sandbox profile MSBuild hung for ten minutes and then failed with no error with its default worker nodes and shared compiler server (the cause is not isolated, and neither is which of the three flags below is the one that matters; the same build takes about a second outside the profile), so every dotnet build and test here passes -m:1 -nodeReuse:false -p:UseSharedCompilation=false. NuGet packages come from the local feed ~/.local/dotnet/nuget-feed (a confined restore could not reach nuget.org: bad certificate format; the cause is inferred, not isolated)",
+    "env": {
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+      "DOTNET_NOLOGO": "1",
+      "DOTNET_ROLL_FORWARD": "Major"
+    }
   },
   "serilog-serilog-pr2215-landed": {
     "setup": [
       "cp -r ../../../../tasks/workloads/serilog-serilog-pr2215-landed/EvalJson .",
-      "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-setup0 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet build -c Release -nologo EvalJson/EvalJson.csproj"
+      "dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalJson/EvalJson.csproj"
     ],
-    "workload": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-workload -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
+    "workload": "dotnet EvalJson/bin/Release/net10.0/EvalJson.dll",
     "workload_source": "written here from the description of https://github.com/serilog/serilog/pull/2215 (JsonFormatter): a .NET program that formats 20,000 events carrying trace and span ids to JSON (eval/tasks/workloads/serilog-serilog-pr2215-landed/EvalJson), copied into the tree, run on the tree where the change is already in",
-    "oracle": "docker run --rm --init --stop-timeout 10 --name perfproof-serilog-serilog-pr2215-landed-oracle -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v .:/src -v perfproof-nuget:/root/.nuget/packages -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false --filter \"FullyQualifiedName~JsonFormatter\"",
+    "oracle": "dotnet test test/Serilog.Tests -f net10.0 -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false --filter \"FullyQualifiedName~JsonFormatter\"",
     "oracle_source": "Serilog's JsonFormatter tests (JsonFormatterTests.cs is changed by https://github.com/serilog/serilog/pull/2215); targeted tests only",
-    "notes": "Needs Docker: the .NET SDK is not installed here, so it runs in the official mcr.microsoft.com/dotnet/sdk:10.0 image (a linux/arm64 VM on this Mac), with NuGet packages in the perfproof-nuget volume. dotnet in a container is a launcher, so the runtime gate reports runtime not_available for these commands and no KEEP is possible until .NET runs natively"
+    "notes": "Runs natively with the .NET SDK 10.0.402 that the eval user has in ~/.local/dotnet (docs/evaluation.md, T3.8), so the runtime gate identifies it. Under the sandbox profile MSBuild hung for ten minutes and then failed with no error with its default worker nodes and shared compiler server (the cause is not isolated, and neither is which of the three flags below is the one that matters; the same build takes about a second outside the profile), so every dotnet build and test here passes -m:1 -nodeReuse:false -p:UseSharedCompilation=false. NuGet packages come from the local feed ~/.local/dotnet/nuget-feed (a confined restore could not reach nuget.org: bad certificate format; the cause is inferred, not isolated)",
+    "env": {
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+      "DOTNET_NOLOGO": "1"
+    }
   },
   "lz4-lz4-pr1040": {
     "setup": [

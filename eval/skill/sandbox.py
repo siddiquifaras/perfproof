@@ -35,6 +35,7 @@ import urllib.parse
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
+from xml.sax.saxutils import escape
 
 TOKEN_FILE_ENV = "PERFPROOF_EVAL_TOKEN_FILE"  # noqa: S105
 """Names the file with the eval user's sign-in (a path, not a secret).
@@ -104,6 +105,8 @@ _HOME_READ = (
     ".local/share/claude",
     ".local/jdk",
     ".local/go",
+    ".local/dotnet",
+    ".local/ruby",
     ".cargo/bin",
     ".rustup",
     ".nvm",
@@ -260,6 +263,49 @@ def _write_private(home: Path, rel: str, text: str) -> None:
         TAMPERED.append(f"could not write {path}: {exc}")
 
 
+_NUGET_CONFIG = """<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="perfproof-eval" value="{folder}" />
+  </packageSources>
+</configuration>
+"""
+
+
+def _nuget_feed(home: Path, real: Path) -> None:
+    """Point a private home's NuGet at the eval user's package feed.
+
+    A confined ``dotnet restore`` could not reach nuget.org (NuGet:
+    ``bad certificate format``; the cause is inferred to be the
+    Security framework's Mach services, which the profile closes). The
+    NuGet packages of the
+    C# tasks are therefore put in ``~/.local/dotnet/nuget-feed``
+    when the eval user is provisioned
+    (``.claude/local/eval-user-setup.md``), which is also a valid local
+    feed (NuGet's global-packages layout), and the private home's only
+    package source is that folder. A local feed, unlike a fallback
+    folder, also answers floating versions (``8.0.*``). The folder is
+    read-only to the agent. Nothing is written when it does not exist,
+    so ``--no-eval-user`` keeps NuGet's defaults.
+
+    Parameters
+    ----------
+    home : Path
+        The task's private home.
+    real : Path
+        The real home, whose ``.local/dotnet/nuget-feed`` is used.
+    """
+    folder = real / ".local" / "dotnet" / "nuget-feed"
+    if not folder.is_dir():
+        return
+    _write_private(
+        home,
+        ".nuget/NuGet/NuGet.Config",
+        _NUGET_CONFIG.format(folder=escape(str(folder), {'"': "&quot;"})),
+    )
+
+
 def private_env(base: Path) -> dict[str, str]:
     """Give a task its own home directory and temp directory.
 
@@ -298,6 +344,7 @@ def private_env(base: Path) -> dict[str, str]:
     if (real / ".rustup").exists():
         _link(home, ".rustup", real / ".rustup")
     _write_private(home, ".mavenrc", _MAVENRC)
+    _nuget_feed(home, real)
     # zsh writes heredocs under TMPPREFIX (default /tmp/zsh), not in
     # TMPDIR.
     env = {
@@ -883,14 +930,24 @@ def guarded(write: Sequence[Path]) -> list[Path]:
     Returns
     -------
     list of Path
-        The private directory, its ``home``, ``.rustup`` and
-        ``.mavenrc``.
+        The private directory, its ``home``, ``.rustup``,
+        ``.mavenrc`` and the NuGet config (``.nuget``, ``.nuget/NuGet``
+        and its ``NuGet.Config``, written when the feed exists).
     """
     found: list[Path] = []
     for path in write:
         if path.name == "private":
             home = path / "home"
-            found += [path, home, home / ".rustup", home / ".mavenrc"]
+            nuget = home / ".nuget" / "NuGet"
+            found += [
+                path,
+                home,
+                home / ".rustup",
+                home / ".mavenrc",
+                home / ".nuget",
+                nuget,
+                nuget / "NuGet.Config",
+            ]
     return found
 
 

@@ -54,17 +54,18 @@ def test_each_task_names_a_manifest_that_built_and_ran(
     for key in ("workload", "oracle"):
         entry = cast("dict[str, object]", found[key])
         assert entry["verified"] is True
-        assert str(entry["command"]).startswith("docker run ")
+        assert str(entry["command"]).startswith(
+            "bundle " if lang == "ruby" else "dotnet "
+        )
     runs = cast("list[dict[str, object]]", found["runs"])
     steps = {(r["step"], r["tree"]): r["exit_code"] for r in runs}
     for tree in ("task", "reference"):
         assert steps[("workload", tree)] == 0
         assert steps[("oracle", tree)] == 0
-    if lang == "ruby":
-        assert task.repo.shim == "ruby"
-    else:
-        assert task.repo.shim is None
-        assert task.repo.requires == ["dotnet"]
+    assert task.repo.shim is None
+    assert task.repo.requires == (
+        ["ruby", "bundle"] if lang == "ruby" else ["dotnet"]
+    )
 
 
 @pytest.mark.parametrize(("lang", "task"), ALL, ids=lambda v: str(v))

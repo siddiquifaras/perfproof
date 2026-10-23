@@ -21,12 +21,12 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
+    "command": "bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
     "source": "adapted from the benchmark-ips script in the description of https://github.com/rails/rails/pull/59030 (String#blank? on whitespace-only and short ASCII strings, the inputs it reports as faster, under YJIT): 200,000 passes over four strings",
     "verified": true
   },
   "oracle": {
-    "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/object/blank_test'\"",
+    "command": "bundle exec ruby -C activesupport -Itest -e \"require './test/core_ext/object/blank_test'\"",
     "source": "Active Support's blank? tests (test/core_ext/object/blank_test.rb covers the file https://github.com/rails/rails/pull/59030 changes); targeted tests only",
     "verified": true
   },
@@ -38,85 +38,105 @@
   ],
   "audit": null,
   "status": "runs",
-  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Ruby is not installed here, so it runs under Docker (a linux/arm64 VM on this Mac) in the official ruby:4.0 image plus tzdata-legacy (eval/tasks/workloads/_images/ruby-4.0-tzdata-legacy/Dockerfile): Debian trixie keeps the legacy US/* zone names Active Support's tests use in that package. Gems are the tree's Gemfile.lock (bundler 4.0.12), without the rubocop, mdl, doc, job, cable and storage groups",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Runs natively with CRuby 4.0.9 and Bundler 4.0.20 that the eval user has in ~/.local/ruby (docs/evaluation.md, T3.8), so the runtime gate identifies it. Gems are the tree's Gemfile.lock, installed into $HOME/.bundle-gems (the tree's HOME, set in bundler's global config), without the rubocop, mdl, doc, job, cable, storage and db groups (the db group builds pg, mysql2 and trilogy, which need client libraries this Mac does not have, and Active Support does not use them). The commands start in the tree root, so Ruby changes into activesupport itself (ruby -C) where the Docker form used -w /src/activesupport. The sqlite3 gem is built against the SDK's sqlite (BUNDLE_BUILD__SQLITE3=--enable-system-libraries): bundler did not pick the lockfile's prebuilt arm64-darwin gem for Ruby 4.0.9, and the source build with the gem's own sqlite stopped for want of pkg-config, which this Mac does not have",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
-      "command": "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle config set --global without rubocop:mdl:doc:job:cable:storage:db",
       "exit_code": 0,
-      "duration_s": 0.45,
-      "date": "2026-10-22T21:33:33+00:00",
+      "duration_s": 0.26,
+      "date": "2026-10-23T14:29:05+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "sha256:50939eb1b8b9831c81940582db8360896e650b97de1a220b93fdb3232aecee6d"
+      "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
       "exit_code": 0,
-      "duration_s": 1.13,
-      "date": "2026-10-22T21:33:34+00:00",
+      "duration_s": 0.27,
+      "date": "2026-10-23T14:29:05+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Bundle complete! 82 Gemfile dependencies, 149 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable' and 'storage' were not installed.\nUse `bundle info [gemname]` to see where a bundled gem is installed.\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle install",
+      "exit_code": 0,
+      "duration_s": 0.46,
+      "date": "2026-10-23T14:29:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Bundle complete! 82 Gemfile dependencies, 146 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable', 'storage' and 'db' were not installed.\nBundled gems are installed into `~/eval-work/t38/sandbox/private/home/.bundle-gems`\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
     },
     {
       "step": "oracle",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/object/blank_test'\"",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle exec ruby -C activesupport -Itest -e \"require './test/core_ext/object/blank_test'\"",
       "exit_code": 0,
-      "duration_s": 1.01,
-      "date": "2026-10-22T21:33:35+00:00",
+      "duration_s": 11.66,
+      "date": "2026-10-23T14:29:06+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Running 6 tests in a single process (parallelization threshold is 50)\nRun options: --seed 61714\n\n# Running:\n\n......\n\nFinished in 0.047920s, 125.2096 runs/s, 17591.9419 assertions/s.\n\n6 runs, 843 assertions, 0 failures, 0 errors, 0 skips"
+      "output_tail": "Running 6 tests in a single process (parallelization threshold is 50)\nRun options: --seed 2037\n\n# Running:\n\n......\n\nFinished in 10.967987s, 0.5470 runs/s, 76.8600 assertions/s.\n\n6 runs, 843 assertions, 0 failures, 0 errors, 0 skips"
     },
     {
       "step": "workload",
       "tree": "task",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
       "exit_code": 0,
-      "duration_s": 0.83,
-      "date": "2026-10-22T21:33:36+00:00",
+      "duration_s": 0.57,
+      "date": "2026-10-23T14:29:18+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "docker build -q -t perfproof-ruby-4.0-tzdata-legacy ../../../../tasks/workloads/_images/ruby-4.0-tzdata-legacy",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle config set --global without rubocop:mdl:doc:job:cable:storage:db",
       "exit_code": 0,
-      "duration_s": 0.46,
-      "date": "2026-10-22T21:33:37+00:00",
+      "duration_s": 0.2,
+      "date": "2026-10-23T14:29:18+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "sha256:608f41e91440dbb39240b76c336c2f43d627f49ddca5aec90bcb72db158b77a7"
+      "output_tail": ""
     },
     {
       "step": "setup",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-setup0 -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src perfproof-ruby-4.0-tzdata-legacy bundle install",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
       "exit_code": 0,
-      "duration_s": 1.13,
-      "date": "2026-10-22T21:33:37+00:00",
+      "duration_s": 0.21,
+      "date": "2026-10-23T14:29:18+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Bundle complete! 82 Gemfile dependencies, 149 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable' and 'storage' were not installed.\nUse `bundle info [gemname]` to see where a bundled gem is installed.\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle install",
+      "exit_code": 0,
+      "duration_s": 0.46,
+      "date": "2026-10-23T14:29:19+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Bundle complete! 82 Gemfile dependencies, 146 gems now installed.\nGems in the groups 'rubocop', 'mdl', 'doc', 'job', 'cable', 'storage' and 'db' were not installed.\nBundled gems are installed into `~/eval-work/t38/sandbox/private/home/.bundle-gems`\n1 installed gem you directly depend on is looking for funding.\n  Run `bundle fund` for details"
     },
     {
       "step": "oracle",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-oracle -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby -Itest -e \"require './test/core_ext/object/blank_test'\"",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle exec ruby -C activesupport -Itest -e \"require './test/core_ext/object/blank_test'\"",
       "exit_code": 0,
-      "duration_s": 1.3,
-      "date": "2026-10-22T21:33:38+00:00",
+      "duration_s": 0.82,
+      "date": "2026-10-23T14:29:19+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "Running 6 tests in a single process (parallelization threshold is 50)\nRun options: --seed 29132\n\n# Running:\n\n......\n\nFinished in 0.024275s, 247.1645 runs/s, 34726.6091 assertions/s.\n\n6 runs, 843 assertions, 0 failures, 0 errors, 0 skips"
+      "output_tail": "Running 6 tests in a single process (parallelization threshold is 50)\nRun options: --seed 35679\n\n# Running:\n\n......\n\nFinished in 0.051763s, 115.9129 runs/s, 16285.7640 assertions/s.\n\n6 runs, 843 assertions, 0 failures, 0 errors, 0 skips"
     },
     {
       "step": "workload",
       "tree": "reference",
-      "command": "docker run --rm --init --stop-timeout 10 --name perfproof-rails-rails-pr59030-workload -e BUNDLE_WITHOUT=rubocop:mdl:doc:job:cable:storage -v .:/src -v perfproof-gems:/usr/local/bundle -w /src/activesupport perfproof-ruby-4.0-tzdata-legacy bundle exec ruby --yjit -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
+      "command": "BUNDLE_BUILD__SQLITE3=--enable-system-libraries bundle exec ruby --yjit -C activesupport -Ilib -e \"require 'active_support'; require 'active_support/core_ext/object/blank'; inputs = ['   ', ' ' * 136, ' this is a longer test', \\\"\\\\n\\\"]; 200_000.times { inputs.each { |s| s.blank? } }\"",
       "exit_code": 0,
-      "duration_s": 1.03,
-      "date": "2026-10-22T21:33:40+00:00",
+      "duration_s": 0.55,
+      "date": "2026-10-23T14:29:20+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     }

@@ -173,11 +173,13 @@ repositories built from the development manifests above
 commit from a local cache into a clone with no remote, in a work
 directory outside the perfproof checkout (`--work-root`, default
 `~/.cache/perfproof-eval`), runs
-the manifest's build steps (Go and Ruby through the containers the
-manifests use, with launchers on `PATH`; the agent's own `go` is the
-native one when this machine has it, ahead of any launcher, and the
-task's module cache is filled by `go mod download` before the agent
-starts), installs the skill and sends
+the manifest's build steps (Go, Ruby and .NET natively: the toolchain
+directory of each task's `requires` goes first on `PATH`, from
+`~/.local/go`, `~/.local/ruby` or `~/.local/dotnet` when it is not
+already on `PATH`; a manifest may still name a Docker launcher with
+`shim`, which is run only with `--no-eval-user`; the task's Go module
+cache is filled by `go mod download` before the agent starts),
+installs the skill and sends
 the first message. A task whose toolchain is missing is recorded as
 skipped with the reason, not failed. Only development manifests are
 used, with one addition. A pool candidate drawn into neither split
@@ -223,7 +225,8 @@ a denied binary, and by files nobody had listed.
      the toolchains, `~/.local/bin`, `~/.local/share/uv` (managed
      Pythons), `~/.local/share/claude` (the `claude` install),
      `~/.local/jdk`, `~/.local/go` (without `$GOROOT/go.env`, `go env
-     GOPROXY` is empty and module downloads fail), `~/.cargo/bin`
+     GOPROXY` is empty and module downloads fail), `~/.local/dotnet`,
+     `~/.local/ruby`, `~/.cargo/bin`
      (not its `config.toml` or
      `credentials*`), `~/.rustup`, `~/.nvm`. System paths stay readable.
      Nothing of `~/.claude`, `~/.claude.json`, `~/.ssh`, `~/.config`,
@@ -422,8 +425,9 @@ calls (init, profile, measure, a branch commit, compare), no
 after the private home, private `TMPDIR` and closed
 `/private/var/folders` (`runs/sandbox-e2e-2`), and again after sockets and shared temp were
 closed (`runs/sandbox-e2e-3`). Not exercised under it as eval tasks:
-the JDK, `go` outside Docker, `ruby`, the Docker-backed Go and Ruby
-tasks, and Rust under the private home (`cargo new`, `cargo add` and
+the JDK, Go, Ruby and .NET (only their manifests' commands were run
+behind the profile, see "Native Go, Ruby and .NET"), and Rust under
+the private home (`cargo new`, `cargo add` and
 `cargo build` ran under the profile by hand; no archived record, no
 real repository such as `fd`).
 
@@ -464,8 +468,10 @@ the flag.
   scans, scores and archives into `eval-work/archive/<run>`.
 - `PATH`, `JAVA_HOME` and the toolchains come from `ppeval`'s own
   installs (`~/.local/bin`, `~/.cargo/bin`, Temurin under
-  `~/.local/jdk`, node under `~/.nvm`), set by a launcher that its own
-  shell runs. `sudo` passes the owner's `PATH` through, so the command
+  `~/.local/jdk`, node under `~/.nvm`; Go, Ruby and .NET under
+  `~/.local/go`, `~/.local/ruby` and `~/.local/dotnet` are found by
+  the harness from a task's `requires`, `realrepo.toolchain_dirs`),
+  set by a launcher that its own shell runs. `sudo` passes the owner's `PATH` through, so the command
   is `env -i` plus a short list of names.
 
 *Results come back as data, by copy-out, not a drop directory.* The host
@@ -548,11 +554,87 @@ here; a change made and reverted between two checks is not seen.
 not or timed out; the host's once-per-run probe relies on that.
 
 *Docker.* `ppeval` has no Docker and the owner's Docker sockets are
-closed to it, so the Docker-backed Go and Ruby tasks are recorded in the
-report as skipped, with the reason "skipped: needs docker, not
-available to ppeval", without probing the daemon
-(`realrepo.NEEDS_DOCKER`; `test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user`).
-They still run with `--no-eval-user`.
+closed to it. The Go, Ruby and C# tasks run natively (next
+paragraph), so no task file names a launcher (`shim`) any more. A task
+that did is recorded in the report as skipped, with the reason
+"skipped: needs docker, not available to ppeval", without probing the
+daemon (`realrepo.NEEDS_DOCKER`;
+`test_docker_tasks_are_skipped_with_a_reason_for_the_eval_user`, on a
+task with `shim` set by the test). It would still run with
+`--no-eval-user`.
+
+*Native Go, Ruby and .NET (T3.8, 2026-10-23).* `ppeval` has Go
+1.25.14 in `~/.local/go`, CRuby 4.0.9 (with OpenSSL 3.5.9 and libyaml
+0.2.5 built beside it; Bundler 4.0.20 ships with it) in `~/.local/ruby`
+and the .NET SDK 10.0.402 (host 10.0.13) in `~/.local/dotnet`, each
+checked against the checksum its publisher lists for Go, the .NET SDK,
+CRuby and OpenSSL; libyaml's hash is the one in `rbenv/ruby-build`
+(its release page lists none) and Bundler ships inside the Ruby
+tarball (steps and hashes in
+`.claude/local/eval-user-setup.md`, which is not committed). The
+harness finds them from a task's `requires` (`realrepo.toolchain_dirs`)
+and the profile reads them (`sandbox._HOME_READ`). Running each
+manifest through `eval/mine/check.py` gave status `runs` for
+`labstack-echo-pr3023`, `rails-rails-pr58964`, `pr59030`,
+`pr58751-landed`, `xoofx-markdig-pr922`, `pr866` and
+`serilog-serilog-pr2215-landed`, each with workload and oracle exit 0
+on the task and the reference tree. The committed `check.py` runs
+unconfined; the confinement came from a throwaway driver that wraps
+each setup, oracle and workload command in `sandbox.wrap` (not in the
+repository, like the saved compare records below). Three things
+failed under the profile, found by running the commands under it
+(the errors are observed; the causes marked as such are inferred):
+
+- TLS certificate checks fail in Go and .NET (Go: `x509: OSStatus
+  -26276`; NuGet: `bad certificate format`). Inferred, not shown: they
+  go through the Security framework, whose Mach services the profile
+  closes. Allowing
+  `com.apple.trustd` alone did not help for Go (one probe). A Go
+  task's modules must be downloaded outside the profile before its
+  confined setup runs (`realrepo.prefill_go_modcache` does it, and a
+  `go mod download` runs no code from the repository), and the runner
+  calls it before the setup (`build_real_repo(before_setup=...)`, #87).
+  Run as `ppeval` through that path, the setup of `real-echo-known-change`
+  and of `real-rails-known-change` passed (one run each; the .NET tasks
+  were not run this way). The `check.py` runs above did the download
+  themselves. For .NET the packages of the three C# tasks
+  (both trees of each) were restored once into
+  `~/.local/dotnet/nuget-feed`, a read-only folder in NuGet's
+  global-packages layout, which is also a valid local feed; the
+  private home's `NuGet.Config` names it as the only source
+  (`sandbox._nuget_feed`, written only when the folder exists, so
+  `--no-eval-user` keeps NuGet's defaults). A fallback folder was not
+  enough: markdig pr866 asks for `Microsoft.SourceLink.GitHub 8.0.*`,
+  a floating version, which needs a source. Seeding ran the
+  repositories' own MSBuild evaluation unconfined, once, as `ppeval`
+  on the pinned public commits; a task whose dependencies are not in
+  the feed fails at restore instead of fetching them.
+- `dotnet build` under the profile hung for ten minutes and then
+  failed with no error, until it was run in one process; the
+  manifests pass `-m:1 -nodeReuse:false
+  -p:UseSharedCompilation=false`. The same build takes about a second
+  outside the profile. Which flag matters and why was not isolated
+  (an `MSBuild.rsp` with the same options was not honoured). An agent
+  that runs a bare `dotnet build` under the profile will hit the hang.
+- Ruby needs a bundler path that is not in the Ruby prefix (read-only
+  to the profile): the Rails manifests set bundler's global `path` to
+  `$HOME/.bundle-gems` and its `without` list in the private home, so
+  `bundle exec` finds the gems in every later command, perfproof's
+  included (it passes `HOME`). The `db` gem group is left out too
+  (`pg`, `mysql2` and `trilogy` need client libraries), and `sqlite3`
+  builds against the SDK's sqlite.
+
+Not covered: `ruby -C activesupport` replaces the Docker form's
+`-w /src/activesupport`, so the Ruby workloads are adapted, not the
+same commands. A real `perfproof compare` per language ran as
+`ppeval` on one task tree (task commit as `main`, reference tree as the
+candidate; echo, markdig pr922 and rails pr58964; 20 rounds, two looks,
+each INCONCLUSIVE, which is the point of that run): the `runtime` gate
+passed in all three and named the native `go` (go1.25.14), `dotnet`
+(runtimes 10.0.13) and `ruby` (4.0.9) of `ppeval`'s home. Those
+compares were not run inside the profile. The `coverage` gate was
+`not_available` in all three (the specs declared no coverage command),
+so no KEEP was possible there either.
 
 *Real-repository setup under the profile (T3.8, found in skill round 8).*
 Five defects stopped most real tasks before the agent ran; each is
@@ -737,10 +819,9 @@ beyond `open -g -a`; whether another route into the GUI session exists.
   token, whatever the task tree contains) can be sent anywhere, and
   encoded exfiltration beyond the redacted forms (split, encrypted,
   other encodings) is not caught in transcripts.
-- The Docker daemon, for the Go and Ruby tasks, which keep it: the
-  daemon is unconfined and can bind-mount `/Users`, so those tasks can
-  read the whole disk through a container. Accepted as a residual until
-  the native Go and Ruby work (T5.12, T5.14) removes the need for Docker.
+- The Docker daemon, for a task with a `shim`: it is unconfined and
+  can bind-mount `/Users`. No task file names one now, and the eval
+  user cannot reach the daemon.
 - Build steps (setup commands) run unconfined by the profile with
   `--no-eval-user` (as the owner, clean environment); they execute the
   repository's own build scripts. With the eval user they run behind the
@@ -758,8 +839,9 @@ beyond `open -g -a`; whether another route into the GUI session exists.
 - `sandbox-exec` is deprecated by Apple; the profile language is
   undocumented and may change.
 - The allowlist is only as tight as its entries: `~/.local/bin`,
-  `~/.local/share/{uv,claude}`, `~/.local/jdk`, `~/.local/go`, `~/.cargo/bin`,
-  `~/.rustup` and `~/.nvm` are readable in full.
+  `~/.local/share/{uv,claude}`, `~/.local/jdk`, `~/.local/go`,
+  `~/.local/dotnet`, `~/.local/ruby`, `~/.cargo/bin`, `~/.rustup` and
+  `~/.nvm` are readable in full.
 - Results from before this confinement (`runs/real-3`) came from a
   harness where the agent could read most of the home directory; they
   say nothing about the allowlisted profile.
