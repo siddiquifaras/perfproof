@@ -77,14 +77,21 @@ def run(argv: Sequence[str]) -> int:
     parser.add_argument("--workers", type=int, default=MAX_WORKERS)
     parser.add_argument("--cells", nargs="*", default=["*"])
     parser.add_argument("--procedures", nargs="*", default=list(mc.PROCEDURES))
+    parser.add_argument(
+        "--grid",
+        choices=("main", "heldout", "power", "skew", "cond"),
+        default="main",
+    )
     parser.add_argument("--replications", type=int, default=mc.REPLICATIONS)
     args = parser.parse_args(argv)
     if not 1 <= args.workers <= MAX_WORKERS:
         parser.error(f"--workers must be in [1, {MAX_WORKERS}]")
     seed = mc.calibration_seed()
+    if args.procedures == ["all"]:
+        args.procedures = list(mc.ALL_PROCEDURES)
     names = [
         cell.name
-        for cell in mc.all_cells()
+        for cell in mc.cells_for(args.grid)
         if any(fnmatch.fnmatchcase(cell.name, p) for p in args.cells)
     ]
     out: Path = args.out
@@ -145,6 +152,15 @@ def run(argv: Sequence[str]) -> int:
     return 0
 
 
+def _canonical_order() -> list[str]:
+    """Every cell of every grid, in a fixed order."""
+    return [
+        c.name
+        for grid in ("main", "heldout", "power", "skew", "cond")
+        for c in mc.cells_for(grid)
+    ]
+
+
 def load(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Read a run file: its header and its cells in canonical order."""
     lines = path.read_text().splitlines()
@@ -153,7 +169,7 @@ def load(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         c["cell"]: c
         for c in (cast("dict[str, Any]", json.loads(x)) for x in lines[1:])
     }
-    order = [c.name for c in mc.all_cells()]
+    order = _canonical_order()
     return meta, [cells[n] for n in order if n in cells]
 
 
@@ -193,7 +209,7 @@ def _entries(path: Path, procedure: str) -> tuple[str, list[Entry]]:
             for c in cells
             if procedure in c["procedures"]
         }
-    order = [c.name for c in mc.all_cells()]
+    order = _canonical_order()
     return seed, [found[n] for n in order if n in found]
 
 

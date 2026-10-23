@@ -1932,7 +1932,10 @@ last look it is INCONCLUSIVE. The evidence is under "Calibration
 results", from the run that chose it and a second run at a fresh seed
 that confirmed it.
 
-**Diagnostic gate (T1.8).** Blocks of 6 still under-cover in two
+**Diagnostic gate (T1.8).** *(The stats layer's interval is now `hac_lf`,
+specified under "The T1.11 interval" below, which has no gate; this
+gate and its diagnostics stay what `bench/compare.py` records until the
+schema task.)* Blocks of 6 still under-cover in two
 conditions inside the audit ranges, found by the T1.6 audit and kept
 as development scenarios ("Exposed scenarios"): AR(1) with `rho`
 0.6 to 0.7 and little other noise, where the dependence left between
@@ -2048,7 +2051,10 @@ So in v1:
 `S = exp(E[d])`. It is the standard summary for multiplicative
 performance changes, and it is what the primary procedure targets.
 
-**Primary procedure, fixed in advance.** Batch means. At a look with
+**Primary procedure, fixed in advance.** Batch means, the interval of
+every schedule `compare` does not give to `hac_lf` ("The T1.11
+decision" below: `hac_lf` decides the python_native, web_agentic and
+llm_serving default schedules). At a look with
 `n` observations (rounds on one host, session pairs cross host), the
 log ratios `d` are grouped in consecutive blocks of 6, the mean of `d`
 over each block is one observation, and the interval for `E[d]` is the
@@ -2083,6 +2089,475 @@ not kept for either host mode. The counts are under "Calibration
 results". The Hodges-Lehmann estimate with the Wilcoxon interval and
 the bootstrap of the ratio of medians were run as challengers, lost
 everywhere, and are deleted.
+
+### The T1.11 interval (`hac_lf`)
+
+Decided by the owner after T1.11 phase 1 (PR #57) and the real A/A
+traces of phase 1b. On the three default schedules other than `gpu_kernels` ("The T1.11
+decision") it replaces batch means and the diagnostic gate
+as the interval of a look; the stats layer implements it as procedure
+`hac_lf` (`perfproof.stats.intervals.hac_lf_interval`, driven by
+`run_looks(procedure="hac_lf")`). **Status:** `bench/compare.py` decides
+those schedules with it and records `hac_lf` as the verdict's
+`procedure`; the diagnostics `autocorrelated_rounds` and `outlier_rounds`
+are null there, since it has no gate. The per-look lag-1, its upper
+bound and the limit used are computed (`Look.lag1`, `Look.ucb`,
+`Look.rho_limit`) but not yet in the record; the record's
+`lag1_autocorrelation` is the lag-1 of the log ratios as before.
+`CALIBRATED` stays False.
+
+**Why.** Two measurements. (1) With critical values calibrated for
+independent noise, every HAC, bootstrap or batch-means interval failed
+the acceptance rule in AR(1) scenarios with `rho` 0.6 to 0.7 at 12 to
+60 observations (T1.11 phase 1): the sample holds too little
+information about dependence for any interval to be valid there
+without a wider critical value. (2) On 19 real A/A traces (Hetzner
+Linux, a Linux VM and a Mac, quiet and under steady and bursty load,
+six workloads) the lag-1 autocorrelation of `d` is between -0.09 and
++0.13, and interleaving cancels shared load. The gate, and a critical
+value widened for `rho` 0.7 everywhere, paid a large power cost for a
+dependence the real traces do not show. The design widens in
+proportion to the dependence the run's own data cannot rule out,
+continuously, and never withholds.
+
+**The interval.** At a look with `n >= 12` observations (rounds on one
+host, even; session pairs cross host):
+
+1. `d_i = log r_i`. On one host `u_i = d_i - m_o(i)` where `m_o` is
+   the mean of `d` over the rounds that ran in the same order as round
+   `i` (order centring, as the diagnostics used); cross host `u_i` is
+   `d_i` minus its mean.
+2. The estimate is the mean `d_bar` over all `n` observations.
+3. Its variance is the Newey-West (Bartlett) estimate on `u`:
+   `V = (g_0 + 2 sum_{j=1}^{M-1} (1 - j/M) g_j) / n` with
+   `g_j = sum_{i<=n-j} u_i u_{i+j} / n` and `M = max(2, ceil(0.1 n))`
+   (at most `n - 1`; `ceil` of the IEEE double product `0.1 n`, the
+   form the table was built with), a fixed fraction `b = M / n` of
+   about 0.1. The Bartlett kernel makes `V` non-negative.
+4. `r` is the lag-1 autocorrelation of `u`, `sum u_i u_{i+1} / sum u_i^2`
+   (0 when `u` is all zero), and its **upper confidence bound** is
+   `ucb = r + z sqrt((1 - r^2) / n)` with `z` = `UCB_Z` below, `r`
+   first raised by its rounding bound.
+5. The look's **`rho` limit** is `max(0.3, ucb)` rounded up to the next
+   tabulated limit (0.3, 0.4, ..., 0.9; the largest if `ucb` is above
+   0.9). 0.3 is about twice the largest paired lag-1 seen on a real
+   trace (+0.13).
+6. The interval for `E[d]` is `d_bar -/+ c sqrt(V)`, exponentiated,
+   where `c` is the table's critical value for the look's per-look
+   confidence `1 - alpha / (2K)`, host mode, `n`, `rho` limit and `r`.
+
+Every class of target uses the same rule and the same floor. A class
+with real A/A traces does not get a different table, and a class
+without traces does not get a blanket wider one: the caution comes
+from the run's own `ucb`, which is wide at the small `n` of a short
+run and narrows as rounds accumulate. A machine nobody measured whose
+paired rounds depend on each other is caught by its own data, as early
+as `n` allows, and widens the interval continuously. Nothing is
+withheld: the look is decided on the interval it computed, and the
+look records `r`, `ucb` and the limit it used.
+
+There is no outlier diagnostic and no robust centre: the estimand
+stays `exp(E[d])`, and heavy tails and outliers cost power through `V`
+and `c` rather than a withheld look. (A Huber centre was far more
+powerful under symmetric outliers in phase 1 but targets the centre of
+symmetry of `d`, not `E[d]`: under one-arm skew, and on the real
+`linux-membership` trace, it fails the acceptance rule. It stays
+out.) The covariate adjustment of phase 1 is not in the procedure: the
+recorded load was identical for the two runs of every pair in every
+real trace, so it had nothing to adjust.
+
+**The critical-value table.** For each host mode, look length `n` in
+a set of tabulated lengths (12 to 30 in steps of 2, then 36, 42, 48,
+54, 60, 72, 84, 96, 108, 120), per-look confidence for
+`K` in 1, 2, 3, 4, 6, 8 and 12 looks (`1 - 0.05 / (2K)`), `rho` limit
+and bin of the sample lag-1 (bins of width 0.1 from -0.5 to 0.9, open
+ended, 16 in all):
+
+- Draws: AR(1) Gaussian noise with unit variance, `rho` in
+  `{0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}`
+  with the design's order structure (balanced order pairs, a coin per
+  pair, one host; one group cross host), `N` draws per `rho`, a fixed
+  seed. Per draw the pivot `|d_bar| / sqrt(V)` (true `E[d] = 0`) and
+  `r`.
+- A value vector `c_b` (one per bin) is **valid for a limit** when, for
+  every `rho` in the grid up to the limit, the unconditional share of
+  draws with pivot above `c_{bin(r)}` is at most `1 - confidence`: the
+  interval is valid at its own `n` for every such `rho`, which is the
+  condition the argument under "Stopping" uses. Among valid vectors the
+  builder takes the one a greedy search reaches: start every bin at the
+  independent-noise quantile and, while some `rho` is over its budget,
+  raise by 0.02 the bin that contributes most to the miss rate of the
+  worst `rho`. A bin that the data of a `rho` rarely visit costs nothing
+  for that `rho`; the width goes where dependence shows up.
+- Values are then made nondecreasing in `r` and in the limit, and
+  nonincreasing in `n` over the tabulated lengths (running maxima from
+  the largest `n` down), and rounded up to 3 decimals.
+- Lookup is **conservative by construction**: `n` takes the largest
+  tabulated length not above it (120 for any larger `n`); because the
+  stored values never fall as `n` falls, a look at an untabulated `n`
+  gets at least the value of the tabulated length above it. A
+  confidence takes the smallest tabulated `K` whose confidence is not
+  below it (so a custom schedule of 5 looks uses `K = 6`), and above
+  `K = 12` there is no table, an error. The `rho` limit is rounded up
+  to a tabulated one. `r` is raised by its rounding bound and
+  interpolated linearly between the lower edges of its bin and the
+  next, which never gives less than the bin's own value.
+- The table is built twice from independent seeds; the committed one is
+  the first, and the second's entries differ by at most the percentage
+  recorded under "Calibration results".
+
+**Rounding.** As for every interval here, no bound comes out more
+favourable to the candidate than its exact value because of rounding;
+`perfproof.stats.intervals` derives the outward widening for this
+procedure from the operations that produce it, with the seminorm
+argument in its docstring.
+
+**What it costs and what it does not claim.** At a sample `r` near 0
+and a small `n` the critical value is above the `t` quantile, because
+the limit 0.3 must be covered at an `n` of 20 to 60. That is the price
+of not withholding; "Calibration results" measures it against the T1.8
+gate on synthetic scenarios and on the real traces. The floor of 0.3 is
+a claim about paired rounds on the machines the traces were recorded
+on; `ucb` is the safety net for others, and `UCB_Z` is tuned (below)
+so the acceptance rule holds on AR(1) `rho` 0.6 to 0.7. One-version
+skew stays a stated limit, as under "Assumptions".
+
+**`UCB_Z`.** The smallest `z` in `{0.5, 1, 1.5, 2, 2.5, 3}` for which
+the procedure passes every cell of the full synthetic grid at the
+exploratory seed 2631286274093223815 with the committed table; fixed
+before the runs at the seeds of record and fresh seed named under
+"Calibration results".
+
+**The power constraint.** The owner required the procedure to be no
+worse than the T1.8 gated primary in KEEP power at true speedups 1.05,
+1.10 and 1.20 and REJECT power at 0.90 and 0.80, on every schedule, in
+every synthetic cell in both host modes and on every real trace, within
+Monte Carlo error. "Calibration results" gives the smallest difference
+in each and where it is negative, with the reason.
+
+### The `bm_lf` interval (T1.11 phase 2b, rejected challenger)
+
+**Status: rejected, removed from shipped code.** `bm_lf` failed acceptance (results below) and the owner chose the split of "The T1.11 decision". Its code (`bm_lf_interval`, `lf_tables_bm.py`, the harness variants and the table builder's `bm` kind) is not in the tree; it is in the history at commit 3338cd3, and its results are the committed `tests/calibration/results/t111p2b-*` files. The text below is the record of what was run.
+
+A second candidate for the same job, fixed before any run of it, because
+the owner's constraint (never worse than the T1.8 gated primary in KEEP
+power at 1.05, 1.10 and 1.20 and REJECT power at 0.90 and 0.80, on every
+schedule, every synthetic cell in both host modes and every real trace)
+is hard and `hac_lf` does not meet it on `gpu_kernels`. The hypothesis:
+keep the primary's estimator and standard error, and replace only its
+gate.
+
+**The interval.** At a look with `n >= 12` observations: the T1.8
+batch-means interval of "Speedup and interval", unchanged (blocks of 6
+consecutive observations, the mean of `d` over each block is one
+observation, a trailing incomplete block dropped, mean and sample
+standard deviation of the `m = n // 6` block means), but with the
+critical value `c` in place of the `t` quantile on `m - 1` degrees of
+freedom: `d_bar -/+ c s / sqrt(m)`, exponentiated. There is no gate and
+nothing is withheld.
+
+**The critical value** is the table of the `hac_lf` section built for
+this pivot, `|mean of block means| / (s / sqrt(m))`, by the same
+construction and the same rules: AR(1) Gaussian noise with `rho` on the
+grid, the design's order structure, bins of the sample lag-1 `r` of the
+order-centred `d` (all `n` rounds, not the block means), per-look
+confidence for `K` in 1, 2, 3, 4, 6, 8, 12, a `rho` limit among 0.3 to
+0.9, values valid for every `rho` up to the limit in the unconditional
+sense (greedy search), nondecreasing in `r`, in the limit and in `K`,
+nonincreasing in `n`, rounded up, with the same conservative lookup
+(next tabulated `n` at or below, next `K` at or above, limit rounded up,
+`r` raised by its rounding bound and interpolated from lower bin edges).
+The look's limit is `max(0.3, ucb)` with the same
+`ucb = r + z sqrt((1 - r^2) / n)`, `z` chosen by the same rule on the
+exploratory seed, recorded per look (`lag1`, `ucb`, `rho_limit`). The
+candidate values are searched on a geometric grid (steps of 0.4%)
+because with `m = 2` blocks the `t` quantile is in the hundreds. The
+table file is `perfproof.stats.lf_tables_bm`, built by
+`tests/calibration/build_lf_tables.py build --kind bm` from seed
+2711013974122286542, checked against a second build from seed
+1695262030133760947.
+
+**What is decided and how.** Fixed before the runs: the table seeds
+above; `z` is the smallest in {0.5, 1, 1.5, 2, 2.5, 3} that passes every
+cell of the full synthetic grid at the exploratory seed
+2631286274093223815 with the committed table; acceptance at the seed of
+record 3598798392042499920 and a fresh seed 2483202639896524218, the
+development, exposed and held-out grids, both host modes, `R` = 4000,
+and the 19 real traces under Politis-White, fixed 6 and fixed 20
+blocks (seed 7257639517108691388); `dominance.py` against the gated
+primary in every cell; the busy-machine and skew probes. Outcomes:
+(a) `bm_lf` passes acceptance and has no cell worse than the primary by
+more than 3 standard errors: it becomes the phase 2 procedure and
+`hac_lf` is recorded as the losing challenger; (b) neither procedure
+meets the constraint: the smallest-loss design and where it loses is
+reported and the decision is the owner's; (c) a per-look choice between
+the two would need a table built for that combined rule and acceptance
+over it, and is not made here. Both procedures stay in the stats layer;
+`bench/compare.py` and `perfproof.schema` are not wired.
+
+### T1.11 results (`bm_lf`, rejected challenger)
+
+Result files: `tests/calibration/results/t111p2b-*` (acceptance:
+`t111p2b-acceptance.md`, `t111p2b-real-acceptance.md`; dominance:
+`t111p2b-dominance-synthetic-record.md`,
+`t111p2b-dominance-synthetic-fresh.md`, `t111p2b-dominance-real.md`; real
+trace means: `t111p2b-real-power-mean-pw.md`; table builds:
+`t111p2b-table-builds-compare.txt`). Seed of record 3598798392042499920,
+fresh seed 2483202639896524218, real-trace seed 7257639517108691388,
+exploratory seed for `z` 2631286274093223815, table seeds
+2711013974122286542 (committed) and 1695262030133760947 (second build).
+
+**The table.** The two builds differ by a median of 0.40%, a 95th
+percentile of 1.98% (one host) and 2.37% (cross host), and a maximum of
+10.22% and 10.58%. At a low sample lag-1 the floor equals the `t`
+quantile of the primary (5.9 against 5.885, 3.82 against 3.808, 3.25
+against 3.255 at the three looks compared).
+
+**`z` (the pre-registered rule).** Six values, 0.5 to 3.0 in steps of
+0.5, at the exploratory seed: 12 cells fail at every value, all
+`llm_serving` one host in the outlier scenarios (`A00-outliers-only`,
+`A00-outliers-5pct-x5-cv1`, `A20261052-00`, `A20261054-08`,
+`A20261055-17`), worst count 105 to 107 of 4000 by `z`. The rule
+selects no `z`; the evidence runs use 1.0 (the `hac_lf` value). INFERENCE:
+22 rounds make three blocks, and the pivot of three block means of an
+outlier-contaminated series is not the Gaussian one the table assumes.
+
+**Acceptance** (limit 83 of 4000). Development 0 and 0 failing cells on
+the seed of record and the fresh seed (worst 42 and 42), held-out 0 and 0
+(worst 42, 42), exposed **11 and 12 failing** (worst 112 and 108, both
+`llm_serving/A20261054-08/one_host/1.03`). `hac_lf` and the gated primary
+fail no cell (exposed worst: `hac_lf` 67 and 63, primary 62 and 54).
+Real traces (152 false-KEEP cells per rule), Politis-White 0 failing
+(worst 43), fixed 6 0 (48), fixed 20 **1** (121, `linux-picolm`,
+`llm_serving`, 1.03), against `hac_lf` 0, 0, 0 (34, 30, 62) and the
+primary 0, 0, 0 (45, 50, 76). Probes outside the audit ranges: busy-machine
+0 and 0 failing cells (`hac_lf` 7 and 6, primary 0 and 0), skew 7 and 7
+(primary 7 and 7, `hac_lf` 11 and 11).
+
+**The power constraint.** Smallest difference to the gated primary in
+percentage points, with the number of cells worse than 3 standard errors
+of two proportions:
+
+| Cells | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| synthetic, record, `bm_lf` | -9.6, 4 | -35.8, 15 | -25.5, 11 | -1.5, 0 | -1.6, 0 |
+| synthetic, record, `hac_lf` | -8.4, 69 | -35.4, 22 | -23.4, 9 | +2.4, 0 | +1.9, 0 |
+| synthetic, fresh, `bm_lf` | -8.8, 4 | -35.7, 18 | -22.5, 9 | -1.8, 0 | -1.1, 0 |
+| synthetic, fresh, `hac_lf` | -7.2, 40 | -35.8, 26 | -20.7, 10 | +2.5, 0 | +2.4, 0 |
+| real traces, `bm_lf` | -7.4, 11 | -0.1, 0 | +0.0, 0 | +0.0, 0 | +0.0, 0 |
+| real traces, `hac_lf` | -4.7, 10 | -0.2, 0 | +0.0, 0 | +0.0, 0 | +0.0, 0 |
+
+Every `bm_lf` cell worse than 3 standard errors is `gpu_kernels`
+(a per-schedule count of the same cells: 4, 15, 11 cells at 1.05, 1.10, 1.20 on the
+record seed and 4, 18, 9 on the fresh seed, none on another schedule).
+`hac_lf` also has worse cells on `python_native`, `web_agentic` and
+`llm_serving` at KEEP 1.05 and 1.10 (by at most 1.8 points). The largest
+`bm_lf` deficits are the same `gpu_kernels` cells as for `hac_lf`
+(`RHO0.7`, `RHO0.6`, `A20261056-15`, `A20261052-04`, held-out `H3635800-28`
+and `-10`), one host. The premise that near its floor the interval
+matches the primary on clean noise held; the premise that the primary's
+batch means keep their power at high `rho` did not hold.
+
+Real-trace means with Politis-White blocks, KEEP at 1.10 for the primary,
+`hac_lf` and `bm_lf`: `python_native` 84.9, 99.0, 98.1; `web_agentic`
+51.1, 91.3, 79.6; `llm_serving` 26.0, 81.4, 40.2; `gpu_kernels` 100,
+100, 100. Mean rounds at 1.10: 40.5, 25.0, 32.6; 27.5, 22.4, 26.2; 21.7,
+18.0, 21.6; 52.8, 27.5, 38.9.
+
+INFERENCE, not shown by a run: the primary's power on `gpu_kernels` at
+`rho` of 0.6 and above comes from a smaller critical value than any
+interval that keeps the per-look budget over `rho` up to its upper bound
+can use; both procedures lose there for that reason, which is why a
+per-look choice between them (c) would not close it. Not checked: that a
+critical value at a looser level would pass acceptance on those cells.
+
+**Outcome.** (b). `bm_lf` loses power only on `gpu_kernels` (synthetic by
+up to 35.8 points at KEEP 1.10, real traces by up to 7.4 points at KEEP
+1.05, `mac-node`), is not eligible because it fails acceptance on the
+exposed `llm_serving` outlier cells and on one real-trace cell, and is
+weaker than `hac_lf` on real `web_agentic` and `llm_serving`. `hac_lf`
+passes acceptance everywhere and loses on the same `gpu_kernels` cells.
+Neither meets "never worse than the gated primary"; the decision was
+the owner's ("The T1.11 decision"): `hac_lf` on the non-GPU
+schedules, the gated primary on `gpu_kernels`, and `bm_lf` removed.
+
+### The T1.11 decision (split by schedule)
+
+**Decision.** Faras (the owner), 2026-10-22, confirmed 2026-10-23 after
+the T1.12 golden set: the interval is chosen by the spec's look
+schedule, which is fixed before any data.
+
+- `hac_lf` for the three default schedules of the calibration's
+  `python_native`, `web_agentic` and `llm_serving` schedules
+  (`TargetSchedule` in `tests/calibration/montecarlo.py`), identified by
+  `(n0, k, K, max_rounds)`: `(10, 10, 6, 60)`, `(10, 10, 3, 30)` and
+  `(10, 6, 3, 22)`. They are the defaults of Python, native, web
+  service, agentic and LLM serving targets ("Defaults per target
+  class").
+- The T1.8 gated primary (batch means of 6 with the diagnostic gate)
+  for the `gpu_kernels` schedule, `(20, 20, 6, 120)`, and for any other
+  schedule.
+
+`perfproof.stats.sequential.procedure_for_schedule` is the one place
+that maps a schedule to a procedure, and `bench/compare.py` calls it
+once, from the spec, before the first round; the verdict records the
+result as `procedure`. **Unknown schedule.** A schedule that is none
+of the four, because a spec set its own `n0`, `k`, `K` or `max_rounds`,
+is decided by the gated primary. It never raises, so an unknown
+schedule cannot stop a comparison. That is the fail-closed choice, not
+a guarantee: neither procedure was calibrated on a schedule off the
+four. The gated primary is the more cautious one there, because its
+diagnostic gate can withhold a decision that `hac_lf` would make, and
+it is the procedure the 120-round rule under "A schedule outside the
+calibrated ones" was written for (INFERENCE: not measured on custom
+schedules). `hac_lf` was accepted only on the three schedules above and
+loses power on GPU kernels. The cost is that a spec that edits its
+schedule, or sets `alpha` other than 0.05, gives up `hac_lf`'s power
+(a smaller `alpha` would put the per-look confidence above the last
+level of `hac_lf`'s table, which stops the run, so it must not reach
+`hac_lf`). The time budget (`max_seconds`) is not part of the key: a
+run it ends takes a final look on complete order pairs, which is not a
+scheduled look, but the calibration harness cuts runs by the time
+budget in the same way (`cut_by_time`), so those looks are inside the
+cells above. A test holds the production table equal to the
+calibration's schedules, and another holds each schedule to its
+procedure. `CALIBRATED` stays False: the flip is a separate step after
+the guardrails (T2.15) and a stats-auditor pass.
+
+**Why.** Neither `hac_lf` nor `bm_lf` meets the owner's constraint of
+never being worse than the gated primary on any cell. Both lose on
+`gpu_kernels` at `rho` 0.6 and above, where the primary's power rests on
+an interval narrower than any that holds its level (INFERENCE, see the
+results above). On the other three schedules `hac_lf` passes every
+acceptance grid and has more power on the real traces (mean KEEP at
+1.10 with Politis-White blocks, `hac_lf` against the primary:
+`python_native` 99.0 against 84.9, `web_agentic` 91.3 against 51.1,
+`llm_serving` 81.4 against 26.0; `t111p2b-real-power-mean-pw.md`). The owner
+accepted the loss on non-GPU cells, and GPU keeps the primary, which is
+identical there by construction.
+
+**Accepted tolerance.** On synthetic non-GPU cells `hac_lf` may be below
+the gated primary by at most 1.8 percentage points, and there is no
+cell below it by more than 3 standard errors on any real trace.
+Measured (tables below): the smallest synthetic difference is -1.8
+points (fresh seed, `python_native`, KEEP 1.05) and the real-trace one
+-1.5 points (`python_native`, fixed 6 blocks, KEEP 1.05), with 0
+real-trace cells beyond 3 standard errors. On synthetic cells there are
+cells beyond 3 standard errors (the conservative count: up to 29 of 108
+per schedule at KEEP 1.05); the tolerance is on the size of the
+difference, not on that count. REJECT power is higher than the
+primary's on every schedule.
+
+**Each procedure keeps its own guarantee.** The schedule, and with it the
+procedure, is fixed before any round, so no data-dependent choice
+between the two enters a verdict. Acceptance (the rule above) was shown
+for each procedure on the schedules it covers, from the same runs; the
+tables below take each cell from the procedure of its schedule. Those
+tables are assembled from the runs of each procedure; "T1.13 results"
+runs the shipped selection itself, through `run_looks`, at a fresh
+seed.
+
+**One thing the split does worse than the primary.** The skew probe
+(one version's runs partly slowed, outside the audit ranges): the
+primary fails 7 of 168 cells on each seed and the split fails 11, the
+four extra being non-GPU cells (table below). The audit does not cover
+this probe and the primary fails it too; it is recorded, not accepted by
+the decision.
+
+Tables made by `tests/calibration/split_report.py` from the committed
+`t111p2b-*` CSVs (`tests/calibration/results/t111-split-tables.md`).
+The row `split` is the split as decided; `batch_means_6` and `hac_lf`
+are shown for the real traces to make the construction visible.
+
+**Acceptance, synthetic grids**
+
+| Seed | Grid | Cells | Failing | Worst false KEEP | Worst false REJECT |
+|---|---|---|---|---|---|
+| record (3598) | main/development | 560 | 0 | 47 gpu_kernels/lognormal_cv5/cross_host/1.03 | 23 gpu_kernels/bimodal/cross_host/1.04 |
+| record (3598) | main/exposed | 784 | 0 | 67 llm_serving/A20261052-04/one_host/1.03 | 52 llm_serving/A20261052-04/one_host/1.04 |
+| record (3598) | heldout/heldout | 1680 | 0 | 44 gpu_kernels/H3635800-28/cross_host/1.03 | 25 gpu_kernels/H3635800-03/one_host/1.04 |
+| record (3598) | cond/probe | 252 | 0 | 32 python_native/COND-armbias-base-poorcov/one_host/1.03 | 31 python_native/COND-armbias-cand/one_host/1.05 |
+| record (3598) | skew/probe | 168 | 11 | 293 python_native/SKEW-cand-5pct-x2/one_host/1.03 | 125 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+| fresh (2483) | main/development | 560 | 0 | 48 gpu_kernels/bimodal/cross_host/1.03 | 22 gpu_kernels/lognormal_cv15/cross_host/1.04 |
+| fresh (2483) | main/exposed | 784 | 0 | 60 llm_serving/RHO0.7/one_host/1.03 | 50 web_agentic/A20261052-04/cross_host/1.04 |
+| fresh (2483) | heldout/heldout | 1680 | 0 | 48 gpu_kernels/H3635800-15/one_host/1.03 | 28 gpu_kernels/H3635800-01/cross_host/1.04 |
+| fresh (2483) | cond/probe | 252 | 0 | 46 python_native/COND-armbias-base-poorcov/one_host/1.03 | 27 python_native/COND-armbias-cand/one_host/1.04 |
+| fresh (2483) | skew/probe | 168 | 11 | 281 python_native/SKEW-cand-5pct-x2/one_host/1.03 | 127 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+
+**Failing skew-probe cells by schedule**
+
+| Seed | Schedule | Primary | Split |
+|---|---|---|---|
+| record (3598) | python_native | 2 | 3 |
+| record (3598) | web_agentic | 2 | 3 |
+| record (3598) | llm_serving | 0 | 2 |
+| record (3598) | gpu_kernels | 3 | 3 |
+| fresh (2483) | python_native | 2 | 3 |
+| fresh (2483) | web_agentic | 2 | 3 |
+| fresh (2483) | llm_serving | 0 | 2 |
+| fresh (2483) | gpu_kernels | 3 | 3 |
+
+**Acceptance, real traces**
+
+| Procedure | Rule | Cells (1.00, 1.03) | Failing | Worst false KEEPs |
+|---|---|---|---|---|
+| split | pw | 152 | 0 | 45 linux-node/pw/gpu_kernels/1.03 |
+| batch_means_6 | pw | 152 | 0 | 45 linux-node/pw/gpu_kernels/1.03 |
+| hac_lf | pw | 152 | 0 | 34 mac-loaded-rolling/pw/gpu_kernels/1.03 |
+| split | fixed6 | 152 | 0 | 50 mac-loaded-node/fixed6/gpu_kernels/1.03 |
+| batch_means_6 | fixed6 | 152 | 0 | 50 mac-loaded-node/fixed6/gpu_kernels/1.03 |
+| hac_lf | fixed6 | 152 | 0 | 30 mac-loaded-node/fixed6/gpu_kernels/1.03 |
+| split | fixed20 | 152 | 0 | 76 linux-picolm/fixed20/gpu_kernels/1.03 |
+| batch_means_6 | fixed20 | 152 | 0 | 76 linux-picolm/fixed20/gpu_kernels/1.03 |
+| hac_lf | fixed20 | 152 | 0 | 62 linux-java/fixed20/gpu_kernels/1.03 |
+
+**Dominance against the gated primary**
+Each entry: the smallest difference of the split to the gated primary in points, then the cells worse than 3 standard errors of the cells at that speedup.
+
+Synthetic, record seed 3598798392042499920 (development, exposed, held-out, power cells; both host modes)
+
+| Schedule | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| python_native | -1.5, 11 of 108 | -1.6, 1 of 108 | +1.9, 0 of 108 | +5.5, 0 of 20 | +5.8, 0 of 20 |
+| web_agentic | -1.2, 29 of 108 | -1.4, 4 of 108 | -0.5, 0 of 108 | +5.9, 0 of 20 | +20.3, 0 of 20 |
+| llm_serving | -0.8, 21 of 108 | -1.0, 1 of 108 | -0.2, 0 of 108 | +3.7, 0 of 20 | +25.4, 0 of 20 |
+| gpu_kernels | +0.0, 0 of 108 | +0.0, 0 of 108 | +0.0, 0 of 108 | +0.0, 0 of 20 | +0.0, 0 of 20 |
+
+Synthetic, fresh seed 2483202639896524218 (development, exposed, held-out, power cells; both host modes)
+
+| Schedule | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| python_native | -1.8, 6 of 108 | -1.5, 0 of 108 | +2.4, 0 of 108 | +5.6, 0 of 20 | +5.8, 0 of 20 |
+| web_agentic | -1.0, 19 of 108 | -1.5, 3 of 108 | +0.6, 0 of 108 | +6.7, 0 of 20 | +20.5, 0 of 20 |
+| llm_serving | -0.9, 11 of 108 | -0.8, 3 of 108 | +0.5, 0 of 108 | +3.8, 0 of 20 | +24.7, 0 of 20 |
+| gpu_kernels | +0.0, 0 of 108 | +0.0, 0 of 108 | +0.0, 0 of 108 | +0.0, 0 of 20 | +0.0, 0 of 20 |
+
+Real traces, block rule pw, seed 7257639517108691388
+
+| Schedule | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| python_native | -0.8, 0 of 19 | +5.4, 0 of 19 | +4.8, 0 of 19 | +5.5, 0 of 19 | +5.2, 0 of 19 |
+| web_agentic | -0.1, 0 of 19 | +24.3, 0 of 19 | +22.2, 0 of 19 | +21.7, 0 of 19 | +20.0, 0 of 19 |
+| llm_serving | +0.8, 0 of 19 | +29.1, 0 of 19 | +30.6, 0 of 19 | +30.2, 0 of 19 | +29.4, 0 of 19 |
+| gpu_kernels | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 |
+
+Real traces, block rule fixed6, seed 7257639517108691388
+
+| Schedule | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| python_native | -1.5, 0 of 19 | +4.6, 0 of 19 | +4.4, 0 of 19 | +4.1, 0 of 19 | +4.6, 0 of 19 |
+| web_agentic | -1.1, 0 of 19 | +25.3, 0 of 19 | +19.8, 0 of 19 | +20.5, 0 of 19 | +17.8, 0 of 19 |
+| llm_serving | -0.4, 0 of 19 | +26.4, 0 of 19 | +25.9, 0 of 19 | +25.1, 0 of 19 | +24.5, 0 of 19 |
+| gpu_kernels | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 |
+
+Real traces, block rule fixed20, seed 7257639517108691388
+
+| Schedule | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| python_native | +0.1, 0 of 19 | +3.2, 0 of 19 | +2.6, 0 of 19 | +2.2, 0 of 19 | +2.8, 0 of 19 |
+| web_agentic | -0.9, 0 of 19 | +19.1, 0 of 19 | +18.9, 0 of 19 | +18.2, 0 of 19 | +14.8, 0 of 19 |
+| llm_serving | -0.1, 0 of 19 | +24.0, 0 of 19 | +20.4, 0 of 19 | +23.0, 0 of 19 | +21.3, 0 of 19 |
+| gpu_kernels | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 | +0.0, 0 of 19 |
 
 ## Stopping
 
@@ -2238,14 +2713,24 @@ under rule 2, naming it, and REJECT stays reachable at earlier looks as
 before. A guardrail that is `not_established` is not fixed for the run:
 more rounds can narrow it, so those looks continue.
 
+**Which interval decides.** The interval of rules 2 and 3 is the one
+`procedure_for_schedule` gives the spec's look schedule, before any
+round ("The T1.11 decision" under "Speedup and interval"): `hac_lf` for
+the python_native, web_agentic and llm_serving default schedules at
+`alpha` 0.05, the gated batch means for gpu_kernels and for every other
+schedule or `alpha`. The rules, the bar and the table below are the same for both; only the
+interval and, for batch means, the gate differ. `hac_lf` never
+withholds a look.
+
 **Before calibration.** Until the procedure has passed calibration
 (see "Calibration"), rules 2 and 3 never match. A comparison runs to
 the end of its budget and ends **INCONCLUSIVE**
 (`insufficient_evidence`), with the diagnostic
 `procedure_uncalibrated` recorded. Rule 1 still gives REJECT when a
-gate fails, and the resolution stop still ends it early. The
-diagnostic gate under "Assumptions" is still evaluated on the rule the
-interval gives as if calibrated, so the record names the diagnostic
+gate fails, and the resolution stop still ends it early. Under
+batch means the diagnostic gate under "Assumptions" is still evaluated
+on the rule the interval gives as if calibrated (`hac_lf` has no gate),
+so the record names the diagnostic
 (`autocorrelated_rounds` or `outlier_rounds`) that would have withheld
 a KEEP or REJECT, and the report says so. Every record states whether
 it was made by a calibrated procedure, and that field has no default.
@@ -3036,6 +3521,198 @@ gate is blunt where the autocorrelation is hidden, as cross host, and
 its cost is power. The procedure is still `CALIBRATED = False` in
 `bench/compare.py`, and T1.7 audits it on held-out scenarios drawn at
 audit time.
+
+### T1.11 results (`hac_lf`)
+
+Every number below came from the runs named here; per-cell counts are in
+`tests/calibration/results/t111p2-*` (gzipped CSVs, and the Markdown
+tables `t111p2-acceptance.md`, `t111p2-dominance-*.md`,
+`t111p2-real-*.md`). Commands: `build_lf_tables.py build`,
+`run_calibration.py run --grid main|heldout|power|cond|skew --procedures
+batch_means_6 batch_means_6_ungated hac_lf`, `run_real.py run`,
+`compare.py acceptance|power`, `dominance.py`.
+
+**Constants.** `UCB_Z = 1.0`, `RHO_FLOOR = 0.3`, `HAC_B = 0.1`. `UCB_Z`
+was fixed by the rule above on the exploratory seed
+2631286274093223815 with the committed table (full synthetic grid, 1344
+cells; counts in `t111p2-tuning-main-exploratory-seed-2631286274093223815
+.csv.gz`): `z` = 0.5 failed one exposed cell (`llm_serving/RHO0.7/one_host/
+1.03`, 84 of 4000), 1.0 passed every cell (worst 59), so 1.0. No other
+constant was tuned after a run; a failure at a later seed would raise `z`
+and rerun everything at new seeds.
+
+**The table.** Built from seed 7974144670174977917, 4,000,000 draws per
+`rho` and look length (`lf_tables.py`); a second build from seed
+7860359274439352604 differs in its entries by a median of 0.31%, a 95th
+percentile of 1.16% and a maximum of 10.5% (one host; cross host 0.30%,
+1.13%, 10.5%; the maximum is in the highest-lag-1 bins of the widest
+limits, which hold few draws). Off its grid, fresh draws at `rho`
+between the grid points and look lengths between the tabulated ones
+(`test_hac_lf_table.py`, `R` = 400,000 each, both host modes) miss the
+true mean no more often than the per-look budget plus 20%.
+
+**Acceptance (false KEEP and false REJECT, limit 83 of 4000).** Seeds:
+the T1.8 seed of record 3598798392042499920 and a fresh seed
+7975269519414383480 drawn before the runs. `R = 4000`, both host modes,
+all four schedules.
+
+| Grid | Cells | `hac_lf` failing, record / fresh | Worst count, record / fresh | T1.8 gated primary failing | T1.8 ungated failing |
+|---|---|---|---|---|---|
+| Development scenarios | 560 | 0 / 0 | 31 / 39 | 0 / 0 | 0 / 0 |
+| Exposed scenarios | 784 | 0 / 0 | 67 / 57 | 0 / 0 | 19 / 23 |
+| Held-out (30 draws of the audit ranges, seed 4371735374463635800) | 1680 | 0 / 0 | 32 / 31 | 0 / 0 | 0 / 0 |
+
+The worst cell is `llm_serving/A20261052-04/one_host/1.03` at the seed
+of record (67, 1.7%). Outside the audit ranges (probes of
+`tests/calibration/conditions.py` and `skew.py`, not acceptance cells):
+the 9 busy-machine scenarios (252 cells): 7 / 6 failing, all in
+`gpu_kernels` one host and all arm-correlated episodes with a 5% bias
+(`COND-armbias-*`, up to 145), where the gated primary has 0 failing
+because the gate withholds them; the shared-throttling scenarios pass.
+One-version skew probes (168 cells): 11 / 11 failing, the gated
+primary 7 / 7, the ungated 9 / 10: skew stays a stated limit.
+
+**Real traces.** 19 A/A traces (10 Hetzner Linux, 3 Linux VM, 6 Mac;
+`linux-picolm` has 141 pairs), moving-block bootstrap with the phase 1b
+protocol (even blocks on even pair indexes; Politis-White length, fixed
+6 and fixed 20 pairs; truth injected as `d - mean(d) + log S`), seed
+1691201805404077360, `R = 4000`, one host.
+False-KEEP cells (S 1.00 and 1.03, 19 traces x 4 schedules = 152 per
+rule), limit 83:
+
+| Block rule | `hac_lf` failing, worst | gated primary | ungated |
+|---|---|---|---|
+| Politis-White | 0, 35 (`linux-loaded-bursty-node` gpu) | 0, 42 | 0, 45 |
+| fixed 6 | 0, 36 | 0, 52 | 0, 57 |
+| fixed 20 | 0, 57 | **1**, 86 | **2**, 140 |
+
+**Power against the gated primary.** Mean over the scenarios of each
+group (synthetic, seed of record, one host; every group, both hosts and
+the fresh seed in `t111p2-*power*`/`compare.py power`), then the 18 full
+real traces (Politis-White blocks, `linux-picolm` left out of the
+mean). KEEP at 1.10, percent:
+
+| Schedule | Synthetic Gaussian | AR(1) 0.5 | 2% outliers of 3x | Shared throttling | Real traces |
+|---|---|---|---|---|---|
+| python_native | 65.9 to 73.3 | 4.0 to 57.2 | 30.6 to 41.1 | 60.9 to 89.8 | 84.9 to 99.0 |
+| web_agentic | 47.6 to 63.4 | 4.2 to 29.1 | 17.6 to 31.9 | 21.2 to 52.4 | 51.0 to 91.1 |
+| llm_serving | 28.8 to 53.4 | 2.1 to 21.5 | 6.4 to 28.1 | 6.3 to 29.6 | 26.4 to 81.4 |
+| gpu_kernels | 87.1 to 86.4 | 99.8 to 94.8 | 62.8 to 63.7 | 89.6 to 99.6 | 100.0 to 100.0 |
+
+(gated primary to `hac_lf`.) On the real traces KEEP at 1.05 goes
+47.4, 18.1, 5.5 and 78.3 to 55.5, 38.0, 28.2 and 77.1 (python, web,
+llm, gpu), REJECT at 0.90 87.4, 59.6, 42.7 and 100 to 100, 99.8, 98.5
+and 100, and the mean rounds at 1.10 40.5, 27.5, 21.7 and 52.6 to 25.0,
+22.4, 18.0 and 27.5. The tables for the other groups, REJECT power and
+the cross-host cells are in the files named above.
+
+**The power constraint (owner's, not met).** The smallest difference to
+the gated primary, with the number of cells worse by more than 3
+standard errors of two proportions of 4000 (conservative: both see the
+same rounds):
+
+| Cells | KEEP 1.05 | KEEP 1.10 | KEEP 1.20 | REJECT 0.90 | REJECT 0.80 |
+|---|---|---|---|---|---|
+| Synthetic, seed of record (432 KEEP, 80 REJECT cells) | -8.4 pts, 69 worse | -35.4, 22 | -23.4, 9 | +2.4, 0 | +1.9, 0 |
+| Synthetic, fresh seed | -8.6, 41 | -37.0, 22 | -20.9, 13 | +2.7, 0 | +2.4, 0 |
+| 19 real traces x 3 block rules (228 cells) | -4.6, 11 | -0.1, 0 | +0.0, 0 | +0.0, 0 | +0.0, 0 |
+
+Where it is negative, and why. (1) On the three schedules other than
+GPU kernels the deficit never exceeds 1.6 points (`python_native`,
+`web_agentic`, `llm_serving`, at 1.05 and 1.10: 11 and 1 cells at
+1.05/1.10 for python, 29 and 4 for web, 21 and 1 for llm at the seed
+of record; the paired difference is smaller than the two-proportion
+error used to count them, so most of these are at the edge of noise);
+the critical value at a sample lag-1 near 0 is above the `t` quantile
+by the price of the 0.3 floor. (2) `gpu_kernels`, where the gated
+primary has 20 blocks and its gate never fires: on clean noise the
+deficit is 0 to 3 points (the `t` quantile on 20 blocks, 3.2, is below
+the least favourable 3.5 to 3.8 at `n` = 120); on the real traces at
+1.05 it is up to 4.6 points in 11 of 228 cells and at most 0.1 point at
+1.10 and above. (3) The large negative cells are all `gpu_kernels` with
+`rho` 0.5 or more (`RHO0.6`, `RHO0.7`, the exposed draws with `rho`
+about 0.6, a held-out draw). The gated primary passes acceptance there
+(false-KEEP counts up to 56 of 83 in `RHO0.6` and `RHO0.7` at the seed
+of record, 62 in the exposed draw `A20261056-15` cross host), so the
+difference is not an over-limit error rate. INFERENCE, not shown by a
+run: at `n` = 120 the primary's 20 block means of 6 rounds at `rho` 0.7
+are correlated, its interval is narrower than a level-holding one, and
+its power comes from that narrowness, which a procedure whose critical
+value covers `rho` up to its `ucb` here (0.7 to 0.9) does not have.
+Nothing in the real traces resembles them.
+
+**Looks that used a limit above the floor.** At `S = 1.00` on the
+real traces (Politis-White blocks; looks with an interval; the table is
+`t111p2-real-fallback.md`, made by `fallback_share.py`), 27.2% of the
+looks of `python_native`, 31.7% of `web_agentic`, 38.0% of
+`llm_serving` and 22.8% of `gpu_kernels` had `ucb` above 0.3 and so a
+limit of 0.4 or more; per trace and schedule from 11.3%
+(`linux-loaded-bursty-node`, gpu) to 54.9% (`mac-node`, llm, the trace
+with lag-1 +0.13). That is not rare: with `UCB_Z = 1` the bound
+exceeds 0.3 at a sample lag-1 above about 0.08 at `n` = 20 and 0.17 at
+`n` = 60, and the sample lag-1 of independent noise is that large often
+at small `n`. A limit above the floor widens the interval by the
+difference of the table's columns (`lf_tables.py`).
+
+**Not shown.** Real noise on other machines and classes than the 19
+traces (the floor of 0.3 and `UCB_Z` rest on them and on synthetic
+AR(1)); the arm-correlated busy-machine probes, where this procedure
+is weaker than the gated primary and has no covariate; one-version
+skew; the time budget in the real-trace runs (every replicate takes
+`max_rounds`). The table's maximum build-to-build difference is 10.5%
+(only the summary of the second build is committed, in
+`t111p2-table-builds-compare.txt`), and where it lies was not
+examined.
+
+### T1.13 results (the split as shipped)
+
+`perfproof compare` decides with `procedure_for_schedule` ("The T1.11
+decision"). This run is the acceptance rule of "Acceptance rule", applied
+to that selection itself: the harness procedure `split`
+(`tests/calibration/montecarlo.py`) sends each calibration schedule
+through `procedure_for_schedule` and `run_looks`, the code `compare`
+calls per look, and needs no other procedure in the cell.
+
+- **Seed** 5499072700741048927, drawn from the OS entropy pool before
+  the first split run. `R` = 4000, both host modes, every speedup of the
+  rule (0.95, 1.00, 1.03 for false KEEP; 1.04, 1.05, 1.10, 1.20 for
+  false REJECT).
+- **Cells:** the main grid (development and exposed scenarios, 1344
+  cells) and the held-out grid (1680 cells), 3024 in all. Per-cell
+  counts: `tests/calibration/results/t113-split-seed-5499072700741048927.csv`;
+  `tests/calibration/test_split.py` reruns every cell under the
+  `calibration` marker and requires the committed counts.
+- **Result:** 0 of 3024 cells fail. Largest false-KEEP count 68 of 4000
+  (1.70%, one-sided CP upper bound 2.08%; `llm_serving/RHO0.7/one_host/1.03`);
+  largest false-REJECT count 49 (1.23%;
+  `python_native/A20261052-04/cross_host/1.05`). The limit is 83.
+- **Monte Carlo error:** a count's binomial standard error is
+  `sqrt(R p (1 - p))`: 9.9 errors (0.25 percentage points) at `p` =
+  2.5%, 8.2 at the worst observed rate of 1.7%. The worst cell is
+  therefore about 1.8 standard errors below the count limit of 83, so
+  another seed can move that cell's count past it; the Clopper-Pearson
+  bound is the pass criterion, and the standard error says how far a
+  rerun at another seed can move a count.
+
+| Grid | Schedule (procedure) | Cells | Failing | Worst false KEEP | Worst false REJECT |
+|---|---|---|---|---|---|
+| main | python_native (`hac_lf`) | 336 | 0 | 50 A20261052-04/cross_host/1.03 | 49 A20261052-04/cross_host/1.05 |
+| main | web_agentic (`hac_lf`) | 336 | 0 | 51 A20261052-04/cross_host/1.03 | 42 A20261052-04/one_host/1.04 |
+| main | llm_serving (`hac_lf`) | 336 | 0 | 68 RHO0.7/one_host/1.03 | 45 A20261052-04/cross_host/1.04 |
+| main | gpu_kernels (gated primary) | 336 | 0 | 51 student_t_df3/cross_host/1.03 | 28 lognormal_cv15/cross_host/1.04 |
+| held-out | python_native (`hac_lf`) | 420 | 0 | 23 H3635800-07/one_host/1.03 | 18 H3635800-28/one_host/1.04 |
+| held-out | web_agentic (`hac_lf`) | 420 | 0 | 25 H3635800-10/one_host/1.03 | 12 H3635800-28/one_host/1.04 |
+| held-out | llm_serving (`hac_lf`) | 420 | 0 | 24 H3635800-28/one_host/1.03 | 18 H3635800-28/cross_host/1.04 |
+| held-out | gpu_kernels (gated primary) | 420 | 0 | 46 H3635800-07/cross_host/1.03 | 30 H3635800-15/cross_host/1.04 |
+
+What this shows and does not. It shows that the shipped selection, run
+through the production look driver, meets the rule on the schedules it
+names, at a seed chosen after the procedure was fixed. It does not
+cover a schedule off the four (decided by the gated primary, whose own
+calibration is under "Calibration results"), the real traces beyond the
+19 of T1.11, or the golden set's cells beyond what "T1.12" reports;
+the golden set's regression subset replays to the same verdicts
+(`tests/golden/`, `test_golden_replay.py`).
 
 ## What the record contains
 

@@ -82,13 +82,21 @@ Before calibration
 T1.7). Rules 2 and 3 then never fire: every comparison that passes
 its gates runs to the end of its budget, or to its ``K``-th look, and
 ends INCONCLUSIVE (``insufficient_evidence``) with the diagnostic
-``procedure_uncalibrated``. The interval is the batch-means interval
-of ``docs/method.md`` and is recorded when the last look has one: not
-below two complete blocks (12 rounds), and not when a ratio or a bound
-falls outside the float range, which records the warning
-``interval_unrepresentable``. The diagnostic gate is still evaluated
-as if calibrated, so a look it would have withheld records
-``autocorrelated_rounds`` or ``outlier_rounds``. A schedule that can
+``procedure_uncalibrated``. The interval procedure is chosen from the
+spec's look schedule before any round
+(`perfproof.stats.sequential.procedure_for_schedule`, "The T1.11
+decision" in ``docs/method.md``): ``hac_lf`` for the three default
+schedules of the python_native, web_agentic and llm_serving
+calibration schedules, the gated batch means for the gpu_kernels
+schedule and for any other schedule. The verdict records which
+(``Verdict.procedure``). The interval is recorded when the last look
+has one: not below 12 rounds (two complete blocks, and ``hac_lf``'s
+minimum), and not when a ratio or a bound falls outside the float
+range, which records the warning ``interval_unrepresentable``. Under
+the gated batch means the diagnostic gate is still evaluated as if
+calibrated, so a look it would have withheld records
+``autocorrelated_rounds`` or ``outlier_rounds``; ``hac_lf`` has no
+gate and leaves both ``None``. A schedule that can
 take more than one look at 120 rounds or more runs, records the warning
 ``schedule_uncalibrated`` and can never KEEP. Only a gate REJECT can
 end a comparison otherwise, and the resolution stop can end it early as
@@ -223,7 +231,7 @@ from perfproof.schema import (
     Verdict,
 )
 from perfproof.stats.decision import GATE_PRECEDENCE, decide
-from perfproof.stats.intervals import t_interval
+from perfproof.stats.intervals import HAC_MIN_N, hac_lf_interval, t_interval
 from perfproof.stats.sequential import (
     BATCH_BLOCK,
     LAG1_MIN_BLOCKS,
@@ -233,11 +241,11 @@ from perfproof.stats.sequential import (
     lag1_autocorrelation,
     look_confidence,
     plan_looks,
+    procedure_for_schedule,
 )
 
 __all__ = [
     "CALIBRATED",
-    "PROCEDURE",
     "SAMPLES_NAME",
     "CompareResult",
     "CompareStoppedError",
@@ -250,8 +258,6 @@ __all__ = [
 CALIBRATED: Final = False
 """Whether the interval procedure has passed calibration. False until
 the M1 exit (T1.6 and T1.7): no KEEP and no performance REJECT."""
-PROCEDURE: Final[Procedure] = "t_log_ratio_batch_means"
-"""The primary interval procedure of ``docs/method.md``: batch means."""
 SAMPLES_NAME: Final = "samples.npz"
 """File name of the raw samples in a run directory."""
 
@@ -490,6 +496,9 @@ class _Run:
         self.env = env
         self.machine = machine
         self.started = started
+        self.procedure: Procedure = procedure_for_schedule(
+            spec.looks, spec.budget.max_rounds, spec.alpha
+        )
         self.baseline_commit = ""
         self.order_seed = 0
         self.harness_root: Path | None = None
@@ -1132,7 +1141,7 @@ class _Run:
                 check_continuity=steps.continuity,
             ),
             keep_blocked=np.array([self._keep_blocked()]),
-            procedure=PROCEDURE,
+            procedure=self.procedure,
             candidate_first=self._candidate_first(used)[np.newaxis, :],
         )
 
@@ -1241,7 +1250,7 @@ class _Run:
             gate=decision.gate,
             rounds=len(self.measured),
             looks=self.looks,
-            procedure=PROCEDURE,
+            procedure=self.procedure,
             calibration="uncalibrated",
             diagnostics=Diagnostics(
                 procedure_uncalibrated=decision.procedure_uncalibrated
@@ -1283,7 +1292,7 @@ class _Run:
             interval=interval,
             rounds=len(self.measured),
             looks=ended.looks,
-            procedure=PROCEDURE,
+            procedure=self.procedure,
             calibration="uncalibrated",
             diagnostics=diagnostics,
         )
@@ -1370,20 +1379,12 @@ class _Run:
                 upper=float(look.upper[0]),
                 confidence=confidence,
             )
-            estimate = float(
-                t_interval(
-                    b,
-                    c,
-                    direction=spec.metric.direction,
-                    confidence=confidence,
-                    block=BATCH_BLOCK,
-                ).estimate
-            )
+            estimate = self._estimate(b, c, first, confidence)
         if (
             interval is None
             and look is not None
             and int(look.rule[0]) == 5
-            and n // BATCH_BLOCK >= 2
+            and n >= self._min_interval_rounds()
         ):
             self.warnings.append(
                 RunWarning(
@@ -1403,13 +1404,51 @@ class _Run:
             metric_disagreement=disagree,
             wall_interval=wall,
             lag1_autocorrelation=None if math.isnan(lag1) else lag1,
-            autocorrelated_rounds=_gate_flag(look, "autocorrelated_rounds"),
-            outlier_rounds=_gate_flag(look, "outlier_rounds"),
+            autocorrelated_rounds=_gate_flag(
+                look, "autocorrelated_rounds", self.procedure
+            ),
+            outlier_rounds=_gate_flag(look, "outlier_rounds", self.procedure),
             cv_baseline=_cv(b),
             cv_candidate=_cv(c),
             sd_log_ratio=None if d is None else float(np.std(d, ddof=1)),
         )
         return diagnostics, interval, estimate
+
+    def _min_interval_rounds(self) -> int:
+        """Fewest rounds at which the procedure has an interval."""
+        if self.procedure == "hac_lf":
+            return HAC_MIN_N
+        return 2 * BATCH_BLOCK
+
+    def _estimate(
+        self,
+        b: NDArray[np.float64],
+        c: NDArray[np.float64],
+        first: NDArray[np.bool_],
+        confidence: float,
+    ) -> float:
+        """Point estimate of the run's procedure on the first rounds."""
+        direction = self.spec.metric.direction
+        if self.procedure == "hac_lf":
+            return float(
+                hac_lf_interval(
+                    b[np.newaxis, :],
+                    c[np.newaxis, :],
+                    direction=direction,
+                    confidence=confidence,
+                    candidate_first=first[np.newaxis, :],
+                    mode="one_host",
+                ).interval.estimate[0]
+            )
+        return float(
+            t_interval(
+                b,
+                c,
+                direction=direction,
+                confidence=confidence,
+                block=BATCH_BLOCK,
+            ).estimate
+        )
 
     def _wall(
         self, n: int, confidence: float, primary: Interval | None
@@ -1438,7 +1477,7 @@ class _Run:
             resolution=Resolution(
                 baseline_step=step, candidate_step=step, check_continuity=False
             ),
-            procedure=PROCEDURE,
+            procedure=self.procedure,
             candidate_first=self._candidate_first(n)[np.newaxis, :],
         )
         if int(look.rule[0]) == 1 or not (
@@ -1725,12 +1764,15 @@ def _cv(values: NDArray[np.float64]) -> float | None:
     return cv if math.isfinite(cv) else None
 
 
-def _gate_flag(look: Look | None, name: str) -> bool | None:
+def _gate_flag(
+    look: Look | None, name: str, procedure: Procedure
+) -> bool | None:
     """Whether the diagnostic gate named ``name`` at ``look``.
 
-    ``None`` when no look was taken, so the gate was not evaluated.
+    ``None`` when no look was taken, or the procedure is ``hac_lf``,
+    which has no gate: the gate was not evaluated.
     """
-    if look is None:
+    if look is None or procedure == "hac_lf":
         return None
     return str(look.withheld[0]) == name
 

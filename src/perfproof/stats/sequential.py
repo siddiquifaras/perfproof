@@ -114,7 +114,7 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Final
+from typing import Final, Literal
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -122,8 +122,13 @@ from numpy.typing import ArrayLike, NDArray
 from perfproof.schema import Direction, LookSchedule, Procedure
 from perfproof.stats.decision import IntervalRules, interval_rules
 from perfproof.stats.intervals import (
+    HAC_MIN_N,
     LIBM_ULPS,
+    RHO_FLOOR,
+    UCB_Z,
     PairedInterval,
+    check_hac_args,
+    hac_lf_interval,
     paired_ratios,
     t_interval,
 )
@@ -149,6 +154,7 @@ __all__ = [
     "look_confidence",
     "outlier_share",
     "plan_looks",
+    "procedure_for_schedule",
     "round_error_bounds",
     "run_looks",
     "session_pair_error",
@@ -194,7 +200,14 @@ _TINY_NORMAL: Final = float(np.finfo(np.float64).tiny)
 _MIN_N0: Final = 10
 _MODES: Final = ("one_host", "cross_host")
 _DIRECTIONS: Final = ("lower_is_better", "higher_is_better")
-_PROCEDURES: Final = ("t_log_ratio", "t_log_ratio_batch_means")
+_PROCEDURES: Final = ("t_log_ratio", "t_log_ratio_batch_means", "hac_lf")
+_HAC_SCHEDULES: Final = frozenset(
+    {
+        (10, 10, 6, 60),
+        (10, 10, 3, 30),
+        (10, 6, 3, 22),
+    }
+)
 _MAD_TO_SD: Final = 1.482602218505602
 _WITHHELD: Final = np.array(["", "autocorrelated_rounds", "outlier_rounds"])
 _EXACT_FLOATS: Final = frozenset(
@@ -310,6 +323,12 @@ class Look:
         its ``regression`` flag is False.
     action : numpy.ndarray of str, shape (R,)
         One of `OUTCOMES`: what the comparison does after this look.
+    lag1, ucb, rho_limit : numpy.ndarray of float64, shape (R,)
+        For procedure ``hac_lf``: the sample lag-1 autocorrelation of
+        the order-centred log ratios, its upper confidence bound and
+        the upper limit of ``rho`` the critical value was worst case
+        over (`perfproof.stats.intervals.HacInterval`); NaN for other
+        procedures and where the look has no interval.
     """
 
     lower: FloatArray
@@ -319,6 +338,9 @@ class Look:
     held: NDArray[np.bool_]
     withheld: NDArray[np.str_]
     action: NDArray[np.str_]
+    lag1: FloatArray | None = None
+    ucb: FloatArray | None = None
+    rho_limit: FloatArray | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -373,6 +395,9 @@ class SequentialResult:
         Two-sided confidence of every look's interval.
     procedure : str
         The interval procedure, as in `perfproof.schema.Procedure`.
+    lag1, ucb, rho_limit : numpy.ndarray of float64, shape (R, K)
+        Each look's `Look.lag1`, `Look.ucb` and `Look.rho_limit`
+        (``hac_lf`` only; NaN elsewhere).
     """
 
     rounds: NDArray[np.int64]
@@ -389,6 +414,51 @@ class SequentialResult:
     rounds_used: NDArray[np.int64]
     confidence: float
     procedure: Procedure
+    lag1: FloatArray | None = None
+    ucb: FloatArray | None = None
+    rho_limit: FloatArray | None = None
+
+
+def procedure_for_schedule(
+    looks: LookSchedule, max_rounds: int, alpha: float = DEFAULT_ALPHA
+) -> Literal["t_log_ratio_batch_means", "hac_lf"]:
+    """Return the interval procedure a look schedule is decided with.
+
+    The schedule is in the spec and fixed before any round, so each
+    procedure keeps the guarantee it was accepted for ("The T1.11
+    decision" in ``docs/method.md``). ``hac_lf`` decides the three
+    default schedules of the python_native, web_agentic and llm_serving
+    calibration schedules, ``(n0, k, K, max_rounds)`` of ``(10, 10, 6,
+    60)``, ``(10, 10, 3, 30)`` and ``(10, 6, 3, 22)``. The T1.8 gated
+    batch means decides everything else: the gpu_kernels schedule
+    ``(20, 20, 6, 120)``, where ``hac_lf`` loses power, and any schedule
+    that was never calibrated, and any ``alpha`` but `DEFAULT_ALPHA`
+    (the per-look confidence of a smaller ``alpha`` is above the last
+    tabulated level of ``hac_lf``, which would stop the run). The time
+    budget is not part of the key: calibration cuts runs by it (a final
+    look on complete order pairs), so those looks are covered.
+
+    Parameters
+    ----------
+    looks : perfproof.schema.LookSchedule
+        The spec's look schedule.
+    max_rounds : int
+        The spec's round budget.
+    alpha : float, default `DEFAULT_ALPHA`
+        The spec's ``alpha``.
+
+    Returns
+    -------
+    {"t_log_ratio_batch_means", "hac_lf"}
+        ``"hac_lf"`` for the three schedules above at the default
+        ``alpha``, otherwise the gated
+        primary. It never raises, so an unknown schedule cannot stop a
+        comparison.
+    """
+    key = (looks.n0, looks.k, looks.max_looks, max_rounds)
+    if key in _HAC_SCHEDULES and alpha == DEFAULT_ALPHA:
+        return "hac_lf"
+    return "t_log_ratio_batch_means"
 
 
 def look_confidence(alpha: float, max_looks: int) -> float:
@@ -845,6 +915,8 @@ def decide_look(
     keep_blocked: ArrayLike = False,
     procedure: Procedure = "t_log_ratio_batch_means",
     candidate_first: ArrayLike | None,
+    ucb_z: float = UCB_Z,
+    rho_floor: float = RHO_FLOOR,
 ) -> Look:
     """Decide one look, for rows that share its length.
 
@@ -923,8 +995,11 @@ def decide_look(
     keep_blocked : array_like of bool, default False
         Broadcast to ``(R,)``: where True, rule 2 does not keep.
     procedure : str, default "t_log_ratio_batch_means"
-        ``"t_log_ratio_batch_means"`` (the primary, blocks of
-        `BATCH_BLOCK`) or ``"t_log_ratio"`` (plain t, blocks of 1).
+        ``"t_log_ratio_batch_means"`` (blocks of `BATCH_BLOCK`, with the
+        diagnostic gate), ``"t_log_ratio"`` (plain t, blocks of 1) or
+        ``"hac_lf"`` (the T1.11 interval of ``docs/method.md``: an
+        interval from `HAC_MIN_N` observations, no diagnostic gate,
+        `Look.lag1`, `Look.ucb` and `Look.rho_limit` recorded).
     candidate_first : array_like of bool or None
         Required, with no default, so no caller loses the order
         centring by leaving it out. Shape ``(R, n)``: True where the
@@ -933,6 +1008,12 @@ def decide_look(
         `outlier_share`). ``None`` is accepted cross host only (``n0``
         given), where a session pair has no order to remove; one host
         it raises.
+
+    ucb_z, rho_floor : float
+        ``hac_lf`` only: standard errors in the upper confidence bound
+        of the lag-1 autocorrelation and the smallest upper limit of
+        ``rho`` the critical value covers
+        (`perfproof.stats.intervals.UCB_Z`, `RHO_FLOOR`).
 
     Returns
     -------
@@ -958,16 +1039,34 @@ def decide_look(
     b, c = _measurement_pair(baseline, candidate)
     rows, n = b.shape
     _check_decision_args(procedure, direction, min_effect, calibrated)
+    check_hac_args(ucb_z, rho_floor)
     if n0 is not None:
         _check_int("n0", n0, _MIN_N0)
     last = _bool_array("final", final, (rows,))
     blocked = _bool_array("keep_blocked", keep_blocked, (rows,))
     first = _candidate_first(candidate_first, (rows, n), cross=n0 is not None)
-    has_interval = procedure == "t_log_ratio" or n // BATCH_BLOCK >= 2
+    if procedure == "hac_lf":
+        has_interval = n >= HAC_MIN_N
+    else:
+        has_interval = procedure == "t_log_ratio" or n // BATCH_BLOCK >= 2
     # A ratio outside the normal float range has no log ratio, so its
     # row has no interval; the 1.0 stand-ins keep it through the batch.
     out_of_range = _ratio_out_of_range(b, c, direction)
-    if has_interval:
+    lag1 = ucb = rho_limit = np.full(rows, np.nan)
+    if has_interval and procedure == "hac_lf":
+        made = hac_lf_interval(
+            np.where(out_of_range[:, np.newaxis], 1.0, b),
+            np.where(out_of_range[:, np.newaxis], 1.0, c),
+            direction=direction,
+            confidence=confidence,
+            candidate_first=first,
+            mode="one_host" if n0 is None else "cross_host",
+            ucb_z=ucb_z,
+            rho_floor=rho_floor,
+        )
+        lo, hi, used = made.interval.lower, made.interval.upper, n
+        lag1, ucb, rho_limit = made.lag1, made.ucb, made.rho_limit
+    elif has_interval:
         found = _interval_procedure(procedure, direction, confidence)(
             np.where(out_of_range[:, np.newaxis], 1.0, b),
             np.where(out_of_range[:, np.newaxis], 1.0, c),
@@ -1049,6 +1148,9 @@ def decide_look(
         held=held,
         withheld=_WITHHELD[why].astype(np.str_),
         action=action.astype(np.str_),
+        lag1=np.where(unbounded | degenerate, np.nan, lag1),
+        ucb=np.where(unbounded | degenerate, np.nan, ucb),
+        rho_limit=np.where(unbounded | degenerate, np.nan, rho_limit),
     )
 
 
@@ -1068,6 +1170,8 @@ def run_looks(
     procedure: Procedure = "t_log_ratio_batch_means",
     keep_blocked: ArrayLike = False,
     candidate_first: ArrayLike | None,
+    ucb_z: float = UCB_Z,
+    rho_floor: float = RHO_FLOOR,
 ) -> SequentialResult:
     """Run the sequential procedure over a batch of comparisons.
 
@@ -1155,6 +1259,7 @@ def run_looks(
     b, c = _measurement_pair(baseline, candidate)
     replications, available = b.shape
     _check_decision_args(procedure, direction, min_effect, calibrated)
+    check_hac_args(ucb_z, rho_floor)
     looks = _schedule_values(schedule, mode)[2]
     conf = look_confidence(alpha, looks)
     collected = (
@@ -1181,6 +1286,9 @@ def run_looks(
     regression = np.zeros((replications, looks), dtype=np.bool_)
     held = np.zeros((replications, looks), dtype=np.bool_)
     withheld = np.full((replications, looks), "", dtype="<U24")
+    lag1 = np.full((replications, looks), np.nan)
+    ucb = np.full((replications, looks), np.nan)
+    rho_limit = np.full((replications, looks), np.nan)
     action = np.full((replications, looks), "", dtype="<U12")
     used = np.zeros((replications, looks), dtype=np.int64)
     running = np.ones(replications, dtype=np.bool_)
@@ -1203,7 +1311,13 @@ def run_looks(
                 keep_blocked=blocked[rows, j],
                 procedure=procedure,
                 candidate_first=first[rows, :n],
+                ucb_z=ucb_z,
+                rho_floor=rho_floor,
             )
+            if look.lag1 is not None:
+                lag1[rows, j] = look.lag1
+                ucb[rows, j] = look.ucb
+                rho_limit[rows, j] = look.rho_limit
             withheld[rows, j] = look.withheld
             lower[rows, j] = look.lower
             upper[rows, j] = look.upper
@@ -1225,6 +1339,7 @@ def run_looks(
         plan.exhausted,
         conf,
         procedure,
+        (lag1, ucb, rho_limit),
     )
 
 
@@ -1240,6 +1355,7 @@ def _summary(
     exhausted: NDArray[np.bool_],
     confidence: float,
     procedure: Procedure,
+    dependence: tuple[FloatArray, FloatArray, FloatArray],
 ) -> SequentialResult:
     """Collect the per-look arrays and each replication's ending."""
     replications = used.shape[0]
@@ -1265,6 +1381,9 @@ def _summary(
         rounds_used=np.where(looks > 0, used[index, last], 0).astype(np.int64),
         confidence=confidence,
         procedure=procedure,
+        lag1=dependence[0],
+        ucb=dependence[1],
+        rho_limit=dependence[2],
     )
 
 

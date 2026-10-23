@@ -1,0 +1,32 @@
+| File | Procedure | Grid | Cells | Failing | Worst false KEEP | Worst false REJECT |
+|---|---|---|---|---|---|---|
+| t111p2b-main-seed-3598798392042499920.csv | batch_means_6 | development | 560 | 0 | 47 gpu_kernels/lognormal_cv5/cross_host/1.03 | 27 llm_serving/bimodal/cross_host/1.04 |
+| t111p2b-main-seed-3598798392042499920.csv | batch_means_6 | exposed | 784 | 0 | 62 gpu_kernels/A20261056-15/cross_host/1.03 | 34 gpu_kernels/RHO0.7/cross_host/1.04 |
+| t111p2b-main-seed-3598798392042499920.csv | bm_lf | development | 560 | 0 | 42 gpu_kernels/session_offset/one_host/1.03 | 28 llm_serving/bimodal/cross_host/1.04 |
+| t111p2b-main-seed-3598798392042499920.csv | bm_lf | exposed | 784 | 11 | 112 llm_serving/A20261054-08/one_host/1.03 | 94 llm_serving/A00-outliers-only/one_host/1.10 |
+| t111p2b-main-seed-3598798392042499920.csv | hac_lf | development | 560 | 0 | 31 gpu_kernels/session_offset/cross_host/1.03 | 16 llm_serving/ar1/one_host/1.04 |
+| t111p2b-main-seed-3598798392042499920.csv | hac_lf | exposed | 784 | 0 | 67 llm_serving/A20261052-04/one_host/1.03 | 52 llm_serving/A20261052-04/one_host/1.04 |
+| t111p2b-main-seed-2483202639896524218.csv | batch_means_6 | development | 560 | 0 | 48 gpu_kernels/bimodal/cross_host/1.03 | 27 web_agentic/session_offset/cross_host/1.04 |
+| t111p2b-main-seed-2483202639896524218.csv | batch_means_6 | exposed | 784 | 0 | 54 gpu_kernels/RHO0.7/cross_host/1.03 | 33 gpu_kernels/RHO0.7/cross_host/1.04 |
+| t111p2b-main-seed-2483202639896524218.csv | bm_lf | development | 560 | 0 | 42 gpu_kernels/bimodal/cross_host/1.03 | 27 llm_serving/ar1/cross_host/1.05 |
+| t111p2b-main-seed-2483202639896524218.csv | bm_lf | exposed | 784 | 12 | 108 llm_serving/A20261054-08/one_host/1.03 | 98 llm_serving/A20261052-00/one_host/1.05 |
+| t111p2b-main-seed-2483202639896524218.csv | hac_lf | development | 560 | 0 | 36 gpu_kernels/ar1/one_host/1.03 | 16 llm_serving/ar1/one_host/1.04 |
+| t111p2b-main-seed-2483202639896524218.csv | hac_lf | exposed | 784 | 0 | 63 gpu_kernels/A20261052-04/cross_host/1.03 | 50 web_agentic/A20261052-04/cross_host/1.04 |
+| t111p2b-heldout-seed-3598798392042499920.csv | batch_means_6 | heldout | 1680 | 0 | 44 gpu_kernels/H3635800-28/cross_host/1.03 | 30 python_native/H3635800-27/cross_host/1.04 |
+| t111p2b-heldout-seed-3598798392042499920.csv | bm_lf | heldout | 1680 | 0 | 42 llm_serving/H3635800-15/cross_host/1.03 | 31 llm_serving/H3635800-16/one_host/1.04 |
+| t111p2b-heldout-seed-3598798392042499920.csv | hac_lf | heldout | 1680 | 0 | 32 gpu_kernels/H3635800-01/cross_host/1.03 | 20 llm_serving/H3635800-28/one_host/1.04 |
+| t111p2b-heldout-seed-2483202639896524218.csv | batch_means_6 | heldout | 1680 | 0 | 48 gpu_kernels/H3635800-15/one_host/1.03 | 30 llm_serving/H3635800-06/cross_host/1.04 |
+| t111p2b-heldout-seed-2483202639896524218.csv | bm_lf | heldout | 1680 | 0 | 42 gpu_kernels/H3635800-20/cross_host/1.03 | 31 llm_serving/H3635800-06/cross_host/1.04 |
+| t111p2b-heldout-seed-2483202639896524218.csv | hac_lf | heldout | 1680 | 0 | 33 gpu_kernels/H3635800-28/cross_host/1.03 | 19 gpu_kernels/H3635800-10/cross_host/1.04 |
+| t111p2b-cond-seed-3598798392042499920.csv | batch_means_6 | probe | 252 | 0 | 30 gpu_kernels/COND-shared-throttle1/one_host/1.03 | 16 llm_serving/COND-shared-throttle1/one_host/1.04 |
+| t111p2b-cond-seed-3598798392042499920.csv | bm_lf | probe | 252 | 0 | 67 gpu_kernels/COND-armbias-base/one_host/1.03 | 40 gpu_kernels/COND-armbias-cand/one_host/1.04 |
+| t111p2b-cond-seed-3598798392042499920.csv | hac_lf | probe | 252 | 7 | 145 gpu_kernels/COND-armbias-base/one_host/1.03 | 108 gpu_kernels/COND-armbias-cand/one_host/1.04 |
+| t111p2b-cond-seed-2483202639896524218.csv | batch_means_6 | probe | 252 | 0 | 35 gpu_kernels/COND-shared-throttle1/one_host/1.03 | 14 llm_serving/COND-shared-throttle1/one_host/1.04 |
+| t111p2b-cond-seed-2483202639896524218.csv | bm_lf | probe | 252 | 0 | 61 gpu_kernels/COND-armbias-base-poorcov/one_host/1.03 | 54 gpu_kernels/COND-armbias-cand/one_host/1.04 |
+| t111p2b-cond-seed-2483202639896524218.csv | hac_lf | probe | 252 | 6 | 120 gpu_kernels/COND-armbias-base/one_host/1.03 | 116 gpu_kernels/COND-armbias-cand/one_host/1.04 |
+| t111p2b-skew-seed-3598798392042499920.csv | batch_means_6 | probe | 168 | 7 | 257 gpu_kernels/SKEW-cand-5pct-x2/one_host/1.03 | 114 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+| t111p2b-skew-seed-3598798392042499920.csv | bm_lf | probe | 168 | 7 | 252 gpu_kernels/SKEW-cand-5pct-x2/one_host/1.03 | 108 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+| t111p2b-skew-seed-3598798392042499920.csv | hac_lf | probe | 168 | 11 | 293 python_native/SKEW-cand-5pct-x2/one_host/1.03 | 125 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+| t111p2b-skew-seed-2483202639896524218.csv | batch_means_6 | probe | 168 | 7 | 265 gpu_kernels/SKEW-cand-5pct-x2/one_host/1.03 | 117 python_native/SKEW-base-5pct-x2/one_host/1.04 |
+| t111p2b-skew-seed-2483202639896524218.csv | bm_lf | probe | 168 | 7 | 249 gpu_kernels/SKEW-cand-5pct-x2/one_host/1.03 | 109 gpu_kernels/SKEW-base-5pct-x2/one_host/1.04 |
+| t111p2b-skew-seed-2483202639896524218.csv | hac_lf | probe | 168 | 11 | 295 gpu_kernels/SKEW-cand-5pct-x2/one_host/1.03 | 127 python_native/SKEW-base-5pct-x2/one_host/1.04 |

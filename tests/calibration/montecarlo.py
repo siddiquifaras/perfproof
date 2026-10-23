@@ -28,6 +28,16 @@ blocks of 4, 5 and 10 rounds were run as challengers in T1.6, lost,
 and are in the history at commit 8406d80 with their counts in
 ``tests/calibration/results/``.
 
+T1.11 added challenger intervals (`challengers.CHALLENGERS`, arithmetic
+in `inference`, critical values in `fixedb`) that run beside these two
+on the same rounds, with the sequential looks, the Bonferroni split and
+the decision rule unchanged; extra scenario grids (`cells_for`: held-out
+audit-range draws, REJECT-power speedups, busy-machine conditions,
+one-version skew probes); and a recorded condition covariate per
+round. The covariate is pure noise unless the scenario has conditions
+(`conditions.COND`), and is drawn from its own stream, so no
+pre-existing count moves.
+
 Choices the method leaves open, fixed here before the run:
 
 - Scenarios other than the log-normal rows take a run-to-run CV of
@@ -68,13 +78,17 @@ from dataclasses import dataclass, field, replace
 from typing import Final, Literal
 
 import numpy as np
+from challengers import CHALLENGERS, WAVE_2, WAVE_3, Challenger
+from conditions import COND
 from exposed import EXPOSED
+from heldout import HELDOUT
 from numpy.typing import NDArray
 from scipy import stats  # pyright: ignore[reportMissingTypeStubs]
+from skew import SKEW
 
 from perfproof.schema import LookSchedule
 from perfproof.stats.decision import interval_rules
-from perfproof.stats.intervals import t_interval
+from perfproof.stats.intervals import UCB_Z, t_interval
 from perfproof.stats.sequential import (
     DEFAULT_ALPHA,
     LAG1_LIMIT,
@@ -85,6 +99,7 @@ from perfproof.stats.sequential import (
     LookPlan,
     look_confidence,
     plan_looks,
+    procedure_for_schedule,
     run_looks,
 )
 from perfproof.stats.simulate import (
@@ -179,22 +194,70 @@ SCHEDULE_BY_NAME: Final = {s.name: s for s in SCHEDULES}
 BATCH_BLOCK: Final = 6
 """Rounds per batch-means block: three order pairs (N1). The harness
 keeps its own copy, and a test holds it equal to production's."""
+WAVE_2_NAMES: Final = tuple(c.name for c in WAVE_2)
+WAVE_3_NAMES: Final = tuple(c.name for c in WAVE_3)
+HAC_LF: Final = "hac_lf"
+"""The T1.11 production interval through ``run_looks``; ``hac_lf_z<z>``
+runs it with ``z`` standard errors in its upper confidence bound."""
+
+
+def hac_z(name: str) -> float | None:
+    """Return the ``z`` of a ``hac_lf`` procedure name, else None."""
+    if name == HAC_LF:
+        return UCB_Z
+    if name.startswith(HAC_LF + "_z"):
+        return float(name[len(HAC_LF) + 2 :])
+    return None
+
+
+SPLIT: Final = "split"
+"""The shipped procedure: each schedule through the interval
+`perfproof.stats.sequential.procedure_for_schedule` gives it, by
+``run_looks``, the code ``compare`` decides with. Not in
+`ALL_PROCEDURES`: it repeats the primary on ``gpu_kernels`` and
+``hac_lf`` elsewhere, so a full run never needs it, but it is the
+procedure the T1.13 acceptance test reports."""
 PRIMARY: Final = f"batch_means_{BATCH_BLOCK}"
 UNGATED: Final = f"batch_means_{BATCH_BLOCK}_ungated"
 PROCEDURES: Final = (PRIMARY, UNGATED)
+ALL_PROCEDURES: Final = (
+    *PROCEDURES,
+    *(
+        n
+        for n in CHALLENGERS
+        if n not in WAVE_2_NAMES and n not in WAVE_3_NAMES
+    ),
+)
+"""The primary, the ungated interval and T1.11's challengers
+(`challengers.CHALLENGERS`), all of which run on the same simulated
+rounds in a cell."""
+POWER_SPEEDUPS: Final = (0.80, 0.90)
+"""True speedups of the REJECT-power cells, beside `SPEEDUPS`."""
 
 
-def scenarios(mode: HostMode) -> dict[str, NoiseScenario]:
+def scenarios(
+    mode: HostMode, *, heldout: bool = False
+) -> dict[str, NoiseScenario]:
     """Return the scenarios run in ``mode``.
 
     The development scenarios of ``docs/method.md`` at `BASE_CV`, then
-    the exposed ones (`exposed.EXPOSED`). One host, each as written.
-    Cross host, the development scenarios the simulator allows there,
-    and every exposed scenario without drift and the order effect (the
-    simulator refuses them there), each with a per-session offset of
-    `CROSS_HOST_OFFSET_CV`.
+    the exposed ones (`exposed.EXPOSED`), then, with ``heldout``, the
+    held-out ones T1.11 drew (`heldout.HELDOUT`). One host, each as
+    written. Cross host, the development scenarios the simulator allows
+    there, and every exposed or held-out scenario without drift and the
+    order effect (the simulator refuses them there), each with a
+    per-session offset of `CROSS_HOST_OFFSET_CV`.
     """
-    found = {**development_scenarios(BASE_CV), **EXPOSED}
+    extra = (
+        {
+            **HELDOUT,
+            **{n: k.base for n, k in SKEW.items()},
+            **{n: c.base for n, c in COND.items()},
+        }
+        if heldout
+        else {}
+    )
+    found = {**development_scenarios(BASE_CV), **EXPOSED, **extra}
     if mode == "one_host":
         return found
     return {
@@ -205,7 +268,7 @@ def scenarios(mode: HostMode) -> dict[str, NoiseScenario]:
             session_offset_cv=CROSS_HOST_OFFSET_CV,
         )
         for name, s in found.items()
-        if name in EXPOSED or not s.one_host_only
+        if name in EXPOSED or name in extra or not s.one_host_only
     }
 
 
@@ -255,6 +318,51 @@ def all_cells() -> list[Cell]:
     ]
 
 
+def cells_for(grid: str) -> list[Cell]:
+    """The cells of one grid, in a fixed order.
+
+    ``main`` is `all_cells` (the development and exposed scenarios at
+    `SPEEDUPS`), ``heldout`` the held-out scenarios at `SPEEDUPS`, and
+    ``power`` the development scenarios at `POWER_SPEEDUPS`.
+    """
+    if grid == "main":
+        return all_cells()
+    if grid == "heldout":
+        return [
+            Cell(schedule, name, mode, speedup)
+            for schedule in SCHEDULES
+            for mode in MODES
+            for name in HELDOUT
+            for speedup in SPEEDUPS
+        ]
+    if grid == "skew":
+        return [
+            Cell(schedule, name, mode, speedup)
+            for schedule in SCHEDULES
+            for mode in MODES
+            for name in SKEW
+            for speedup in SPEEDUPS
+        ]
+    if grid == "cond":
+        return [
+            Cell(schedule, name, "one_host", speedup)
+            for schedule in SCHEDULES
+            for name in COND
+            for speedup in (*SPEEDUPS, *POWER_SPEEDUPS)
+        ]
+    if grid == "power":
+        return [
+            Cell(schedule, name, mode, speedup)
+            for schedule in SCHEDULES
+            for mode in MODES
+            for name in scenarios(mode)
+            if name not in EXPOSED
+            for speedup in POWER_SPEEDUPS
+        ]
+    msg = f"unknown grid {grid!r}"
+    raise ValueError(msg)
+
+
 def cell_by_name(name: str) -> Cell:
     """Return the cell with ``name``, as `Cell.name` spells it."""
     schedule, scenario, mode, speedup = name.split("/")
@@ -263,7 +371,7 @@ def cell_by_name(name: str) -> Cell:
         raise ValueError(msg)
     host: HostMode = "one_host" if mode == "one_host" else "cross_host"
     cell = Cell(SCHEDULE_BY_NAME[schedule], scenario, host, float(speedup))
-    if cell.name != name or scenario not in scenarios(host):
+    if cell.name != name or scenario not in scenarios(host, heldout=True):
         msg = f"no such cell {name!r}"
         raise ValueError(msg)
     return cell
@@ -499,6 +607,9 @@ class Tally:
     miss_above: dict[int, int] = field(default_factory=_counts)
     miss_below: dict[int, int] = field(default_factory=_counts)
     covered_of: dict[int, int] = field(default_factory=_counts)
+    limits: list[FloatArray] = field(
+        default_factory=lambda: list[FloatArray]()
+    )
 
     def add(self, ended: Ended) -> None:
         """Count one chunk's outcomes."""
@@ -543,6 +654,10 @@ class Tally:
             "keep_rate": self.keep / total,
             "inconclusive_rate": self.inconclusive / total,
             "rounds_mean": float(np.mean(rounds)),
+            "limit_looks": int(sum(x.size for x in self.limits)),
+            "limit_above_floor": int(
+                sum(np.count_nonzero(x > 0.3 + 1e-9) for x in self.limits)
+            ),
             "rounds_p95": int(
                 np.percentile(rounds, 95, method="inverted_cdf")
             ),
@@ -583,18 +698,28 @@ def run_cell(
     replications: int = REPLICATIONS,
 ) -> dict[str, object]:
     """Run one cell and return its results as plain data."""
-    unknown = set(procedures) - set(PROCEDURES)
+    unknown = {
+        p
+        for p in procedures
+        if p not in ALL_PROCEDURES
+        and p not in WAVE_2_NAMES
+        and p not in WAVE_3_NAMES
+        and p != SPLIT
+        and hac_z(p) is None
+    }
     if unknown:
         msg = f"unknown procedures {sorted(unknown)}"
         raise ValueError(msg)
     begun = time.monotonic()
     sched = cell.schedule
-    scenario = scenarios(cell.mode)[cell.scenario]
+    scenario = scenarios(cell.mode, heldout=True)[cell.scenario]
     root = np.random.SeedSequence(
         seed, spawn_key=(zlib.crc32(cell.name.encode()),)
     )
     (sim_seq,) = root.spawn(1)
     sim_rng = np.random.default_rng(sim_seq)
+    (cov_seq,) = root.spawn(1)
+    cov_rng = np.random.default_rng(cov_seq)
     run = _CellRun(
         cell=cell,
         confidence=look_confidence(DEFAULT_ALPHA, sched.looks.max_looks),
@@ -604,17 +729,33 @@ def run_cell(
     )
     cut_by_time = 0
     for start, stop in _chunks(replications, sched.max_rounds):
+        skew = SKEW.get(cell.scenario)
         drawn = simulate(
             scenario,
-            speedup=cell.speedup,
+            speedup=(
+                cell.speedup
+                if skew is None
+                else skew.simulator_speedup(cell.speedup)
+            ),
             n=sched.max_rounds,
             replications=stop - start,
             mode=cell.mode,
             rng=sim_rng,
         )
+        if skew is not None:
+            skew.apply(drawn.log_times, sim_rng)
+        condition = COND.get(cell.scenario)
+        if condition is None:
+            covariate = cov_rng.standard_normal(drawn.candidate_first.shape)
+        else:
+            covariate = condition.apply(
+                drawn.log_times, drawn.candidate_first, sim_rng
+            )
         rounds = collected_rounds(drawn.log_times, sched)
         cut_by_time += int(np.count_nonzero(rounds < sched.max_rounds))
-        _run_chunk(run, drawn.log_times, drawn.candidate_first, rounds)
+        _run_chunk(
+            run, drawn.log_times, drawn.candidate_first, covariate, rounds
+        )
     return {
         "cell": cell.name,
         "schedule": sched.name,
@@ -636,9 +777,14 @@ def _run_chunk(
     run: _CellRun,
     log_times: FloatArray,
     first: NDArray[np.bool_],
+    covariate: FloatArray,
     rounds: NDArray[np.int64],
 ) -> None:
-    """Run every procedure on one chunk of replications."""
+    """Run every procedure on one chunk of replications.
+
+    ``covariate`` is the recorded condition difference ``x`` shaped
+    ``(R, n)``, which only the procedures that adjust for it read.
+    """
     cell, tallies, conf = run.cell, run.tallies, run.confidence
     sched = cell.schedule
     values = np.exp(log_times)
@@ -666,8 +812,52 @@ def _run_chunk(
             msg = f"{cell.name}: {PRIMARY} ended with CONTINUE"
             raise ValueError(msg)
         tallies[PRIMARY].add(Ended(result.outcome, result.rounds_used))
+    for name in tallies:
+        z = hac_z(name)
+        if z is None:
+            continue
+        found = run_looks(
+            b,
+            c,
+            direction="lower_is_better",
+            schedule=sched.looks,
+            mode=cell.mode,
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            resolution=None,
+            exhausted=exhausted,
+            rounds=rounds,
+            procedure="hac_lf",
+            candidate_first=first,
+            ucb_z=z,
+        )
+        if np.any(found.outcome == "CONTINUE"):
+            msg = f"{cell.name}: {name} ended with CONTINUE"
+            raise ValueError(msg)
+        tallies[name].add(Ended(found.outcome, found.rounds_used))
+        if found.rho_limit is not None:
+            tallies[name].limits.append(found.rho_limit[found.rounds > 0])
+    if SPLIT in tallies:
+        shipped = run_looks(
+            b,
+            c,
+            direction="lower_is_better",
+            schedule=sched.looks,
+            mode=cell.mode,
+            min_effect=MIN_EFFECT,
+            calibrated=True,
+            resolution=None,
+            exhausted=exhausted,
+            rounds=rounds,
+            procedure=procedure_for_schedule(sched.looks, sched.max_rounds),
+            candidate_first=first,
+        )
+        if np.any(shipped.outcome == "CONTINUE"):
+            msg = f"{cell.name}: {SPLIT} ended with CONTINUE"
+            raise ValueError(msg)
+        tallies[SPLIT].add(Ended(shipped.outcome, shipped.rounds_used))
+    plan = plan_looks(sched.looks, rounds, exhausted, mode=cell.mode)
     if UNGATED in tallies:
-        plan = plan_looks(sched.looks, rounds, exhausted, mode=cell.mode)
 
         def blocked(
             rows: NDArray[np.intp], n: int
@@ -677,8 +867,58 @@ def _run_chunk(
             )
 
         tallies[UNGATED].add(drive_looks(plan, blocked, n0=run.cross_n0))
+    for name, challenger in CHALLENGERS.items():
+        if name not in tallies:
+            continue
+
+        def challenged(
+            rows: NDArray[np.intp],
+            n: int,
+            challenger: Challenger = challenger,
+        ) -> tuple[FloatArray, FloatArray]:
+            return challenger.bounds(
+                b[rows, :n],
+                c[rows, :n],
+                first[rows, :n],
+                covariate[rows, :n],
+                cell.mode,
+                conf,
+            )
+
+        def held(
+            rows: NDArray[np.intp],
+            n: int,
+            challenger: Challenger = challenger,
+        ) -> NDArray[np.bool_]:
+            return challenger.withheld(
+                b[rows, :n], c[rows, :n], first[rows, :n], covariate[rows, :n]
+            )
+
+        tallies[name].add(
+            drive_looks(
+                plan,
+                challenged,
+                n0=run.cross_n0,
+                withhold=held if challenger.guard else None,
+            )
+        )
     for name in tallies:
+        if name == SPLIT:
+            continue
+        own = CHALLENGERS.get(name)
         for n in run.fixed_n:
-            lo, hi = batch_means_bounds(b[:, :n], c[:, :n], BATCH_BLOCK, conf)
+            if own is None:
+                lo, hi = batch_means_bounds(
+                    b[:, :n], c[:, :n], BATCH_BLOCK, conf
+                )
+            else:
+                lo, hi = own.bounds(
+                    b[:, :n],
+                    c[:, :n],
+                    first[:, :n],
+                    covariate[:, :n],
+                    cell.mode,
+                    conf,
+                )
             if np.all(np.isfinite(lo)):
                 tallies[name].add_coverage(n, lo, hi, cell.speedup)

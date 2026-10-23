@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -38,7 +39,7 @@ from perfproof.schema import (
     MachineFingerprint,
     RunRecord,
 )
-from perfproof.stats.intervals import t_interval
+from perfproof.stats.intervals import hac_lf_interval, t_interval
 from perfproof.stats.sequential import BATCH_BLOCK, Look, look_confidence
 
 PY = sys.executable
@@ -1129,10 +1130,12 @@ def wave_run(
     """A candidate 1.43 times faster, log ratios on a slow wave."""
     project = make_project(tmp_path, bench=WAVE_BENCH, baseline=WAVE_BASELINE)
     fields = spec_fields(
-        budget={"max_rounds": 12, "max_seconds": 300.0},
-        looks={"n0": 12, "k": 2, "max_looks": 1},
-        env={"WAVE_DIR": str(tmp_path)},
-        **(spec_changes or {}),
+        **{
+            "budget": {"max_rounds": 12, "max_seconds": 300.0},
+            "looks": {"n0": 12, "k": 2, "max_looks": 1},
+            "env": {"WAVE_DIR": str(tmp_path)},
+            **(spec_changes or {}),
+        }
     )
     spec = BenchmarkSpec.model_validate(fields)
     candidate = project.candidate("wave", {"work.py": WAVE_CANDIDATE})
@@ -2729,3 +2732,137 @@ def test_a_malformed_coverage_report_is_inconclusive_not_a_crash(
     assert found.status == "not_available"
     assert "the coverage report is unreadable" in found.detail
     assert result.record.verdict.outcome == "INCONCLUSIVE"
+
+
+# The split: the spec's look schedule picks the interval procedure
+
+LLM_SCHEDULE: dict[str, Any] = {
+    "budget": {"max_rounds": 22, "max_seconds": 300.0},
+    "looks": {"n0": 10, "k": 6, "max_looks": 3},
+}
+
+
+def arm_order(result: CompareResult) -> Any:
+    """Whether the candidate ran first, per round, in round order."""
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        mine = data["candidate"] == 1
+        order = np.argsort(data["round"], kind="stable")
+        return (data["position"][order] == 0)[mine[order]]
+
+
+def test_a_default_schedule_is_decided_by_hac_lf(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The wall clock's step is measured per run (1 ms under emulated
+    # amd64, about 1 ns natively) and widens the wall interval, so fix
+    # it to make the expectation the same everywhere.
+    step = 2.5e-4
+    monkeypatch.setattr(compare_module, "_wall_step", lambda: step)
+    spec = BenchmarkSpec.model_validate(spec_fields(**LLM_SCHEDULE))
+    faster = project.candidate("fast", {"work.py": work(0.005)})
+    result = project.run(faster, spec)
+    v = result.record.verdict
+    assert v.procedure == "hac_lf"
+    assert (v.rounds, v.looks) == (22, 3)
+    assert v.interval is not None
+    assert v.estimate is not None
+    assert v.interval.confidence == look_confidence(0.05, 3)
+    # hac_lf has no gate: nothing is withheld, and it says so with None
+    # rather than the False a gate that looked and passed would record.
+    assert v.diagnostics.autocorrelated_rounds is None
+    assert v.diagnostics.outlier_rounds is None
+    base, cand = arm_values(result)
+    made = hac_lf_interval(
+        base[np.newaxis],
+        cand[np.newaxis],
+        direction="lower_is_better",
+        confidence=v.interval.confidence,
+        candidate_first=arm_order(result)[np.newaxis],
+        mode="one_host",
+    )
+    assert v.estimate == float(made.interval.estimate[0])
+    # The record's interval is the procedure's, widened outward by the
+    # values' resolution (1e-6 on a printed value of about 0.03).
+    assert v.interval.lower <= float(made.interval.lower[0])
+    assert v.interval.upper >= float(made.interval.upper[0])
+    assert v.interval.lower == pytest.approx(
+        float(made.interval.lower[0]), rel=1e-3
+    )
+    # The wall-clock interval of a reported metric is hac_lf's too, on
+    # the recorded wall seconds, widened by the wall clock's step.
+    wall = v.diagnostics.wall_interval
+    assert wall is not None
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        mine = data["candidate"] == 1
+        order = np.argsort(data["round"], kind="stable")
+        seconds = data["wall_seconds"][order]
+        arm = mine[order]
+    expected = hac_lf_interval(
+        seconds[~arm][np.newaxis],
+        seconds[arm][np.newaxis],
+        direction="lower_is_better",
+        confidence=v.interval.confidence,
+        candidate_first=arm_order(result)[np.newaxis],
+        mode="one_host",
+    )
+    base_s = np.asarray(seconds[~arm], dtype=np.float64)
+    cand_s = np.asarray(seconds[arm], dtype=np.float64)
+    widening = float(
+        np.mean(-np.log1p(-step / base_s) - np.log1p(-step / cand_s))
+    )
+    assert wall.lower == pytest.approx(
+        float(expected.interval.lower[0]) * math.exp(-widening), rel=1e-6
+    )
+    assert wall.upper == pytest.approx(
+        float(expected.interval.upper[0]) * math.exp(widening), rel=1e-6
+    )
+    assert read_record(result.record_path) == result.record
+    assert "`hac_lf`" in result.report_path.read_text()
+
+
+def test_a_schedule_off_the_defaults_is_decided_by_the_gated_primary(
+    project: Project,
+) -> None:
+    # Any change to a default schedule, here k, gives the gated primary.
+    changed = {**LLM_SCHEDULE, "looks": {"n0": 10, "k": 4, "max_looks": 4}}
+    spec = BenchmarkSpec.model_validate(spec_fields(**changed))
+    result = project.run(project.candidate("same", {}), spec)
+    v = result.record.verdict
+    assert v.procedure == "t_log_ratio_batch_means"
+    assert v.diagnostics.autocorrelated_rounds is not None
+    assert v.diagnostics.outlier_rounds is not None
+
+
+def test_an_alpha_below_the_calibrated_one_keeps_the_run_alive(
+    project: Project,
+) -> None:
+    # hac_lf's table stops at the confidence of 12 looks; alpha 0.01 on
+    # a 3-look schedule is above it and would raise at the first look.
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(alpha=0.01, **LLM_SCHEDULE)
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert result.record.verdict.procedure == "t_log_ratio_batch_means"
+    assert result.record.verdict.looks == 3
+
+
+def test_hac_lf_does_not_withhold_the_autocorrelated_wave(
+    tmp_path: Path,
+) -> None:
+    # The kind of recorded wave the gate withholds (above) is decided on
+    # its interval under hac_lf, which widens for the dependence the
+    # data cannot rule out instead of withholding.
+    _, result = wave_run(tmp_path, LLM_SCHEDULE)
+    v = result.record.verdict
+    assert v.procedure == "hac_lf"
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
+    assert v.diagnostics.procedure_uncalibrated
+    assert v.diagnostics.autocorrelated_rounds is None
+    assert v.diagnostics.outlier_rounds is None
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    assert v.diagnostics.lag1_autocorrelation is not None
+    assert v.diagnostics.lag1_autocorrelation > 0.3
+    report = result.report_path.read_text()
+    assert "The diagnostic gate withheld the decision" not in report
+    assert read_record(result.record_path) == result.record

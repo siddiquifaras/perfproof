@@ -3161,6 +3161,7 @@ def test_withheld_look_validates_in_a_record(flag: str) -> None:
             "ends as a rule 5",
         ),
         ({"procedure": "t_log_ratio"}, "only the batch-means"),
+        ({"procedure": "hac_lf"}, "only the batch-means"),
         ({"interval": None, "estimate": None}, "records the interval"),
     ],
 )
@@ -3170,6 +3171,16 @@ def test_withheld_flag_needs_a_rule_5_batch_means_interval(
     data = {**as_json(withheld(**{flag: True})), **changes}
     with pytest.raises(ValidationError, match=match):
         Verdict.model_validate(data)
+
+
+def test_hac_lf_verdict_validates_and_has_no_gate_flags() -> None:
+    v = withheld().model_copy(update={"procedure": "hac_lf"})
+    again = Verdict.model_validate_json(v.model_dump_json())
+    assert again.procedure == "hac_lf"
+    assert again.diagnostics.autocorrelated_rounds is None
+    assert again.diagnostics.outlier_rounds is None
+    assert record(verdict=again).verdict.procedure == "hac_lf"
+    assert '"hac_lf"' in SCHEMA_FILE.read_text(encoding="utf-8")
 
 
 def test_withheld_look_names_one_diagnostic() -> None:

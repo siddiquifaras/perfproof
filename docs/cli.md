@@ -172,11 +172,25 @@ verdict. A `timed_out` run can't be resumed.
 | Field | Type | |
 |---|---|---|
 | `run_id`, `run_dir`, `record_path`, `report_path` | string | Absolute paths |
-| `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `diagnostics` and the rest |
+| `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `procedure`, `diagnostics` and the rest |
 | `gates` | array | `{"gate", "status"}` in the record's order |
 | `warnings` | array | `{"code", "message"}` for every warning in the record |
 | `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown` and `schedule_uncalibrated`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
 | `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
+
+`verdict.procedure` names the interval procedure that decided:
+`hac_lf` or `t_log_ratio_batch_means`. `compare` picks it from the
+spec's look schedule before any round, never from data: `hac_lf` for
+the three default schedules of the Python and native, web service and
+agentic, and LLM serving classes (`n0`, `k`, `max_looks` and
+`max_rounds` of 10, 10, 6, 60; 10, 10, 3, 30; and 10, 6, 3, 22), and
+`t_log_ratio_batch_means` (batch means with the diagnostic gate) for
+the GPU kernels schedule (20, 20, 6, 120) and for any other schedule.
+A spec that edits its schedule therefore gets the gated procedure, the
+fail-closed choice, and so does any
+`alpha` other than 0.05. Under `hac_lf` the diagnostics
+`autocorrelated_rounds` and `outlier_rounds` are null: it has no gate.
+`docs/method.md`, "The T1.11 decision", is the rule.
 
 When changed lines ran under no check, the `coverage` gate is
 `not_available` and its `not_verified` reason names them by file

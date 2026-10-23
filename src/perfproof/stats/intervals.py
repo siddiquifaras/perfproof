@@ -105,13 +105,60 @@ series with positive terms, and step the SciPy quantile up until the
 mass is at least the confidence plus ``1e-40``; that margin exceeds
 the decimal rounding by many orders of magnitude for any degrees of
 freedom below ``1e15``.
+
+Numerics of ``hac_lf``
+----------------------
+The exact interval is the procedure of ``docs/method.md`` in real
+arithmetic on the float64 ratios: exact logs ``d*``, exact order
+centring ``u* = P d*`` (``P`` the projection that subtracts each
+order's mean), exact variance ``V* = u*' T u* / n^2`` with ``T`` the
+Bartlett Toeplitz matrix of bandwidth ``M``, exact lag-1 ``r*``, and
+the table's critical value at ``r*``. The computed bounds lie outside
+the exact ones by the following, with ``u_2 = 2**-53`` and
+``gamma_k <= k 2**-52``:
+
+- The mean: ``|fl(sum d / n) - mean(d*)| <= 1.5 2**-52 A + c A / n``
+  with ``A = sum |d|`` (raised for its own rounding) and
+  ``c = LIBM_ULPS 2**-51`` for the logs.
+- ``T`` is positive semidefinite with row sums at most ``M``, so
+  ``sqrt(x' T x)`` is a seminorm and ``sqrt(x' T x) <= sqrt(M)
+  ||x||_2``. Hence
+  ``sqrt(V*) <= sqrt(V_c) + sqrt(M) R / n`` where ``V_c`` is the exact
+  variance of the computed centred values ``u_c`` and ``R`` bounds
+  ``||u_c - u*||_2``: ``c A`` for the logs (``P`` does not increase a
+  norm and ``||x||_2 <= ||x||_1``), ``2 sqrt(n) 2**-52 A`` for the
+  order means (each is one sum over at most ``n`` terms, so within
+  ``2 2**-52 A``), and ``2**-53 ||u_c||_2`` for the subtractions.
+- The computed variance differs from ``V_c`` by at most
+  ``(n + M + 8) 2**-52 (2 M) S2 / n^2`` where ``S2 = sum u_c^2``
+  (raised for its rounding): each of at most ``2 M`` weighted terms is
+  at most ``S2 / n`` by Cauchy-Schwarz and carries at most ``n + M + 8``
+  roundings.
+- The critical value is a table entry interpolated in ``r``; the table
+  never falls as ``r`` rises, so the lag-1 is raised by its rounding
+  bound ``2 (n + 8) 2**-52 + 3 R / sqrt(S2)`` (1 where ``S2`` is 0)
+  before it is looked up, and the interpolated value is raised by
+  ``16 2**-52`` relative. The ``3 R / sqrt(S2)`` term is a margin, not
+  a proved bound: the first-order change of a lag-1 under a
+  perturbation of relative size ``R / sqrt(S2)`` is at most twice that,
+  and a numerical search over perturbations at ``n = 12`` up to
+  ``R / sqrt(S2) = 0.5`` found at most 1.94 times it; the term is
+  about ``1e-15`` unless the centred values are themselves at rounding
+  scale, where it saturates at 1 (the largest limit)
+- The width ``E + q (sqrt(V_up) (1 + 3 2**-52) + sqrt(M) R / n)`` is
+  evaluated by (P) with ``n + M + 40`` roundings and moved up by `_up`;
+  the exponentials are as for `t_interval`.
+
+The tests check the bounds against exact rational arithmetic on random
+and on extreme inputs.
 """
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from decimal import Decimal, localcontext
-from functools import lru_cache
+from fractions import Fraction
+from functools import cache, lru_cache
 from typing import Final, cast
 
 import numpy as np
@@ -119,11 +166,20 @@ from numpy.typing import ArrayLike, NDArray
 from scipy import special  # pyright: ignore[reportMissingTypeStubs]
 
 from perfproof.schema import Direction, Procedure
+from perfproof.stats import lf_tables
 
 __all__ = [
+    "HAC_MIN_N",
     "LIBM_ULPS",
+    "RHO_FLOOR",
+    "UCB_Z",
+    "HacInterval",
     "PairedInterval",
     "batch_means",
+    "check_hac_args",
+    "hac_bandwidth",
+    "hac_lf_interval",
+    "lf_critical",
     "paired_ratios",
     "t_critical",
     "t_interval",
@@ -170,7 +226,7 @@ class PairedInterval:
         Two-sided confidence level of each interval.
     procedure : str
         ``"t_log_ratio"`` or ``"t_log_ratio_batch_means"``, as in
-        `perfproof.schema`.
+        `perfproof.schema`, or ``"hac_lf"`` (`hac_lf_interval`).
     rounds : int
         Rounds the interval used; batch means drops a trailing
         incomplete block.
@@ -623,3 +679,432 @@ def _check_confidence(confidence: object) -> float:
         msg = f"confidence must be a float in (0, 1), got {confidence!r}"
         raise ValueError(msg)
     return float(confidence)
+
+
+HAC_MIN_N: Final = 12
+"""Fewest observations at which ``hac_lf`` has an interval."""
+HAC_B: Final = lf_tables.HAC_B
+"""The fixed-b ratio of the ``hac_lf`` bandwidth, ``M = ceil(b n)``; the
+table was built for this value, so it lives there."""
+RHO_FLOOR: Final = 0.3
+"""Smallest upper limit of ``rho`` the critical value covers: about
+twice the largest paired lag-1 seen on a real trace (+0.13)."""
+UCB_Z: Final = 1.0
+"""Standard errors in the upper confidence bound of the lag-1
+autocorrelation (``docs/method.md``, ``UCB_Z``)."""
+_LF_MAX_K: Final = max(lf_tables.LEVEL_KS)
+_ULP_TABLE: Final = 16 * _ULP1
+_HAC_ROUNDING_PAD: Final = 40
+_HAC_CHUNK_BYTES: Final = 32 * 2**20
+"""Most bytes of ``(rows, n)`` float64 temporaries `hac_lf_interval`
+holds at once; it works on as many rows as fit."""
+_HAC_TEMPORARIES: Final = 16
+"""Upper bound on the ``(rows, n)`` arrays alive at once in `_hac_rows`
+(the logs, their absolute values, the centred values, the lagged
+products, the order masks and sums)."""
+
+
+@dataclass(frozen=True, slots=True)
+class HacInterval:
+    """The ``hac_lf`` interval of each row, and how it was made.
+
+    Attributes
+    ----------
+    interval : PairedInterval
+        Estimate and bounds, procedure ``"hac_lf"``.
+    lag1 : numpy.ndarray of float64, shape (R,)
+        The sample lag-1 autocorrelation of the order-centred log
+        ratios, as computed (not raised by its rounding bound).
+    ucb : numpy.ndarray of float64, shape (R,)
+        Its upper confidence bound ``r + z sqrt((1 - r^2) / n)``, with
+        ``r`` raised by its rounding bound.
+    rho_limit : numpy.ndarray of float64, shape (R,)
+        The upper limit of ``rho`` the critical value is worst case
+        over: ``max(RHO_FLOOR, ucb)`` rounded up to a tabulated limit,
+        at most the largest.
+    """
+
+    interval: PairedInterval
+    lag1: FloatArray
+    ucb: FloatArray
+    rho_limit: FloatArray
+
+
+def check_hac_args(ucb_z: object, rho_floor: object) -> None:
+    """Refuse a bad ``ucb_z`` or ``rho_floor`` of `hac_lf_interval`.
+
+    Parameters
+    ----------
+    ucb_z : object
+        Must be a finite real number (not a bool) of at least 0.
+    rho_floor : object
+        Must be a finite real number (not a bool) within the tabulated
+        limits.
+
+    Raises
+    ------
+    ValueError
+        If either is out of range.
+    """
+    limits = lf_tables.RHO_MAXES
+    if (
+        isinstance(ucb_z, bool)
+        or not isinstance(ucb_z, int | float)
+        or not math.isfinite(ucb_z)
+        or ucb_z < 0
+    ):
+        msg = f"ucb_z must be a finite number >= 0, got {ucb_z!r}"
+        raise ValueError(msg)
+    if (
+        isinstance(rho_floor, bool)
+        or not isinstance(rho_floor, int | float)
+        or not limits[0] <= rho_floor <= limits[-1]
+    ):
+        msg = (
+            f"rho_floor must be a number in [{limits[0]}, {limits[-1]}], "
+            f"got {rho_floor!r}"
+        )
+        raise ValueError(msg)
+
+
+def hac_bandwidth(n: int) -> int:
+    """Bartlett truncation lag ``M = max(2, ceil(0.1 n))``, below ``n``.
+
+    ``ceil`` is taken of the IEEE double product ``0.1 * n``, the form
+    the table was built with.
+
+    Parameters
+    ----------
+    n : int
+        Observations, at least 2.
+
+    Returns
+    -------
+    int
+        The bandwidth, at least 2 once ``n`` is at least 3 and always at
+        most ``n - 1``.
+    """
+    return min(n - 1, max(2, math.ceil(HAC_B * n)))
+
+
+@cache
+def _level_confidences() -> tuple[float, ...]:
+    """Return the per-look confidence of each tabulated ``K``.
+
+    ``1 - 0.05 / (2 K)`` with the float never below the exact value, as
+    `perfproof.stats.sequential.look_confidence` returns it.
+    """
+    out: list[float] = []
+    for k in lf_tables.LEVEL_KS:
+        exact = 1 - Fraction(0.05) / (2 * k)
+        conf = 1.0 - 0.05 / (2 * k)
+        if Fraction(conf) < exact:
+            conf = math.nextafter(conf, 1.0)
+        out.append(conf)
+    return tuple(out)
+
+
+@cache
+def _table(mode: str) -> FloatArray:
+    """Return one mode's table, nodes x limits x bins x levels."""
+    return np.array(lf_tables.VALUES[mode], dtype=np.float64)
+
+
+@cache
+def _bin_nodes() -> FloatArray:
+    """Return the lag-1 position of each bin."""
+    edges = lf_tables.EDGES
+    step = edges[1] - edges[0]
+    return np.array([edges[0] - step, *edges], dtype=np.float64)
+
+
+def _limit_index(rho_limit: FloatArray) -> NDArray[np.intp]:
+    """Return the index of the least tabulated limit not below each.
+
+    The largest tabulated limit where it exceeds all of them.
+    """
+    limits = np.asarray(lf_tables.RHO_MAXES, dtype=np.float64)
+    return np.minimum(
+        np.searchsorted(limits, rho_limit, side="left"), limits.size - 1
+    )
+
+
+def lf_critical(
+    *,
+    mode: str,
+    n: int,
+    confidence: float,
+    lag1_up: FloatArray,
+    rho_limit: FloatArray,
+) -> FloatArray:
+    """Least favourable critical value for each row.
+
+    The table of ``docs/method.md`` ("The critical-value table"): the
+    worst case over AR(1) noise with ``rho`` up to the row's limit,
+    given its lag-1. The values are for the largest tabulated look
+    length not above ``n`` (never falling as ``n`` falls, so
+    conservative between lengths and past the last), at the smallest
+    tabulated ``K`` whose confidence is at least ``confidence``, at the
+    smallest tabulated limit not below the row's (the largest if it
+    exceeds all), interpolated linearly in the lag-1 between the lower
+    edges of its bin and the next bin.
+
+    Parameters
+    ----------
+    mode : {"one_host", "cross_host"}
+        Host mode.
+    n : int
+        Observations, at least `HAC_MIN_N`.
+    confidence : float
+        Per-look two-sided confidence, at most that of ``K = 12``.
+    lag1_up : numpy.ndarray of float64, shape (R,)
+        Lag-1 autocorrelation (raised by its rounding bound).
+    rho_limit : numpy.ndarray of float64, shape (R,)
+        Upper limit of ``rho`` per row.
+
+    Returns
+    -------
+    numpy.ndarray of float64, shape (R,)
+        Critical values.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is below `HAC_MIN_N`, the mode is unknown, or
+        ``confidence`` is above the tabulated levels.
+    """
+    if mode not in ("one_host", "cross_host"):
+        msg = f"unknown mode {mode!r}"
+        raise ValueError(msg)
+    if type(n) is not int or n < HAC_MIN_N:
+        msg = f"n must be an int >= {HAC_MIN_N}, got {n!r}"
+        raise ValueError(msg)
+    levels = _level_confidences()
+    found = [i for i, c in enumerate(levels) if c >= confidence]
+    if not found:
+        msg = (
+            f"confidence {confidence!r} is above the tabulated level of "
+            f"K = {_LF_MAX_K} looks, {levels[-1]!r}"
+        )
+        raise ValueError(msg)
+    node = [i for i, m in enumerate(lf_tables.NODES) if m <= n][-1]
+    chosen = _limit_index(rho_limit)
+    out = np.empty(lag1_up.shape)
+    for k in np.unique(chosen):
+        rows = chosen == k
+        column = _table(mode)[node, k, :, found[0]]
+        out[rows] = np.interp(lag1_up[rows], _bin_nodes(), column)
+    return out
+
+
+def hac_lf_interval(
+    baseline: ArrayLike,
+    candidate: ArrayLike,
+    *,
+    direction: Direction,
+    confidence: float,
+    candidate_first: ArrayLike,
+    mode: str,
+    ucb_z: float = UCB_Z,
+    rho_floor: float = RHO_FLOOR,
+) -> HacInterval:
+    """Return the T1.11 interval for ``E[d]``, on the ratio scale.
+
+    The mean log ratio ``d_bar`` with the Newey-West (Bartlett)
+    standard error of the order-centred log ratios at bandwidth
+    `hac_bandwidth`, times the least favourable critical value at the
+    sample lag-1 autocorrelation ``r`` (`lf_critical`), exponentiated.
+    ``docs/method.md`` ("The T1.11 interval") is the specification. The
+    critical value is worst case over AR(1) noise with ``rho`` up to
+    ``max(rho_floor, ucb)``, where ``ucb = r + z sqrt((1 - r^2) / n)``
+    is the upper confidence bound of the lag-1 autocorrelation, so the
+    interval widens in proportion to the dependence the data cannot
+    rule out. Nothing is withheld. A row of identical ratios gives that
+    ratio exactly; otherwise the bounds are widened outward by the
+    error bound derived in the "Numerics of ``hac_lf``" section of this
+    module's docstring. O(R n M) time with ``M = ceil(0.1 n)``, so
+    O(R n^2) in ``n``. Rows are processed in chunks of at most
+    `_HAC_CHUNK_BYTES` of temporaries (32 MiB, whatever ``R``), so
+    memory beyond the inputs, the ``(R, n)`` ratio array `paired_ratios`
+    makes and the O(R) outputs is bounded by that budget; rows do not
+    interact, so the chunking changes no value.
+
+    Parameters
+    ----------
+    baseline, candidate : array_like
+        Measurements shaped ``(R, n)`` with ``n`` at least `HAC_MIN_N`;
+        see `paired_ratios`.
+    direction : {"lower_is_better", "higher_is_better"}
+        The metric's direction.
+    confidence : float
+        Two-sided per-look confidence, ``0 < confidence < 1``, at most
+        the tabulated level of 12 looks.
+    candidate_first : array_like of bool
+        Shape ``(R, n)``: True where the candidate ran first in the
+        round. All False cross host (one order group).
+    mode : {"one_host", "cross_host"}
+        Host mode, which selects the table.
+    ucb_z : float, default `UCB_Z`
+        Standard errors in the upper confidence bound, at least 0.
+    rho_floor : float, default `RHO_FLOOR`
+        Smallest ``rho`` limit, within the tabulated limits.
+
+    Returns
+    -------
+    HacInterval
+        Interval, the sample lag-1, its upper bound and the limit used.
+
+    Raises
+    ------
+    ValueError
+        If the measurements are invalid (see `paired_ratios`), not
+        shaped ``(R, n)``, ``n`` is below `HAC_MIN_N`,
+        ``candidate_first`` is not a boolean array of that shape,
+        ``confidence``, ``ucb_z`` or ``rho_floor`` is out of range, or
+        the mode is unknown.
+    """
+    ratios = paired_ratios(baseline, candidate, direction)
+    conf = _check_confidence(confidence)
+    if ratios.ndim != 2:
+        msg = f"measurements must be shaped (R, n), got {ratios.shape}"
+        raise ValueError(msg)
+    rows, n = ratios.shape
+    if n < HAC_MIN_N:
+        msg = f"hac_lf needs at least {HAC_MIN_N} observations, got {n}"
+        raise ValueError(msg)
+    first = np.asarray(candidate_first)
+    if first.dtype != np.bool_ or first.shape != ratios.shape:
+        msg = (
+            f"candidate_first must be a boolean array shaped {ratios.shape}"
+            f", got dtype {first.dtype}, shape {first.shape}"
+        )
+        raise ValueError(msg)
+    check_hac_args(ucb_z, rho_floor)
+    parts = [
+        _hac_rows(
+            ratios[lo:hi],
+            first[lo:hi],
+            conf=conf,
+            mode=mode,
+            ucb_z=ucb_z,
+            rho_floor=rho_floor,
+        )
+        for lo, hi in _row_chunks(rows, n)
+    ]
+    estimate, lower, upper, lag1, ucb, asked = (
+        np.concatenate(column) for column in zip(*parts, strict=True)
+    )
+    return HacInterval(
+        interval=PairedInterval(
+            estimate=estimate,
+            lower=lower,
+            upper=upper,
+            confidence=conf,
+            procedure="hac_lf",
+            rounds=n,
+            observations=n,
+        ),
+        lag1=lag1,
+        ucb=ucb,
+        rho_limit=asked,
+    )
+
+
+def _row_chunks(rows: int, n: int) -> Iterator[tuple[int, int]]:
+    """Yield row ranges whose ``(rows, n)`` temporaries fit the budget.
+
+    At least one range, empty for no rows. The size depends only on
+    ``n``, so a result never depends on the machine.
+    """
+    size = max(1, _HAC_CHUNK_BYTES // (_HAC_TEMPORARIES * 8 * n))
+    for lo in range(0, max(rows, 1), size):
+        yield lo, min(lo + size, rows)
+
+
+def _hac_rows(
+    ratios: FloatArray,
+    first: NDArray[np.bool_],
+    *,
+    conf: float,
+    mode: str,
+    ucb_z: float,
+    rho_floor: float,
+) -> tuple[FloatArray, ...]:
+    """Return ``hac_lf``'s estimate, bounds, lag-1, ucb and limit.
+
+    One chunk of rows of validated input; every output is shaped
+    ``(rows,)``. Rows do not interact, so any split of the rows gives
+    the same values.
+    """
+    rows, n = ratios.shape
+    limits = lf_tables.RHO_MAXES
+    d = np.log(ratios)
+    a_sum = np.sum(np.abs(d), axis=-1) * (1.0 + (n + 2) * _ULP1)
+    mean = np.sum(d, axis=-1) / n
+    u = _order_centred(d, first)
+    s2 = np.sum(u * u, axis=-1)
+    s2_up = s2 * (1.0 + (n + 2) * 2.0**-51)
+    top = np.sum(u[:, :-1] * u[:, 1:], axis=-1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        lag1 = np.where(s2 > 0, np.clip(top / s2, -1.0, 1.0), 0.0)
+
+    m = hac_bandwidth(n)
+    weights = 1.0 - np.arange(m) / m
+    weights[1:] *= 2.0
+    gamma = np.empty((rows, m))
+    for j in range(m):
+        gamma[:, j] = np.sum(u[:, : n - j] * u[:, j:], axis=-1) / n
+    variance = np.sum(gamma * weights, axis=-1) / n
+    # Rounding of the variance: n + M + 8 roundings per term on at most
+    # 2 M weighted terms of size at most S2 / n (Cauchy-Schwarz).
+    var_err = (n + m + 8) * _ULP1 * 2 * m * s2_up / n / n
+    var_up = np.maximum(variance + var_err, 0.0)
+
+    # Distance of the computed centred values from the exact ones, in
+    # the 2-norm: the log error, the centring error, the subtraction.
+    pert = (
+        _LOG_REL + 2.0 * math.sqrt(n) * _ULP1
+    ) * a_sum + 2.0**-53 * np.sqrt(s2_up)
+    se_up = np.sqrt(var_up) * (1.0 + 3 * _ULP1) + math.sqrt(m) * pert / n
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        sharp = np.where(s2 > 0, 3.0 * pert / np.sqrt(s2), 1.0)
+    lag1_up = np.minimum(lag1 + 2.0 * (n + 8) * _ULP1 + sharp, 1.0)
+    spread = np.sqrt(np.maximum(1.0 - lag1_up**2, 0.0) / n)
+    ucb = lag1_up + ucb_z * spread
+    wanted = np.maximum(rho_floor, ucb)
+    asked = np.asarray(limits, dtype=np.float64)[_limit_index(wanted)]
+    crit = lf_critical(
+        mode=mode,
+        n=n,
+        confidence=conf,
+        lag1_up=lag1_up,
+        rho_limit=asked,
+    ) * (1.0 + _ULP_TABLE)
+
+    mean_err = 1.5 * _ULP1 * a_sum + _LOG_REL * a_sum / n
+    width = _up(mean_err + crit * se_up, n + m + _HAC_ROUNDING_PAD)
+    with np.errstate(over="ignore", under="ignore"):
+        estimate = np.exp(mean)
+    lower = _exp_down(mean - width)
+    upper = _exp_up(mean + width)
+    estimate, lower, upper = _exact_where_identical(
+        ratios, estimate, lower, upper
+    )
+    return estimate, lower, upper, lag1, ucb, asked
+
+
+def _order_centred(d: FloatArray, first: NDArray[np.bool_]) -> FloatArray:
+    """Subtract from each ``d`` the mean of the rounds in its order.
+
+    Each order's mean is the sum of its own values over their count (not
+    a difference of sums), so its rounding is that of one sum. A row
+    with one order only is centred on its overall mean.
+    """
+    count = first.sum(axis=-1, keepdims=True)
+    n = d.shape[-1]
+    sum_first = np.sum(np.where(first, d, 0.0), axis=-1, keepdims=True)
+    sum_second = np.sum(np.where(first, 0.0, d), axis=-1, keepdims=True)
+    mean_first = sum_first / np.maximum(count, 1)
+    mean_second = sum_second / np.maximum(n - count, 1)
+    return d - np.where(first, mean_first, mean_second)

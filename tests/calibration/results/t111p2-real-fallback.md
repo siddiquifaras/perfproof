@@ -1,0 +1,22 @@
+| Trace | python_native | web_agentic | llm_serving | gpu_kernels |
+|---|---|---|---|---|
+| linux-java | 36.3% | 35.2% | 39.7% | 30.2% |
+| linux-loaded-bursty-node | 17.0% | 25.1% | 34.2% | 11.3% |
+| linux-loaded-bursty-rolling | 15.5% | 22.0% | 30.5% | 14.7% |
+| linux-loaded-steady-node | 21.0% | 29.4% | 34.6% | 16.6% |
+| linux-loaded-steady-rolling | 33.2% | 35.2% | 43.8% | 31.9% |
+| linux-membership | 21.1% | 22.7% | 29.7% | 20.2% |
+| linux-node | 20.5% | 28.2% | 34.2% | 15.5% |
+| linux-picolm | 29.9% | 31.4% | 35.7% | 31.2% |
+| linux-pinned-rolling | 27.3% | 30.7% | 37.1% | 25.8% |
+| linux-rolling | 27.4% | 28.3% | 37.3% | 25.7% |
+| linuxvm-java | 33.8% | 33.2% | 38.8% | 30.3% |
+| linuxvm-membership | 19.7% | 23.8% | 30.0% | 15.9% |
+| linuxvm-rolling | 28.0% | 31.4% | 38.7% | 23.2% |
+| mac-loaded-node | 33.0% | 39.4% | 45.4% | 29.0% |
+| mac-loaded-rolling | 26.8% | 30.7% | 36.8% | 22.9% |
+| mac-membership | 32.6% | 32.2% | 37.6% | 32.2% |
+| mac-node | 46.4% | 51.0% | 54.9% | 38.5% |
+| mac-picolm | 28.2% | 35.4% | 41.0% | 20.7% |
+| mac-rolling | 30.1% | 31.9% | 36.6% | 28.5% |
+| ALL | 27.2% | 31.7% | 38.0% | 22.8% |

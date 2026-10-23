@@ -862,7 +862,7 @@
             }
           ],
           "default": null,
-          "description": "Whether the diagnostic gate of ``docs/method.md`` withheld the\ndecision because the lag-1 autocorrelation of the log ratios was\nabove the gate's threshold at a look too short to show coverage.\n``True`` only on a rule 5 INCONCLUSIVE of the batch-means procedure\nthat records the interval the gate held back. It is not the\n`RunWarning` ``lag1_autocorrelation_high``, which only warns.",
+          "description": "Whether the diagnostic gate of ``docs/method.md`` withheld the\ndecision because the lag-1 autocorrelation of the log ratios was\nabove the gate's threshold at a look too short to show coverage.\n``True`` only on a rule 5 INCONCLUSIVE of the batch-means procedure\nthat records the interval the gate held back. It is not the\n`RunWarning` ``lag1_autocorrelation_high``, which only warns.\n``None`` under ``hac_lf``, which has no gate.",
           "title": "Autocorrelated Rounds"
         },
         "outlier_rounds": {
@@ -875,7 +875,7 @@
             }
           ],
           "default": null,
-          "description": "Whether the gate withheld the decision because the share of\noutlier rounds was above its threshold at a look too short to show\ncoverage; the conditions of ``autocorrelated_rounds`` apply.",
+          "description": "Whether the gate withheld the decision because the share of\noutlier rounds was above its threshold at a look too short to show\ncoverage; the conditions of ``autocorrelated_rounds`` apply, and it\nis ``None`` under ``hac_lf``.",
           "title": "Outlier Rounds"
         },
         "resolution_widening": {
@@ -4785,10 +4785,11 @@
           "type": "integer"
         },
         "procedure": {
-          "description": "Interval procedure in force.",
+          "description": "The interval procedure that decided, chosen by the spec's look\nschedule before any round: ``hac_lf`` for the python_native,\nweb_agentic and llm_serving default schedules, the gated\n``t_log_ratio_batch_means`` for gpu_kernels and for any other\nschedule (\"The T1.11 decision\" in ``docs/method.md``).",
           "enum": [
             "t_log_ratio",
-            "t_log_ratio_batch_means"
+            "t_log_ratio_batch_means",
+            "hac_lf"
           ],
           "title": "Procedure",
           "type": "string"

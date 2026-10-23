@@ -245,7 +245,11 @@ GuardrailStatus = Literal[
 ]
 AllowanceSource = Literal["default", "target_class", "project"]
 LockRole = Literal["harness", "oracle", "input", "config"]
-Procedure = Literal["t_log_ratio", "t_log_ratio_batch_means"]
+Procedure = Literal["t_log_ratio", "t_log_ratio_batch_means", "hac_lf"]
+"""The interval procedures of ``docs/method.md``: the plain t interval,
+the gated batch-means primary, and ``hac_lf``, the T1.11 interval that
+``compare`` decides the non-GPU default schedules with ("The T1.11
+decision")."""
 TargetClass = Literal[
     "python_cpu",
     "native",
@@ -1558,11 +1562,13 @@ class Diagnostics(_Model):
     above the gate's threshold at a look too short to show coverage.
     ``True`` only on a rule 5 INCONCLUSIVE of the batch-means procedure
     that records the interval the gate held back. It is not the
-    `RunWarning` ``lag1_autocorrelation_high``, which only warns."""
+    `RunWarning` ``lag1_autocorrelation_high``, which only warns.
+    ``None`` under ``hac_lf``, which has no gate."""
     outlier_rounds: Flag | None = None
     """Whether the gate withheld the decision because the share of
     outlier rounds was above its threshold at a look too short to show
-    coverage; the conditions of ``autocorrelated_rounds`` apply."""
+    coverage; the conditions of ``autocorrelated_rounds`` apply, and it
+    is ``None`` under ``hac_lf``."""
     resolution_widening: NonNegative | None = None
     """How far the resolution moved both bounds of the deciding look's
     interval outward, on the log scale: the mean ``w`` over its rounds
@@ -1629,7 +1635,11 @@ class Verdict(_Model):
     looks: Count
     """Looks taken."""
     procedure: Procedure
-    """Interval procedure in force."""
+    """The interval procedure that decided, chosen by the spec's look
+    schedule before any round: ``hac_lf`` for the python_native,
+    web_agentic and llm_serving default schedules, the gated
+    ``t_log_ratio_batch_means`` for gpu_kernels and for any other
+    schedule ("The T1.11 decision" in ``docs/method.md``)."""
     regression: Flag = False
     """Performance REJECT with ``U < 1``: the candidate is slower."""
     cross_host: Flag = False

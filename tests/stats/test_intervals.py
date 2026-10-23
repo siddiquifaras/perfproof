@@ -308,6 +308,7 @@ def record(
     assert d.reason is not None
     assert d.outcome != "CONTINUE"
     assert d.rule != 4
+    assert res.procedure != "hac_lf"  # the schema does not name it yet
     v = Verdict(
         outcome=d.outcome,
         reason=d.reason,
