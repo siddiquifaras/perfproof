@@ -229,12 +229,14 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   current Ruby for the eval user `ppeval` (no Homebrew), so the C# and
   Ruby/Rails eval tasks run natively; Docker stays unavailable to ppeval.
 
-- **Absolute guardrail limits (Faras, 2026-10-23):** when an
-  absolute-limit guardrail's data shows outliers or a slow mode (where
-  its check is uncalibrated: false passes reached 20 to 48% at seed
-  12345), it reports `not_established` ("can't tell"): KEEP withheld,
-  never REJECT. Clean data passes or breaches as normal; relative
-  allowances unchanged.
+- **Absolute guardrail limits (Faras, 2026-10-23, revised the same day):**
+  "can't tell" on messy data was rejected ("messy is the normal case;
+  it must still find or say something"). Absolute caps are judged on a
+  distribution-free rank-based (order-statistic) bound on the median,
+  or a declared quantile, batched where rounds are autocorrelated: pass
+  under, breach over, `not_established` only when the bound straddles
+  the cap. The candidate's median, bound, cap and rounds-over count are
+  always reported.
 
 ### In progress
 
