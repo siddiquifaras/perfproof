@@ -1,0 +1,45 @@
+{
+  "task_id": "real-rails-known-change",
+  "started_at": "2026-10-22T21:49:06+00:00",
+  "wall_seconds": 246.52,
+  "load_start": [
+    7.93408203125,
+    12.009765625,
+    9.08544921875
+  ],
+  "load_end": [
+    7.52001953125,
+    9.04541015625,
+    8.42236328125
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "9dab86db52ce",
+  "turns": [
+    {
+      "prompt": "This PR says it speeds up structured event logging. The branch is pr-58964; is it actually faster than main?",
+      "argv": [
+        "claude",
+        "-p",
+        "This PR says it speeds up structured event logging. The branch is pr-58964; is it actually faster than main?",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "3.00"
+      ],
+      "seconds": 228.15,
+      "exit_code": 0,
+      "session_id": "437cebe6-4281-4098-bf1b-57038b0e54f1"
+    }
+  ],
+  "setup_seconds": 18.22
+}

@@ -1,0 +1,47 @@
+{
+  "task_id": "neg-explain",
+  "started_at": "2026-10-22T22:10:56+00:00",
+  "wall_seconds": 5.05,
+  "load_start": [
+    6.64013671875,
+    6.23486328125,
+    6.798828125
+  ],
+  "load_end": [
+    6.3486328125,
+    6.18115234375,
+    6.7763671875
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "9dab86db52ce",
+  "turns": [
+    {
+      "prompt": "explain what rolling_sum does",
+      "argv": [
+        "claude",
+        "-p",
+        "explain what rolling_sum does",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.30",
+        "--max-turns",
+        "2"
+      ],
+      "seconds": 4.12,
+      "exit_code": 1,
+      "session_id": "b6994dca-da65-472a-91da-d7c1a0eb3a47"
+    }
+  ],
+  "setup_seconds": 0.08
+}

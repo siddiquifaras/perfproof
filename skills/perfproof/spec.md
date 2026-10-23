@@ -129,8 +129,10 @@ install there would import its source in both versions.
   files, input data and config files to lock. Paths relative to the
   repository. Those under `.perfproof/harness/` are installed in both
   versions by perfproof. Never lock the code you are trying to speed
-  up: a change to a locked file is refused, so the change could never
-  be measured.
+  up, or any file the change you are proving touches: a change to a
+  locked file is refused, so the change could never be measured. A
+  benchmark the change adds or edits goes into `.perfproof/harness/` as
+  a copy instead (see SKILL.md, prove step 3).
 
 If `bench define` refuses the spec, its JSON `error.message` says why.
 Fix that field; don't loosen a check to get past it.

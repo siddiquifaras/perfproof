@@ -1,0 +1,45 @@
+{
+  "task_id": "real-echo-known-change",
+  "started_at": "2026-10-22T23:30:50+00:00",
+  "wall_seconds": 86.03,
+  "load_start": [
+    6.1884765625,
+    7.1240234375,
+    6.310546875
+  ],
+  "load_end": [
+    4.3798828125,
+    6.32373046875,
+    6.080078125
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "8487dacd81e2",
+  "turns": [
+    {
+      "prompt": "Is the change on branch pr-3023 (pooled-buffer JSON deserialize) really faster than main?",
+      "argv": [
+        "claude",
+        "-p",
+        "Is the change on branch pr-3023 (pooled-buffer JSON deserialize) really faster than main?",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "3.00"
+      ],
+      "seconds": 78.57,
+      "exit_code": 0,
+      "session_id": "dac9c39e-fa6b-416d-b72c-b0531ea98f2e"
+    }
+  ],
+  "setup_seconds": 7.35
+}

@@ -26,9 +26,12 @@ the user.
   - **Estimates**: any timing that is not a calibrated KEEP or REJECT.
     Give the number and its range and say "estimate". Never call an
     estimate faster, slower, quicker, shorter, longer, a speedup, a gain,
-    better, worse, positive or negative, never use it as a reason to keep a change, and
-    never compare it with a claim ("larger than claimed", "matches the
-    50x claim"). Say the claim can't be checked until perfproof can
+    a win, better, worse, positive or negative, never use it as a
+    reason to keep a change, and never compare it with a claim
+    ("larger than claimed", "matches the 50x claim"). Do not use
+    these words even to say you are not using them or to describe an
+    idea's room to improve: say "the cap is 1.04x" or "it is 3% of
+    the run". Say the claim can't be checked until perfproof can
     give a verdict.
   - **Verdicts**: only from `compare`, only when
     `verdict.calibration == "calibrated"`. Only then say "kept" or
@@ -146,6 +149,15 @@ No discovery. One candidate at a time, against its parent.
    write for it goes in `.perfproof/harness/`, never in the user's
    tree. If you can't find any command that runs the changed code,
    stop and say so (nothing can be measured without one).
+   If the change edits code AND adds or edits a benchmark, never lock a
+   file the change touches: copy the benchmark into
+   `.perfproof/harness/` (the baseline's version if it has one, else the
+   change's new file) so both versions run the identical benchmark, and
+   lock that copy. If the change touches only benchmark or test files,
+   build the spec on them as usual and let `compare` judge it.
+   Once `bench define` has locked a file, never edit it: if the
+   benchmark needs fixing, write a corrected copy under a new name,
+   define that, and compare with it.
    Never refuse a change on your own reading of the diff, even when it
    plainly edits the benchmark or its tests: run `compare`, which
    refuses such a change in seconds at its lock check and records why.
@@ -153,7 +165,8 @@ No discovery. One candidate at a time, against its parent.
 4. Run `perfproof compare <name> --candidate <rev or dir> --baseline
    <rev> --json`, adding `--spec-hash <hash>` when the benchmark has more
    than one version (error `ambiguous_hash`). It can take minutes;
-   say so before you start.
+   say so before you start. Never end your turn while it runs: wait for
+   its JSON, then report.
 5. Report from the JSON with [messages.md](messages.md): what was
    checked and passed (only gates in `gates[]` with their `status`),
    what failed, the estimate (`verdict.estimate`, range
@@ -176,7 +189,16 @@ No discovery. One candidate at a time, against its parent.
 1. **Understand, then ask once.** Run `perfproof init --json` (once
    per repository; it writes only `.perfproof/`). It proposes
    `targets[]`, `workloads[]` and goals, each with an `id` and its
-   evidence, and `questions[]` for what it could not find out. Prepare
+   evidence, and `questions[]` for what it could not find out. Look for
+   the project's own benchmarks first (a `benchmarks/` or `bench/`
+   directory, asv, pytest-benchmark, `cargo bench`, `go test -bench`,
+   JMH, benchmark.js or tinybench) and prefer one that exercises what
+   the user asked about; with no target named, propose the path the
+   project's own benchmarks and README point at, and say why. Prefer a
+   workload that runs the project's most-used public entry points
+   over the first or most niche benchmark in a list: a function that
+   every call goes through only shows up when the workload makes many
+   different calls. Profile the same workload you will measure. Prepare
    everything before you ask: your suggested answer to each question
    that matters (what "faster" means, what must not change), the spec
    built on them ([spec.md](spec.md)) or a locked benchmark that fits
@@ -195,10 +217,14 @@ No discovery. One candidate at a time, against its parent.
    something comes up that only the user can decide.
 2. **Profile.** For Node or TypeScript code read [node.md](node.md)
    first: how to launch, warm up and profile it. `perfproof profile
-   <name> --json`. Print and read the
-   top entries of `result.hotspots[]` (`function`, `file`, `line`,
-   `total_fraction`), not a cut of the whole output, and the wall
-   versus CPU time. If CPU is well below wall, the program is mostly
+   <name> --json`. Print the top 15
+   entries of `result.hotspots[]` in the order the CLI gives them
+   (by self share), one per line as `function file line
+   self_fraction total_fraction`, not a cut of the whole output, and read them with the wall versus
+   CPU time. If most of the profile is interpreter start-up or
+   imports, the workload does too little work per run: make it do
+   more (a loop of calls inside the process, a larger input) and
+   profile again before choosing an idea. If CPU is well below wall, the program is mostly
    waiting: look at I/O and services, not loops. For a native
    program, give `profile` a profiler that writes folded stacks (samply
    or perf) with `--profiler-command` and `--own-module <binary>`. If
@@ -232,9 +258,9 @@ No discovery. One candidate at a time, against its parent.
    cheaply (the cheapest check that would prove it wrong). Drop ideas
    it refutes and say why as a mechanism you read in the code or a
    count you made ("the lookup rebuilds a dict on every call"), never
-   as a timing or a word
-   like "slower" or "no quicker". A cheap timing only decides what to
-   try next: never report it to the user. Report counts or a bound
+   as a timing or a word like "slower" or "no quicker". A timing you
+   took yourself (`time`, a loop, a stopwatch, even "about 23 ms") only
+   decides what to try next: never report it to the user. Report counts or a bound
    instead ("the stage is 18% of the run, so it can save at most
    1.2x").
 5. **Try.** Create the branch the user allowed in step 1 (ask now

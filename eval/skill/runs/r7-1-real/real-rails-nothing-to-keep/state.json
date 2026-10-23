@@ -1,0 +1,45 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "c23b2a4468a45f0a11820e3ad8597ac1e3ac19eb",
+    "perfproof/timewithzone": "48a3fa16d33b3dc9d54454cf2c8872912197a5df"
+  },
+  "seeded": {
+    "main": "c23b2a4468a45f0a11820e3ad8597ac1e3ac19eb"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": null,
+      "tests_tail": ""
+    },
+    {
+      "ref": "perfproof/timewithzone",
+      "changed": [
+        "activesupport/lib/active_support/time_with_zone.rb"
+      ],
+      "tests_ok": true,
+      "tests_tail": "\n# Running:\n\n........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................\n\nFinished in 0.512784s, 1482.1064 runs/s, 3009.0660 assertions/s.\n\n760 runs, 1543 assertions, 0 failures, 0 errors, 0 skips"
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261022T215645Z-f71a25",
+      "outcome": "REJECT",
+      "reason": "correctness",
+      "gate": "correctness",
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    },
+    {
+      "run_id": "20261022T215914Z-89f66f",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

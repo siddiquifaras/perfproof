@@ -1,0 +1,21 @@
+{
+  "status": "?? .perfproof/\n",
+  "current_branch": "main",
+  "branches": {
+    "main": "78c3d9543be665b4bb9ed5ece3ac829108e3efa5",
+    "pr-3023": "cc07fa957464a7c288859083b3008ca970c68a6e"
+  },
+  "seeded": {
+    "main": "78c3d9543be665b4bb9ed5ece3ac829108e3efa5",
+    "pr-3023": "cc07fa957464a7c288859083b3008ca970c68a6e"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": null,
+      "tests_tail": ""
+    }
+  ],
+  "run_verdicts": []
+}

@@ -1,0 +1,72 @@
+{
+  "task_id": "real-fd-hidden-fix",
+  "started_at": "2026-10-22T22:28:23+00:00",
+  "wall_seconds": 364.04,
+  "load_start": [
+    4.875,
+    6.17041015625,
+    6.60498046875
+  ],
+  "load_end": [
+    5.79150390625,
+    5.1533203125,
+    5.91943359375
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "bd7992eb865f",
+  "turns": [
+    {
+      "prompt": "/perfproof light",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof light",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "3.00"
+      ],
+      "seconds": 19.69,
+      "exit_code": 0,
+      "session_id": "d9eaa64d-d353-4c3c-867f-ec1e0181180f"
+    },
+    {
+      "prompt": "yes, go ahead with your suggestions",
+      "argv": [
+        "claude",
+        "-p",
+        "yes, go ahead with your suggestions",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "2.91",
+        "--resume",
+        "d9eaa64d-d353-4c3c-867f-ec1e0181180f"
+      ],
+      "seconds": 306.83,
+      "exit_code": 0,
+      "session_id": "d9eaa64d-d353-4c3c-867f-ec1e0181180f"
+    }
+  ],
+  "setup_seconds": 23.35
+}

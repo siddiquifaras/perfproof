@@ -1,0 +1,30 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "421a475fc592041a62bcb1eb906cf0a65e37f1f1",
+    "pr-48898": "ed355945d223575649f7e77e65453320d8bb771a"
+  },
+  "seeded": {
+    "main": "421a475fc592041a62bcb1eb906cf0a65e37f1f1",
+    "pr-48898": "ed355945d223575649f7e77e65453320d8bb771a"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": null,
+      "tests_tail": ""
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261022T224018Z-f4174c",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

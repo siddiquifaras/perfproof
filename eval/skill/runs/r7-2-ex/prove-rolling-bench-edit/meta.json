@@ -1,0 +1,45 @@
+{
+  "task_id": "prove-rolling-bench-edit",
+  "started_at": "2026-10-22T23:00:59+00:00",
+  "wall_seconds": 25.55,
+  "load_start": [
+    8.04345703125,
+    7.6220703125,
+    7.1435546875
+  ],
+  "load_end": [
+    7.580078125,
+    7.55322265625,
+    7.1328125
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "bd7992eb865f",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-bench",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-bench",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.80"
+      ],
+      "seconds": 24.65,
+      "exit_code": 0,
+      "session_id": "e9f2dc95-5109-4a88-b9aa-232de658513c"
+    }
+  ],
+  "setup_seconds": 0.14
+}

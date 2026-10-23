@@ -1,0 +1,37 @@
+{
+  "status": "",
+  "current_branch": "main",
+  "branches": {
+    "main": "125e337a4c91e907d022f02c9aa8a393fd2921ed",
+    "perfproof/django-hot-paths": "66d6ccf822fd06e18df47223c90e07cd579f4e23"
+  },
+  "seeded": {
+    "main": "125e337a4c91e907d022f02c9aa8a393fd2921ed"
+  },
+  "trees": [
+    {
+      "ref": "working",
+      "changed": [],
+      "tests_ok": null,
+      "tests_tail": ""
+    },
+    {
+      "ref": "perfproof/django-hot-paths",
+      "changed": [
+        "django/template/base.py"
+      ],
+      "tests_ok": true,
+      "tests_tail": "----------------------------------------------------------------------\nRan 29 tests in 0.031s\n\nOK\nDestroying test database for alias 'default'...\nTesting against Django installed in '/Users/faras/.cache/perfproof-eval/r7-2-real/repos/real-django-hidden-fix/django'\nFound 29 test(s).\nSystem check identified no issues (0 silenced)."
+    }
+  ],
+  "run_verdicts": [
+    {
+      "run_id": "20261022T223623Z-c31978",
+      "outcome": "INCONCLUSIVE",
+      "reason": "insufficient_evidence",
+      "gate": null,
+      "calibration": "uncalibrated",
+      "candidate_commit": null
+    }
+  ]
+}

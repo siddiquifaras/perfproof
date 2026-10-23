@@ -1,0 +1,45 @@
+{
+  "task_id": "prove-rolling-fix",
+  "started_at": "2026-10-22T22:02:00+00:00",
+  "wall_seconds": 73.19,
+  "load_start": [
+    6.392578125,
+    7.2822265625,
+    7.5546875
+  ],
+  "load_end": [
+    10.06005859375,
+    8.08837890625,
+    7.82568359375
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "9dab86db52ce",
+  "turns": [
+    {
+      "prompt": "/perfproof branch agent-speedup",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof branch agent-speedup",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "0.80"
+      ],
+      "seconds": 72.28,
+      "exit_code": 0,
+      "session_id": "6549886a-97f0-4a74-a12a-8002a1855da3"
+    }
+  ],
+  "setup_seconds": 0.16
+}

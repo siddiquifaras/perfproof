@@ -1,0 +1,72 @@
+{
+  "task_id": "real-django-hidden-fix",
+  "started_at": "2026-10-22T21:37:39+00:00",
+  "wall_seconds": 180.9,
+  "load_start": [
+    4.1513671875,
+    5.8388671875,
+    4.96240234375
+  ],
+  "load_end": [
+    4.275390625,
+    4.93310546875,
+    4.72802734375
+  ],
+  "claude_version": "2.1.291 (Claude Code)",
+  "skill_sha": "9dab86db52ce",
+  "turns": [
+    {
+      "prompt": "/perfproof light",
+      "argv": [
+        "claude",
+        "-p",
+        "/perfproof light",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "3.00"
+      ],
+      "seconds": 19.16,
+      "exit_code": 0,
+      "session_id": "cbd32891-f8e2-49e5-ae4e-125ea4374b4a"
+    },
+    {
+      "prompt": "yes, go ahead with your suggestions",
+      "argv": [
+        "claude",
+        "-p",
+        "yes, go ahead with your suggestions",
+        "--model",
+        "claude-sonnet-5-5",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,Skill",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--max-budget-usd",
+        "2.91",
+        "--resume",
+        "cbd32891-f8e2-49e5-ae4e-125ea4374b4a"
+      ],
+      "seconds": 150.28,
+      "exit_code": 0,
+      "session_id": "cbd32891-f8e2-49e5-ae4e-125ea4374b4a"
+    }
+  ],
+  "setup_seconds": 10.9
+}
