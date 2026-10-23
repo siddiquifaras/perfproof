@@ -12,12 +12,14 @@ taken from the repo afterwards.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import json
 import os
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import threading
 import time
@@ -873,6 +875,123 @@ def run_verdicts(repo: Path) -> list[RunVerdict]:
     return found
 
 
+PROFILE_RESULT_LIMIT = 1_000_000
+"""Bytes: a result is a few kilobytes; a larger file is skipped."""
+
+
+PROFILE_SKIPPED = "profile-skipped.txt"
+"""Written beside the copies when a result file was not kept."""
+
+
+def profile_file_name(name: str, run_id: str) -> str:
+    """Name the copy of one profile's result.
+
+    Each part is cut to 40 characters and a hash of the full
+    ``<name>/<run id>`` is added, so a name the agent made long cannot
+    exceed the file system's limit, and two profiles cannot collide.
+
+    Parameters
+    ----------
+    name : str
+        The benchmark's name (a directory of the repo).
+    run_id : str
+        The profile run's directory name.
+
+    Returns
+    -------
+    str
+        ``profile-<name>-<id>-<hash>.json``.
+    """
+    # A non-UTF-8 directory name arrives as surrogate escapes on Linux.
+    key = f"{name}/{run_id}".encode("utf-8", "surrogateescape")
+    digest = hashlib.sha256(key).hexdigest()[:12]
+    return f"profile-{name[:40]}-{run_id[:40]}-{digest}.json"
+
+
+def _printable(text: str) -> str:
+    """Make a path text safe to write, whatever bytes the agent used."""
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def _copy_profile_result(
+    source: Path, out: Path, saved: list[Path]
+) -> str | None:
+    """Copy one saved result; return why it was skipped, or ``None``.
+
+    Raises
+    ------
+    OSError, ValueError
+        For anything else the agent's tree does; the caller records it
+        as a skip.
+    """
+    if any(p.is_symlink() for p in (source, *source.parents[:4])):
+        return "a symlink, or in a symlinked directory"
+    if not stat.S_ISREG(source.lstat().st_mode):
+        return "not a regular file"
+    with source.open("rb") as f:
+        data = f.read(PROFILE_RESULT_LIMIT + 1)
+    if len(data) > PROFILE_RESULT_LIMIT:
+        return f"over {PROFILE_RESULT_LIMIT} bytes"
+    target = out / profile_file_name(
+        source.parents[1].name, source.parent.name
+    )
+    target.write_bytes(data)
+    saved.append(target)
+    return None
+
+
+def save_profile_results(repo: Path, out: Path) -> list[Path]:
+    """Copy the agent's saved profile results next to the transcripts.
+
+    Every ``.perfproof/profiles/<name>/<id>/result.json`` of the repo
+    (written by ``perfproof profile``) goes to the file
+    `profile_file_name` gives, so the profile id stays in the name.
+    Nothing else of the profile directories is copied: they hold the
+    profiler's raw output.
+
+    Parameters
+    ----------
+    repo : Path
+        The task repo.
+    out : Path
+        The task directory.
+
+    Returns
+    -------
+    list of Path
+        The files written, in name order. A file that is a symlink or
+        not regular, in a symlinked directory, larger than
+        `PROFILE_RESULT_LIMIT`, not readable or not writable is
+        skipped, and each skip is recorded with its reason in
+        `PROFILE_SKIPPED` (the agent controls the tree, and this read
+        is unconfined). Nothing here raises for what the agent made.
+    """
+    saved: list[Path] = []
+    skipped: list[str] = []
+    profiles = repo / ".perfproof" / "profiles"
+    try:
+        sources = sorted(profiles.glob("*/*/result.json"))
+    except OSError as exc:
+        sources = []
+        skipped.append(f"profiles: not listable ({exc.strerror})")
+    for source in sources:
+        label = _printable("/".join(source.parts[-3:-1]))[:120]
+        try:
+            reason = _copy_profile_result(source, out, saved)
+        except (OSError, ValueError) as exc:
+            reason = f"not copied ({getattr(exc, 'strerror', None) or exc})"
+        if reason is not None:
+            skipped.append(f"{label}: {reason}")
+    if skipped:
+        with contextlib.suppress(OSError):
+            (out / PROFILE_SKIPPED).write_text(
+                "\n".join(skipped) + "\n",
+                encoding="utf-8",
+                errors="backslashreplace",
+            )
+    return saved
+
+
 def _real_trees(
     repo: Path,
     seeded: dict[str, str],
@@ -1186,6 +1305,7 @@ def run_task(
     (out / "state.json").write_text(
         state.model_dump_json(indent=2), encoding="utf-8"
     )
+    save_profile_results(repo, out)
     version = subprocess.run(
         ["claude", "--version"],
         env=sandbox.agent_env(os.environ, work / "sandbox" / "version", []),

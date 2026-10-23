@@ -60,6 +60,22 @@ Every verdict is KEEP, REJECT or INCONCLUSIVE, with a reason. A gate
 that isn't available on this target blocks KEEP; it never passes.
 ```
 
+## Saved profiles
+
+Every `profile` run keeps the result it returns. The run's directory,
+`.perfproof/profiles/<name>/<id>/`, holds `result.json`: the `--json`
+`result` object, written whether or not `--json` was passed, to a
+temporary file and then renamed, so it is whole or absent. A reader
+(an agent after its context was cut, the skill eval's scorer) reads the
+file; it never profiles again to see the same lists.
+
+The object is the `result` of `profile --json` as it stands, with
+`hotspots` and `frames_by_total` in the order printed, plus two keys
+that name the run: `run_id` (the directory's name) and `finished_at`
+(UTC, `YYYY-MM-DDTHH:MM:SS.ffffffZ`, the moment the file was written).
+Keys are only ever added. A write that fails is `state_write_failed`,
+as for the run's directory.
+
 ## Long runs
 
 `compare` runs in the foreground by default. When a comparison may

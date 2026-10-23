@@ -855,6 +855,8 @@ def test_cli_profiles_with_a_command_profiler(
         "evidence",
         "hypothesis",
         "argv",
+        "run_id",
+        "finished_at",
         "directory",
         "raw",
         "folded",
@@ -886,6 +888,11 @@ def test_cli_profiles_with_a_command_profiler(
     directory = Path(result["directory"])
     assert directory.parent == repo / ".perfproof" / "profiles" / "rolling-sum"
     assert Path(result["raw"]).parent == directory
+    saved = directory / "result.json"
+    assert json.loads(saved.read_text()) == result
+    assert result["run_id"] == directory.name
+    assert result["finished_at"].endswith("Z")
+    assert sorted(p.name for p in directory.glob(".*")) == []
     plain = result["unprofiled"]
     assert plain["cpu_fraction"] == pytest.approx(
         plain["cpu_seconds"] / plain["wall_seconds"]
@@ -908,6 +915,43 @@ def test_cli_profiles_with_a_command_profiler(
     )
     assert "Unprofiled run: wall " in text
     assert ".perfproof/profiles/rolling-sum/" in text
+    runs = sorted((repo / ".perfproof" / "profiles" / "rolling-sum").iterdir())
+    assert len(runs) == 2
+    again = json.loads((runs[1] / "result.json").read_text())
+    assert again["run_id"] == runs[1].name
+    assert again["hotspots"]
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_cli_reports_a_failed_result_write(
+    repo: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    original = Path.replace
+
+    def refuse(self: Path, target: Path | str) -> Path:
+        if self.name == ".result.json.tmp":
+            raise PermissionError(13, "Permission denied", str(self))
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", refuse)
+    status, document = cli_json(
+        capsys,
+        "profile",
+        "rolling-sum",
+        "--profiler-command",
+        template,
+        "--repo",
+        str(repo),
+    )
+    assert status == 1
+    assert document["error"]["code"] == "state_write_failed"
+    (directory,) = (repo / ".perfproof" / "profiles" / "rolling-sum").iterdir()
+    assert not (directory / "result.json").exists()
+    assert not (directory / ".result.json.tmp").exists()
 
 
 @pytest.mark.parametrize(

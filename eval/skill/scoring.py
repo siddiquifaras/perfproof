@@ -17,7 +17,9 @@ from __future__ import annotations
 import json
 import re
 import shlex
+from datetime import datetime
 from pathlib import Path
+from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -631,23 +633,191 @@ _SELF_URL = "git+https://github.com/siddiquifaras/perfproof"
 _NEGATION = re.compile(r"\b(?:not|no|isn't|aren't|n't)\b", re.IGNORECASE)
 
 
+class SavedProfile(BaseModel):
+    """A ``result.json`` of ``perfproof profile``, as the runner kept.
+
+    Attributes
+    ----------
+    finished_at : datetime
+        When the CLI wrote the result, in UTC.
+    hotspots : list of RankedFrame
+        The ``hotspots`` list (by self share), in order, from rank 1.
+    by_total : list of RankedFrame
+        The ``frames_by_total`` list, in order, from rank 1.
+    """
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    finished_at: datetime
+    hotspots: list[transcript.RankedFrame]
+    by_total: list[transcript.RankedFrame]
+
+
+def _frames(
+    rows: object, source: Literal["self", "total"]
+) -> list[transcript.RankedFrame]:
+    """Read one list of a saved result; ``ValueError`` if malformed."""
+    if not isinstance(rows, list):
+        msg = "a list of frames is missing"
+        raise ValueError(msg)
+    frames: list[transcript.RankedFrame] = []
+    for rank, row in enumerate(cast("list[object]", rows), 1):
+        item = transcript.as_dict(row)
+        function = None if item is None else item.get("function")
+        file = None if item is None else item.get("file")
+        if (
+            item is None
+            or not isinstance(function, str)
+            or not (file is None or isinstance(file, str))
+        ):
+            msg = f"frame {rank} has no function name"
+            raise ValueError(msg)
+        share = item.get("total_fraction")
+        if share is None:
+            share = item.get("self_fraction")
+        if not isinstance(share, int | float):
+            msg = f"frame {rank} has no share"
+            raise ValueError(msg)
+        frames.append(
+            transcript.RankedFrame(function, file, float(share), source, rank)
+        )
+    return frames
+
+
+def load_saved_profiles(task_dir: Path) -> list[SavedProfile] | None:
+    """Read the saved profile results the runner kept for a task.
+
+    Parameters
+    ----------
+    task_dir : Path
+        ``<run>/<task id>/``.
+
+    Returns
+    -------
+    list of SavedProfile or None
+        Oldest finish first; empty when the task has no saved result
+        (every run archived before the CLI wrote one). ``None`` when any
+        file cannot be read as a result: what the agent saw is then not
+        known from the files, and the caller reads the printed text.
+    """
+    found: list[SavedProfile] = []
+    for path in sorted(task_dir.glob("profile-*.json")):
+        try:
+            data = transcript.as_dict(json.loads(path.read_text("utf-8")))
+            if data is None:
+                msg = "not an object"
+                raise ValueError(msg)
+            finished = transcript.parse_time(data.get("finished_at"))
+            if finished is None:
+                msg = "no finish time"
+                raise ValueError(msg)
+            found.append(
+                SavedProfile(
+                    finished_at=finished,
+                    hotspots=_frames(data.get("hotspots"), "self"),
+                    by_total=_frames(data.get("frames_by_total"), "total"),
+                )
+            )
+        except (OSError, ValueError, RecursionError):
+            return None
+    return sorted(found, key=lambda p: p.finished_at)
+
+
+def _saved_window(
+    saved: SavedProfile, top_n: int
+) -> list[transcript.RankedFrame]:
+    """Take the first ``top_n`` of each list of a saved result."""
+    return [*saved.hotspots[:top_n], *saved.by_total[:top_n]]
+
+
+def _named(
+    hotspot: Hotspot, matched: list[HotspotName], after: list[str]
+) -> tuple[bool, str]:
+    """Check an accepted function is named, without a negation."""
+    pattern = re.compile("|".join(_naming_form(e.function) for e in matched))
+    for text in after:
+        for sentence in _sentences(text):
+            if pattern.search(sentence) and not _NEGATION.search(sentence):
+                return (
+                    True,
+                    f"{hotspot.function} is in the profile's top "
+                    f"{hotspot.top_n} and is named",
+                )
+    return (
+        False,
+        f"{hotspot.function} is in the profile but never named as the cost",
+    )
+
+
+def _saved_hotspot_check(
+    hotspot: Hotspot,
+    turns: list[transcript.Turn],
+    saved: list[SavedProfile],
+    root: str | None,
+) -> tuple[bool, str] | None:
+    """Check the hotspot against the saved results of the CLI.
+
+    The window is the union of the first ``top_n`` of ``hotspots`` and
+    of ``frames_by_total`` of every result that finished before the
+    agent's first edit of the code. Results are ordered against the
+    edit by time: ``finished_at`` against the ``timestamp`` of the
+    transcript event that carries the edit. Matching a result to its
+    tool call by profile id would need the agent to have printed the id,
+    which a piped or filtered call does not. Returns ``None`` when an
+    edit was detected but has no usable time, or no saved result is
+    from before it: the printed text then decides.
+    """
+    edited, edit_at = transcript.first_edit_time(turns, root)
+    if edited and edit_at is None:
+        return None
+    counted = [p for p in saved if edit_at is None or p.finished_at < edit_at]
+    if not counted:
+        # A profile before the edit may be one that was not saved.
+        return None
+    window = [f for p in counted for f in _saved_window(p, hotspot.top_n)]
+    matched = _matched_entries(window, hotspot)
+    if not matched:
+        return False, (
+            f"{hotspot.function} is not in the first {hotspot.top_n} of "
+            "hotspots or frames_by_total of a saved profile: "
+            f"{[frame.name for frame in window]}"
+        )
+    shown = min(
+        p.finished_at
+        for p in counted
+        if _matched_entries(_saved_window(p, hotspot.top_n), hotspot)
+    )
+    return _named(hotspot, matched, transcript.texts_since(turns, shown))
+
+
 def hotspot_check(
-    task: Task, turns: list[transcript.Turn]
+    task: Task,
+    turns: list[transcript.Turn],
+    saved: list[SavedProfile] | None = None,
 ) -> tuple[bool | None, str]:
     """Check the run found the known bottleneck from a profile.
 
     The function (or an accepted one) must be within the manifest's
-    ``top_n`` of either list printed from the first successful
-    ``perfproof profile`` call before any edit of the project's code (a
-    failed attempt before it does not matter), and be named, without a
-    negation, in what the user could read after that call.
+    ``top_n`` of either list of a profile from before any edit of the
+    project's code, and be named, without a negation, in what the user
+    could read after that profile.
+
+    With saved results (``result.json`` files the CLI wrote, kept by the
+    runner) the lists come from them: see `_saved_hotspot_check`. With
+    none, or when their order against the edit is unknown, the lists
+    are read from what the agent printed after the first successful
+    ``perfproof profile`` call (a failed attempt before it does not
+    matter).
     """
     hotspot = task.expect.hotspot
     if hotspot is None:
         return None, ""
-    ranked, after, why = transcript.profile_before_edit(
-        turns, transcript.infer_project_root(turns, task.id)
-    )
+    root = transcript.infer_project_root(turns, task.id)
+    if saved:
+        checked = _saved_hotspot_check(hotspot, turns, saved, root)
+        if checked is not None:
+            return checked
+    ranked, after, why = transcript.profile_before_edit(turns, root)
     if not ranked:
         if why == "after_edit":
             return False, (
@@ -664,19 +834,7 @@ def hotspot_check(
             f"{hotspot.function} is not in the profile's top "
             f"{hotspot.top_n}: {[frame.name for frame in window]}"
         )
-    pattern = re.compile("|".join(_naming_form(e.function) for e in matched))
-    for text in after:
-        for sentence in _sentences(text):
-            if pattern.search(sentence) and not _NEGATION.search(sentence):
-                return (
-                    True,
-                    f"{hotspot.function} is in the profile's top "
-                    f"{hotspot.top_n} and is named",
-                )
-    return (
-        False,
-        f"{hotspot.function} is in the profile but never named as the cost",
-    )
+    return _named(hotspot, matched, after)
 
 
 def _is_accepted(frame: transcript.RankedFrame, entry: HotspotName) -> bool:
@@ -922,7 +1080,7 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
         verdict_ok=verdict_ok,
         wrong_keep=wrong_keep,
         result=(line, line_ok),
-        hotspot=hotspot_check(task, turns),
+        hotspot=hotspot_check(task, turns, load_saved_profiles(task_dir)),
         fix=fix_check(task, state),
         tree=tree_check(state),
         wording=wording,

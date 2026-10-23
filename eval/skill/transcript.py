@@ -13,6 +13,7 @@ import posixpath
 import re
 import shlex
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, cast
 
@@ -1543,6 +1544,103 @@ def profile_before_edit(
     if ranked is None:
         return [], [], "after_edit" if late else "none"
     return ranked, after, ""
+
+
+def parse_time(value: object) -> datetime | None:
+    """Read an ISO 8601 time with a zone, as UTC.
+
+    Parameters
+    ----------
+    value : object
+        A stream event's ``timestamp`` or a saved result's
+        ``finished_at``.
+
+    Returns
+    -------
+    datetime or None
+        The time in UTC; ``None`` if it is not a string, does not
+        parse or has no zone (a time with no zone is not comparable).
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        when = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if when.tzinfo is None:
+        return None
+    return when.astimezone(UTC)
+
+
+def first_edit_time(
+    turns: list[Turn], root: str | None = None
+) -> tuple[bool, datetime | None]:
+    """Find when the agent first edited the project's code.
+
+    The time is the ``timestamp`` of the stream event that carries the
+    first detected edit (see `is_code_edit`). The event is written when
+    the agent issues the call, so before the edit ran: a result that
+    finished after it is after the edit, and one that finished before
+    it is before.
+
+    Parameters
+    ----------
+    turns : list of Turn
+        The task's calls.
+    root : str, optional
+        The project's root, for `is_code_edit`.
+
+    Returns
+    -------
+    tuple of (bool, datetime or None)
+        Whether an edit was detected, and its time in UTC; the time is
+        ``None`` when none was detected or the event has no usable
+        timestamp.
+    """
+    for turn in turns:
+        for event in turn.events:
+            if event.get("type") != "assistant":
+                continue
+            for block in _blocks(event):
+                if block.get("type") != "tool_use":
+                    continue
+                args = as_dict(block.get("input")) or {}
+                if is_code_edit(str(block.get("name", "")), args, root):
+                    return True, parse_time(event.get("timestamp"))
+    return False, None
+
+
+def texts_since(turns: list[Turn], since: datetime) -> list[str]:
+    """List the assistant texts written at or after a time.
+
+    Parameters
+    ----------
+    turns : list of Turn
+        The task's calls.
+    since : datetime
+        A time with a zone.
+
+    Returns
+    -------
+    list of str
+        Each text block of an event whose ``timestamp`` is at or after
+        ``since``, in order. An event with no usable timestamp is left
+        out: it cannot be shown to follow anything.
+    """
+    found: list[str] = []
+    for turn in turns:
+        for event in turn.events:
+            if event.get("type") != "assistant":
+                continue
+            when = parse_time(event.get("timestamp"))
+            if when is None or when < since:
+                continue
+            found.extend(
+                str(b.get("text", ""))
+                for b in _blocks(event)
+                if b.get("type") == "text"
+            )
+    return found
 
 
 def result_metrics(turns: list[Turn]) -> tuple[float, int, float]:

@@ -19,7 +19,10 @@ stacks, because it also carries whatever the benchmark prints.
 Everything the run writes goes to a new directory,
 ``.perfproof/profiles/<name>/<id>/`` in the repository, with ``<id>``
 the UTC start time and a random suffix; the profiler's output there is
-untouched.
+untouched. The ``--json`` result, with or without ``--json``, is also
+saved there as ``result.json`` (written to a temporary file and
+renamed, so a reader never sees half of it), to read a profile again
+without profiling again. A failed write is ``state_write_failed``.
 
 ``--json`` result
 -----------------
@@ -74,6 +77,11 @@ untouched.
     The ID given with ``--hypothesis``, or ``null``.
 ``argv``
     The profiled run's argv.
+``run_id``, ``finished_at``
+    The run directory's name (the ``<id>`` above), and the UTC time the
+    result was written, as ``YYYY-MM-DDTHH:MM:SS.ffffffZ``. A profile
+    that finished before an edit has a ``finished_at`` earlier than the
+    edit's time on the same machine's clock.
 ``directory``, ``raw``, ``folded``, ``logs``
     Absolute paths of the run's directory, the profiler's output, the
     folded stacks summarised and the runs' stdout and stderr.
@@ -127,8 +135,9 @@ from perfproof.profilers.run import (
 from perfproof.profilers.summary import brief, summarise_profile
 from perfproof.schema import BenchmarkSpec, Hotspot
 
-__all__ = ["add_arguments", "run"]
+__all__ = ["RESULT_FILE", "add_arguments", "run"]
 
+RESULT_FILE: Final = "result.json"
 _HASH_FILE: Final = re.compile(r"^[0-9a-f]{64}\.json$")
 _HEX: Final = re.compile(r"^[0-9a-f]+$")
 _ZERO_HASH: Final = "0" * 64
@@ -290,7 +299,35 @@ def run(args: argparse.Namespace) -> Output:
     result["summary"] = summary
     result["evidence"] = {"path": str(ref.path), "sha256": ref.sha256}
     result["hypothesis"] = hypothesis
+    result["run_id"] = out_dir.name
+    result["finished_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    _save(out_dir, result)
     return Output(result=result, text=_text(spec, profile, out_dir))
+
+
+def _save(out_dir: Path, result: dict[str, JsonValue]) -> None:
+    """Write the result to ``result.json`` in the run directory.
+
+    The file is written whole to a temporary name and renamed, so it
+    exists complete or not at all.
+
+    Raises
+    ------
+    CommandError
+        ``state_write_failed``, if the file cannot be written.
+    """
+    path = out_dir / RESULT_FILE
+    temporary = out_dir / f".{RESULT_FILE}.tmp"
+    data = json.dumps(result, indent=2, allow_nan=False) + "\n"
+    try:
+        with temporary.open("w", encoding="utf-8") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        temporary.replace(path)
+    except OSError as exc:
+        temporary.unlink(missing_ok=True)
+        raise _os_error("state_write_failed", exc, path) from exc
 
 
 def _positive_int(text: str) -> int:
