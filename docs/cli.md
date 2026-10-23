@@ -319,7 +319,11 @@ for three years. The obvious hotspots are long fixed. They type
     12%  tilekit/pyramid.py:61    _level_shape
   Then a second table, "Top frames by total time": frames ranked with
   their callees, including ones with no self time (`--json`:
-  `result.frames_by_total`, beside `result.hotspots`).
+  `result.frames_by_total`, beside `result.hotspots`). A library
+  frame with no self time that has a project frame deeper in every
+  stack it appears in (it only calls back into project code, such as
+  Rust's `__rust_begin_short_backtrace`) is left out; project frames
+  and library frames with self time never are.
   Wall 1.92 s, CPU 1.46 s: 24% of wall time is waiting, not computing.
 
 ● perfproof measure bench-tile --sizes 1x,2x,4x --json

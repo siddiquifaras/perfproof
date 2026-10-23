@@ -396,3 +396,55 @@ def test_runtime_frames_in_the_project_binary_are_library_code() -> None:
     names = [h.function for h in ranking.by_total]
     assert not [n for n in names if "thread_start" in n]
     assert names.index("fd`fd::output::print_entry::ha19644765a9c40d9") < 10
+
+
+TRAMPOLINE = "fd`std::sys::backtrace::__rust_begin_short_backtrace::h"
+FD_PRINT_ENTRY = "fd`fd::output::print_entry::ha19644765a9c40d9"
+
+
+def _fd_total_names() -> list[str]:
+    ranking = rank_file(
+        FD, project_root=CONTAINER_ROOT, top_n=EVERYTHING, own_modules=["fd"]
+    )
+    return [h.function for h in ranking.by_total]
+
+
+def test_trampoline_frames_between_project_frames_are_left_out() -> None:
+    """``main -> __rust_begin_short_backtrace -> fd::main`` is not work.
+
+    The frame has no self time and every stack it is in has a project
+    frame deeper, but the entry rule kept it because ``fd`main`` is
+    above it. It ranked 4th and pushed ``print_entry`` from 8th to 9th.
+    """
+    names = _fd_total_names()
+    assert not [n for n in names if n.startswith(TRAMPOLINE)]
+    assert not [n for n in names if n.startswith("fd`std::rt::lang_start")]
+    assert names.index(FD_PRINT_ENTRY) + 1 == 8
+
+
+def test_library_frames_with_self_time_or_a_library_subtree_are_kept() -> None:
+    """Only frames that merely call back into the project go."""
+    names = _fd_total_names()
+    for kept in (
+        "libsystem_kernel.dylib`read",
+        "libsystem_kernel.dylib`lstat",
+        "libsystem_kernel.dylib`write",
+        "fd`std::sync::mpmc::Receiver$LT$T$GT$::recv::h551cf746036ed279",
+        "fd`std::thread::lifecycle::JoinInner$LT$T$GT$::join::h3306ad4cb9995805",
+        "libsystem_pthread.dylib`_pthread_join",
+        "fd`std::sys::fs::symlink_metadata::hd0e44a06c5789f14",
+    ):
+        assert kept in names, kept
+
+
+def test_project_frames_are_never_left_out_as_trampolines() -> None:
+    """Every project frame the profile holds is in the total ranking."""
+    ranking = rank_file(
+        FD, project_root=CONTAINER_ROOT, top_n=EVERYTHING, own_modules=["fd"]
+    )
+    listed = {h.function for h in ranking.by_total}
+    text = FD.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        for frame in line.rpartition(" ")[0].split(";"):
+            if frame.startswith("fd`fd::") or frame == "fd`main":
+                assert frame in listed, frame

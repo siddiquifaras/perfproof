@@ -538,13 +538,24 @@ def rank(
         frame is left out when it is never at or after a project frame
         and never has self time; a stack with no project frame, such as
         an idle runtime thread, therefore marks nothing. Library frames
-        below a project frame are real work and stay. If no stack holds
-        a project frame, the project is unknown and nothing is judged
-        by this rule. Either way, a frame on every sample and above the
-        point where the stacks first differ (``main``, ``runpy``
-        wrappers) has a total that is the whole profile and is left
-        out, except the last frame of that common prefix, which stays
-        since that is where the time divides. Each frame's
+        below a project frame are real work and stay. A library frame is
+        also left out when it is a trampoline: it has no self time and,
+        in every stack it appears in, a project frame lies deeper. The
+        rule is structural. The captured fd profile shows Rust
+        ``__rust_begin_short_backtrace`` (between ``main`` and
+        ``fd::main``) and the ``write_fmt`` and ``core::fmt::write``
+        formatting frames above a project ``Display`` impl going; no
+        captured Python, Go or C++ profile is changed by it. It only
+        calls back into project
+        code, so it says nothing about where the time goes. A library
+        frame with self time, or in any stack with no project frame
+        deeper, stays, and so does every project frame. If no stack
+        holds a project frame, the project is unknown and nothing is
+        judged by this rule. Either way, a frame on every sample and
+        above the point where the stacks first differ (``main``,
+        ``runpy`` wrappers) has a total that is the whole profile and
+        is left out, except the last frame of that common prefix, which
+        stays since that is where the time divides. Each frame's
         ``is_library`` says whether it is project code. Fractions are
         of all samples in the input.
 
@@ -558,8 +569,8 @@ def rank(
     Notes
     -----
     Time is as for `summarise`. Both rankings are one heap
-    pass, ``O(F log top_n)``; the entry-frame tests keep one prefix of
-    the deepest stack and one flag per function.
+    pass, ``O(F log top_n)``; the entry-frame and trampoline tests keep
+    one prefix of the deepest stack and two flags per function.
     """
     if top_n < 1:
         msg = f"top_n must be at least 1, got {top_n}"
@@ -576,6 +587,7 @@ def rank(
     group_self: list[int] = []
     group_total: list[int] = []
     in_work: list[bool] = []
+    no_project_below: list[bool] = []
     has_project = False
     prefix: list[int] | None = None
     samples = 0
@@ -617,6 +629,7 @@ def rank(
                         group_self.append(0)
                         group_total.append(0)
                         in_work.append(False)
+                        no_project_below.append(False)
                     members[group].append(frame_id)
                     group_of.append(group)
                 ids[text_frame] = frame_id
@@ -630,14 +643,15 @@ def rank(
             group_total[group] += count
         if count == 0:
             continue
-        first_own = next(
-            (i for i, f in enumerate(stack_ids) if not frames[f].is_library),
-            None,
-        )
-        if first_own is not None:
+        own_at = [
+            i for i, f in enumerate(stack_ids) if not frames[f].is_library
+        ]
+        if own_at:
             has_project = True
-            for group in groups[first_own:]:
+            for group in groups[own_at[0] :]:
                 in_work[group] = True
+        for group in groups[own_at[-1] if own_at else 0 :]:
+            no_project_below[group] = True
         if prefix is None:
             prefix = groups
         else:
@@ -672,6 +686,12 @@ def rank(
             if group_total[g] > 0
             and g not in wrappers
             and (not has_project or in_work[g] or group_self[g] > 0)
+            and (
+                not has_project
+                or group_self[g] > 0
+                or no_project_below[g]
+                or not frames[members[g][0]].is_library
+            )
             and not _synthetic(frames[members[g][0]])
         ),
         key=lambda g: (group_total[g], group_self[g]),
