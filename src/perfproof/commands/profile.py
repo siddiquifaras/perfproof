@@ -43,7 +43,11 @@ untouched.
     function whose cost is in the library calls it makes is here and
     not in ``hotspots``. ``is_library`` is false for the project's own
     frames. Synthetic frames (``<module>``, ``<listcomp>``) and entry
-    frames on every stack (``main``, ``runpy`` wrappers) are left out.
+    frames are left out: the frames before the first project frame of
+    a stack (``thread_start``, ``runtime.goexit``, ``testing``
+    runners) unless they have self time or sit below a project frame
+    in another stack, and the frames on every stack above the point
+    where stacks first differ (``main``, ``runpy`` wrappers).
     Added after ``hotspots``; ``hotspots`` is unchanged.
 ``unprofiled``
     ``{"wall_seconds", "cpu_seconds", "cpu_fraction"}`` of the

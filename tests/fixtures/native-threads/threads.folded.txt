@@ -1,0 +1,19 @@
+dyld`_dyld_start 220
+dyld`start;dyld`dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*);dyld`<deduplicated_symbol> 1
+dyld`start;dyld`dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*);dyld`dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*);dyld`dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int);dyld`dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*);dyld`mach_msg_overwrite;dyld`mach_msg2_internal;dyld`mach_msg2_trap 8
+dyld`start;dyld`dyld4::start(dyld4::KernelArgs*, void*, void*)::$_0::operator()() const;dyld`dyld4::prepare(dyld4::APIs&, mach_o::Header const*);dyld`dyld4::RuntimeState::notifyDebuggerLoad(std::span<dyld4::Loader const*, 18446744073709551615ul> const&);dyld`dyld4::ExternallyViewableState::addImages(lsl::Allocator&, lsl::Allocator&, std::span<dyld4::ExternallyViewableState::ImageInfo, 18446744073709551615ul> const&);dyld`dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*);dyld`dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int);dyld`dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*);dyld`mach_msg_overwrite;dyld`mach_msg2_internal;dyld`mach_msg2_trap 3
+dyld`start;main (threads.c:39);libsystem_pthread.dylib`_pthread_join;libsystem_kernel.dylib`__ulock_wait 4011
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;threads`worker 1
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time 1
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_c.dylib`DYLD-STUB$$fegetenv 3
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_c.dylib`DYLD-STUB$$fesetenv 1
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_c.dylib`gettimeofday 3
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_c.dylib`gettimeofday;libsystem_kernel.dylib`__commpage_gettimeofday_internal;libsystem_kernel.dylib`mach_absolute_time 16
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_kernel.dylib`__commpage_gettimeofday_internal 1
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_m.dylib`fegetenv 223
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);libsystem_c.dylib`time;libsystem_m.dylib`fesetenv 18
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:27);threads`DYLD-STUB$$time 2
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:28) 1
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:28);process_entry (threads.c:21);checksum (threads.c:13) 3059
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:28);process_entry (threads.c:21);checksum (threads.c:14) 12689
+libsystem_pthread.dylib`thread_start;libsystem_pthread.dylib`_pthread_start;worker (threads.c:28);process_entry (threads.c:21);checksum (threads.c:17) 26

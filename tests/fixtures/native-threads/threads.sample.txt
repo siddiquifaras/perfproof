@@ -1,0 +1,155 @@
+Analysis of sampling threads (pid 54727) every 1 millisecond
+Process:         threads [54727]
+Path:            /Users/USER/*/threads
+Load Address:    0x104e88000
+Identifier:      threads
+Version:         ???
+Code Type:       ARM64
+Parent Process:  python3.12 [54720]
+Target Type:     live task
+
+Date/Time:       2026-10-23 09:39:00.483 +0500
+Launch Time:     2026-10-23 09:39:00.461 +0500
+OS Version:      macOS 15.7.7 (24G720)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+----
+
+Call graph:
+    232 Thread_53810397: Main Thread
+    + 220 _dyld_start  (in dyld) + 0  [0x104fc47c0]
+    + 6 start  (in dyld) + 5108  [0x104fc67d0]
+    + ! 6 dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*)  (in dyld) + 1672  [0x10500bddc]
+    + !   6 dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*)  (in dyld) + 264  [0x10500c5b0]
+    + !     6 dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int)  (in dyld) + 48  [0x104ff69a8]
+    + !       6 dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*)  (in dyld) + 220  [0x104ff661c]
+    + !         6 mach_msg_overwrite  (in dyld) + 244  [0x10504453c]
+    + !           6 mach_msg2_internal  (in dyld) + 76  [0x105044390]
+    + !             6 mach_msg2_trap  (in dyld) + 8  [0x104fc172c]
+    + 3 start  (in dyld) + 6000  [0x19c75ab4c]
+    + ! 3 dyld4::start(dyld4::KernelArgs*, void*, void*)::$_0::operator()() const  (in dyld) + 236  [0x19c75b1d8]
+    + !   3 dyld4::prepare(dyld4::APIs&, mach_o::Header const*)  (in dyld) + 2976  [0x19c75bd8c]
+    + !     3 dyld4::RuntimeState::notifyDebuggerLoad(std::span<dyld4::Loader const*, 18446744073709551615ul> const&)  (in dyld) + 432  [0x19c769fd0]
+    + !       3 dyld4::ExternallyViewableState::addImages(lsl::Allocator&, lsl::Allocator&, std::span<dyld4::ExternallyViewableState::ImageInfo, 18446744073709551615ul> const&)  (in dyld) + 544  [0x19c7a09c0]
+    + !         3 dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*)  (in dyld) + 264  [0x19c7a05b0]
+    + !           3 dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int)  (in dyld) + 48  [0x19c78a9a8]
+    + !             3 dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*)  (in dyld) + 220  [0x19c78a61c]
+    + !               3 mach_msg_overwrite  (in dyld) + 244  [0x19c7d853c]
+    + !                 3 mach_msg2_internal  (in dyld) + 76  [0x19c7d8390]
+    + !                   3 mach_msg2_trap  (in dyld) + 8  [0x19c75572c]
+    + 2 start  (in dyld) + 3320  [0x19c75a0d4]
+    + ! 1 dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*)  (in dyld) + 360  [0x19c79f8bc]
+    + ! : 1 <deduplicated_symbol>  (in dyld) + 0  [0x19c768084]
+    + ! 1 dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*)  (in dyld) + 1672  [0x19c79fddc]
+    + !   1 dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*)  (in dyld) + 264  [0x19c7a05b0]
+    + !     1 dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int)  (in dyld) + 48  [0x19c78a9a8]
+    + !       1 dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*)  (in dyld) + 220  [0x19c78a61c]
+    + !         1 mach_msg_overwrite  (in dyld) + 244  [0x19c7d853c]
+    + !           1 mach_msg2_internal  (in dyld) + 76  [0x19c7d8390]
+    + !             1 mach_msg2_trap  (in dyld) + 8  [0x19c75572c]
+    + 1 start  (in dyld) + 3864  [0x104fc62f4]
+    +   1 dyld4::ExternallyViewableState::createMinimalInfo(lsl::Allocator&, unsigned long long, char const*, unsigned long long, char const*, DyldSharedCache const*)  (in dyld) + 1672  [0x10500bddc]
+    +     1 dyld4::ExternallyViewableState::triggerNotifications(dyld_image_mode, unsigned int, dyld_image_info const*)  (in dyld) + 264  [0x10500c5b0]
+    +       1 dyld4::RemoteNotificationResponder::blockOnSynchronousEvent(unsigned int)  (in dyld) + 48  [0x104ff69a8]
+    +         1 dyld4::RemoteNotificationResponder::sendMessage(int, unsigned int, mach_msg_header_t*)  (in dyld) + 220  [0x104ff661c]
+    +           1 mach_msg_overwrite  (in dyld) + 244  [0x10504453c]
+    +             1 mach_msg2_internal  (in dyld) + 76  [0x105044390]
+    +               1 mach_msg2_trap  (in dyld) + 8  [0x104fc172c]
+    4011 Thread_53810397   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 4011 start  (in dyld) + 6076  [0x19c75ab98]
+    +   4011 main  (in threads) + 108  [0x104e88564]  threads.c:39
+    +     4011 _pthread_join  (in libsystem_pthread.dylib) + 608  [0x19cafe06c]
+    +       4011 __ulock_wait  (in libsystem_kernel.dylib) + 8  [0x19cabb9b8]
+    4011 Thread_53810600
+    + 4011 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+    +   4011 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+    +     3955 worker  (in threads) + 52  [0x104e885f0]  threads.c:28
+    +     ! 3955 process_entry  (in threads) + 12  [0x104e88610]  threads.c:21
+    +     !   3195 checksum  (in threads) + 36  [0x104e8864c]  threads.c:14
+    +     !   754 checksum  (in threads) + 44  [0x104e88654]  threads.c:13
+    +     !   6 checksum  (in threads) + 52  [0x104e8865c]  threads.c:17
+    +     55 worker  (in threads) + 36  [0x104e885e0]  threads.c:27
+    +     ! 48 time  (in libsystem_c.dylib) + 40  [0x19c9981ec]
+    +     ! : 48 fegetenv  (in libsystem_m.dylib) + 0  [0x1aacb875c]
+    +     ! 4 time  (in libsystem_c.dylib) + 52  [0x19c9981f8]
+    +     ! : 4 gettimeofday  (in libsystem_c.dylib) + 56  [0x19c992b34]
+    +     ! :   4 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x19cabbae4]
+    +     ! :     4 mach_absolute_time  (in libsystem_kernel.dylib) + 108,112  [0x19caba0f0,0x19caba0f4]
+    +     ! 3 time  (in libsystem_c.dylib) + 80  [0x19c998214]
+    +     !   3 fesetenv  (in libsystem_m.dylib) + 4,8  [0x1aacb8778,0x1aacb877c]
+    +     1 worker  (in threads) + 52  [0x104e885f0]  threads.c:0
+    4011 Thread_53810601
+    + 4011 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+    +   4011 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+    +     3937 worker  (in threads) + 52  [0x104e885f0]  threads.c:28
+    +     ! 3937 process_entry  (in threads) + 12  [0x104e88610]  threads.c:21
+    +     !   3182 checksum  (in threads) + 36  [0x104e8864c]  threads.c:14
+    +     !   751 checksum  (in threads) + 44  [0x104e88654]  threads.c:13
+    +     !   4 checksum  (in threads) + 52  [0x104e8865c]  threads.c:17
+    +     73 worker  (in threads) + 36  [0x104e885e0]  threads.c:27
+    +     ! 59 time  (in libsystem_c.dylib) + 40  [0x19c9981ec]
+    +     ! : 58 fegetenv  (in libsystem_m.dylib) + 0  [0x1aacb875c]
+    +     ! : 1 DYLD-STUB$$fegetenv  (in libsystem_c.dylib) + 12  [0x19ca05b14]
+    +     ! 7 time  (in libsystem_c.dylib) + 52  [0x19c9981f8]
+    +     ! : 5 gettimeofday  (in libsystem_c.dylib) + 56  [0x19c992b34]
+    +     ! : | 5 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x19cabbae4]
+    +     ! : |   5 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x19caba0f0]
+    +     ! : 1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 164  [0x19cabbb5c]
+    +     ! : 1 gettimeofday  (in libsystem_c.dylib) + 44  [0x19c992b28]
+    +     ! 5 time  (in libsystem_c.dylib) + 80  [0x19c998214]
+    +     ! : 5 fesetenv  (in libsystem_m.dylib) + 4  [0x1aacb8778]
+    +     ! 1 DYLD-STUB$$time  (in threads) + 4  [0x104e88694]
+    +     ! 1 time  (in libsystem_c.dylib) + 0  [0x19c9981c4]
+    +     1 worker  (in threads) + 44  [0x104e885e8]  threads.c:28
+    4011 Thread_53810602
+    + 4011 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+    +   4011 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+    +     3944 worker  (in threads) + 52  [0x104e885f0]  threads.c:28
+    +     ! 3944 process_entry  (in threads) + 12  [0x104e88610]  threads.c:21
+    +     !   3130 checksum  (in threads) + 36  [0x104e8864c]  threads.c:14
+    +     !   807 checksum  (in threads) + 44  [0x104e88654]  threads.c:13
+    +     !   7 checksum  (in threads) + 52  [0x104e8865c]  threads.c:17
+    +     67 worker  (in threads) + 36  [0x104e885e0]  threads.c:27
+    +       60 time  (in libsystem_c.dylib) + 40  [0x19c9981ec]
+    +       : 58 fegetenv  (in libsystem_m.dylib) + 0,4  [0x1aacb875c,0x1aacb8760]
+    +       : 2 DYLD-STUB$$fegetenv  (in libsystem_c.dylib) + 12  [0x19ca05b14]
+    +       5 time  (in libsystem_c.dylib) + 80  [0x19c998214]
+    +       : 5 fesetenv  (in libsystem_m.dylib) + 8,4  [0x1aacb877c,0x1aacb8778]
+    +       1 DYLD-STUB$$time  (in threads) + 4  [0x104e88694]
+    +       1 time  (in libsystem_c.dylib) + 52  [0x19c9981f8]
+    +         1 gettimeofday  (in libsystem_c.dylib) + 56  [0x19c992b34]
+    +           1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x19cabbae4]
+    +             1 mach_absolute_time  (in libsystem_kernel.dylib) + 112  [0x19caba0f4]
+    4011 Thread_53810603
+      4011 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+        4011 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+          3938 worker  (in threads) + 52  [0x104e885f0]  threads.c:28
+          ! 3938 process_entry  (in threads) + 12  [0x104e88610]  threads.c:21
+          !   3182 checksum  (in threads) + 36  [0x104e8864c]  threads.c:14
+          !   747 checksum  (in threads) + 44  [0x104e88654]  threads.c:13
+          !   9 checksum  (in threads) + 52  [0x104e8865c]  threads.c:17
+          73 worker  (in threads) + 36  [0x104e885e0]  threads.c:27
+            59 time  (in libsystem_c.dylib) + 40  [0x19c9981ec]
+            : 59 fegetenv  (in libsystem_m.dylib) + 0,4  [0x1aacb875c,0x1aacb8760]
+            8 time  (in libsystem_c.dylib) + 52  [0x19c9981f8]
+            : 6 gettimeofday  (in libsystem_c.dylib) + 56  [0x19c992b34]
+            : | 6 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x19cabbae4]
+            : |   6 mach_absolute_time  (in libsystem_kernel.dylib) + 108,112  [0x19caba0f0,0x19caba0f4]
+            : 2 gettimeofday  (in libsystem_c.dylib) + 44,56  [0x19c992b28,0x19c992b34]
+            6 time  (in libsystem_c.dylib) + 80  [0x19c998214]
+              5 fesetenv  (in libsystem_m.dylib) + 4  [0x1aacb8778]
+              1 DYLD-STUB$$fesetenv  (in libsystem_c.dylib) + 8  [0x19ca05b30]
+
+Total number in stack (recursive counted multiple, when >=5):
+
+Sort by top of stack, same collapsed (when >= 5):
+        checksum  (in threads)        15774
+        __ulock_wait  (in libsystem_kernel.dylib)        4011
+        fegetenv  (in libsystem_m.dylib)        223
+        _dyld_start  (in dyld)        220
+        fesetenv  (in libsystem_m.dylib)        18
+        mach_absolute_time  (in libsystem_kernel.dylib)        16
+        mach_msg2_trap  (in dyld)        11
+
+Binary images description not available
+

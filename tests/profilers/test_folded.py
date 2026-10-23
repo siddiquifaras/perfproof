@@ -296,7 +296,7 @@ def test_cpp_operator_frames_split_at_their_location(
         None,
         None,
         "native",
-        False,
+        function.startswith("std::"),
     )
 
 
@@ -560,3 +560,79 @@ def test_large_capture_streams_in_bounded_memory() -> None:
     for a, b in zip(many, once, strict=True):
         assert a.self_fraction == pytest.approx(b.self_fraction, rel=1e-12)
         assert a.total_fraction == pytest.approx(b.total_fraction, rel=1e-12)
+
+
+@pytest.mark.parametrize(
+    ("frame", "is_library"),
+    [
+        ("core::Engine::run (/opt/app/libfoo.so)", False),
+        ("alloc::Arena::grow (/opt/app/libfoo.so)", False),
+        ("core::fmt::write::h0123456789abcdef (/opt/app/libfoo.so)", True),
+        ("std::__1::basic_string::append (/opt/app/libfoo.so)", True),
+    ],
+)
+def test_runtime_namespaces_in_an_own_binary(
+    frame: str, is_library: bool
+) -> None:
+    """``core::`` is a Rust runtime only with Rust's hash suffix."""
+    got = one_frame(frame, own=frozenset({"libfoo.so"}))
+    assert got[-1] is is_library
+
+
+OWN_BINARIES = frozenset({"libfoo.so", "fd"})
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        "libfoo.so`std::vector<int, std::allocator<int> >"
+        " app::load<int>(char const*)",
+        "fd`<std::path::Path as fd::PathExt>::ext::h0123456789abcdef",
+        "fd`<alloc::string::String as fd::PathExt>::ext::h0123456789abcdef",
+        "fd`_$LT$std..path..Path$u20$as$u20$fd..PathExt$GT$"
+        "::ext::h0123456789abcdef",
+        "fd`<core::option::Option<fd::Entry> as fd::OptExt>"
+        "::or_skip::h0123456789abcdef",
+        "libfoo.so`app::Foo::operator std::string() const",
+        "libfoo.so`app::X::operator std::vector<int>*() const",
+        "libfoo.so`std::string_view (*app::get())(int)",
+        "libfoo.so`app::f(std::string)",
+        "libfoo.so`std::sort<app::X*>(app::X*, app::X*)",
+        "libfoo.so`process(std::vector<int>&)",
+        "libfoo.so`std::string get_name()",
+        "libfoo.so`void helper(std::string const&)",
+        "libfoo.so`(anonymous namespace)::f(std::vector<int>&)",
+        "libfoo.so`operator<<(std::ostream&, Foo const&)",
+        "libfoo.so`foo(std::string) [clone .cold]",
+        "libfoo.so`operator()(std::string)",
+    ],
+)
+def test_project_code_that_mentions_std_types_stays_project(
+    frame: str,
+) -> None:
+    """Impls of project traits and functions returning std types."""
+    assert one_frame(frame, own=OWN_BINARIES)[-1] is False
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        "fd`std::sys::thread::unix::Thread::new::thread_start"
+        "::h7cf39b7a7f135f48",
+        "fd`core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim"
+        "$u7d$$u7d$::h46dc0d090c9b1ad6",
+        "fd`_$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$"
+        "::write_all::h34cc11c080bf2685",
+        "fd`<std::path::Path as core::fmt::Debug>::fmt::h0123456789abcdef",
+        "fd`<std::path::Path>::file_name::h0123456789abcdef",
+        "fd`std::thread::lifecycle::JoinInner$LT$T$GT$::join"
+        "::h3306ad4cb9995805",
+        "libfoo.so`void std::f()",
+        "libfoo.so`std::ostream& std::operator<< <std::char_traits<char> >"
+        "(std::ostream&, char const*)",
+        "libfoo.so`std::__1::basic_string<char>::append(char const*)",
+        "libfoo.so`__gnu_cxx::__normal_iterator<int*>::operator++()",
+    ],
+)
+def test_runtime_functions_in_an_own_binary_are_library(frame: str) -> None:
+    assert one_frame(frame, own=OWN_BINARIES)[-1] is True

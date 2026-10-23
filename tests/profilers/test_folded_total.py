@@ -293,3 +293,106 @@ def test_a_line_with_no_samples_does_not_shorten_the_entry_chain() -> None:
     ]
     ranking = rank(lines, project_root=CONTAINER_ROOT, top_n=10)
     assert [h.function for h in ranking.by_total] == ["B"]
+
+
+THREADS_DIR = FIXTURES / "native-threads"
+THREADS = THREADS_DIR / "threads.folded.txt"
+THREAD_ENTRY = ("thread_start", "_pthread_start")
+
+
+def test_thread_entry_frames_do_not_head_the_total_ranking() -> None:
+    """Frames before the first project frame are not hotspots.
+
+    Every worker's stack starts ``thread_start;_pthread_start``; the
+    main thread's does not, so they are no common prefix and used to
+    head the list above the project's own functions.
+    """
+    ranking = rank_file(
+        THREADS,
+        project_root=THREADS_DIR,
+        top_n=EVERYTHING,
+        own_modules=["threads"],
+    )
+    names = [h.function for h in ranking.by_total]
+    assert not [n for n in names if n.endswith(THREAD_ENTRY)]
+    assert names[:3] == ["worker", "checksum", "process_entry"]
+    assert not ranking.by_total[2].is_library
+
+
+def test_library_frames_below_a_project_frame_are_kept() -> None:
+    """Regression guard: the old rule keeps them too; this pins it."""
+    ranking = rank_file(
+        THREADS,
+        project_root=THREADS_DIR,
+        top_n=EVERYTHING,
+        own_modules=["threads"],
+    )
+    names = {h.function for h in ranking.by_total}
+    assert "libsystem_c.dylib`time" in names
+    assert "libsystem_m.dylib`fegetenv" in names
+
+
+def test_without_a_project_frame_the_common_prefix_rule_applies() -> None:
+    """With the project unknown, thread entry frames stay, as before."""
+    ranking = rank_file(
+        THREADS, project_root=Path("/nowhere"), top_n=EVERYTHING
+    )
+    names = [h.function for h in ranking.by_total]
+    assert all(h.is_library for h in ranking.by_total)
+    assert names[:2] == [
+        "libsystem_pthread.dylib`thread_start",
+        "libsystem_pthread.dylib`_pthread_start",
+    ]
+
+
+def test_go_test_runner_frames_do_not_head_the_total_ranking() -> None:
+    """``testing.(*B).launch`` is above the benchmark, not under it.
+
+    Regression guard: the old common-prefix rule also passes."""
+    ranking = rank_file(ECHO, project_root=GO_ROOT, top_n=EVERYTHING)
+    names = [h.function for h in ranking.by_total]
+    assert not [n for n in names if n.startswith("testing.")]
+    assert "github.com/labstack/echo/v4.(*Echo).ServeHTTP" in names[:2]
+
+
+@pytest.mark.parametrize("count", [5, 0])
+def test_a_stack_with_no_project_frame_does_not_bring_entry_frames_back(
+    count: int,
+) -> None:
+    """An idle helper thread shares ``thread_start`` with workers."""
+    idle = (
+        "libsystem_pthread.dylib`thread_start;"
+        "libsystem_pthread.dylib`_pthread_start;"
+        f"libsystem_kernel.dylib`__workq_kernreturn {count}"
+    )
+    lines = [*THREADS.read_text(encoding="utf-8").splitlines(), idle]
+    ranking = rank(
+        lines,
+        project_root=THREADS_DIR,
+        top_n=EVERYTHING,
+        own_modules=["threads"],
+    )
+    names = [h.function for h in ranking.by_total]
+    assert not [n for n in names if n.endswith(THREAD_ENTRY)]
+    assert names[:3] == ["worker", "checksum", "process_entry"]
+
+
+FD = FIXTURES / "rust" / "fd-threads.folded.txt"
+RUNTIME = ("fd`std::", "fd`core::", "fd`alloc::", "fd`_$LT$std..")
+
+
+def test_runtime_frames_in_the_project_binary_are_library_code() -> None:
+    """Rust ``std::``/``core::`` copies in ``fd`` are not fd's code."""
+    ranking = rank_file(
+        FD, project_root=CONTAINER_ROOT, top_n=EVERYTHING, own_modules=["fd"]
+    )
+    seen = {h.function: h.is_library for h in ranking.by_total}
+    seen.update({h.function: h.is_library for h in ranking.by_self})
+    runtime = [f for f in seen if f.startswith(RUNTIME)]
+    assert runtime
+    assert all(seen[f] for f in runtime)
+    assert not seen["fd`fd::output::print_entry::ha19644765a9c40d9"]
+    assert not seen["fd`fd::walk::scan::h6c5b57f148ddc2ba"]
+    names = [h.function for h in ranking.by_total]
+    assert not [n for n in names if "thread_start" in n]
+    assert names.index("fd`fd::output::print_entry::ha19644765a9c40d9") < 10

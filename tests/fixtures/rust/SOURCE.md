@@ -42,3 +42,22 @@ What the fixtures show, as the tools printed it:
   prints a name that carries an LLVM suffix raw. Kernel frames are
   `[unknown]` at addresses with the top bit set. A frame in a mapping
   perf calls deleted has the dso `/ (deleted)`.
+
+## `fd-threads.*`
+
+Date 2026-10-23, macOS 15.7.7 (24G720), M4 MacBook Pro, rustc 1.94.1,
+fd 8.2.1 built with `cargo build --release` (release profile of the
+checkout, frame pointers as the build left them). `fd-threads.sample.txt`
+is `/usr/bin/sample`'s raw report (`Report Version: 7`) and
+`fd-threads.folded.txt` is what `perfproof profile` wrote from it with
+`python -m perfproof.profilers.native record`, both untouched, for
+`fd --color=always -HI -j1 . <tree of about 3,000 files>` with the
+profiler attached after start. Project root for tests: any path
+(frames carry no files); own module: `fd`. Worker threads start at
+`thread_start;_pthread_start;fd`std::sys::thread...`, the main thread at
+`dyld`start`.
+
+```
+dfe4b1b617ea3ca382e4219d85d8ba4ed8479b753b735792d3d0af11794be9ac  fd-threads.folded.txt
+b91f737dc0a450b3015654a69e9b4af10e089326075721cc96364cd0e6322465  fd-threads.sample.txt
+```

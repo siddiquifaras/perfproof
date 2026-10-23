@@ -35,6 +35,13 @@ Frames are normalised before they are counted:
   project's: a file under the project root that is not in a
   ``site-packages``, ``dist-packages`` or ``node_modules`` directory,
   or a native frame of a binary the caller names as the project's own.
+  A native frame whose symbol is in a language runtime namespace is
+  library code even in such a binary: the Rust standard library
+  (``std::``, ``core::``, ``alloc::``, also as ``<std::...>`` and the
+  legacy ``_$LT$std..``) and the C++ standard library (``std::``,
+  ``__gnu_cxx::``), which a binary carries its own copy of. Only the
+  function's own name counts, not a type it mentions; see
+  `_is_runtime`.
 """
 
 import heapq
@@ -67,6 +74,25 @@ _LIBRARY_DIRS: Final = frozenset(
 _PYTHON_SUFFIXES: Final = (".py", ".pyw")
 _LINE_SUFFIX: Final = re.compile(r"(?P<file>.+):(?P<line>[0-9]+)")
 _FILE_SUFFIX: Final = re.compile(r"(\.so(\.[0-9]+)?|\.dylib|\.dll|\.pyw?)$")
+_CXX_RUNTIME: Final = ("std::", "__gnu_cxx::", "__cxxabiv1::")
+_QUALIFIED: Final = re.compile(r"[A-Za-z_~][\w~]*(?:::[A-Za-z_~][\w~]*)+")
+_RUST_RUNTIME: Final = ("std::", "core::", "alloc::")
+_RUST_LEGACY_RUNTIME: Final = ("std..", "core..", "alloc..")
+_RUST_HASH: Final = re.compile(r"::h[0-9a-f]{16}$")
+_RUST_ESCAPE: Final = re.compile(r"\$[A-Za-z0-9_]+\$")
+_CXX_RUNTIME_NAME: Final = re.compile(
+    r"(?<![\w:])(?:std|__gnu_cxx|__cxxabiv1)(?:::[A-Za-z_~][\w~]*)+"
+)
+_CLONE: Final = re.compile(r"\s*\[clone [^\]]*\]\s*$")
+_CXX_WORDS: Final = re.compile(
+    r"\b(?:const|volatile|unsigned|signed|long|short|int|char|bool|"
+    r"float|double|void|auto|wchar_t|char8_t|char16_t|"
+    r"char32_t)\b"
+)
+_IDENTIFIER: Final = re.compile(r"[A-Za-z_]")
+_OPERATOR: Final = re.compile(
+    r"operator(?:\(\)|<=>|<<=|>>=|->\*|->|<<|>>|[-+*/%^&|!=<>]=?|~|,|\[\])"
+)
 _UNRESOLVED: Final = "?"
 """py-spy's location for a native frame it could not symbolise."""
 
@@ -133,7 +159,8 @@ class _Normaliser:
                 file=None,
                 line=None,
                 frame_kind="native",
-                is_library=module not in self._own_modules,
+                is_library=module not in self._own_modules
+                or _is_runtime(symbol),
                 location=module,
             )
         return _Frame(text, None, None, "native", True, None)
@@ -153,7 +180,9 @@ class _Normaliser:
         if path.endswith(_PYTHON_SUFFIXES):
             return _Frame(function, shown, line, "python", not own, location)
         module = posixpath.basename(path)
-        own = own or module in self._own_modules
+        own = own or (
+            module in self._own_modules and not _is_runtime(function)
+        )
         if line is not None:
             return _Frame(function, shown, line, "native", not own, location)
         name = f"{module}`{function}" if module else function
@@ -182,6 +211,107 @@ class _Normaliser:
             own = _is_own(clean) and (self._root / clean).is_file()
             self._exists[clean] = own
         return own, clean
+
+
+def _is_runtime(symbol: str) -> bool:
+    """Whether a native symbol is a standard library's own function.
+
+    A binary built from Rust or C++ carries its own copy of its
+    language's standard library, so the image a symbol is in does not
+    say it is the project's. A symbol counts only when all of it is
+    runtime, never because it mentions a runtime type:
+
+    - C++: take the symbol without a ``[clone ...]`` suffix and
+      without the text inside template angle brackets, remove every
+      identifier qualified by ``std::`` (libc++'s ``std::__1::``
+      included), ``__gnu_cxx::`` or ``__cxxabiv1::``, and remove the
+      keywords and builtin type words (``const``, ``unsigned``,
+      ``void``...); ``operator`` stays unless a runtime name
+      qualifies it, so an unqualified ``operator()(std::string)`` is
+      the project's. It is runtime when something was
+      removed and nothing identifier-like is left, so ``void std::f()``
+      and ``std::ostream& std::operator<<(std::ostream&, char const*)``
+      are runtime, while ``process(std::vector<int>&)``,
+      ``(anonymous namespace)::f(std::string)``,
+      ``app::Foo::operator std::string() const`` and
+      ``std::string_view (*app::get())(int)`` are the project's. The
+      rule can only err toward the project: ``std::sort<app::X*>(
+      app::X*, app::X*)`` stays the image's.
+    - Rust ``<X as Trait>::f`` (and the legacy
+      ``_$LT$X$u20$as$u20$Trait$GT$::f``): runtime only when both
+      ``X`` and ``Trait`` start ``std::``, ``core::`` or ``alloc::``,
+      since an impl of a project trait, or on a project type, is
+      project code. ``<X>::f`` is runtime when ``X`` is.
+    - Rust names go through the same rule after the hash suffix and
+      the ``$LT$``-style escapes are dropped, so
+      ``std::thread::lifecycle::JoinInner$LT$T$GT$::join::h...`` is
+      runtime.
+    - Rust ``std::...`` is runtime; ``core::...`` and ``alloc::...``
+      only with the 16-digit hash suffix (``::h0123456789abcdef``)
+      Rust appends, because ``core::`` is a common C++ project
+      namespace.
+
+    Anything else, including a name this cannot parse, stays the
+    image's.
+    """
+    if symbol.startswith("_$LT$"):
+        body = symbol.removeprefix("_$LT$")
+        head, sep, rest = body.partition("$u20$as$u20$")
+        if not head.startswith(_RUST_LEGACY_RUNTIME):
+            return False
+        return not sep or rest.startswith(_RUST_LEGACY_RUNTIME)
+    if symbol.startswith("<"):
+        head, sep, rest = _split_rust_impl(symbol)
+        if not head.startswith(_RUST_RUNTIME):
+            return False
+        return not sep or rest.startswith(_RUST_RUNTIME)
+    if _RUST_HASH.search(symbol) is not None:
+        plain = _RUST_ESCAPE.sub("", _RUST_HASH.sub("", symbol))
+        names = _QUALIFIED.findall(_outside_angles(plain))
+        allowed = (*_CXX_RUNTIME, "core::", "alloc::")
+        return bool(names) and all(n.startswith(allowed) for n in names)
+    text = _outside_angles(_CLONE.sub("", symbol))
+    left = _CXX_RUNTIME_NAME.sub("", text)
+    if left == text:
+        return False
+    return _IDENTIFIER.search(_CXX_WORDS.sub("", left)) is None
+
+
+def _split_rust_impl(symbol: str) -> tuple[str, str, str]:
+    """Split ``<X as Trait>::f`` into ``X``, `` as `` and ``Trait``.
+
+    The separator is the first `` as `` outside nested ``<>``. For
+    ``<X>::f`` the separator and trait are empty.
+    """
+    depth = 0
+    for index, char in enumerate(symbol):
+        if char == "<":
+            depth += 1
+        elif char == ">":
+            depth -= 1
+            if depth == 0:
+                return symbol[1:index], "", ""
+        elif depth == 1 and symbol.startswith(" as ", index):
+            return symbol[1:index], " as ", symbol[index + 4 :]
+    return symbol[1:], "", ""
+
+
+def _outside_angles(symbol: str) -> str:
+    """Return a symbol with everything inside ``<>`` removed.
+
+    Operator names are read as one word first, so the ``<`` and ``>``
+    of ``operator<<`` are not brackets.
+    """
+    out: list[str] = []
+    depth = 0
+    for char in _OPERATOR.sub("operator", symbol):
+        if char == "<":
+            depth += 1
+        elif char == ">":
+            depth = max(depth - 1, 0)
+        elif depth == 0:
+            out.append(char)
+    return "".join(out)
 
 
 def _split_location(text: str) -> tuple[str, str] | None:
@@ -400,10 +530,20 @@ def rank(
         leaves out two kinds of frame that say nothing about where the
         time goes: synthetic ones (a function or file written in angle
         brackets, such as ``<module>`` or ``MainThread (<thread>)``),
-        and entry frames: on every sample and above the point where the
-        stacks first differ (``main``, ``runpy`` wrappers,
-        ``runtime.goexit``), so their total is the whole profile and
-        says nothing. The last frame of that common prefix stays,
+        and entry frames. If any stack with samples holds a project
+        frame, then in every such stack the frames before the first
+        project frame are entry or runtime frames (``thread_start``,
+        ``_pthread_start``, ``start_thread``, ``runtime.goexit``,
+        ``threading.py`` ``_bootstrap``, ``testing.(*B).launch``). A
+        frame is left out when it is never at or after a project frame
+        and never has self time; a stack with no project frame, such as
+        an idle runtime thread, therefore marks nothing. Library frames
+        below a project frame are real work and stay. If no stack holds
+        a project frame, the project is unknown and nothing is judged
+        by this rule. Either way, a frame on every sample and above the
+        point where the stacks first differ (``main``, ``runpy``
+        wrappers) has a total that is the whole profile and is left
+        out, except the last frame of that common prefix, which stays
         since that is where the time divides. Each frame's
         ``is_library`` says whether it is project code. Fractions are
         of all samples in the input.
@@ -418,8 +558,8 @@ def rank(
     Notes
     -----
     Time is as for `summarise`. Both rankings are one heap
-    pass, ``O(F log top_n)``; the entry-frame test keeps one prefix of
-    the deepest stack.
+    pass, ``O(F log top_n)``; the entry-frame tests keep one prefix of
+    the deepest stack and one flag per function.
     """
     if top_n < 1:
         msg = f"top_n must be at least 1, got {top_n}"
@@ -435,6 +575,8 @@ def rank(
     members: list[list[int]] = []
     group_self: list[int] = []
     group_total: list[int] = []
+    in_work: list[bool] = []
+    has_project = False
     prefix: list[int] | None = None
     samples = 0
     for number, raw in enumerate(lines, start=1):
@@ -474,6 +616,7 @@ def rank(
                         members.append([])
                         group_self.append(0)
                         group_total.append(0)
+                        in_work.append(False)
                     members[group].append(frame_id)
                     group_of.append(group)
                 ids[text_frame] = frame_id
@@ -487,6 +630,14 @@ def rank(
             group_total[group] += count
         if count == 0:
             continue
+        first_own = next(
+            (i for i, f in enumerate(stack_ids) if not frames[f].is_library),
+            None,
+        )
+        if first_own is not None:
+            has_project = True
+            for group in groups[first_own:]:
+                in_work[group] = True
         if prefix is None:
             prefix = groups
         else:
@@ -520,6 +671,7 @@ def rank(
             for g in range(len(members))
             if group_total[g] > 0
             and g not in wrappers
+            and (not has_project or in_work[g] or group_self[g] > 0)
             and not _synthetic(frames[members[g][0]])
         ),
         key=lambda g: (group_total[g], group_self[g]),
