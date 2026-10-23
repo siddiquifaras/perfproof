@@ -202,8 +202,8 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   amendment is the owner's decision. No GPU golden run now (Modal T4,
   ~$6.30 of free credit, proposed); it waits for GPU work.
 - **Hetzner box (2026-10-23):** golden set, noise recorder and loaded-web
-  rerun done and copied off with sha256 checks; Faras told it can be
-  deleted (with its Primary IP).
+  rerun done and copied off with sha256 checks; deleted by Faras on
+  2026-10-23 (`perfproof-traces`, Primary IPs deleted with it).
 
 ### In progress
 
