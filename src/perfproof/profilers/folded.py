@@ -16,6 +16,13 @@ A frame's self count is the samples whose stack ends in it. Its total
 count is the samples whose stack contains it, counting a stack once
 however many times the frame recurs in it.
 
+Two rankings come out of one pass. The self ranking lists the frames
+that burn the time. The total ranking lists the frames the time is
+spent under, including frames with no self time of their own: a project
+function whose cost sits in the library calls it makes is invisible by
+self time at any ``top_n``, and is often where the fix belongs (call
+less, cache, batch).
+
 Frames are normalised before they are counted:
 
 - Python frames (``function (file.py:line)``, as py-spy writes them)
@@ -44,6 +51,9 @@ from perfproof.schema import Hotspot
 __all__ = [
     "DEFAULT_TOP_N",
     "FoldedStackError",
+    "Ranking",
+    "rank",
+    "rank_file",
     "summarise",
     "summarise_file",
 ]
@@ -244,6 +254,60 @@ def _is_own(relative: str) -> bool:
     return _LIBRARY_DIRS.isdisjoint(relative.split("/"))
 
 
+@dataclass(frozen=True, slots=True)
+class Ranking:
+    """The two rankings of one set of folded stacks.
+
+    Attributes
+    ----------
+    by_self : tuple of perfproof.schema.Hotspot
+        Frames with a nonzero self count, as `summarise` returns them.
+    by_total : tuple of perfproof.schema.Hotspot
+        Functions by total (inclusive) share, as `rank` describes them.
+        ``is_library`` is false for the project's own frames.
+    """
+
+    by_self: tuple[Hotspot, ...]
+    by_total: tuple[Hotspot, ...]
+
+
+_PSEUDO_NAME: Final = re.compile(r"<[^<>\s]+>")
+_TRAILING_LINE: Final = re.compile(r":[0-9]+$")
+
+
+def _synthetic(frame: _Frame) -> bool:
+    """Whether a frame is the interpreter's, not a function of a file.
+
+    ``<module>``, ``<listcomp>``, ``<frozen runpy>`` and
+    pyinstrument's ``MainThread (<thread>)`` are one angle-bracketed
+    word or a ``<...>`` pseudo-file. A Rust symbol such as
+    ``<Type as Trait>::method`` is real code and is kept.
+    """
+    if _PSEUDO_NAME.fullmatch(frame.function):
+        return True
+    file = frame.file
+    return file is not None and file.startswith("<") and file.endswith(">")
+
+
+def _function_key(frame: _Frame) -> tuple[object, ...]:
+    """Identify a frame's function, whatever line it is executing.
+
+    py-spy and Go give the line a frame is executing, so one function
+    that calls from several lines is several `_Frame` values; its
+    inclusive time is the sum over them.
+    """
+    location = frame.location
+    if location is not None and frame.line is not None:
+        location = _TRAILING_LINE.sub("", location)
+    return (
+        frame.function,
+        frame.file,
+        frame.frame_kind,
+        frame.is_library,
+        location,
+    )
+
+
 def summarise(
     lines: Iterable[str],
     *,
@@ -294,6 +358,69 @@ def summarise(
     the number of lines. Ranking is ``O(F log top_n)`` for ``F``
     distinct frames.
     """
+    return rank(
+        lines,
+        project_root=project_root,
+        top_n=top_n,
+        own_modules=own_modules,
+    ).by_self
+
+
+def rank(
+    lines: Iterable[str],
+    *,
+    project_root: Path,
+    top_n: int = DEFAULT_TOP_N,
+    own_modules: Collection[str] = (),
+) -> Ranking:
+    """Rank the frames of folded stacks by self time and by total time.
+
+    Parameters
+    ----------
+    lines : iterable of str
+        As for `summarise`.
+    project_root : pathlib.Path
+        As for `summarise`.
+    top_n : int, optional
+        Most frames in each ranking; at least 1.
+    own_modules : collection of str, optional
+        As for `summarise`.
+
+    Returns
+    -------
+    Ranking
+        ``by_self`` is `summarise`'s result. ``by_total`` holds the
+        functions with the largest total count, a function being one
+        frame whatever line it is executing (a function that calls from
+        several lines counts the samples under all of them once, and
+        shows the line with the most; ``self_fraction`` is likewise the
+        sum over its lines), by total then self count,
+        both descending, ties in order of first appearance; at most
+        ``top_n``. It includes frames with a self count of zero and
+        leaves out two kinds of frame that say nothing about where the
+        time goes: synthetic ones (a function or file written in angle
+        brackets, such as ``<module>`` or ``MainThread (<thread>)``),
+        and entry frames: on every sample and above the point where the
+        stacks first differ (``main``, ``runpy`` wrappers,
+        ``runtime.goexit``), so their total is the whole profile and
+        says nothing. The last frame of that common prefix stays,
+        since that is where the time divides. Each frame's
+        ``is_library`` says whether it is project code. Fractions are
+        of all samples in the input.
+
+    Raises
+    ------
+    FoldedStackError
+        As for `summarise`.
+    ValueError
+        If ``top_n`` is less than 1.
+
+    Notes
+    -----
+    Time is as for `summarise`. Both rankings are one heap
+    pass, ``O(F log top_n)``; the entry-frame test keeps one prefix of
+    the deepest stack.
+    """
     if top_n < 1:
         msg = f"top_n must be at least 1, got {top_n}"
         raise ValueError(msg)
@@ -303,6 +430,12 @@ def summarise(
     frames: list[_Frame] = []
     self_counts: list[int] = []
     total_counts: list[int] = []
+    group_ids: dict[tuple[object, ...], int] = {}
+    group_of: list[int] = []
+    members: list[list[int]] = []
+    group_self: list[int] = []
+    group_total: list[int] = []
+    prefix: list[int] | None = None
     samples = 0
     for number, raw in enumerate(lines, start=1):
         text = raw.rstrip()
@@ -333,30 +466,97 @@ def summarise(
                     frames.append(frame)
                     self_counts.append(0)
                     total_counts.append(0)
+                    key = _function_key(frame)
+                    group = group_ids.get(key)
+                    if group is None:
+                        group = len(members)
+                        group_ids[key] = group
+                        members.append([])
+                        group_self.append(0)
+                        group_total.append(0)
+                    members[group].append(frame_id)
+                    group_of.append(group)
                 ids[text_frame] = frame_id
             stack_ids.append(frame_id)
         self_counts[stack_ids[-1]] += count
         for frame_id in set(stack_ids):
             total_counts[frame_id] += count
+        groups = [group_of[i] for i in stack_ids]
+        group_self[groups[-1]] += count
+        for group in set(groups):
+            group_total[group] += count
+        if count == 0:
+            continue
+        if prefix is None:
+            prefix = groups
+        else:
+            common = 0
+            for a, b in zip(prefix, groups, strict=False):
+                if a != b:
+                    break
+                common += 1
+            del prefix[common:]
     if samples == 0:
         raise FoldedStackError("no samples in the input")
-    ranked = heapq.nlargest(
+    by_self = heapq.nlargest(
         top_n,
         (i for i, n in enumerate(self_counts) if n > 0),
         key=lambda i: (self_counts[i], total_counts[i]),
     )
-    return tuple(
-        Hotspot(
-            function=frames[i].function,
-            file=frames[i].file,
-            line=frames[i].line,
-            frame_kind=frames[i].frame_kind,
-            is_library=frames[i].is_library,
-            self_fraction=self_counts[i] / samples,
-            total_fraction=total_counts[i] / samples,
-        )
-        for i in ranked
+    wrappers = (
+        {
+            g
+            for g in prefix[:-1]
+            if group_total[g] == samples and group_self[g] == 0
+        }
+        - {prefix[-1]}
+        if prefix
+        else set[int]()
     )
+    by_group = heapq.nlargest(
+        top_n,
+        (
+            g
+            for g in range(len(members))
+            if group_total[g] > 0
+            and g not in wrappers
+            and not _synthetic(frames[members[g][0]])
+        ),
+        key=lambda g: (group_total[g], group_self[g]),
+    )
+
+    def hotspots(ids: list[int]) -> tuple[Hotspot, ...]:
+        return tuple(
+            Hotspot(
+                function=frames[i].function,
+                file=frames[i].file,
+                line=frames[i].line,
+                frame_kind=frames[i].frame_kind,
+                is_library=frames[i].is_library,
+                self_fraction=self_counts[i] / samples,
+                total_fraction=total_counts[i] / samples,
+            )
+            for i in ids
+        )
+
+    def function_hotspots(groups: list[int]) -> tuple[Hotspot, ...]:
+        out: list[Hotspot] = []
+        for g in groups:
+            shown = frames[max(members[g], key=total_counts.__getitem__)]
+            out.append(
+                Hotspot(
+                    function=shown.function,
+                    file=shown.file,
+                    line=shown.line,
+                    frame_kind=shown.frame_kind,
+                    is_library=shown.is_library,
+                    self_fraction=group_self[g] / samples,
+                    total_fraction=group_total[g] / samples,
+                )
+            )
+        return tuple(out)
+
+    return Ranking(hotspots(by_self), function_hotspots(by_group))
 
 
 def summarise_file(
@@ -397,8 +597,52 @@ def summarise_file(
     OSError
         If the file cannot be read.
     """
+    return rank_file(
+        path,
+        project_root=project_root,
+        top_n=top_n,
+        own_modules=own_modules,
+    ).by_self
+
+
+def rank_file(
+    path: str | os.PathLike[str],
+    *,
+    project_root: Path,
+    top_n: int = DEFAULT_TOP_N,
+    own_modules: Collection[str] = (),
+) -> Ranking:
+    """Rank the frames of a folded-stack file, as `rank` does.
+
+    The file is streamed and decoded as for `summarise_file`.
+
+    Parameters
+    ----------
+    path : str or os.PathLike
+        Folded-stack file.
+    project_root : pathlib.Path
+        As for `rank`.
+    top_n : int, optional
+        As for `rank`.
+    own_modules : collection of str, optional
+        As for `rank`.
+
+    Returns
+    -------
+    Ranking
+        As for `rank`.
+
+    Raises
+    ------
+    FoldedStackError
+        As for `rank`.
+    ValueError
+        If ``top_n`` is less than 1.
+    OSError
+        If the file cannot be read.
+    """
     with open(path, encoding="utf-8", errors="replace") as stream:
-        return summarise(
+        return rank(
             stream,
             project_root=project_root,
             top_n=top_n,

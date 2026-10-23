@@ -134,3 +134,40 @@ def test_hotspots_printed_one_per_line_are_read(
     run = HERE / "runs" / "skill-3i" / task
     top, _ = transcript.profile_evidence(transcript.load_turns(run))
     assert top == expected
+
+
+def test_lines_from_either_hotspot_list_are_read() -> None:
+    """Lines of ``frames_by_total`` score as ``hotspots`` lines do.
+
+    The lines are printed from a real py-spy capture's two rankings in
+    the documented ``function file line self total`` form.
+    """
+    from perfproof.profilers.folded import rank_file
+    from perfproof.schema import Hotspot
+
+    ranking = rank_file(
+        HERE.parent.parent / "tests/fixtures/py-spy/workload-native.txt",
+        project_root=Path("/srv/project"),
+        top_n=6,
+    )
+
+    def printed(frames: tuple[Hotspot, ...]) -> str:
+        return "\n".join(
+            f"{h.function} {h.file} {h.line} "
+            f"{h.self_fraction:.3f} {h.total_fraction:.3f}"
+            for h in frames
+        )
+
+    by_self = [
+        h
+        for h in ranking.by_self
+        if h.function.isidentifier() and h.file is not None
+    ]
+    by_total = [h for h in ranking.by_total if h.file is not None]
+    assert by_self
+    assert any(h.self_fraction == 0 for h in by_total)
+    names = transcript._ranked_hotspots(  # pyright: ignore[reportPrivateUsage]
+        printed(tuple(by_self)) + "\n" + printed(tuple(by_total))
+    )
+    assert {h.function for h in by_self} <= set(names)
+    assert {h.function for h in by_total} <= set(names)

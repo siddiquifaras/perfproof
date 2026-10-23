@@ -104,7 +104,7 @@ from perfproof.bench.side_effects import (
 from perfproof.profilers.folded import (
     DEFAULT_TOP_N,
     FoldedStackError,
-    summarise_file,
+    rank_file,
 )
 from perfproof.schema import BenchmarkSpec, GateResult, Hotspot
 
@@ -245,6 +245,10 @@ class Profile:
     hotspots : tuple of perfproof.schema.Hotspot
         Frames ranked by self share, as
         `perfproof.profilers.folded.summarise` returns them.
+    frames_by_total : tuple of perfproof.schema.Hotspot
+        Frames ranked by total share, including frames with no self
+        time, without synthetic or entry frames, as
+        `perfproof.profilers.folded.rank` returns them.
     unprofiled : Timing
         The unprofiled run.
     profiled_wall_seconds : float
@@ -271,6 +275,7 @@ class Profile:
     weight_unit: WeightUnit
     argv: tuple[str, ...]
     hotspots: tuple[Hotspot, ...]
+    frames_by_total: tuple[Hotspot, ...]
     unprofiled: Timing
     profiled_wall_seconds: float
     load_average: float | None
@@ -451,7 +456,7 @@ def profile_benchmark(
         folded = out_dir / _PYINSTRUMENT_FOLDED
         _convert(plan.raw_path, folded, cwd)
     try:
-        hotspots = summarise_file(
+        ranking = rank_file(
             folded,
             project_root=tree_root,
             top_n=top_n,
@@ -475,7 +480,8 @@ def profile_benchmark(
         basis=plan.basis,
         weight_unit=plan.weight_unit,
         argv=plan.argv,
-        hotspots=hotspots,
+        hotspots=ranking.by_self,
+        frames_by_total=ranking.by_total,
         unprofiled=plain,
         profiled_wall_seconds=profiled.wall_seconds,
         load_average=load,

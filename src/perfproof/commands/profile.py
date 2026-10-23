@@ -35,6 +35,16 @@ untouched.
     (``samples``, ``microseconds``, ``unknown``).
 ``hotspots``
     List of `perfproof.schema.Hotspot` JSON model dumps, by self share.
+    A frame with no self time of its own is never in it.
+``frames_by_total``
+    List of `perfproof.schema.Hotspot` JSON model dumps, by total
+    (inclusive) share, at most ``--top`` of them: the frames the time
+    is spent under, with or without self time of their own. A project
+    function whose cost is in the library calls it makes is here and
+    not in ``hotspots``. ``is_library`` is false for the project's own
+    frames. Synthetic frames (``<module>``, ``<listcomp>``) and entry
+    frames on every stack (``main``, ``runpy`` wrappers) are left out.
+    Added after ``hotspots``; ``hotspots`` is unchanged.
 ``unprofiled``
     ``{"wall_seconds", "cpu_seconds", "cpu_fraction"}`` of the
     unprofiled run. CPU time is user plus system time summed over
@@ -161,7 +171,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         type=_positive_int,
         default=DEFAULT_TOP_N,
         metavar="N",
-        help=f"frames to list (default: {DEFAULT_TOP_N})",
+        help=f"frames in each list (default: {DEFAULT_TOP_N})",
     )
     parser.add_argument(
         "--timeout",
@@ -449,6 +459,9 @@ def _result(
     hotspots: list[JsonValue] = [
         h.model_dump(mode="json") for h in profile.hotspots
     ]
+    by_total: list[JsonValue] = [
+        h.model_dump(mode="json") for h in profile.frames_by_total
+    ]
     return {
         "name": spec.name,
         "spec_hash": spec.spec_hash,
@@ -457,6 +470,7 @@ def _result(
         "basis": profile.basis,
         "weight_unit": profile.weight_unit,
         "hotspots": hotspots,
+        "frames_by_total": by_total,
         "unprofiled": {
             "wall_seconds": plain.wall_seconds,
             "cpu_seconds": plain.cpu_seconds,
@@ -483,6 +497,16 @@ def _location(hotspot: Hotspot) -> str:
     return f"{hotspot.file}:{hotspot.line}"
 
 
+def _row(h: Hotspot) -> str:
+    """Render one frame of a table: shares, location, name."""
+    total = "" if h.total_fraction is None else f"{h.total_fraction:.1%}"
+    library = "  (library)" if h.is_library else ""
+    return (
+        f"  {h.self_fraction:5.1%} {total:>6}  {_location(h)}  "
+        f"{h.function}{library}"
+    )
+
+
 def _text(spec: BenchmarkSpec, profile: Profile, out_dir: Path) -> str:
     """Render the profile for a person."""
     version = profile.tool_version or "version unknown"
@@ -492,13 +516,15 @@ def _text(spec: BenchmarkSpec, profile: Profile, out_dir: Path) -> str:
         f"Top frames by self time ({_BASIS_TEXT[profile.basis]}):",
         "   self  total  location  function",
     ]
-    for h in profile.hotspots:
-        total = "" if h.total_fraction is None else f"{h.total_fraction:.1%}"
-        library = "  (library)" if h.is_library else ""
-        lines.append(
-            f"  {h.self_fraction:5.1%} {total:>6}  {_location(h)}  "
-            f"{h.function}{library}"
-        )
+    lines.extend(_row(h) for h in profile.hotspots)
+    lines.extend(
+        [
+            "Top frames by total time (with callees; a frame can be here "
+            "with no self time):",
+            "   self  total  location  function",
+        ]
+    )
+    lines.extend(_row(h) for h in profile.frames_by_total)
     plain = profile.unprofiled
     share = plain.cpu_seconds / plain.wall_seconds
     lines.append(

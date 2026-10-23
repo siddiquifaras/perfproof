@@ -220,8 +220,14 @@ No discovery. One candidate at a time, against its parent.
    <name> --json`. Print the top 15
    entries of `result.hotspots[]` in the order the CLI gives them
    (by self share), one per line as `function file line
-   self_fraction total_fraction`, not a cut of the whole output, and read them with the wall versus
-   CPU time. If most of the profile is interpreter start-up or
+   self_fraction total_fraction`, not a cut of the whole output, and
+   read them with the wall versus CPU time. Print the top 15 of
+   `result.frames_by_total[]` the same way: frames by time spent under
+   them, including ones with no self time. A project function
+   (`is_library` false) high there and low or absent in `hotspots` is
+   a candidate: its time is in the calls it makes, so call it less or
+   make those calls cheaper. If most of the profile is interpreter
+   start-up or
    imports, the workload does too little work per run: make it do
    more (a loop of calls inside the process, a larger input) and
    profile again before choosing an idea. If CPU is well below wall, the program is mostly

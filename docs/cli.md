@@ -261,6 +261,9 @@ for three years. The obvious hotspots are long fixed. They type
     38%  tilekit/resample.py:88   _bilinear_row
     21%  tilekit/io.py:140        TileWriter.write   (waiting: CPU 4%)
     12%  tilekit/pyramid.py:61    _level_shape
+  Then a second table, "Top frames by total time": frames ranked with
+  their callees, including ones with no self time (`--json`:
+  `result.frames_by_total`, beside `result.hotspots`).
   Wall 1.92 s, CPU 1.46 s: 24% of wall time is waiting, not computing.
 
 ● perfproof measure bench-tile --sizes 1x,2x,4x --json

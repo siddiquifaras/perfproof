@@ -14,7 +14,7 @@ import pytest
 
 from perfproof.cli import main
 from perfproof.commands import profile as profile_command
-from perfproof.profilers.folded import summarise_file
+from perfproof.profilers.folded import rank_file, summarise_file
 from perfproof.profilers.run import (
     PYINSTRUMENT_VERSION,
     Profile,
@@ -423,6 +423,10 @@ def test_command_profiler_writing_a_file(tree: Path) -> None:
     )
     assert profile.hotspots == summarise_file(
         PYSPY / "rolling.txt", project_root=tree
+    )
+    assert (
+        profile.frames_by_total
+        == rank_file(PYSPY / "rolling.txt", project_root=tree).by_total
     )
     assert profile.argv[-2:] == (sys.executable, "work.py")
     assert profile.argv[3] == str(out / "command.folded.txt")
@@ -841,6 +845,7 @@ def test_cli_profiles_with_a_command_profiler(
         "basis",
         "weight_unit",
         "hotspots",
+        "frames_by_total",
         "unprofiled",
         "profiled_wall_seconds",
         "load_average",
@@ -857,6 +862,13 @@ def test_cli_profiles_with_a_command_profiler(
     }
     assert result["profiler"] == "command"
     assert len(result["hotspots"]) == 3
+    assert result["frames_by_total"] == [
+        h.model_dump(mode="json")
+        for h in rank_file(
+            PYSPY / "rolling.txt", project_root=repo, top_n=3
+        ).by_total
+    ]
+    assert 0 < len(result["frames_by_total"]) <= 3
     summary = result["summary"]
     assert summary["labels"]["cap"].startswith("bound")
     assert len(json.dumps(summary, separators=(",", ":")).encode()) <= 1800
@@ -891,6 +903,9 @@ def test_cli_profiles_with_a_command_profiler(
     text, _ = capsys.readouterr()
     assert status == 0
     assert text.startswith("Profile of rolling-sum (spec ")
+    assert text.index("Top frames by self time") < text.index(
+        "Top frames by total time"
+    )
     assert "Unprofiled run: wall " in text
     assert ".perfproof/profiles/rolling-sum/" in text
 
