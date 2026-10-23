@@ -711,6 +711,28 @@
     "oracle_source": "FastDoubleCharBufferBoundaryTest and SchubfachWriteCharBufferTest, tests https://github.com/FasterXML/jackson-core/pull/1704 adds for the change; targeted tests only",
     "notes": "Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine."
   },
+  "sharkdp-fd-pr1422": {
+    "setup": [
+      "cargo build --release --locked",
+      "python3 ../../../../tasks/workloads/rust/make_tree.py"
+    ],
+    "workload": "target/release/fd -u -j1 ^$ eval-tree",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/sharkdp/fd/pull/1422 (fd -u '^$' on a corpus), run on one thread over a fixed generated tree of 200,000 files (eval/tasks/workloads/rust/make_tree.py) instead of the Linux, Rust and Chromium corpora",
+    "oracle": "cargo test --release --locked",
+    "oracle_source": "fd's own test suite (unit and integration tests); the change is in src/walk.rs, src/dir_entry.rs and src/exec/job.rs",
+    "notes": "Built with the current stable Rust from rustup and the tree's Cargo.lock; the release binary is run directly, not through cargo run"
+  },
+  "sharkdp-fd-pr1914-landed": {
+    "setup": [
+      "cargo build --release --locked",
+      "python3 ../../../../tasks/workloads/rust/make_tree.py"
+    ],
+    "workload": "target/release/fd -HI -j1 --ignore-contain CACHEDIR.TAG . eval-tree",
+    "workload_source": "written here from the description of https://github.com/sharkdp/fd/pull/1914 (the file type of a directory entry instead of a stat call, when --ignore-contain is given), searching a fixed generated tree of 200,000 files (eval/tasks/workloads/rust/make_tree.py), run on the tree where the change is already in",
+    "oracle": "cargo test --release --locked",
+    "oracle_source": "fd's own test suite (unit and integration tests); the change is in src/walk.rs",
+    "notes": "Built with the current stable Rust from rustup and the tree's Cargo.lock; the release binary is run directly, not through cargo run"
+  },
   "labstack-echo-pr1799": {
     "setup": [
       "cp ../../../../tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go .",

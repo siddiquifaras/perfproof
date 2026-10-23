@@ -82,6 +82,18 @@ from one launch form used for both versions.
 | Supported | JDK 21 (Temurin) on macOS arm64 and on Linux arm64 in Docker, with the profiler wrapper's fixtures captured on both, as run for T5.11; other JDKs and x86_64 are expected to work and have not been run |
 | Outside | Source files of Kotlin and Scala classes (shown as library code), Android, GraalVM native images, JDK 8, code that needs a running application server |
 
+## Rust
+
+| | |
+|---|---|
+| Workload | The built release binary (`target/release/<name>`, built in `setup`), or a benchmark program in `.perfproof/harness/` that loops in process and prints its time (`reported`); see "Warm-up (Rust)" in [method.md](method.md) |
+| Oracle | The project's tests (`cargo test --release --locked`) and the binary's output compared between versions |
+| Coverage | `-C instrument-coverage` and the toolchain's `llvm-profdata` and `llvm-cov`, written as lcov by `perfproof.bench.rust_coverage`; not read by the coverage gate until T2.24 lands, so reported as not checked |
+| Guardrails | Peak memory of the process tree, 10% |
+| Runtime | The command must be the built binary, so that the runtime gate can read the compiler that built it (commit of `rustc`, from the binary). `cargo run`, `cargo bench` and `rustc` are `not_available`, because rustup picks the toolchain and cargo builds inside the timed run |
+| Profiling | `sample` on macOS and `perf` (CPU-clock event) on Linux, turned into folded stacks with demangled symbols by `perfproof.profilers.rust`; symbols only, no source lines |
+| Supported | rustc 1.94.1 on macOS arm64 (profiled with `sample`) and on Linux arm64 in Docker (profiled with perf 6.12), as run for T5.13; x86_64 Linux, other toolchains and `cargo-llvm-cov` were not run |
+| Outside | Windows, `no_std` and embedded targets, async runtime tracing (the playbook says what to look at), the v0 symbol mangling (not decoded) |
 ## Go
 
 | | |

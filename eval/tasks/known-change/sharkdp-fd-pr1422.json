@@ -1,0 +1,129 @@
+{
+  "id": "sharkdp-fd-pr1422",
+  "repository": "sharkdp/fd",
+  "stars": 44837,
+  "pushed_at": "2026-10-22T06:29:09Z",
+  "task_commit": "5903dec28998978f71d9c0618fe6d20697871d16",
+  "task_commit_basis": "first parent of the merge commit https://github.com/sharkdp/fd/commit/84f032eba80a41c08a52daef7d7ffbec4dcf6146; gh api compare 5903dec28998...84f032eba80a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sharkdp/fd/pull/1422",
+    "title": "walk: Send WorkerResults in batches",
+    "commit": "84f032eba80a41c08a52daef7d7ffbec4dcf6146",
+    "merged_at": "2023-11-29T15:57:19Z",
+    "files": [
+      "src/dir_entry.rs",
+      "src/exec/job.rs",
+      "src/walk.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "known-change",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "target/release/fd -u -j1 ^$ eval-tree",
+    "source": "adapted from the hyperfine command in the description of https://github.com/sharkdp/fd/pull/1422 (fd -u '^$' on a corpus), run on one thread over a fixed generated tree of 200,000 files (eval/tasks/workloads/rust/make_tree.py) instead of the Linux, Rust and Chromium corpora",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test --release --locked",
+    "source": "fd's own test suite (unit and integration tests); the change is in src/walk.rs, src/dir_entry.rs and src/exec/job.rs",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sharkdp/fd/pull/1422",
+      "note": "description, read by hand: hyperfine tables of a complete traversal (`fd -u '^$'`) of three corpora, fd before and after the change"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the current stable Rust from rustup and the tree's Cargo.lock; the release binary is run directly, not through cargo run",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 23.92,
+      "date": "2026-10-22T17:28:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<[u8]> {\n    |                              ^^^^^^     ^^^^^^^^^ the same lifetime is hidden here\n    |                              |\n    |                              the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n    |                                             +++\n\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 23.88s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "python3 ../../../../tasks/workloads/rust/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 9.37,
+      "date": "2026-10-22T17:29:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 26.65,
+      "date": "2026-10-22T17:29:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |                              |\n    |                              the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n    |                                             +++\n\nwarning: `fd-find` (bin \"fd\" test) generated 1 warning (1 duplicate)\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 25.39s\n     Running unittests src/main.rs (target/release/deps/fd-11aa7bac3f077e3a)\n     Running tests/tests.rs (target/release/deps/tests-baddaa7f0cd143c0)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "target/release/fd -u -j1 ^$ eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.12,
+      "date": "2026-10-22T17:29:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 21.75,
+      "date": "2026-10-22T17:29:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<[u8]> {\n    |                              ^^^^^^     ^^^^^^^^^ the same lifetime is hidden here\n    |                              |\n    |                              the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n    |                                             +++\n\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 21.66s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "python3 ../../../../tasks/workloads/rust/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 8.42,
+      "date": "2026-10-22T17:30:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 25.67,
+      "date": "2026-10-22T17:30:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |                              |\n    |                              the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\n    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default\nhelp: use `'_` for type paths\n    |\n103 | pub fn osstr_to_bytes(input: &OsStr) -> Cow<'_, [u8]> {\n    |                                             +++\n\nwarning: `fd-find` (bin \"fd\" test) generated 1 warning (1 duplicate)\nwarning: `fd-find` (bin \"fd\") generated 1 warning (run `cargo fix --bin \"fd\" -p fd-find` to apply 1 suggestion)\n    Finished `release` profile [optimized] target(s) in 24.70s\n     Running unittests src/main.rs (target/release/deps/fd-11aa7bac3f077e3a)\n     Running tests/tests.rs (target/release/deps/tests-baddaa7f0cd143c0)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "target/release/fd -u -j1 ^$ eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.14,
+      "date": "2026-10-22T17:30:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T17:26:24+00:00",
+  "miner": "written by hand for T5.13 (Rust tasks of the pool's fd repository), then built and run with eval/mine/check.py"
+}

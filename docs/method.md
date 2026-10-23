@@ -249,7 +249,7 @@ table):
 |---|---|
 | `lock` | Hashes of the benchmark harness, the correctness oracle (tests and expected outputs), declared input data, and declared config files |
 | `procedure` | Hash of the spec (command, working directory relative to the tree, declared environment variables, metric, warmup, budget, look schedule, inputs, setup commands) and the perfproof version; and for every round, the argv, declared environment, working directory and resolved executable that perfproof actually launched |
-| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java, Go, Ruby, .NET and the C and C++ compilers are recognised (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn` and `gradle`, and `dotnet` with a subcommand other than `build`, `run`, `test` or `exec`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
+| `runtime` | The runtime from outside the tree that each arm actually runs: the interpreter and its version, followed through launchers such as `uv run`, `env` and shebangs; for a native executable built in the tree, the libraries it links from outside the tree, with their hashes; a binary committed in the tree that differs between arms. Node, Java, Go, Ruby, .NET and the C and C++ compilers are recognised, and a Rust build is read for its compiler (below). Anything that can't be identified is `not_available`, including tools known to start other interpreters (tox, nox, poetry and the like), a shell (the program it runs is not the one perfproof launched), and builders and toolchains such as `cargo`, `make`, `mvn` and `gradle`, and `dotnet` with a subcommand other than `build`, `run`, `test` or `exec`. It is `failed` only when both arms are identified and differ. Waivable only when the spec allows runtime changes. An untracked executable inside the tree is treated as a build of the code under test. Not seen: libraries loaded at run time with `dlopen`, and an interpreter started by a program the gate identified as Python or native |
 | `same_host` | Host identity in the machine fingerprint of every sample. With the cross-machine opt-in, the session design under "Comparisons across machines" applies instead. A host identity that can't be read is `not_available`; one that is read and differs is `failed`. |
 
 **What can't be read is `not_available`, not `failed`.** A gate fails
@@ -510,6 +510,37 @@ standard library and tools are covered by the version and the hash of
 recorded (`go.sum` is, as a dependency lockfile); the C compiler that
 cgo calls is not recorded; and a `go` the gate cannot read makes the
 runtime unknown.
+
+**Rust.** A Rust program is a native executable, so a binary that
+`setup` builds at the same path in each tree, such as
+`target/release/<name>`, is a native build like any other (above). The
+gate also reads which compiler built it, from the binary: the commit of
+`rustc` in the `/rustc/<40 hex digits>/` prefix of the standard
+library's source paths, which a Rust binary carries on macOS and on
+Linux, and, in an ELF binary, the `rustc version` line of its
+`.comment` section. The file is read in chunks of `LOCK_CHUNK_BYTES`.
+The same compiler in both trees passes, and the detail names it; the
+decision rests on the commits, and the version lines (an unstripped
+ELF binary has a second copy of one in its debug strings) are detail
+only. Two different commits fail, with the difference `rustc`. A binary that
+names a compiler in one tree only is `not_available`. A binary that
+names none in either tree (not Rust) is
+compared as a native build was before. `cargo`, `rustc` and `rustup`
+are never followed, so a command that starts one is `not_available`
+with the reason: rustup picks the toolchain from `rust-toolchain.toml`,
+and `cargo run` builds before it starts the program, which would put
+the build inside the timed run. Build in `setup` and run the binary
+itself.
+
+Not seen for Rust: cargo's own version (it is not run, because `cargo
+-V` goes through the rustup proxy, which may install a toolchain that
+`rust-toolchain.toml` pins and that is missing; that was not tested);
+the `[profile]` settings in `Cargo.toml` (`opt-level`, `lto`,
+`debug-assertions`) and `RUSTFLAGS`, so a change of profile between the
+arms is not seen, and whether a binary is a debug or a release build
+shows only in the path both arms share (`target/debug` or
+`target/release`), which the detail names; the bytes of an untracked
+build, which are not compared.
 
 **Recorded, not gated:** the environment each command ran with (names, and
 values for variables known to affect performance such as
@@ -1475,6 +1506,52 @@ rounds of a benchmark disagree widely is what it does for any noisy
 benchmark: the interval stays wide, and at the budget the verdict is
 INCONCLUSIVE (`insufficient_evidence`), which the skill explains.
 
+### Warm-up (Rust)
+
+Compiled Rust has no JIT, no interpreter tier and no class loading:
+every execution of a built binary runs the same machine code from its
+first instruction, so there is no JIT warm-up to wait for and the Java
+rules (a floor of iterations, a stop rule) do not apply. Two
+things outside the compiled code still made early executions slower in
+the runs below, all on one machine that was busy with other work (10
+cores, load average 15.7 at the first run), so none of the times is a
+clean measurement.
+
+- **The first execution of a new binary.**
+  `eval/tasks/workloads/rust/warmup_runs.py` copied one release binary
+  (an fd build searching, on one thread, the 20,000-file tree that
+  `eval/tasks/workloads/sharkdp-fd-pr853/make_tree.py` makes)
+  to five new files and ran each 30 times in a row; every wall time is
+  in `eval/tasks/workloads/rust/warmup-runs.txt` (macOS 15.7.7, arm64).
+  The first run of the five copies took 1045, 793, 371, 795 and 411 ms
+  and the second 191, 131, 129, 208 and 190 ms; runs 16 to 30 of all
+  five had a median of 153 ms (smallest 125, largest 243). So the first
+  execution cost 2.4 to 6.8 times that median. What causes it was not
+  isolated: the system's first look at a new executable on macOS and a
+  cold file cache are both candidates (inference). Each tree's binary is
+  new when `setup` builds it, so the spec's `warmup` should be at least
+  1, as a precaution: whether a measured round sees this cost depends
+  on the executions perfproof runs before it (for example one that
+  produces the outputs for the correctness check), which was not
+  examined here. Linux was not measured.
+- **The first iterations in one process.**
+  `eval/tasks/workloads/rust/warmup_iterations.rs` sorts and hashes
+  20,000 small heap strings 200 times in one process
+  (`eval/tasks/workloads/rust/warmup-iterations.txt`). Iteration 1 took
+  4957 microseconds, iterations 2 to 5 took 3580, 2403, 2317 and 2297,
+  but iterations 6 to 8 took 5421, 6798 and 5165, and of iterations 11
+  to 200 (median 2822, smallest 2244.5, largest 11948) 83 of 190 took
+  4000 or more. On this busy machine the series does not separate a
+  warm-up from noise: iteration 1 is only slower than most of the later
+  ones. As a precaution, a benchmark that loops in process and reports
+  one number should discard its first few iterations (the skill says 5,
+  a count this series does not establish) and should loop a fixed
+  number of times: a loop that waits for the time to settle can fail
+  to, and a benchmark that does not settle must not fail an execution.
+
+Say what is measured as for any language: a command line tool is
+measured whole (`wall`), with `warmup` at least 1; a library function
+is looped in process and reported (`reported`).
 ### Warm-up (Go)
 
 Go compiles ahead of time to machine code. There is no interpreter and

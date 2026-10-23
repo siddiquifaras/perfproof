@@ -68,6 +68,7 @@ CLASSES: tuple[TargetClass, ...] = (
     "serving",
     "gpu",
     "java",
+    "rust",
     "dotnet",
 )
 SLOTS: tuple[Family, ...] = (

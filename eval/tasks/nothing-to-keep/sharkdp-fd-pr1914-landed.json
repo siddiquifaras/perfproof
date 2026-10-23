@@ -1,0 +1,127 @@
+{
+  "id": "sharkdp-fd-pr1914-landed",
+  "repository": "sharkdp/fd",
+  "stars": 44837,
+  "pushed_at": "2026-10-22T06:29:09Z",
+  "task_commit": "cb3fad48bb2d366080efa421d8499ec968f60a6c",
+  "task_commit_basis": "merge commit of the reference change (code after the optimization landed), from https://github.com/sharkdp/fd/commit/cb3fad48bb2d366080efa421d8499ec968f60a6c",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sharkdp/fd/pull/1914",
+    "title": "perf: Avoid unnecessary syscall for ignore-contain",
+    "commit": "cb3fad48bb2d366080efa421d8499ec968f60a6c",
+    "merged_at": "2026-03-09T01:44:38Z",
+    "files": [
+      "src/walk.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "nothing-to-keep",
+  "change_kind": "after-landed",
+  "target_class": "rust",
+  "workload": {
+    "command": "target/release/fd -HI -j1 --ignore-contain CACHEDIR.TAG . eval-tree",
+    "source": "written here from the description of https://github.com/sharkdp/fd/pull/1914 (the file type of a directory entry instead of a stat call, when --ignore-contain is given), searching a fixed generated tree of 200,000 files (eval/tasks/workloads/rust/make_tree.py), run on the tree where the change is already in",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test --release --locked",
+    "source": "fd's own test suite (unit and integration tests); the change is in src/walk.rs",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sharkdp/fd/pull/1914",
+      "note": "after-landed: WorkerState checks the DirEntry's file type before it calls path().join(name).exists() for --ignore-contain, so it no longer stats every entry. The task tree is the merge"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the current stable Rust from rustup and the tree's Cargo.lock; the release binary is run directly, not through cargo run",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 30.49,
+      "date": "2026-10-22T17:30:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling errno v0.3.14\n   Compiling dispatch2 v0.3.1\n   Compiling argmax v0.4.0\n   Compiling faccess v0.2.4\n   Compiling ctrlc v3.5.2\n   Compiling terminal_size v0.4.3\n   Compiling clap_builder v4.5.60\n   Compiling globset v0.4.18\n   Compiling regex v1.12.3\n   Compiling ignore v0.4.25\n   Compiling clap_derive v4.5.55\n   Compiling clap v4.5.60\n   Compiling clap_complete v4.5.66\n   Compiling fd-find v10.4.1 (eval/mine/work/sharkdp-fd-pr1914-landed/task)\n    Finished `release` profile [optimized] target(s) in 30.45s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "python3 ../../../../tasks/workloads/rust/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 7.81,
+      "date": "2026-10-22T17:31:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 26.09,
+      "date": "2026-10-22T17:31:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling filetime v0.2.27\n   Compiling diff v0.1.13\n   Compiling test-case-core v3.3.1\n   Compiling terminal_size v0.4.3\n   Compiling tempfile v3.26.0\n   Compiling clap_builder v4.5.60\n   Compiling clap_derive v4.5.55\n   Compiling test-case-macros v3.3.1\n   Compiling test-case v3.3.1\n   Compiling clap v4.5.60\n   Compiling clap_complete v4.5.66\n   Compiling fd-find v10.4.1 (eval/mine/work/sharkdp-fd-pr1914-landed/task)\n    Finished `release` profile [optimized] target(s) in 24.74s\n     Running unittests src/main.rs (target/release/deps/fd-37ac767fc37e2dd9)\n     Running tests/tests.rs (target/release/deps/tests-524ec6d03963e88d)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "target/release/fd -HI -j1 --ignore-contain CACHEDIR.TAG . eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.17,
+      "date": "2026-10-22T17:31:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "eval-tree/top39/sub42/file085.sh\neval-tree/top39/sub42/file013.sh\neval-tree/top39/sub42/file070.txt\neval-tree/top39/sub42/file012.png\neval-tree/top39/sub42/file002.md\neval-tree/top39/sub42/file026.md\neval-tree/top39/sub42/file037.sh\neval-tree/top39/sub42/file089.py\neval-tree/top39/sub42/file090.md\neval-tree/top39/sub42/file000.rs\neval-tree/top39/sub42/file096.rs\neval-tree/top39/sub42/file083.tar.gz\neval-tree/top39/sub42/file024.rs\neval-tree/top39/sub42/file004.png\neval-tree/top39/sub42/file091.tar.gz"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --locked",
+      "exit_code": 0,
+      "duration_s": 25.5,
+      "date": "2026-10-22T17:31:47+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling errno v0.3.14\n   Compiling dispatch2 v0.3.1\n   Compiling argmax v0.4.0\n   Compiling faccess v0.2.4\n   Compiling terminal_size v0.4.3\n   Compiling clap_builder v4.5.60\n   Compiling ctrlc v3.5.2\n   Compiling clap_derive v4.5.55\n   Compiling globset v0.4.18\n   Compiling regex v1.12.3\n   Compiling ignore v0.4.25\n   Compiling clap v4.5.60\n   Compiling clap_complete v4.5.66\n   Compiling fd-find v10.4.1 (eval/mine/work/sharkdp-fd-pr1914-landed/reference)\n    Finished `release` profile [optimized] target(s) in 25.46s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "python3 ../../../../tasks/workloads/rust/make_tree.py",
+      "exit_code": 0,
+      "duration_s": 8.38,
+      "date": "2026-10-22T17:32:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release --locked",
+      "exit_code": 0,
+      "duration_s": 27.14,
+      "date": "2026-10-22T17:32:21+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling filetime v0.2.27\n   Compiling diff v0.1.13\n   Compiling terminal_size v0.4.3\n   Compiling tempfile v3.26.0\n   Compiling clap_builder v4.5.60\n   Compiling test-case-core v3.3.1\n   Compiling clap_derive v4.5.55\n   Compiling test-case-macros v3.3.1\n   Compiling test-case v3.3.1\n   Compiling clap v4.5.60\n   Compiling clap_complete v4.5.66\n   Compiling fd-find v10.4.1 (eval/mine/work/sharkdp-fd-pr1914-landed/reference)\n    Finished `release` profile [optimized] target(s) in 25.69s\n     Running unittests src/main.rs (target/release/deps/fd-37ac767fc37e2dd9)\n     Running tests/tests.rs (target/release/deps/tests-524ec6d03963e88d)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "target/release/fd -HI -j1 --ignore-contain CACHEDIR.TAG . eval-tree",
+      "exit_code": 0,
+      "duration_s": 0.21,
+      "date": "2026-10-22T17:32:48+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "eval-tree/top39/sub42/file085.sh\neval-tree/top39/sub42/file013.sh\neval-tree/top39/sub42/file070.txt\neval-tree/top39/sub42/file012.png\neval-tree/top39/sub42/file002.md\neval-tree/top39/sub42/file026.md\neval-tree/top39/sub42/file037.sh\neval-tree/top39/sub42/file089.py\neval-tree/top39/sub42/file090.md\neval-tree/top39/sub42/file000.rs\neval-tree/top39/sub42/file096.rs\neval-tree/top39/sub42/file083.tar.gz\neval-tree/top39/sub42/file024.rs\neval-tree/top39/sub42/file004.png\neval-tree/top39/sub42/file091.tar.gz"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-22T17:26:24+00:00",
+  "miner": "written by hand for T5.13 (Rust tasks of the pool's fd repository), then built and run with eval/mine/check.py"
+}

@@ -1,0 +1,379 @@
+Analysis of sampling fd (pid 62708) every 1 millisecond
+Process:         fd [62708]
+Path:            /Users/USER/*/fd
+Load Address:    0x10221c000
+Identifier:      fd
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  python3.12 [62705]
+Target Type:     live task
+
+Date/Time:       2026-10-22 22:02:15.042 +0500
+Launch Time:     2026-10-22 22:02:14.999 +0500
+OS Version:      macOS 15.7.7 (24G720)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+----
+
+Call graph:
+    920 Thread_44916771   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 920 start  (in dyld) + 6076  [0x19c75ab98]
+    +   920 main  (in fd) + 872  [0x102257cac]
+    +     920 std::sys::backtrace::__rust_begin_short_backtrace::hbd77625e636cfc61  (in fd) + 12  [0x10223f48c]
+    +       920 fd::main::h020d2e91688c21c3  (in fd) + 5236  [0x102232a68]
+    +         890 fd::walk::scan::h6c5b57f148ddc2ba  (in fd) + 14904  [0x102237724]
+    +         ! 890 std::thread::lifecycle::JoinInner$LT$T$GT$::join::h3306ad4cb9995805  (in fd) + 40  [0x10224313c]
+    +         !   890 _pthread_join  (in libsystem_pthread.dylib) + 608  [0x19cafe06c]
+    +         !     890 __ulock_wait  (in libsystem_kernel.dylib) + 8  [0x19cabb9b8]
+    +         30 fd::walk::scan::h6c5b57f148ddc2ba  (in fd) + 14848  [0x1022376ec]
+    +           30 ignore::walk::WalkParallel::visit::h9fe6982c6b976a4d  (in fd) + 3924  [0x1022b27cc]
+    +             30 std::thread::lifecycle::JoinInner$LT$T$GT$::join::h140e3d9f03912204  (in fd) + 36  [0x1022b3f44]
+    +               30 _pthread_join  (in libsystem_pthread.dylib) + 608  [0x19cafe06c]
+    +                 30 __ulock_wait  (in libsystem_kernel.dylib) + 8  [0x19cabb9b8]
+    920 Thread_44916776: ctrl-c
+    + 920 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+    +   920 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+    +     920 std::sys::thread::unix::Thread::new::thread_start::h7cf39b7a7f135f48  (in fd) + 396  [0x10233ad6c]
+    +       920 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha396b8f9b044e434  (in fd) + 64  [0x10224b998]
+    +         920 std::sys::backtrace::__rust_begin_short_backtrace::h886e930b64a774dd  (in fd) + 56  [0x10223f330]
+    +           920 read  (in libsystem_kernel.dylib) + 8  [0x19caba7dc]
+    920 Thread_44916777
+    + 920 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+    +   920 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+    +     920 std::sys::thread::unix::Thread::new::thread_start::h7cf39b7a7f135f48  (in fd) + 396  [0x10233ad6c]
+    +       920 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h46dc0d090c9b1ad6  (in fd) + 104  [0x10224b7c0]
+    +         911 std::sys::backtrace::__rust_begin_short_backtrace::h750e8a9e193429eb  (in fd) + 1844  [0x10223dcec]
+    +         ! 598 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1032  [0x10223b598]
+    +         ! : 591 std::sys::fs::symlink_metadata::hd0e44a06c5789f14  (in fd) + 316  [0x10233a438]
+    +         ! : | 591 lstat  (in libsystem_kernel.dylib) + 8,4  [0x19cac5614,0x19cac5610]
+    +         ! : 7 std::sys::fs::symlink_metadata::hd0e44a06c5789f14  (in fd) + 252,316,...  [0x10233a3f8,0x10233a438,...]
+    +         ! 69 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 220  [0x10223b26c]
+    +         ! : 67 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 140  [0x102337100]
+    +         ! : | 67 std::io::buffered::bufwriter::BufWriter$LT$W$GT$::flush_buf::h3be42f7ec1de0b07  (in fd) + 108  [0x102337310]
+    +         ! : |   67 write  (in libsystem_kernel.dylib) + 8,4  [0x19cabd6f4,0x19cabd6f0]
+    +         ! : 2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! 66 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2148  [0x10223b9f4]
+    +         ! : 59 _platform_memcmp  (in libsystem_platform.dylib) + 140,0,...  [0x19cb32f1c,0x19cb32e90,...]
+    +         ! : 7 DYLD-STUB$$memcmp  (in fd) + 4  [0x102350d44]
+    +         ! 52 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2112,2148,...  [0x10223b9d0,0x10223b9f4,...]
+    +         ! 45 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2728  [0x10223bc38]
+    +         ! : 44 std::io::Write::write_fmt::hfebf1663616b2c1e  (in fd) + 52  [0x10223c594]
+    +         ! : | 42 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+    +         ! : | + 26 _$LT$ansi_term..display..ANSIGenericString$LT$str$GT$$u20$as$u20$core..fmt..Display$GT$::fmt::h59c202cd0c9386ff  (in fd) + 76  [0x102260a90]
+    +         ! : | + ! 24 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+    +         ! : | + ! : 9 _$LT$ansi_term..ansi..Prefix$u20$as$u20$core..fmt..Display$GT$::fmt::h0b7a68e430f078da  (in fd) + 1264  [0x102260fe4]
+    +         ! : | + ! : | 9 ansi_term::ansi::_$LT$impl$u20$ansi_term..style..Colour$GT$::write_foreground_code::h072c0609c4777fe7  (in fd) + 340  [0x1022609cc]
+    +         ! : | + ! : |   4 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 144  [0x10228f2ec]
+    +         ! : | + ! : |   + 4 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : |   +   2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : |   +   ! 2 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 208  [0x102293d70]
+    +         ! : | + ! : |   +   1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 228  [0x102337158]
+    +         ! : | + ! : |   +   ! 1 _platform_memmove  (in libsystem_platform.dylib) + 452  [0x19cb35484]
+    +         ! : | + ! : |   +   1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 228  [0x102337158]
+    +         ! : | + ! : |   3 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 116,156  [0x10228f2d0,0x10228f2f8]
+    +         ! : | + ! : |   2 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+    +         ! : | + ! : |     2 _$LT$$RF$T$u20$as$u20$core..fmt..Display$GT$::fmt::h88324437e3db5ce3  (in fd) + 168  [0x1022610c8]
+    +         ! : | + ! : |       1 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : |       ! 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : |       !   1 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 236  [0x102293d8c]
+    +         ! : | + ! : |       1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 268  [0x102337180]
+    +         ! : | + ! : 6 _$LT$ansi_term..ansi..Prefix$u20$as$u20$core..fmt..Display$GT$::fmt::h0b7a68e430f078da  (in fd) + 100  [0x102260b58]
+    +         ! : | + ! : | 4 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : | + 2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : | + ! 2 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 0,60  [0x102293ca0,0x102293cdc]
+    +         ! : | + ! : | + 2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 8,192  [0x10233707c,0x102337134]
+    +         ! : | + ! : | 1 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 0  [0x1022572bc]
+    +         ! : | + ! : | 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 268  [0x102337180]
+    +         ! : | + ! : 4 _$LT$ansi_term..ansi..Prefix$u20$as$u20$core..fmt..Display$GT$::fmt::h0b7a68e430f078da  (in fd) + 1288  [0x102260ffc]
+    +         ! : | + ! : | 4 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : |   4 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : |     4 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 24,104,...  [0x102293cb8,0x102293d08,...]
+    +         ! : | + ! : 4 _$LT$ansi_term..ansi..Prefix$u20$as$u20$core..fmt..Display$GT$::fmt::h0b7a68e430f078da  (in fd) + 4,116,...  [0x102260af8,0x102260b68,...]
+    +         ! : | + ! : 1 _$LT$ansi_term..ansi..Prefix$u20$as$u20$core..fmt..Display$GT$::fmt::h0b7a68e430f078da  (in fd) + 1212  [0x102260fb0]
+    +         ! : | + ! :   1 ansi_term::ansi::_$LT$impl$u20$ansi_term..style..Colour$GT$::write_foreground_code::h072c0609c4777fe7  (in fd) + 340  [0x1022609cc]
+    +         ! : | + ! :     1 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 124  [0x10228f2d8]
+    +         ! : | + ! 2 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 20  [0x10228f270]
+    +         ! : | + 10 _$LT$ansi_term..display..ANSIGenericString$LT$str$GT$$u20$as$u20$core..fmt..Display$GT$::fmt::h59c202cd0c9386ff  (in fd) + 156  [0x102260ae0]
+    +         ! : | + ! 9 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+    +         ! : | + ! : 8 _$LT$ansi_term..ansi..Suffix$u20$as$u20$core..fmt..Display$GT$::fmt::h925aba8f6de8e434  (in fd) + 88  [0x102260a30]
+    +         ! : | + ! : | 5 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+    +         ! : | + ! : | + 3 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : | + ! 2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : | + ! : 2 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 72  [0x102293ce8]
+    +         ! : | + ! : | + ! 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 32  [0x102337094]
+    +         ! : | + ! : | + 2 core::fmt::Formatter::pad::h979e8369ca7c7fc2  (in fd) + 32,628  [0x1022909b8,0x102290c0c]
+    +         ! : | + ! : | 3 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 16,96,...  [0x10228f26c,0x10228f2bc,...]
+    +         ! : | + ! : 1 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 424  [0x10228f404]
+    +         ! : | + ! 1 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 0  [0x10228f25c]
+    +         ! : | + 5 _$LT$ansi_term..display..ANSIGenericString$LT$str$GT$$u20$as$u20$core..fmt..Display$GT$::fmt::h59c202cd0c9386ff  (in fd) + 96  [0x102260aa4]
+    +         ! : | + ! 4 _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+    +         ! : | + ! : 2 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! : | 2 core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 72,104  [0x102293ce8,0x102293d08]
+    +         ! : | + ! : 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 228  [0x102337158]
+    +         ! : | + ! : | 1 DYLD-STUB$$memcpy  (in fd) + 4  [0x102350d50]
+    +         ! : | + ! : 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+    +         ! : | + ! 1 _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 268  [0x102337180]
+    +         ! : | + 1 _$LT$ansi_term..display..ANSIGenericString$LT$str$GT$$u20$as$u20$core..fmt..Display$GT$::fmt::h59c202cd0c9386ff  (in fd) + 48  [0x102260a74]
+    +         ! : | 2 core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 116  [0x10228f2d0]
+    +         ! : 1 std::io::Write::write_fmt::hfebf1663616b2c1e  (in fd) + 52  [0x10223c594]
+    +         ! 21 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1992  [0x10223b958]
+    +         ! : 20 alloc::raw_vec::RawVecInner$LT$A$GT$::reserve::do_reserve_and_handle::h8dee76af07027cbb  (in fd) + 88  [0x10234c0a4]
+    +         ! : | 15 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h4077e62a367bc7b9  (in fd) + 248  [0x10234c1d0]
+    +         ! : | + 12 _realloc  (in libsystem_malloc.dylib) + 452  [0x19c92ddac]
+    +         ! : | + ! 9 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 148  [0x19c92d57c]
+    +         ! : | + ! : 3 szone_realloc  (in libsystem_malloc.dylib) + 1012  [0x19c8fef44]
+    +         ! : | + ! : | 2 free_tiny  (in libsystem_malloc.dylib) + 136  [0x19c8ff858]
+    +         ! : | + ! : | + 2 _platform_memset  (in libsystem_platform.dylib) + 12,176  [0x19cb34ffc,0x19cb350a0]
+    +         ! : | + ! : | 1 free_tiny  (in libsystem_malloc.dylib) + 712  [0x19c8ffa98]
+    +         ! : | + ! : 2 szone_realloc  (in libsystem_malloc.dylib) + 68  [0x19c8feb94]
+    +         ! : | + ! : | 1 szone_size  (in libsystem_malloc.dylib) + 68  [0x19c8fdf44]
+    +         ! : | + ! : | + 1 tiny_size  (in libsystem_malloc.dylib) + 160  [0x19c8fe064]
+    +         ! : | + ! : | 1 szone_size  (in libsystem_malloc.dylib) + 68  [0x19c8fdf44]
+    +         ! : | + ! : 2 szone_realloc  (in libsystem_malloc.dylib) + 924  [0x19c8feeec]
+    +         ! : | + ! : | 2 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+    +         ! : | + ! : |   2 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 272  [0x19c8fcdc4]
+    +         ! : | + ! : |     1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 420  [0x19c8fd6c8]
+    +         ! : | + ! : |     + 1 _tiny_check_and_zero_inline_meta_from_freelist  (in libsystem_malloc.dylib) + 80  [0x19c933658]
+    +         ! : | + ! : |     1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 1444  [0x19c8fdac8]
+    +         ! : | + ! : 1 default_zone_realloc  (in libsystem_malloc.dylib) + 0  [0x19c8fdd48]
+    +         ! : | + ! : 1 szone_realloc  (in libsystem_malloc.dylib) + 88  [0x19c8feba8]
+    +         ! : | + ! :   1 szone_good_size  (in libsystem_malloc.dylib) + 0  [0x19c8fef48]
+    +         ! : | + ! 2 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 24,48  [0x19c92d500,0x19c92d518]
+    +         ! : | + ! 1 szone_realloc  (in libsystem_malloc.dylib) + 244  [0x19c8fec44]
+    +         ! : | + 2 _realloc  (in libsystem_malloc.dylib) + 252  [0x19c92dce4]
+    +         ! : | + ! 1 szone_size  (in libsystem_malloc.dylib) + 68  [0x19c8fdf44]
+    +         ! : | + ! : 1 tiny_size  (in libsystem_malloc.dylib) + 80  [0x19c8fe014]
+    +         ! : | + ! 1 szone_size  (in libsystem_malloc.dylib) + 0  [0x19c8fdf00]
+    +         ! : | + 1 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 220  [0x19c92d5c4]
+    +         ! : | 3 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h4077e62a367bc7b9  (in fd) + 44,68,...  [0x10234c104,0x10234c11c,...]
+    +         ! : | 1 _realloc  (in libsystem_malloc.dylib) + 492  [0x19c92ddd4]
+    +         ! : | 1 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h4077e62a367bc7b9  (in fd) + 280  [0x10234c1f0]
+    +         ! : |   1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+    +         ! : |     1 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 272  [0x19c8fcdc4]
+    +         ! : |       1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 276  [0x19c8fd638]
+    +         ! : 1 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h4077e62a367bc7b9  (in fd) + 312  [0x10234c210]
+    +         ! 12 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2776  [0x10223bc68]
+    +         ! : 4 free_tiny  (in libsystem_malloc.dylib) + 100,464,...  [0x19c8ff834,0x19c8ff9a0,...]
+    +         ! : 3 free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+    +         ! : | 2 tiny_free_no_lock  (in libsystem_malloc.dylib) + 416  [0x19c8ffcbc]
+    +         ! : | + 2 tiny_free_list_add_ptr  (in libsystem_malloc.dylib) + 124,176  [0x19c9003b8,0x19c9003ec]
+    +         ! : | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 792  [0x19c8ffe34]
+    +         ! : |   1 tiny_free_list_remove_ptr  (in libsystem_malloc.dylib) + 104  [0x19c9005f8]
+    +         ! : 2 _free  (in libsystem_malloc.dylib) + 0,76  [0x19c92db68,0x19c92dbb4]
+    +         ! : 1 _szone_free  (in libsystem_malloc.dylib) + 0  [0x19c913078]
+    +         ! : 1 free_tiny  (in libsystem_malloc.dylib) + 136  [0x19c8ff858]
+    +         ! : | 1 _platform_memset  (in libsystem_platform.dylib) + 12  [0x19cb34ffc]
+    +         ! : 1 szone_try_free_default  (in libsystem_malloc.dylib) + 0  [0x19c913f68]
+    +         ! 10 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2320  [0x10223baa0]
+    +         ! : 8 alloc::raw_vec::RawVecInner$LT$A$GT$::reserve::do_reserve_and_handle::hfe24049d991a0820  (in fd) + 84  [0x10234a438]
+    +         ! : | 6 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::hc226d4a1877e46e5  (in fd) + 248  [0x102349c74]
+    +         ! : | + 3 _realloc  (in libsystem_malloc.dylib) + 252  [0x19c92dce4]
+    +         ! : | + ! 2 szone_size  (in libsystem_malloc.dylib) + 68  [0x19c8fdf44]
+    +         ! : | + ! : 2 tiny_size  (in libsystem_malloc.dylib) + 112,160  [0x19c8fe034,0x19c8fe064]
+    +         ! : | + ! 1 szone_size  (in libsystem_malloc.dylib) + 48  [0x19c8fdf30]
+    +         ! : | + 3 _realloc  (in libsystem_malloc.dylib) + 452  [0x19c92ddac]
+    +         ! : | +   3 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 148  [0x19c92d57c]
+    +         ! : | +     1 szone_realloc  (in libsystem_malloc.dylib) + 68  [0x19c8feb94]
+    +         ! : | +     : 1 szone_size  (in libsystem_malloc.dylib) + 20  [0x19c8fdf14]
+    +         ! : | +     1 szone_realloc  (in libsystem_malloc.dylib) + 88  [0x19c8feba8]
+    +         ! : | +     1 szone_size  (in libsystem_malloc.dylib) + 44  [0x19c8fdf2c]
+    +         ! : | 2 _realloc  (in libsystem_malloc.dylib) + 488,504  [0x19c92ddd0,0x19c92dde0]
+    +         ! : 2 alloc::raw_vec::RawVecInner$LT$A$GT$::reserve::do_reserve_and_handle::hfe24049d991a0820  (in fd) + 0,84  [0x10234a3e4,0x10234a438]
+    +         ! 7 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1236  [0x10223b664]
+    +         ! : 6 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+    +         ! : | 4 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 52,92,...  [0x19c8fcce8,0x19c8fcd10,...]
+    +         ! : | 2 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 272  [0x19c8fcdc4]
+    +         ! : |   1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 420  [0x19c8fd6c8]
+    +         ! : |   ! 1 _tiny_check_and_zero_inline_meta_from_freelist  (in libsystem_malloc.dylib) + 48  [0x19c933638]
+    +         ! : |   1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 276  [0x19c8fd638]
+    +         ! : 1 _malloc_zone_malloc  (in libsystem_malloc.dylib) + 100  [0x19c92cfa4]
+    +         ! 5 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2168  [0x10223ba08]
+    +         ! : 3 free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+    +         ! : | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 140  [0x19c8ffba8]
+    +         ! : | + 1 get_tiny_previous_free_msize  (in libsystem_malloc.dylib) + 84  [0x19c90bd70]
+    +         ! : | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 416  [0x19c8ffcbc]
+    +         ! : | + 1 tiny_free_list_add_ptr  (in libsystem_malloc.dylib) + 244  [0x19c900430]
+    +         ! : | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 216  [0x19c8ffbf4]
+    +         ! : 1 free_tiny  (in libsystem_malloc.dylib) + 100  [0x19c8ff834]
+    +         ! : 1 szone_try_free_default  (in libsystem_malloc.dylib) + 0  [0x19c913f68]
+    +         ! 4 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1340  [0x10223b6cc]
+    +         ! : 4 _$LT$std..path..Components$u20$as$u20$core..iter..traits..double_ended..DoubleEndedIterator$GT$::next_back::h56b072ed5e68aa84  (in fd) + 560  [0x10231b638]
+    +         ! :   4 std::path::Components::parse_next_component_back::h728c4dce095122cd  (in fd) + 12,24,...  [0x1023328ac,0x1023328b8,...]
+    +         ! 3 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2256  [0x10223ba60]
+    +         ! : 3 _$LT$std..path..Components$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h2e9501df58ad8270  (in fd) + 260,368,...  [0x102333974,0x1023339e0,...]
+    +         ! 3 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2512  [0x10223bb60]
+    +         ! : 2 alloc::string::String::from_utf8_lossy::h03e7be16830322ce  (in fd) + 52  [0x10225fd6c]
+    +         ! : | 2 _$LT$core..str..lossy..Utf8Chunks$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::hbcb5d3b15aa662ed  (in fd) + 52,408  [0x102294308,0x10229446c]
+    +         ! : 1 alloc::string::String::from_utf8_lossy::h03e7be16830322ce  (in fd) + 40  [0x10225fd60]
+    +         ! 3 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2892  [0x10223bcdc]
+    +         ! : 1 _szone_free  (in libsystem_malloc.dylib) + 100  [0x19c9130dc]
+    +         ! : 1 free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+    +         ! : | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 308  [0x19c8ffc50]
+    +         ! : 1 free_tiny  (in libsystem_malloc.dylib) + 152  [0x19c8ff868]
+    +         ! 2 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 860  [0x10223b4ec]
+    +         ! : 2 _platform_memmove  (in libsystem_platform.dylib) + 452  [0x19cb35484]
+    +         ! 2 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1416  [0x10223b718]
+    +         ! : 2 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+    +         ! :   1 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 272  [0x19c8fcdc4]
+    +         ! :   | 1 tiny_malloc_from_free_list  (in libsystem_malloc.dylib) + 56  [0x19c8fd55c]
+    +         ! :   1 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 272  [0x19c8fcdc4]
+    +         ! 2 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1712  [0x10223b840]
+    +         ! : 2 hashbrown::map::HashMap$LT$K$C$V$C$S$C$A$GT$::get::hafe8fe99dcef422d  (in fd) + 0,272  [0x1022ba9d0,0x1022baae0]
+    +         ! 2 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 2200  [0x10223ba28]
+    +         ! : 1 _szone_free  (in libsystem_malloc.dylib) + 148  [0x19c91310c]
+    +         ! : 1 free_tiny  (in libsystem_malloc.dylib) + 100  [0x19c8ff834]
+    +         ! 1 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 100  [0x10223b1f4]
+    +         ! : 1 std::path::Path::_strip_prefix::h69656aba777a9bef  (in fd) + 272  [0x1023336f8]
+    +         ! :   1 _$LT$std..path..Components$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h2e9501df58ad8270  (in fd) + 8  [0x102333878]
+    +         ! 1 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 672  [0x10223b430]
+    +         ! : 1 _$LT$std..path..Components$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h2e9501df58ad8270  (in fd) + 380  [0x1023339ec]
+    +         ! 1 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1004  [0x10223b57c]
+    +         ! : 1 _platform_memmove  (in libsystem_platform.dylib) + 444  [0x19cb3547c]
+    +         ! 1 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1364  [0x10223b6e4]
+    +         ! : 1 core::str::converts::from_utf8::h3d3f04c61e7c2c97  (in fd) + 140  [0x102290e00]
+    +         ! 1 fd::output::print_entry::ha19644765a9c40d9  (in fd) + 1436  [0x10223b72c]
+    +         !   1 _platform_memmove  (in libsystem_platform.dylib) + 444  [0x19cb3547c]
+    +         6 std::sys::backtrace::__rust_begin_short_backtrace::h750e8a9e193429eb  (in fd) + 1884  [0x10223dd14]
+    +         ! 5 free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+    +         ! : 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 416  [0x19c8ffcbc]
+    +         ! : | 1 tiny_free_list_add_ptr  (in libsystem_malloc.dylib) + 460  [0x19c900508]
+    +         ! : 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 792  [0x19c8ffe34]
+    +         ! : | 1 tiny_free_list_remove_ptr  (in libsystem_malloc.dylib) + 76  [0x19c9005dc]
+    +         ! : 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 1212  [0x19c8fffd8]
+    +         ! : | 1 tiny_free_detach_region  (in libsystem_malloc.dylib) + 192  [0x19c9068d0]
+    +         ! : 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 1520  [0x19c90010c]
+    +         ! : | 1 tiny_free_scan_madvise_free  (in libsystem_malloc.dylib) + 320  [0x19c906c20]
+    +         ! : 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 436  [0x19c8ffcd0]
+    +         ! 1 free_tiny  (in libsystem_malloc.dylib) + 136  [0x19c8ff858]
+    +         1 std::sync::mpmc::Receiver$LT$T$GT$::recv::h551cf746036ed279  (in fd) + 2516  [0x102240b20]
+    +         1 std::sys::backtrace::__rust_begin_short_backtrace::h750e8a9e193429eb  (in fd) + 1752  [0x10223dc90]
+    +         ! 1 std::sync::mpmc::Receiver$LT$T$GT$::recv::h551cf746036ed279  (in fd) + 84  [0x1022401a0]
+    +         !   1 _tlv_get_addr  (in libdyld.dylib) + 0  [0x19cb050f8]
+    +         1 std::sys::backtrace::__rust_begin_short_backtrace::h750e8a9e193429eb  (in fd) + 1812  [0x10223dccc]
+    30 Thread_44916778
+      30 thread_start  (in libsystem_pthread.dylib) + 8  [0x19caf6b80]
+        30 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19cafbbc8]
+          30 std::sys::thread::unix::Thread::new::thread_start::h7cf39b7a7f135f48  (in fd) + 396  [0x10233ad6c]
+            30 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h0d011f6230483a2a  (in fd) + 64  [0x1022b4ab4]
+              30 std::sys::backtrace::__rust_begin_short_backtrace::h4cf015d797e308d9  (in fd) + 32  [0x1022a726c]
+                30 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hf441ccdb386f5320  (in fd) + 40  [0x1022b4c94]
+                  21 ignore::walk::Worker::run::h91c0f54fb2d84e55  (in fd) + 4584  [0x1022b5ffc]
+                  ! 20 _$LT$std..fs..ReadDir$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::hcbd8a6bdaabc6208  (in fd) + 124  [0x10231e7e4]
+                  ! : 18 readdir_r  (in libsystem_c.dylib) + 72  [0x19c9dccdc]
+                  ! : | 18 _readdir_unlocked  (in libsystem_c.dylib) + 220  [0x19c9dcb90]
+                  ! : |   18 __getdirentries64  (in libsystem_kernel.dylib) + 8  [0x19cabb884]
+                  ! : 2 readdir_r  (in libsystem_c.dylib) + 104  [0x19c9dccfc]
+                  ! :   2 _platform_memmove  (in libsystem_platform.dylib) + 0,460  [0x19cb352c0,0x19cb3548c]
+                  ! 1 _$LT$std..fs..ReadDir$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::hcbd8a6bdaabc6208  (in fd) + 224  [0x10231e848]
+                  !   1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19cb35374]
+                  6 ignore::walk::Worker::run::h91c0f54fb2d84e55  (in fd) + 1068  [0x1022b5240]
+                  ! 6 _$LT$ignore..walk..FnVisitorImp$u20$as$u20$ignore..walk..ParallelVisitor$GT$::visit::h6be8e19557987df4  (in fd) + 64  [0x1022b959c]
+                  !   2 fd::walk::spawn_senders::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::hd088330d4e36edd0  (in fd) + 1852  [0x102233b90]
+                  !   : 2 core::ptr::drop_in_place$LT$fd..walk..DirEntry$GT$::hcb331749b7a55890  (in fd) + 64  [0x10224d438]
+                  !   :   1 free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+                  !   :   | 1 tiny_free_no_lock  (in libsystem_malloc.dylib) + 1952  [0x19c9002bc]
+                  !   :   1 free_tiny  (in libsystem_malloc.dylib) + 100  [0x19c8ff834]
+                  !   2 fd::walk::spawn_senders::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::hd088330d4e36edd0  (in fd) + 384,1820  [0x1022335d4,0x102233b70]
+                  !   1 fd::walk::spawn_senders::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::hd088330d4e36edd0  (in fd) + 936  [0x1022337fc]
+                  !   : 1 _$LT$std..path..Components$u20$as$u20$core..iter..traits..double_ended..DoubleEndedIterator$GT$::next_back::h56b072ed5e68aa84  (in fd) + 84  [0x10231b45c]
+                  !   1 fd::walk::spawn_senders::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::hd088330d4e36edd0  (in fd) + 1724  [0x102233b10]
+                  !     1 std::path::Path::to_path_buf::h98dc9231b300fab0  (in fd) + 40  [0x10233b668]
+                  !       1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+                  !         1 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 92  [0x19c8fcd10]
+                  2 ignore::walk::Worker::run::h91c0f54fb2d84e55  (in fd) + 4820  [0x1022b60e8]
+                  ! 2 std::path::Path::_join::h46a64ed49ec529e9  (in fd) + 192  [0x10231ea34]
+                  !   2 alloc::raw_vec::RawVecInner$LT$A$GT$::reserve::do_reserve_and_handle::h8dee76af07027cbb  (in fd) + 88  [0x10234c0a4]
+                  !     2 alloc::raw_vec::RawVecInner$LT$A$GT$::finish_grow::h4077e62a367bc7b9  (in fd) + 248  [0x10234c1d0]
+                  !       2 _realloc  (in libsystem_malloc.dylib) + 452  [0x19c92ddac]
+                  !         2 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 148  [0x19c92d57c]
+                  !           1 szone_realloc  (in libsystem_malloc.dylib) + 68  [0x19c8feb94]
+                  !           : 1 szone_size  (in libsystem_malloc.dylib) + 68  [0x19c8fdf44]
+                  !           :   1 tiny_size  (in libsystem_malloc.dylib) + 160  [0x19c8fe064]
+                  !           1 szone_realloc  (in libsystem_malloc.dylib) + 924  [0x19c8feeec]
+                  !             1 szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+                  !               1 tiny_malloc_should_clear  (in libsystem_malloc.dylib) + 292  [0x19c8fcdd8]
+                  1 ignore::walk::Worker::run::h91c0f54fb2d84e55  (in fd) + 244  [0x1022b4f08]
+                    1 pthread_mutex_lock  (in libsystem_pthread.dylib) + 60  [0x19caf6394]
+
+Total number in stack (recursive counted multiple, when >=5):
+        8       _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 0  [0x102337074]
+        7       core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 0  [0x10228f25c]
+        7       free_tiny  (in libsystem_malloc.dylib) + 0  [0x19c8ff7d0]
+        6       _$LT$std..io..default_write_fmt..Adapter$LT$T$GT$$u20$as$u20$core..fmt..Write$GT$::write_str::h173673aa4005bec8  (in fd) + 36  [0x1022572e0]
+        6       _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd) + 64  [0x1023370b4]
+        6       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x19cb352c0]
+        6       core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd) + 0  [0x102293ca0]
+        6       szone_malloc_should_clear  (in libsystem_malloc.dylib) + 84  [0x19c8fbbe8]
+        5       core::fmt::write::hedd53bdb9e87b4cf  (in fd) + 96  [0x10228f2bc]
+        5       free_tiny  (in libsystem_malloc.dylib) + 460  [0x19c8ff99c]
+        5       szone_size  (in libsystem_malloc.dylib) + 0  [0x19c8fdf00]
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait  (in libsystem_kernel.dylib)        920
+        read  (in libsystem_kernel.dylib)        920
+        lstat  (in libsystem_kernel.dylib)        591
+        write  (in libsystem_kernel.dylib)        67
+        _platform_memcmp  (in libsystem_platform.dylib)        59
+        fd::output::print_entry::ha19644765a9c40d9  (in fd)        52
+        __getdirentries64  (in libsystem_kernel.dylib)        18
+        core::fmt::write::hedd53bdb9e87b4cf  (in fd)        13
+        core::slice::memchr::memrchr::h746a03bcae7249ab  (in fd)        13
+        _$LT$std..io..stdio..StdoutLock$u20$as$u20$std..io..Write$GT$::write_all::h34cc11c080bf2685  (in fd)        10
+        free_tiny  (in libsystem_malloc.dylib)        10
+        _platform_memmove  (in libsystem_platform.dylib)        8
+        DYLD-STUB$$memcmp  (in fd)        7
+        std::sys::fs::symlink_metadata::hd0e44a06c5789f14  (in fd)        7
+        tiny_malloc_should_clear  (in libsystem_malloc.dylib)        7
+        _$LT$std..path..Components$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::h2e9501df58ad8270  (in fd)        5
+        szone_size  (in libsystem_malloc.dylib)        5
+        tiny_size  (in libsystem_malloc.dylib)        5
+
+Binary Images:
+       0x10221c000 -        0x1023d39d7 +fd (0) <023CDEF5-8453-3944-AC75-4E31C14C3EDD> /Users/*/fd
+       0x19c700000 -        0x19c753893  libobjc.A.dylib (940.4) <E6F30EB4-FACF-3381-AE46-10E556F1FC39> /usr/lib/libobjc.A.dylib
+       0x19c754000 -        0x19c7ef57b  dyld (1.0.0 - 1286.10) <70DBD61B-24CF-3E2B-AED9-1D345967D2D4> /usr/lib/dyld
+       0x19c7f0000 -        0x19c7f3168  libsystem_blocks.dylib (96) <EFADF6A6-C85B-37E9-9514-8E7A1EBAC882> /usr/lib/system/libsystem_blocks.dylib
+       0x19c7f4000 -        0x19c83e97f  libxpc.dylib (2894.140.12.704.2) <DF5FB3DE-56D8-3E58-B948-1F5577E7844B> /usr/lib/system/libxpc.dylib
+       0x19c83f000 -        0x19c85a87f  libsystem_trace.dylib (1643.120.5) <1B02E60B-7CA1-3B9F-9C19-ED966D9E3DF3> /usr/lib/system/libsystem_trace.dylib
+       0x19c85b000 -        0x19c8f93b7  libcorecrypto.dylib (1736.140.2) <2D80D106-1EAB-3D1F-B1AE-FB45BF588C2E> /usr/lib/system/libcorecrypto.dylib
+       0x19c8fa000 -        0x19c94106f  libsystem_malloc.dylib (715.140.5) <3CE1E59C-91C8-3259-93D8-7DED66842979> /usr/lib/system/libsystem_malloc.dylib
+       0x19c942000 -        0x19c98875f  libdispatch.dylib (1521.140.2) <63A54CE1-2AB6-3673-82E4-D8489D811475> /usr/lib/system/libdispatch.dylib
+       0x19c989000 -        0x19c98bd1b  libsystem_featureflags.dylib (97) <9AF1C2C7-1C15-3F0E-9C0F-4524BD4EB4CF> /usr/lib/system/libsystem_featureflags.dylib
+       0x19c98c000 -        0x19ca0d3ab  libsystem_c.dylib (1698.140.3.704.1) <269515DD-C10D-3845-8D29-3F2F815B8561> /usr/lib/system/libsystem_c.dylib
+       0x19ca0e000 -        0x19ca9aff7  libc++.1.dylib (1900.181) <EB94C9FE-91DA-3E9F-9C45-7B476FEAAEAE> /usr/lib/libc++.1.dylib
+       0x19ca9b000 -        0x19cab8fff  libc++abi.dylib (1900.181) <BC670272-BF32-38AC-AE3F-F06EDA80BE30> /usr/lib/libc++abi.dylib
+       0x19cab9000 -        0x19caf45f3  libsystem_kernel.dylib (11417.140.69.710.16) <F865E038-8AEA-3FB1-A04F-731060311916> /usr/lib/system/libsystem_kernel.dylib
+       0x19caf5000 -        0x19cb01a77  libsystem_pthread.dylib (536.0.0.702.1) <2886F4F3-500B-36C8-A20C-C457EB754E3D> /usr/lib/system/libsystem_pthread.dylib
+       0x19cb02000 -        0x19cb31ba3  libdyld.dylib (1286.10) <2E9C20CA-1C3E-3D46-B2CB-001C30D53225> /usr/lib/system/libdyld.dylib
+       0x19cb32000 -        0x19cb39e0b  libsystem_platform.dylib (349.140.6) <C26E58A4-34A1-3F9C-BDBC-EBC34426633A> /usr/lib/system/libsystem_platform.dylib
+       0x19cb3a000 -        0x19cb69d83  libsystem_info.dylib (597.0.0.701.2) <3B2CAC89-F7B9-3111-9EB6-84A87EEBBAD7> /usr/lib/system/libsystem_info.dylib
+       0x1a05fc000 -        0x1a0606397  libsystem_darwin.dylib (1698.140.3.704.1) <1E62917E-2714-31A4-9069-63CD5E7CA855> /usr/lib/system/libsystem_darwin.dylib
+       0x1a0a5e000 -        0x1a0a6ffeb  libsystem_notify.dylib (342) <CA2AAD14-C438-30E8-9699-5A947E2DF021> /usr/lib/system/libsystem_notify.dylib
+       0x1a2a61000 -        0x1a2a7be8f  libsystem_networkextension.dylib (2063.140.6) <5C0C1505-266B-3544-B970-BE347DAF2AAF> /usr/lib/system/libsystem_networkextension.dylib
+       0x1a2af8000 -        0x1a2b0ffdb  libsystem_asl.dylib (402) <0574F75C-FB20-3114-8C16-E17D821FFCBD> /usr/lib/system/libsystem_asl.dylib
+       0x1a4658000 -        0x1a46603a7  libsystem_symptoms.dylib (2022.140.4.701.1) <4125946C-7B3E-35FC-95A6-BC1163D1F504> /usr/lib/system/libsystem_symptoms.dylib
+       0x1a7ea9000 -        0x1a7ed947b  libsystem_containermanager.dylib (689.100.6.701.1) <FF38A93D-F7FA-398C-89A2-8D539ECD61AA> /usr/lib/system/libsystem_containermanager.dylib
+       0x1a9114000 -        0x1a91185df  libsystem_configuration.dylib (1351.140.5.701.1) <E6976BA1-4F03-3BA5-9768-C4AA7B20FB2D> /usr/lib/system/libsystem_configuration.dylib
+       0x1a9119000 -        0x1a911f4ef  libsystem_sandbox.dylib (2401.140.15.702.1) <8185824F-4A3F-369C-99FA-E1F93B2C7A6E> /usr/lib/system/libsystem_sandbox.dylib
+       0x1aa124000 -        0x1aa126fe3  libquarantine.dylib (181.120.2) <7C4A3794-C750-3F34-8ACD-A650F22C53BB> /usr/lib/system/libquarantine.dylib
+       0x1aa83a000 -        0x1aa840fa3  libsystem_coreservices.dylib (178.6.8) <C9F1EA53-B254-3EFE-B640-92D8747994B4> /usr/lib/system/libsystem_coreservices.dylib
+       0x1aacb8000 -        0x1aacf52b7  libsystem_m.dylib (3291.100.4) <8ADDE92D-BDE2-3272-8F47-B87C8151D06D> /usr/lib/system/libsystem_m.dylib
+       0x1aacf6000 -        0x1aacf6c9b  libcharset.1.dylib (109.100.2.701.1) <2BB08A8C-866E-3C6C-913D-13EF418BD942> /usr/lib/libcharset.1.dylib
+       0x1aacf7000 -        0x1aacfa4e7  libmacho.dylib (1024.3) <CD255FF9-4E35-347A-B7E9-304517D3A871> /usr/lib/system/libmacho.dylib
+       0x1aad14000 -        0x1aad215ef  libcommonCrypto.dylib (600035) <65A3AFCF-9611-35C1-9697-8CF5409F0C83> /usr/lib/system/libcommonCrypto.dylib
+       0x1aad22000 -        0x1aad2bad7  libunwind.dylib (1900.125) <FA046DDB-1518-353B-A9B6-CD622328B746> /usr/lib/system/libunwind.dylib
+       0x1aad34000 -        0x1aad3e69f  libcopyfile.dylib (224) <459F7A49-1FEF-329E-8FC0-0A5FF6FBD902> /usr/lib/system/libcopyfile.dylib
+       0x1aad3f000 -        0x1aad4298f  libcompiler_rt.dylib (103.3) <7720A496-7B7A-33C1-B7F3-9E8B7DEA0622> /usr/lib/system/libcompiler_rt.dylib
+       0x1aad43000 -        0x1aad47a1b  libsystem_collections.dylib (1698.140.3.704.1) <A448A2E2-BABD-38B4-9111-5E344B73FAE4> /usr/lib/system/libsystem_collections.dylib
+       0x1aad48000 -        0x1aad4b2c7  libsystem_secinit.dylib (153.140.2) <63965812-869C-3C3C-A950-FA563CE8EB1E> /usr/lib/system/libsystem_secinit.dylib
+       0x1aad4c000 -        0x1aad4eb6f  libremovefile.dylib (81) <E34EF2FA-1C55-3222-B1A2-CEEEC4B02F3D> /usr/lib/system/libremovefile.dylib
+       0x1aad4f000 -        0x1aad4ff27  libkeymgr.dylib (31) <EE1B8708-02B1-385D-B648-E87B4D25391B> /usr/lib/system/libkeymgr.dylib
+       0x1aad50000 -        0x1aad58d5f  libsystem_dnssd.dylib (2600.140.3.702.2) <EC1329C7-F3D4-3CE7-8F2C-430AE6692382> /usr/lib/system/libsystem_dnssd.dylib
+       0x1aad59000 -        0x1aad5e0b3  libcache.dylib (95) <4242CCFB-F060-3493-B555-C26217B4F080> /usr/lib/system/libcache.dylib
+       0x1aad5f000 -        0x1aad60ca3  libSystem.B.dylib (1351) <9500400E-A2EC-33F9-B76B-9830E022777A> /usr/lib/libSystem.B.dylib
+       0x1aad9b000 -        0x1aada22db  libiconv.2.dylib (109.100.2.701.1) <5065A0E2-11DE-3B49-86FD-17251E4EB192> /usr/lib/libiconv.2.dylib
+       0x284173000 -        0x28417a109  libRosetta.dylib (349) <CD13AF03-27E5-387A-8DF1-7016C957167A> /usr/lib/libRosetta.dylib
+       0x28559e000 -        0x2855a1deb  libsystem_darwindirectory.dylib (122) <8627B2A8-CE68-3F9A-B3E8-2F4E4E35CF66> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x2855a2000 -        0x2855a9523  libsystem_eligibility.dylib (181.140.5) <B76C1C04-8001-3113-BE6E-FDDEA1118104> /usr/lib/system/libsystem_eligibility.dylib
+       0x2855aa000 -        0x2855af6c5  libsystem_sanitizers.dylib (19) <6143DE0A-A328-3649-AF7D-8FC8781B86E7> /usr/lib/system/libsystem_sanitizers.dylib

@@ -17,7 +17,15 @@ Family = Literal[
     "known-change", "published-benchmark", "hidden-fix", "nothing-to-keep"
 ]
 TargetClass = Literal[
-    "python", "native", "web", "serving", "gpu", "agentic", "java", "dotnet"
+    "python",
+    "native",
+    "web",
+    "serving",
+    "gpu",
+    "agentic",
+    "java",
+    "rust",
+    "dotnet",
 ]
 ChangeKind = Literal[
     "improvement",

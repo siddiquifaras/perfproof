@@ -241,6 +241,9 @@ No discovery. One candidate at a time, against its parent.
    For Java and other JVM code, read [java.md](java.md) first: how to
    launch the benchmark so the runtime is identified, how to warm it
    up, how to profile it, and what usually goes wrong.
+   For Rust, read [rust.md](rust.md) first: how to launch the built
+   binary so the toolchain is identified, what a first run costs, how to
+   profile it, and what usually goes wrong.
    For Go, read [go.md](go.md) first: how to build and launch the
    benchmark so the runtime is identified, how to profile it with
    pprof, and what usually goes wrong.

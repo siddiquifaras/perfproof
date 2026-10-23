@@ -1,0 +1,103 @@
+macOS 15.7.7 arm64, /usr/bin/sample, rustc 1.94.1; pathologies built with -C opt-level=3 -C force-frame-pointers=yes; 1.5 s per mode
+
+mode grow (record exit 0)
+  0.928 pathologies`pathologies::grow
+  0.008 libsystem_malloc.dylib`tiny_size
+  0.007 libsystem_malloc.dylib`_szone_free
+  0.006 libsystem_malloc.dylib`_realloc
+  0.006 libsystem_malloc.dylib`szone_realloc
+
+mode clone (record exit 0)
+  0.139 libsystem_malloc.dylib`tiny_malloc_from_free_list
+  0.132 libsystem_malloc.dylib`tiny_free_no_lock
+  0.110 libsystem_malloc.dylib`free_tiny
+  0.072 libsystem_malloc.dylib`tiny_free_list_add_ptr
+  0.069 libsystem_malloc.dylib`_szone_free
+
+mode contains (record exit 0)
+  0.997 pathologies`pathologies::contains
+  0.002 libsystem_kernel.dylib`mach_absolute_time
+  0.001 libsystem_c.dylib`clock_gettime_nsec_np
+
+mode format (record exit 0)
+  0.170 libsystem_malloc.dylib`free_tiny
+  0.126 libsystem_malloc.dylib`_szone_free
+  0.123 libsystem_platform.dylib`_platform_memset
+  0.113 libsystem_malloc.dylib`tiny_malloc_should_clear
+  0.103 pathologies`core::fmt::num::imp::<impl u64>::_fmt_inner
+
+mode hash (record exit 0)
+  0.521 pathologies`hashbrown::rustc_entry::<impl hashbrown::map::HashMap<K,V,S,A>>::rustc_entry
+  0.477 pathologies`pathologies::hash
+  0.002 libsystem_kernel.dylib`mach_absolute_time
+
+mode mutex (record exit 0)
+  0.485 libsystem_kernel.dylib`__psynch_mutexdrop
+  0.240 libsystem_kernel.dylib`mach_absolute_time
+  0.133 libsystem_c.dylib`clock_gettime
+  0.035 libsystem_pthread.dylib`pthread_mutex_unlock
+  0.025 libsystem_pthread.dylib`pthread_mutex_lock
+
+mode unbuffered (record exit 0)
+  0.960 libsystem_kernel.dylib`write
+  0.010 libsystem_kernel.dylib`mach_absolute_time
+  0.007 pathologies`core::fmt::write
+  0.007 pathologies`std::io::Write::write_all
+  0.005 pathologies`<std::fs::File as std::io::Write>::write
+
+mode bounds (record exit 0)
+  0.985 pathologies`pathologies::index_sum
+  0.008 libsystem_kernel.dylib`mach_absolute_time
+  0.002 libsystem_c.dylib`clock_gettime_nsec_np
+  0.002 libsystem_c.dylib`DYLD-STUB$$mach_timebase_info
+  0.002 libsystem_kernel.dylib`mach_timebase_info
+Linux 6.12.54-linuxkit aarch64 (Docker), perf 6.12.113, rustc 1.94.1; pathologies built with -C opt-level=3 -C force-frame-pointers=yes; 1.5 s per mode; the folded files were written inside the container by perfproof.profilers.rust record
+
+mode grow (read)
+  0.971 pathologies`pathologies::grow
+  0.009 libc.so.6`[unknown]
+  0.007 libc.so.6`realloc
+  0.005 [vdso]`__kernel_clock_gettime
+  0.003 pathologies`alloc::raw_vec::RawVecInner<A>::finish_grow
+
+mode clone (read)
+  0.792 [unknown]`[unknown]
+  0.051 pathologies`__rustc::__rdl_alloc
+  0.046 pathologies`<alloc::string::String as core::clone::Clone>::clone
+  0.027 pathologies`pathologies::takes_ownership
+  0.016 pathologies`__rustc::__rust_no_alloc_shim_is_unstable_v2
+
+mode contains (read)
+  1.000 pathologies`pathologies::contains
+
+mode format (read)
+  0.533 [unknown]`[unknown]
+  0.254 pathologies`core::fmt::num::imp::<impl u64>::_fmt_inner
+  0.058 pathologies`__rustc::__rdl_alloc
+  0.038 pathologies`core::fmt::num::imp::<impl usize>::_fmt
+  0.034 pathologies`pathologies::format_numbers
+
+mode hash (read)
+  0.528 pathologies`hashbrown::rustc_entry::<impl hashbrown::map::HashMap<K,V,S,A>>::rustc_entry
+  0.472 pathologies`pathologies::hash
+
+mode mutex (read)
+  0.272 [kernel]`[unknown]
+  0.203 [vdso]`__kernel_clock_gettime
+  0.183 pathologies`__aarch64_cas4_acq
+  0.140 [unknown]`[unknown]
+  0.082 pathologies`std::sys::sync::mutex::futex::Mutex::lock_contended
+
+mode unbuffered (read)
+  0.669 [kernel]`[unknown]
+  0.267 [unknown]`[unknown]
+  0.031 [vdso]`__kernel_clock_gettime
+  0.009 pathologies`core::fmt::write
+  0.005 pathologies`pathologies::main
+
+mode bounds (read)
+  0.987 pathologies`pathologies::index_sum
+  0.011 [vdso]`__kernel_clock_gettime
+  0.001 [unknown]`[unknown]
+  0.001 pathologies`pathologies::main
+  0.001 pathologies`clock_gettime@plt

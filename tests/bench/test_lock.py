@@ -1946,3 +1946,243 @@ def test_a_wrapper_in_the_tree_is_not_peeled_by_name(tmp_path: Path) -> None:
     assert unwrap_launch(argv, env, tree, tree) == argv
     assert unwrap_launch(argv, env, tree, None) == ["node", "x.js"]
     assert unwrap_launch(argv, {"PATH": ""}, tree, tree) == argv
+
+
+# Rust: the compiler that built a binary, and cargo as a launcher
+
+RUST_RELEASE = "target/release/bench"
+RUSTC_A = "a" * 40
+RUSTC_B = "b" * 40
+
+
+def rust_marker(commit: str) -> bytes:
+    """The path prefix a Rust binary carries for its panic locations."""
+    return f"\0/rustc/{commit}/library/core/src/panicking.rs\0".encode()
+
+
+def rust_spec() -> BenchmarkSpec:
+    return make_spec(command=(RUST_RELEASE,))
+
+
+def test_trees_built_by_the_same_rustc_pass_and_name_it(
+    baseline: Path, repo: Path
+) -> None:
+    copy_native(baseline, rust_marker(RUSTC_A), RUST_RELEASE)
+    copy_native(repo, rust_marker(RUSTC_A) + b"\0", RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "passed"
+    assert (
+        f"; built by rustc commit {RUSTC_A} in both trees (cargo release "
+        "profile directory)"
+    ) in result.detail
+
+
+def test_a_debug_build_is_named_as_one(baseline: Path, repo: Path) -> None:
+    rel = "target/debug/bench"
+    copy_native(baseline, rust_marker(RUSTC_A), rel)
+    copy_native(repo, rust_marker(RUSTC_A) + b"\0", rel)
+
+    result = check_runtime(make_spec(command=(rel,)), baseline, repo)
+
+    assert result.status == "passed"
+    assert "(cargo debug profile directory)" in result.detail
+
+
+def test_trees_built_by_different_rustc_compilers_fail(
+    baseline: Path, repo: Path
+) -> None:
+    copy_native(baseline, rust_marker(RUSTC_A), RUST_RELEASE)
+    copy_native(repo, rust_marker(RUSTC_B), RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "failed"
+    assert [d.item for d in result.differences] == ["rustc"]
+    assert result.differences[0].baseline == f"rustc commit {RUSTC_A}"
+    assert result.differences[0].candidate == f"rustc commit {RUSTC_B}"
+    assert "built by different Rust compilers" in result.detail
+    waived = runtime_gate(
+        make_spec(command=(RUST_RELEASE,), allow_runtime_change=True),
+        probe("baseline", baseline, rust_spec()),
+        probe("candidate", repo, rust_spec()),
+        baseline_root=baseline,
+        candidate_root=repo,
+    )
+    assert waived.status == "waived"
+
+
+def test_a_binary_naming_a_rustc_in_one_tree_only_is_unverified(
+    baseline: Path, repo: Path
+) -> None:
+    copy_native(baseline, rust_marker(RUSTC_A), RUST_RELEASE)
+    copy_native(repo, b"", RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "not_available"
+    assert "only one tree's" in result.detail
+    assert f"baseline: rustc commit {RUSTC_A}" in result.detail
+    assert "candidate: none" in result.detail
+
+
+def test_the_compiler_is_found_across_a_read_boundary(
+    baseline: Path, repo: Path
+) -> None:
+    marker = rust_marker(RUSTC_A)
+    padding = b"\x01" * (LOCK_CHUNK_BYTES - 20)
+    copy_native(baseline, padding + marker, RUST_RELEASE)
+    copy_native(repo, padding + marker + b"\0", RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "passed"
+    assert f"rustc commit {RUSTC_A}" in result.detail
+
+
+def test_the_rustc_version_line_of_an_elf_is_reported(
+    baseline: Path, repo: Path
+) -> None:
+    banner = b"\0rustc version 1.94.1 (e408947bf 2026-03-25)\0"
+    copy_native(baseline, rust_marker(RUSTC_A) + banner, RUST_RELEASE)
+    copy_native(repo, rust_marker(RUSTC_A) + banner + b"\0", RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "passed"
+    assert (
+        f"rustc commit {RUSTC_A}; rustc 1.94.1 (e408947bf "
+        "2026-03-25) in both trees"
+    ) in result.detail
+
+
+def fake_tool(directory: Path, name: str) -> str:
+    """A script called ``name`` on a PATH of its own."""
+    directory.mkdir(parents=True, exist_ok=True)
+    script = directory / name
+    script.write_text("#!/bin/sh\nexit 0\n")
+    script.chmod(0o755)
+    return str(directory)
+
+
+@pytest.mark.parametrize("tool", ["cargo", "rustc", "rustup"])
+def test_the_rust_toolchain_commands_are_unknown_with_a_way_out(
+    tool: str, baseline: Path, repo: Path, tmp_path: Path
+) -> None:
+    path = fake_tool(tmp_path / "bin", tool)
+    spec = make_spec(command=(tool, "run", "--release"))
+
+    result = check_runtime(spec, baseline, repo, PATH=path)
+
+    assert result.status == "not_available"
+    assert "picks a toolchain" in result.detail
+    assert "build in setup and run the binary itself" in result.detail
+    assert "target/release/<name>" in result.detail
+
+
+def installed_toolchains() -> list[Path]:
+    """The ``rustc`` of every rustup toolchain installed here."""
+    root = Path.home() / ".rustup" / "toolchains"
+    found = sorted(root.glob("*/bin/rustc")) if root.is_dir() else []
+    return [path for path in found if path.is_file()]
+
+
+def compile_rust(rustc: Path, tree: Path, constant: int) -> None:
+    source = tree / "bench.rs"
+    source.write_text(
+        f'fn main() {{ println!("{{}}", std::hint::black_box({constant}u64)'
+        " + 1); }\n"
+    )
+    target = tree / RUST_RELEASE
+    target.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [str(rustc), "-O", "-o", str(target), str(source)],
+        check=True,
+        capture_output=True,
+        timeout=300,
+    )
+
+
+def rustc_commit(rustc: Path) -> str:
+    done = subprocess.run(
+        [str(rustc), "-vV"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    return next(
+        line.split()[1]
+        for line in done.stdout.splitlines()
+        if line.startswith("commit-hash:")
+    )
+
+
+@pytest.mark.integration
+def test_binaries_built_by_the_real_rustc_pass_and_name_its_commit(
+    baseline: Path, repo: Path
+) -> None:
+    toolchains = installed_toolchains()
+    if not toolchains:
+        pytest.skip("no rustup toolchain is installed")
+    rustc = toolchains[0]
+    compile_rust(rustc, baseline, 1)
+    compile_rust(rustc, repo, 2)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "passed"
+    assert f"rustc commit {rustc_commit(rustc)}" in result.detail
+
+
+@pytest.mark.integration
+def test_binaries_built_by_two_real_toolchains_fail(
+    baseline: Path, repo: Path
+) -> None:
+    toolchains = installed_toolchains()
+    commits = {path: rustc_commit(path) for path in toolchains}
+    if len(set(commits.values())) < 2:
+        pytest.skip("two rustup toolchains with different compilers needed")
+    first = toolchains[0]
+    second = next(p for p in toolchains if commits[p] != commits[first])
+    compile_rust(first, baseline, 1)
+    compile_rust(second, repo, 1)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "failed"
+    assert [d.item for d in result.differences] == ["rustc"]
+    assert commits[first] in str(result.differences[0].baseline)
+    assert commits[second] in str(result.differences[0].candidate)
+
+
+@pytest.mark.integration
+def test_the_real_cargo_is_unknown(baseline: Path, repo: Path) -> None:
+    if shutil.which("cargo") is None:
+        pytest.skip("cargo is not installed")
+
+    result = check_runtime(
+        make_spec(command=("cargo", "run", "--release")), baseline, repo
+    )
+
+    assert result.status == "not_available"
+    assert "picks a toolchain" in result.detail
+
+
+def test_the_same_compiler_passes_wherever_its_version_line_sits(
+    baseline: Path, repo: Path
+) -> None:
+    banner = b"\0rustc version 1.94.1 (e408947bf 2026-03-25)\0"
+    marker = rust_marker(RUSTC_A)
+    # One tree's line straddles a read boundary; the other's is early
+    # and has a second copy, as an unstripped build does.
+    late = b"\x01" * (LOCK_CHUNK_BYTES - 20) + marker + banner
+    early = marker + banner + b"x" + banner
+    copy_native(baseline, late, RUST_RELEASE)
+    copy_native(repo, early, RUST_RELEASE)
+
+    result = check_runtime(rust_spec(), baseline, repo)
+
+    assert result.status == "passed"
+    assert "rustc 1.94.1 (e408947bf 2026-03-25)" in result.detail

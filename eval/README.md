@@ -393,7 +393,7 @@ type-checks `eval/mine` in strict mode.
 | `revert` | The pull request that reverted the change, same shape, or `null` | `gh pr view` |
 | `family` | `known-change`, `published-benchmark`, `hidden-fix`, `nothing-to-keep` | Rules below |
 | `change_kind` | `improvement`, `after-landed`, `reverted-no-gain`, `reverted-breaking`, `reverted-unknown-reason`, `regression`, `kernel-version`, `benchmark-instance` | Rules below |
-| `target_class` | `python`, `native`, `web`, `serving`, `gpu`, `agentic`, `java` | The seed list's class for the repository |
+| `target_class` | `python`, `native`, `web`, `serving`, `gpu`, `agentic`, `java`, `rust` | The seed list's class for the repository |
 | `workload` | `command`, `source` (where it came from, or `unknown`), `verified` (the command ran here and exited 0; it does not say the change showed a gain) | Quoted in the pull request, a dataset field, a file header, or a command run here |
 | `oracle` | Same shape: the independent correctness check | Test files the change touched, a dataset field, or a command run here |
 | `evidence` | Links with notes, one per source used above | |
@@ -794,6 +794,28 @@ runs and specs.
 | `published-benchmark/swe-fficiency-pydata-xarray-7382` | python | development-candidate | runs |
 | `known-change/sympy-sympy-pr30321` | python | development-candidate | runs |
 | `known-change/sanic-org-sanic-pr412` | web | development-candidate | builds |
+| `known-change/sharkdp-fd-pr1422` | rust | development-candidate | runs |
+| `nothing-to-keep/sharkdp-fd-pr1914-landed` | rust | development-candidate | runs |
+
+### Rust tasks (T5.13)
+
+Two manifests are in the `rust` class, which was added so that they do
+not change the draws of the existing classes (as for `java`):
+`known-change/sharkdp-fd-pr1422` and
+`nothing-to-keep/sharkdp-fd-pr1914-landed`. The Rust find task is
+`hidden-fix/sharkdp-fd-pr853`, which was in the pool already (class
+`native`, split `development`). All three are fd, built with
+`cargo build --release --locked` and run as the built binary
+(`target/release/fd`), never through `cargo run`; the two new ones
+search the 200,000-file tree of `tasks/workloads/rust/make_tree.py`.
+They were written by hand, then built and run with `mine/check.py` on
+this Mac (rustc 1.94.1, macOS arm64): status `runs`, their `runs`
+hold every command. Both are `development-candidate`: the draw stops at
+them for their step-1 review (`tasks/SPLITS.md`), so
+`skill/realrepo.py` will not load them until that review is done, and
+`skill/tasks-rust.json` cannot run the two new tasks before then. The
+workload runs took 0.12 to 0.21 s each, one run each, so they say
+nothing about whether either change is faster.
 
 The exact commands, exit codes, wall times and output tails are in
 each manifest's `runs`. Those wall times come from one run each. They

@@ -1174,6 +1174,7 @@ def stage_counts() -> None:
         "gpu",
         "agentic",
         "java",
+        "rust",
         "dotnet",
     ]
     families = sorted({t.family for t in tasks})

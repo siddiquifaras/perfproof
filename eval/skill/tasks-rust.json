@@ -1,0 +1,88 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "rust-fd-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "sharkdp-fd-pr853",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/output.rs",
+          "function": "print_entry",
+          "top_n": 5
+        }
+      }
+    },
+    {
+      "id": "rust-fd-known-change",
+      "kind": "prove",
+      "repo": {
+        "manifest": "sharkdp-fd-pr1422",
+        "branch": "pr-1422",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "Is the change on branch pr-1422 (the walker sends its results in batches) really faster than main, and still correct?",
+      "followups": [
+        "yes, go ahead"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 3000,
+      "expect": {
+        "trigger": true,
+        "fix": "none",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ]
+      }
+    },
+    {
+      "id": "rust-fd-nothing-to-keep",
+      "kind": "find",
+      "repo": {
+        "manifest": "sharkdp-fd-pr1914-landed",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [
+          "INCONCLUSIVE",
+          "REJECT",
+          "NO VERDICT"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# Bounds check in a release build: `index_sum` of pathologies.rs, disassembled with
+# llvm-objdump from the rustc 1.94.1 toolchain (macOS arm64, built with -C opt-level=3).
+# llvm-nm names the symbol; the hash in it changes with every build:
+#   llvm-nm pathologies | grep index_sum
+#   llvm-objdump -d --no-show-raw-insn --disassemble-symbols=<symbol> pathologies
+# The loop compares each position with the length (cmp, b.hs) and the branch goes to a
+# call of core::panicking::panic_bounds_check.
+
+
+scratch/rust/pathologies:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000001000023f4 <__ZN11pathologies9index_sum17h1f5a544892f4dc87E>:
+1000023f4:     	stp	x29, x30, [sp, #-0x10]!
+1000023f8:     	mov	x29, sp
+1000023fc:     	cbz	x3, 0x10000242c <__ZN11pathologies9index_sum17h1f5a544892f4dc87E+0x38>
+100002400:     	mov	x8, x0
+100002404:     	mov	x0, #0x0                ; =0
+100002408:     	lsl	x10, x3, #3
+10000240c:     	ldr	x9, [x2], #0x8
+100002410:     	cmp	x9, x1
+100002414:     	b.hs	0x100002438 <__ZN11pathologies9index_sum17h1f5a544892f4dc87E+0x44>
+100002418:     	ldr	x9, [x8, x9, lsl #3]
+10000241c:     	add	x0, x9, x0
+100002420:     	subs	x10, x10, #0x8
+100002424:     	b.ne	0x10000240c <__ZN11pathologies9index_sum17h1f5a544892f4dc87E+0x18>
+100002428:     	b	0x100002430 <__ZN11pathologies9index_sum17h1f5a544892f4dc87E+0x3c>
+10000242c:     	mov	x0, #0x0                ; =0
+100002430:     	ldp	x29, x30, [sp], #0x10
+100002434:     	ret
+100002438:     	adrp	x2, 0x100054000 <dyld_stub_binder+0x100054000>
+10000243c:     	add	x2, x2, #0x78
+100002440:     	mov	x0, x9
+100002444:     	bl	0x10003d12c <__ZN4core9panicking18panic_bounds_check17h865e5d10cdb12e28E>

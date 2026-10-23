@@ -184,6 +184,18 @@ _DYLIB_LOADS: Final = frozenset(
 _MAX_IMAGES: Final = 512
 _KERNEL_DSO: Final = re.compile(r"linux-(?:vdso|gate)[0-9]*\.so\.[0-9]+")
 """The kernel-provided vDSO, which ``ldd`` lists without a path."""
+_RUSTC_HASH: Final = re.compile(rb"/rustc/([0-9a-f]{40})/")
+"""The compiler's commit in the standard library's source paths, which a
+Rust binary carries for panic locations on every platform."""
+_RUSTC_BANNER: Final = re.compile(
+    rb"rustc version ([0-9]+\.[0-9]+\.[0-9]+ \([0-9a-f]{9,} [0-9-]{10}\))"
+)
+"""The compiler's version line, which an ELF binary carries in its
+``.comment`` section (and, unstripped, in its debug strings). The match
+ends at the closing parenthesis, so a line cut by a read boundary does
+not match until the overlap holds all of it."""
+_STAMP_OVERLAP: Final = 128
+_RUST_TOOLCHAIN_NAMES: Final = frozenset({"cargo", "rustc", "rustup"})
 _PT_DYNAMIC: Final = 2
 _PT_INTERP: Final = 3
 _LIBRARIES_AT_GATE: Final = (
@@ -1125,6 +1137,63 @@ def _is_tracked(path: Path) -> bool | str:
     return f"git ls-files exited {code}: {err.strip()[-200:]}"
 
 
+type _Stamp = tuple[frozenset[str], frozenset[str]]
+
+
+def _rustc_stamp(path: Path) -> _Stamp | str:
+    """Read which Rust compiler built a binary, from the binary.
+
+    The commit of the compiler is in the ``/rustc/<40 hex digits>/``
+    prefix of the standard library's source paths, which a Rust binary
+    carries on macOS and on Linux; an ELF binary also has the compiler's
+    ``rustc version`` line in its ``.comment`` section. The file is read
+    in chunks, so memory does not grow with its size.
+
+    Returns
+    -------
+    tuple of (frozenset of str, frozenset of str), or str
+        The commits and the version lines found (both empty for a binary
+        that is not Rust), or why the file
+        cannot be read.
+    """
+    commits: set[str] = set()
+    banners: set[str] = set()
+    tail = b""
+    try:
+        with path.open("rb") as handle:
+            while chunk := handle.read(LOCK_CHUNK_BYTES):
+                data = tail + chunk
+                commits.update(
+                    m.group(1).decode("ascii")
+                    for m in _RUSTC_HASH.finditer(data)
+                )
+                banners.update(
+                    m.group(1).decode("ascii", errors="replace").strip()
+                    for m in _RUSTC_BANNER.finditer(data)
+                )
+                tail = data[-_STAMP_OVERLAP:]
+    except OSError as exc:
+        return str(exc)
+    return frozenset(commits), frozenset(banners)
+
+
+def _rustc_label(stamp: _Stamp) -> str:
+    """Write a compiler stamp as ``commit; version`` for a report."""
+    commits, banners = stamp
+    parts = [f"rustc commit {c}" for c in sorted(commits)]
+    parts.extend(f"rustc {b}" for b in sorted(banners))
+    return "; ".join(parts)
+
+
+def _rust_profile(rel: str) -> str | None:
+    """Name the cargo profile directory a binary's path is in."""
+    parts = rel.split("/")
+    for name in ("debug", "release"):
+        if name in parts[:-1]:
+            return name
+    return None
+
+
 def _compare_native(
     rel: str,
     spec: BenchmarkSpec,
@@ -1198,6 +1267,44 @@ def _compare_native(
                 "two trees"
             )
             differences.extend(changed)
+    stamps: dict[Arm, _Stamp] = {}
+    for arm in _ARMS:
+        found = _rustc_stamp(paths[arm])
+        if isinstance(found, str):
+            unverified.append(
+                f"the compiler of the {arm} {rel} cannot be read: {found}"
+            )
+        else:
+            stamps[arm] = found
+    built_by = ""
+    if len(stamps) == len(_ARMS):
+        b_stamp, c_stamp = stamps["baseline"], stamps["candidate"]
+        if b_stamp[0] != c_stamp[0]:
+            if b_stamp[0] and c_stamp[0]:
+                problems.append(
+                    f"{rel} was built by different Rust compilers in the "
+                    "two trees"
+                )
+                differences.append(
+                    Difference(
+                        item="rustc",
+                        baseline=_rustc_label(b_stamp),
+                        candidate=_rustc_label(c_stamp),
+                    )
+                )
+            else:
+                unverified.append(
+                    f"only one tree's {rel} names a Rust compiler "
+                    f"(baseline: {_rustc_label(b_stamp) or 'none'}; "
+                    f"candidate: {_rustc_label(c_stamp) or 'none'})"
+                )
+        elif b_stamp[0]:
+            # Equal commits: the version lines are detail, and a build
+            # that keeps debug strings has one more than a stripped one.
+            profile = _rust_profile(rel)
+            built_by = f"; built by {_rustc_label(b_stamp)} in both trees" + (
+                f" (cargo {profile} profile directory)" if profile else ""
+            )
     toolchains = _go_toolchains(rel, paths, problems, unverified, differences)
     if toolchains is None:
         toolchains = _native_toolchains(
@@ -1218,7 +1325,7 @@ def _compare_native(
     detail = (
         f"{rel} is a native executable built in each tree ({how}); it has "
         "no interpreter to compare; libraries outside the tree match: "
-        f"{shared or 'none'}"
+        f"{shared or 'none'}{built_by}"
     )
     return problems, unverified, differences, detail
 
@@ -2094,6 +2201,15 @@ class _Launch:
         launcher = _canonical(exe.name)
         if launcher in _NODE_LAUNCHERS:
             return self.node_launcher(exe, launcher, argv[1:], env, depth)
+        if canon & _RUST_TOOLCHAIN_NAMES:
+            return _Runtime.unknown(
+                real,
+                f"{exe} picks a toolchain (rust-toolchain.toml, rustup) and "
+                "may build before it starts the program, so the program is "
+                "not the one launched and the build would be timed; build "
+                "in setup and run the binary itself, such as "
+                "target/release/<name>",
+            )
         if any(_is_launcher_name(name) for name in names):
             return _Runtime.unknown(
                 real,
