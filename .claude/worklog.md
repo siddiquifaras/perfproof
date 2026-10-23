@@ -193,6 +193,17 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   the draw-based rule (#76) over #65's looser split check, so a
   candidate a later draw could hold out never loads.
 
+- **Statistics method (Faras, 2026-10-23), after the T1.12 golden set:**
+  keep the split (`hac_lf` for non-GPU schedules, the gated primary for
+  `gpu_kernels`), with admissibility judged on the cells of 200 (the
+  S = 1.02 cells of 100 cannot show 2.5% at 0 errors; every method had
+  0 there). Under the rule as registered no method is admissible; this
+  amendment is the owner's decision. No GPU golden run now (Modal T4,
+  ~$6.30 of free credit, proposed); it waits for GPU work.
+- **Hetzner box (2026-10-23):** golden set, noise recorder and loaded-web
+  rerun done and copied off with sha256 checks; Faras told it can be
+  deleted (with its Primary IP).
+
 ### In progress
 
 Resumed 2026-10-21 on Faras's "continue". Stop at the next 5-hour limit and do not restart.
