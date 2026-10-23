@@ -13,12 +13,15 @@ environment carries no GitHub token.
 from __future__ import annotations
 
 import contextlib
+import functools
+import importlib
 import json
 import os
 import shlex
 import shutil
 import signal
 import subprocess
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -34,11 +37,6 @@ CHECKS_FILE = REPO_ROOT / "eval" / "mine" / "checks.json"
 WORKLOADS = TASKS_DIR / "workloads"
 _WORKLOADS_RELATIVE = "../../../../tasks/workloads"
 """How ``checks.json`` reaches the workload files from its work dir."""
-_SPLITS = frozenset({"development", "development-candidate"})
-"""Splits the skill eval may use. ``held-out`` is never in it."""
-_STATUSES = frozenset({"runs", "builds"})
-"""Statuses that mean the task builds here (``builds``: its workload was
-not run to a label, which the skill eval does not need)."""
 GITHUB = "https://github.com"
 CONTAINER_LABEL = "perfproof-eval=1"
 FETCH_TIMEOUT_S = 1800.0
@@ -109,6 +107,93 @@ class RepoSpec(BaseModel):
     oracle: str | None
 
 
+@functools.lru_cache(maxsize=1)
+def draw_state() -> tuple[dict[str, str], frozenset[str]]:
+    """Ask the selection rule which classes are safe to draw from.
+
+    Runs ``eval/mine/draw.py``'s draw over the current pool and
+    statuses, so the answer is the rule's, not a count of ``split``
+    fields.
+
+    Returns
+    -------
+    tuple of (dict of str to str, frozenset of str)
+        Per target class that is *not* safe, why: its held-out draw
+        is for a class the review marks unbuildable here, stopped
+        before filling every slot, or short of ``len(draw.SLOTS)``
+        picks. And the ids the draw assigns to the held-out split.
+    """
+    mine = str(REPO_ROOT / "eval" / "mine")
+    if mine not in sys.path:
+        sys.path.insert(0, mine)
+    draw: Any = importlib.import_module("draw")
+    mined: Any = importlib.import_module("task")
+
+    sel = draw.load_selection()
+    draws = draw.draw_splits(mined.load_tasks(), sel)
+    unsafe: dict[str, str] = {}
+    for klass in draw.CLASSES:
+        held = draws["held-out"][klass]
+        if klass in sel.unbuilt_classes:
+            unsafe[klass] = f"unbuilt here ({sel.unbuilt_classes[klass]})"
+        elif held.stopped is not None:
+            unsafe[klass] = f"its held-out draw stopped: {held.stopped}"
+        elif len(held.picks) != len(draw.SLOTS):
+            unsafe[klass] = "its held-out draw has unfilled slots"
+    held_out = frozenset(
+        v.task_id for d in draws["held-out"].values() for v in d.picks
+    )
+    return unsafe, held_out
+
+
+def unusable_reason(manifest_id: str, manifest: dict[str, Any]) -> str | None:
+    """Say why a manifest may not be a development task, or ``None``.
+
+    A drawn development task is usable if it built and ran. A
+    ``development-candidate`` (in the pool, drawn into neither split)
+    is also usable when it built and ran here with its workload and
+    oracle verified and the selection rule's own draw (``draw_state``)
+    shows its class's held-out draw complete under the current pool and
+    statuses, so it is not drawn as a held-out task. The manifest's
+    ``split`` field is written only by ``eval/mine/draw.py``, so it is
+    not edited to promote one.
+    """
+    split, status = manifest.get("split"), manifest.get("status")
+    if split == "held-out" or status != "runs":
+        return (
+            f"{manifest_id} is {split!r}/{status!r}: only built "
+            "development tasks may be used"
+        )
+    if split == "development":
+        return None
+    unverified: list[str] = []
+    for key in ("workload", "oracle"):
+        entry: dict[str, Any] = manifest.get(key) or {}
+        if not entry.get("verified"):
+            unverified.append(key)
+    if split != "development-candidate" or unverified:
+        return (
+            f"{manifest_id} is {split!r}/{status!r}: only built "
+            "development tasks may be used"
+            + (
+                f" ({', '.join(unverified)} not verified)"
+                if unverified
+                else ""
+            )
+        )
+    cls = str(manifest.get("target_class"))
+    unsafe, held_out = draw_state()
+    if manifest_id in held_out:
+        return f"{manifest_id} is drawn as a held-out task"
+    if cls in unsafe:
+        return (
+            f"{manifest_id} is a development-candidate of class {cls!r}, "
+            f"which is not safe to draw from: {unsafe[cls]}. It could "
+            "still be drawn as a held-out task, so it may not be used"
+        )
+    return None
+
+
 def load_spec(manifest_id: str) -> RepoSpec:
     """Read a task's manifest and build recipe.
 
@@ -127,9 +212,9 @@ def load_spec(manifest_id: str) -> RepoSpec:
     FileNotFoundError
         If no manifest has this id.
     ValueError
-        If the manifest is not a ``development`` or
-        ``development-candidate`` task whose status is ``runs`` or
-        ``builds``; a held-out task never enters this eval.
+        If the manifest is not a development task that builds and
+        runs here (``unusable_reason`` gives the rule); a held-out task
+        never enters this eval.
     KeyError
         If ``checks.json`` has no entry for it.
     """
@@ -138,19 +223,12 @@ def load_spec(manifest_id: str) -> RepoSpec:
         msg = f"no manifest for {manifest_id}"
         raise FileNotFoundError(msg)
     manifest: dict[str, Any] = json.loads(found[0].read_text(encoding="utf-8"))
+    problem = unusable_reason(manifest_id, manifest)
+    if problem is not None:
+        raise ValueError(problem)
     checks: dict[str, Any] = json.loads(
         CHECKS_FILE.read_text(encoding="utf-8")
     )[manifest_id]
-    if (
-        manifest.get("split") not in _SPLITS
-        or manifest.get("status") not in _STATUSES
-    ):
-        msg = (
-            f"{manifest_id} is {manifest.get('split')!r}/"
-            f"{manifest.get('status')!r}: only built development tasks "
-            "may be used (never a held-out one)"
-        )
-        raise ValueError(msg)
     oracle: dict[str, Any] = manifest.get("oracle") or {}
     change = manifest["reference_change"]
     url = str(change["url"])
@@ -513,6 +591,136 @@ def run_oracle(
     return code == 0, tail
 
 
+def _is_script(path: Path) -> bool:
+    """Tell whether an executable is a script, not a binary."""
+    try:
+        with path.open("rb") as handle:
+            return handle.read(2) == b"#!"
+    except OSError:
+        return True
+
+
+def native_go() -> Path | None:
+    """Find the directory of a native ``go`` on this machine.
+
+    The harness's own ``PATH`` is searched first, then the places a
+    developer installs it: ``~/.local/go/bin``, ``/usr/local/go/bin``.
+    A script is skipped: a launcher that runs Go in a container builds
+    Linux binaries that cannot run here.
+
+    Returns
+    -------
+    pathlib.Path or None
+        The directory holding the ``go`` binary, or ``None``.
+    """
+    on_path = [
+        Path(d) / "go"
+        for d in os.environ.get("PATH", "").split(os.pathsep)
+        if d
+    ]
+    candidates = [
+        *on_path,
+        Path.home() / ".local" / "go" / "bin" / "go",
+        Path("/usr/local/go/bin/go"),
+    ]
+    for candidate in candidates:
+        if (
+            candidate.is_file()
+            and os.access(candidate, os.X_OK)
+            and not _is_script(candidate)
+        ):
+            return candidate.parent
+    return None
+
+
+def toolchain_dirs(real: RealRepo) -> list[Path]:
+    """List the native toolchain directories a task puts first on PATH.
+
+    Parameters
+    ----------
+    real : RealRepo
+        The task's repo settings.
+
+    Returns
+    -------
+    list of pathlib.Path
+        The native Go directory for a task that needs ``go``, so it
+        wins over any launcher that runs Go in a container; empty
+        otherwise, or when this machine has no native Go.
+    """
+    if "go" not in real.requires:
+        return []
+    found = native_go()
+    return [] if found is None else [found]
+
+
+def prefill_go_modcache(
+    spec: RepoSpec,
+    repo: Path,
+    extra_path: list[Path],
+    refs: Sequence[str] = (),
+    timeout: float = SETUP_TIMEOUT_S,
+) -> None:
+    """Download a Go task's modules into its private module cache.
+
+    The agent's sandbox may not write the owner's caches, and a task's
+    private home starts empty, so ``go build`` would have to download
+    its modules and the agent's run should not depend on the network
+    for them. This runs ``go mod download`` outside the sandbox, with
+    the same private ``HOME`` the agent gets (``GOPATH`` defaults to
+    ``$HOME/go``), so the modules are already in ``GOMODCACHE`` when the
+    agent starts. ``-modcacherw`` keeps the cache deletable.
+
+    Parameters
+    ----------
+    spec : RepoSpec
+        Supplies the manifest's variables (``GOTOOLCHAIN``).
+    repo : Path
+        The task repo, checked out at the task commit.
+    extra_path : list of pathlib.Path
+        Directories for ``PATH``; the native Go directory must be first.
+    refs : sequence of str, optional
+        Further branches whose ``go.mod`` may need other modules (the
+        reference change of a prove task); each is downloaded from a
+        copy of its ``go.mod`` and ``go.sum``, so the tree is untouched.
+    timeout : float, optional
+        Seconds allowed for each download.
+
+    Raises
+    ------
+    SetupError
+        If a download fails; the message holds its tail.
+    """
+    if not (repo / "go.mod").is_file():
+        return
+    env = task_env(spec, repo, extra_path)
+    env["GOFLAGS"] = "-modcacherw"
+    # Never fetch and run a toolchain, and never use the owner's cache:
+    # this runs outside the sandbox.
+    env["GOTOOLCHAIN"] = "local"
+    env["GOPATH"] = str(Path(env["HOME"]) / "go")
+    holder = repo.parents[1] / "sandbox" / repo.name / "modfiles"
+    jobs: list[list[str]] = [["go", "mod", "download"]]
+    for ref in refs:
+        target = holder / ref.replace("/", "_")
+        target.mkdir(parents=True, exist_ok=True)
+        for name in ("go.mod", "go.sum"):
+            shown = _git(repo, "show", f"{ref}:{name}")
+            if shown.returncode == 0:
+                (target / name).write_text(shown.stdout, encoding="utf-8")
+        if (target / "go.mod").is_file():
+            jobs.append(
+                ["go", "mod", "download", "-modfile", str(target / "go.mod")]
+            )
+    for argv in jobs:
+        code, tail = _run(
+            " ".join(shlex.quote(a) for a in argv), repo, env, timeout
+        )
+        if code != 0:
+            msg = f"`{' '.join(argv)[:80]}` exited {code}: {tail}"
+            raise SetupError(msg)
+
+
 def missing_requirements(real: RealRepo) -> list[str]:
     """List what a task needs that this machine lacks.
 
@@ -535,7 +743,10 @@ def missing_requirements(real: RealRepo) -> list[str]:
         return [NEEDS_DOCKER]
     provided = _PROVIDED.get(real.shim or "", ())
     missing = [
-        r for r in real.requires if r not in provided and not shutil.which(r)
+        r
+        for r in real.requires
+        if r not in provided
+        and not (native_go() if r == "go" else shutil.which(r))
     ]
     if real.shim is not None:
         try:

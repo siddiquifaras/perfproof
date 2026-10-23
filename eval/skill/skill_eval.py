@@ -175,7 +175,7 @@ def auth_probe(out: Path, work_root: Path, allow_docker: bool) -> Path:
     env["CLAUDE_CODE_TMPDIR"] = str(work / "config" / "tmp")
     (work / "config" / "tmp").mkdir(parents=True, exist_ok=True)
     (work / "config").mkdir(exist_ok=True)
-    token = sandbox.claude_oauth_token()
+    token = sandbox.claude_oauth_token(refresh=sandbox.refresh_sign_in)
     if token is not None:
         env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     launch = sandbox.wrap(

@@ -167,19 +167,27 @@ commit from a local cache into a clone with no remote, in a work
 directory outside the perfproof checkout (`--work-root`, default
 `~/.cache/perfproof-eval`), runs
 the manifest's build steps (Go and Ruby through the containers the
-manifests use, with launchers on `PATH`), installs the skill and sends
+manifests use, with launchers on `PATH`; the agent's own `go` is the
+native one when this machine has it, ahead of any launcher, and the
+task's module cache is filled by `go mod download` before the agent
+starts), installs the skill and sends
 the first message. A task whose toolchain is missing is recorded as
 skipped with the reason, not failed. Only development manifests are
-used; a held-out task never enters this set. The rule
-(`realrepo.load_spec`): split `development` or `development-candidate`
-(the language batches are drawn as candidates) and status `runs` or
-`builds` (built here; the Java tasks are `builds`, their workload not run
-to a label, which this eval does not need); `held-out` is refused
-whatever its status.
+used, with one addition. A pool candidate drawn into neither split
+(`development-candidate`) is used when it built and ran here with its
+workload and oracle verified, and the selection rule's own draw
+(`eval/mine/draw.py`, run by `realrepo.load_spec`) shows its class's
+held-out draw complete, with no unbuilt picks, under the current pool
+and statuses: it is then not a held-out task. The `split` field is
+written only by that script, so it is never edited to promote a task.
+A held-out task never enters this set. Java (its draw stopped at a
+step-1 review), serving and GPU (unbuilt picks) stay out until their
+held-out draws are made and built; a change to the pool or statuses
+can change this answer.
 
 | Family | Seeded as | Prompt | Passes when |
 |---|---|---|---|
-| hidden-fix | the task commit, no later history | `/perfproof light`, then "yes, go ahead with your suggestions" | the known function is in the top 5 of the first successful `perfproof profile` call before the first detected edit of the code (a failed attempt before it is fine; detection is pattern based, so an edit made in a way the patterns miss is not seen) and is named after it (the small examples need rank 1; the two rules are counted apart); a `perfproof/*` branch, if any, passes the manifest's tests and edits no test file; tree clean; `Result:` line and wording rules hold; no network lookup of the fix |
+| hidden-fix | the task commit, no later history | `/perfproof light` (the Django task adds "Our login-protected views are slower than they should be.": a user names the slow area, never the function or the fix), then "yes, go ahead with your suggestions" | the known function is in the top 5 of the first successful `perfproof profile` call before the first detected edit of the code (a failed attempt before it is fine; detection is pattern based, so an edit made in a way the patterns miss is not seen) and is named after it (the small examples need rank 1; the two rules are counted apart); a `perfproof/*` branch, if any, passes the manifest's tests and edits no test file; tree clean; `Result:` line and wording rules hold; no network lookup of the fix |
 | known-change | `main` at the parent, the fix on `pr-<n>` | a plain "is this PR actually faster?" naming the branch | the skill starts, `compare` ran, the verdict is INCONCLUSIVE, no code changed, `Result:` line correct |
 | nothing-to-keep | the merge, optimization already in | `/perfproof light`, same follow-ups | no KEEP, tree clean, wording and `Result:` line hold |
 
@@ -208,7 +216,9 @@ a denied binary, and by files nobody had listed.
      run's launchers; the perfproof environment (`.venv`, `src`); and
      the toolchains, `~/.local/bin`, `~/.local/share/uv` (managed
      Pythons), `~/.local/share/claude` (the `claude` install),
-     `~/.local/jdk`, `~/.cargo/bin` (not its `config.toml` or
+     `~/.local/jdk`, `~/.local/go` (without `$GOROOT/go.env`, `go env
+     GOPROXY` is empty and module downloads fail), `~/.cargo/bin`
+     (not its `config.toml` or
      `credentials*`), `~/.rustup`, `~/.nvm`. System paths stay readable.
      Nothing of `~/.claude`, `~/.claude.json`, `~/.ssh`, `~/.config`,
      `~/Library`, shell history and rc files, other projects, or earlier
@@ -251,7 +261,17 @@ a denied binary, and by files nobody had listed.
      fallback profiler for native programs) needs to symbolicate (it
      fails with "Invalid connection: com.apple.coresym..." without it),
      and `com.apple.system.opendirectoryd.libinfo`, which `getpwuid`
-     uses (without it `id -un` prints `501`). Run under the profile with
+     uses (without it `id -un` prints `501`). `com.apple.sysmond` is
+     deliberately not allowed. Round 7's fd run failed with "sysmond
+     service not found" on `sample fd 3` and `pgrep`, which look a
+     process up by name. Measured here: `sample <pid>` of a child, which
+     is what `perfproof.profilers.native record` does, works without it
+     (`test_perfproof_native_recorder_works_under_the_profile`); with it
+     allowed, `pgrep -fl` printed other sessions' full command lines,
+     and `sample <name>` still failed on the closed `kern.proc` sysctl
+     (`test_other_processes_command_lines_stay_hidden_without_sysmond`).
+     So a name lookup stays unavailable and the agent has to sample by
+     pid. Run under the profile with
      at most those two names, and working (`claude -p`, `probe-6`, with
      none): `claude auth
      status`, `git`, `python` (including `getaddrinfo`), `perfproof
@@ -345,8 +365,17 @@ a denied binary, and by files nobody had listed.
    with them. A separate `archive` command knows only the current
    sign-in, and refuses when it cannot read one rather than scanning for
    nothing. Each sign-in path ends a run differently. The keychain's
-   access token (`--no-eval-user`) carries an expiry, and one that expires
-   within the hour stops the run before the task starts. The eval user's
+   access token (`--no-eval-user`) carries an expiry: a task needs at
+   least thirty minutes left (`sandbox.TOKEN_MIN_REMAINING_S`; the longest
+   task wall time in round 7 was 1009 s, but a task that runs to its
+   timeout of 30 to 50 minutes can outlive the token, which the agent
+   cannot renew). With less, the harness runs one cheap `claude -p` turn
+   outside the sandbox, with no MCP servers or tools, which makes the CLI
+   renew its token if it is about to expire, and reads the expiry again;
+   only expiry times are looked at. The CLI seems not to renew early (one
+   observation, not recorded: a turn with 44 minutes left changed
+   nothing), so if the token is still short the run stops with the time
+   left and says to wait or sign in with `claude auth login`. The eval user's
    token file is an opaque long-lived token with no expiry to read, so
    two checks stand in for it: a tiny `claude -p` call, run once per
    host run by a guest `auth-probe` before the first task (the task guests
@@ -656,7 +685,7 @@ beyond `open -g -a`; whether another route into the GUI session exists.
 - `sandbox-exec` is deprecated by Apple; the profile language is
   undocumented and may change.
 - The allowlist is only as tight as its entries: `~/.local/bin`,
-  `~/.local/share/{uv,claude}`, `~/.local/jdk`, `~/.cargo/bin`,
+  `~/.local/share/{uv,claude}`, `~/.local/jdk`, `~/.local/go`, `~/.cargo/bin`,
   `~/.rustup` and `~/.nvm` are readable in full.
 - Results from before this confinement (`runs/real-3`) came from a
   harness where the agent could read most of the home directory; they

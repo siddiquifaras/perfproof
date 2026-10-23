@@ -246,6 +246,10 @@ def _check_clean(env: dict[str, str]) -> None:
     assert not list(Path(env["GH_CONFIG_DIR"]).iterdir())
 
 
+def _fake_oauth(**_: Any) -> str:
+    return "fake-oauth"
+
+
 @confinement
 def test_run_task_reaches_claude_through_the_sandbox(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -253,7 +257,7 @@ def test_run_task_reaches_claude_through_the_sandbox(
     monkeypatch.setenv("SSH_AUTH_SOCK", "/tmp/agent.sock")  # noqa: S108
     monkeypatch.setenv("GITHUB_PAT", "x")
     monkeypatch.setenv("GH_TOKEN", "gho_not_real")
-    monkeypatch.setattr(sandbox, "claude_oauth_token", lambda: "fake-oauth")
+    monkeypatch.setattr(sandbox, "claude_oauth_token", _fake_oauth)
     recorder = _Recorder()
     monkeypatch.setattr(subprocess, "Popen", recorder)
     tasks = taskset.load()
@@ -384,6 +388,119 @@ def test_a_missing_or_expiring_sign_in_stops_the_run() -> None:
         sandbox.claude_oauth_token(
             {}, _keychain(_oauth((now + 60) * 1000)), now
         )
+
+
+def test_a_token_with_a_task_s_worth_of_time_left_is_enough() -> None:
+    now = 1_000_000.0
+    left = sandbox.TOKEN_MIN_REMAINING_S + 60
+    token = sandbox.claude_oauth_token(
+        {}, _keychain(_oauth((now + left) * 1000)), now
+    )
+    assert token == "access-123"  # noqa: S105
+    # An hour used to be the margin: 44 minutes left stopped round 7.
+    assert (
+        sandbox.claude_oauth_token(
+            {}, _keychain(_oauth((now + 44 * 60) * 1000)), now
+        )
+        == token
+    )
+
+
+def test_a_short_token_is_renewed_by_the_cli_and_read_again() -> None:
+    now = 1_000_000.0
+    renewed: list[str] = []
+
+    def keychain(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        seconds = 28800 if renewed else 120
+        text = _oauth((now + seconds) * 1000)
+        return subprocess.CompletedProcess([], 0, text, "")
+
+    got = sandbox.claude_oauth_token(
+        {}, keychain, now, refresh=lambda: renewed.append("turn")
+    )
+    assert got == "access-123"
+    assert renewed == ["turn"]
+
+
+def test_the_eval_user_token_file_skips_keychain_expiry_and_renewal(
+    tmp_path: Path,
+) -> None:
+    file = tmp_path / "tok"
+    file.write_text("file-token\n")
+
+    def boom(*_: Any, **__: Any) -> Any:
+        msg = "must not touch the keychain or renew"
+        raise AssertionError(msg)
+
+    got = sandbox.claude_oauth_token(
+        {sandbox.TOKEN_FILE_ENV: str(file)}, boom, refresh=boom
+    )
+    assert got == "file-token"
+
+
+def test_a_token_that_is_long_enough_costs_no_renewing_turn() -> None:
+    now = 1_000_000.0
+
+    def never() -> None:
+        msg = "must not run a turn"
+        raise AssertionError(msg)
+
+    got = sandbox.claude_oauth_token(
+        {}, _keychain(_oauth((now + 7200) * 1000)), now, refresh=never
+    )
+    assert got == "access-123"
+
+
+def test_a_token_the_cli_did_not_renew_stops_the_run_and_says_what_to_do() -> (
+    None
+):
+    now = 1_000_000.0
+    asked: list[str] = []
+    with pytest.raises(sandbox.SandboxUnavailableError) as stopped:
+        sandbox.claude_oauth_token(
+            {},
+            _keychain(_oauth((now + 300) * 1000)),
+            now,
+            refresh=lambda: asked.append("turn"),
+        )
+    assert asked == ["turn"], "tried to renew once"
+    text = str(stopped.value)
+    assert "expires in 5 minutes" in text
+    assert "claude auth login" in text
+    assert "access-123" not in text
+    assert "refresh-456" not in text
+
+
+def test_the_renewing_turn_is_one_cheap_call_outside_the_sandbox() -> None:
+    seen: list[list[str]] = []
+
+    def fake(
+        argv: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[str]:
+        seen.append(argv)
+        assert kwargs["timeout"] > 0
+        assert kwargs["cwd"] == Path.home()
+        return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+    sandbox.refresh_sign_in(fake)
+    assert len(seen) == 1
+    argv = seen[0]
+    assert argv[:2] == ["claude", "-p"]
+    assert "sandbox-exec" not in argv
+    assert argv[argv.index("--model") + 1] == "haiku"
+    assert float(argv[argv.index("--max-budget-usd") + 1]) <= 0.05
+    # The owner's MCP servers, tools and settings do not load.
+    assert "--strict-mcp-config" in argv
+    assert json.loads(argv[argv.index("--mcp-config") + 1]) == {
+        "mcpServers": {}
+    }
+    assert argv[argv.index("--tools") + 1] == ""
+    assert argv[argv.index("--setting-sources") + 1] == ""
+
+    def broken(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        raise OSError
+
+    sandbox.refresh_sign_in(broken)
 
 
 def test_a_transcript_never_keeps_the_token(tmp_path: Path) -> None:
@@ -1674,6 +1791,113 @@ def test_sample_and_vmmap_work_on_own_children_only(tmp_path: Path) -> None:
         target.wait()
 
 
+_REPO = Path(__file__).resolve().parents[2]
+_BUSY = "import time\nt=time.time()\nwhile time.time()-t<3: pass\n"
+
+
+@confinement
+def test_perfproof_native_recorder_works_under_the_profile(
+    tmp_path: Path,
+) -> None:
+    """``sample`` of the recorder's own child needs no extra Mach name.
+
+    Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
+    ``pgrep``, which list processes. The recorder samples by pid.
+    """
+    if shutil.which("sample") is None:
+        pytest.skip("no sample on this machine")
+    text = sandbox.profile(
+        Path.home(),
+        tmp_path / "pp",
+        False,
+        read=[Path(sys.prefix), _REPO / "src"],
+        write=[tmp_path],
+    )
+    out = tmp_path / "out.folded"
+    got = _in_new_session(
+        text,
+        tmp_path,
+        [
+            sys.executable,
+            "-m",
+            "perfproof.profilers.native",
+            "record",
+            "--output",
+            str(out),
+            "--root",
+            str(tmp_path),
+            "--sample-seconds",
+            "1",
+            "--",
+            sys.executable,
+            "-I",
+            "-c",
+            _BUSY,
+        ],
+    )
+    assert got.returncode == 0, got.stderr
+    assert out.is_file(), got.stderr
+    assert out.read_text(encoding="utf-8").strip()
+
+
+@confinement
+@pytest.mark.skipif(shutil.which("pgrep") is None, reason="no pgrep")
+def test_other_processes_command_lines_stay_hidden_without_sysmond(
+    tmp_path: Path,
+) -> None:
+    """Allowing ``com.apple.sysmond`` would show every process's argv.
+
+    Measured: with it allowed, ``pgrep -fl`` printed other sessions'
+    full command lines (paths, task names), and ``sample <name>`` still
+    failed on the ``kern.proc`` sysctl. So it stays out.
+    """
+    marker = f"perfproof-argv-marker-{os.getpid()}"
+    target = subprocess.Popen([*_SLEEPER[:-1], _SLEEPER[-1] + f"#{marker}"])
+    try:
+        time.sleep(0.5)
+        control = subprocess.run(
+            ["pgrep", "-fl", marker],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if marker not in control.stdout:
+            pytest.skip("pgrep cannot see command lines here")
+        got = _in_new_session(
+            _proc_profile(tmp_path), tmp_path, ["pgrep", "-fl", marker]
+        )
+        assert marker not in got.stdout
+        assert got.returncode != 0
+    finally:
+        target.kill()
+        target.wait()
+    assert "com.apple.sysmond" not in _proc_profile(tmp_path)
+
+
+@confinement
+def test_a_native_go_can_read_its_own_root_under_the_profile(
+    tmp_path: Path,
+) -> None:
+    """Without the toolchain readable, ``go env GOPROXY`` is empty.
+
+    Round 7's echo run failed with "GOPROXY list is not the empty
+    string, but contains no entries": ``$GOROOT/go.env`` was closed.
+    """
+    found = realrepo.native_go()
+    if found is None:
+        pytest.skip("no native go on this machine")
+    go = str(found / "go")
+    control = subprocess.run(
+        [go, "env", "GOPROXY"], capture_output=True, text=True, check=False
+    )
+    if not control.stdout.strip():
+        pytest.skip("go reports no GOPROXY here")
+    got = _profile_run(tmp_path, go, "env", "GOPROXY")
+    assert got.stdout.strip() == control.stdout.strip(), got.stderr
+    ran = _profile_run(tmp_path, go, "version")
+    assert ran.stdout.startswith("go version")
+
+
 @confinement
 def test_the_auth_probe_runs_in_a_session_of_its_own(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1686,8 +1910,13 @@ def test_the_auth_probe_runs_in_a_session_of_its_own(
         seen.update(kwargs)
         return subprocess.CompletedProcess(argv, 0, "ok\n", "")
 
-    monkeypatch.setattr(sandbox, "claude_oauth_token", lambda: "tok-secret-1")
+    def token(**kwargs: Any) -> str:
+        seen["token_kwargs"] = kwargs
+        return "tok-secret-1"
+
+    monkeypatch.setattr(sandbox, "claude_oauth_token", token)
     monkeypatch.setattr(skill_eval.subprocess, "run", fake_run)
     record = skill_eval.auth_probe(tmp_path / "probes", tmp_path / "w", False)
+    assert seen["token_kwargs"] == {"refresh": sandbox.refresh_sign_in}
     assert seen["start_new_session"] is True
     assert "tok-secret-1" not in record.read_text(encoding="utf-8")

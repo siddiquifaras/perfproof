@@ -103,6 +103,7 @@ _HOME_READ = (
     ".local/share/uv",
     ".local/share/claude",
     ".local/jdk",
+    ".local/go",
     ".cargo/bin",
     ".rustup",
     ".nvm",
@@ -490,52 +491,27 @@ def _token_from_file(path: Path) -> str:
     return token
 
 
-def claude_oauth_token(
-    environ: Mapping[str, str] | None = None,
-    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
-    now: float | None = None,
-) -> str | None:
-    """Fetch the ``claude`` access token the confined agent will use.
+TOKEN_MIN_REMAINING_S = 1800.0
+"""Least time an access token must have left when a task starts.
 
-    The agent cannot reach the keychain (``security`` and the keychain
-    files are denied), and ``claude`` signs in through it. So the
-    harness, outside the sandbox, reads the access token once and hands
-    it to the agent as ``CLAUDE_CODE_OAUTH_TOKEN``. That is a narrower
-    grant than the keychain: one short-lived token that only does what
-    the agent's own sign-in does. The refresh token never leaves the
-    harness. The value is only ever held in memory; callers must
-    redact it from anything they write.
+The longest real-repository task wall time in round 7's three runs was
+1009 s (``real-xarray-hidden-fix``, r7-2: setup plus an 805 s agent
+turn; from the runs' ``meta.json`` on branch ``task/t3.8-skill-7``), so
+thirty minutes covers what was seen. It does not cover a task that runs
+to its own timeout (1800 to 3000 s in ``tasks-real.json``): the agent
+holds a fixed token and cannot renew it, so such a task can end with an
+authentication error. It replaces a fixed hour, which stopped round 7's
+third run while the token was still good. The CLI seemed to renew only
+when about to expire (one observation, not recorded: a one-turn
+``claude -p`` with 44 minutes left changed nothing), so an hour's margin
+is a window of an hour in every eight in which no run can start.
+"""
 
-    Parameters
-    ----------
-    environ : mapping of str to str, optional
-        Where to look for a token already provided; ``os.environ``.
-    run : callable, optional
-        ``subprocess.run``, replaceable in tests.
-    now : float, optional
-        Seconds since the epoch, replaceable in tests.
 
-    Returns
-    -------
-    str or None
-        ``None`` when the environment already carries a sign-in
-        (``ALLOWED_SECRETS``); the contents of the file named by
-        ``PERFPROOF_EVAL_TOKEN_FILE`` when that is set (the eval user's
-        long-lived token, no keychain); otherwise the keychain's access
-        token.
-
-    Raises
-    ------
-    SandboxUnavailableError
-        If the token file is missing or empty, or the keychain has no
-        usable sign-in, or its access token expires within an hour (run
-        ``claude`` once to refresh it).
-    """
-    env = os.environ if environ is None else environ
-    if any(env.get(name) for name in ALLOWED_SECRETS):
-        return None
-    if env.get(TOKEN_FILE_ENV):
-        return _token_from_file(Path(env[TOKEN_FILE_ENV]))
+def _read_oauth(
+    run: Callable[..., subprocess.CompletedProcess[str]],
+) -> dict[str, Any]:
+    """Read the ``claudeAiOauth`` keychain record, or ``{}``."""
     data: Any = None
     try:
         got = run(
@@ -556,21 +532,146 @@ def claude_oauth_token(
             data = json.loads(got.stdout)
     except (OSError, subprocess.TimeoutExpired, ValueError):
         data = None
-    oauth: dict[str, Any] = {}
     if isinstance(data, dict):
         found: Any = cast("dict[str, Any]", data).get("claudeAiOauth")
         if isinstance(found, dict):
-            oauth = cast("dict[str, Any]", found)
+            return cast("dict[str, Any]", found)
+    return {}
+
+
+def refresh_sign_in(
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> None:
+    """Let the ``claude`` CLI renew its token, outside the sandbox.
+
+    One cheap turn (``haiku``, at most five cents) with no project
+    settings, no MCP servers, no tools, from a neutral directory. The
+    CLI renews and stores its
+    token itself when the token is about to expire; the harness never
+    sees the refresh token's value. Failures are ignored: the caller
+    reads the expiry again and decides.
+
+    Parameters
+    ----------
+    run : callable, optional
+        ``subprocess.run``, replaceable in tests.
+    """
+    try:
+        run(
+            [
+                "claude",
+                "-p",
+                "reply with the single word ok",
+                "--model",
+                "haiku",
+                "--max-budget-usd",
+                "0.05",
+                # No MCP servers, tools or settings: the owner's own
+                # would start (and run) with this turn. Variadic flags
+                # are each followed by another flag.
+                "--strict-mcp-config",
+                "--mcp-config",
+                '{"mcpServers":{}}',
+                "--tools",
+                "",
+                "--setting-sources",
+                "",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            stdin=subprocess.DEVNULL,
+            check=False,
+            cwd=Path.home(),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return
+
+
+def claude_oauth_token(
+    environ: Mapping[str, str] | None = None,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    now: float | None = None,
+    *,
+    min_remaining: float = TOKEN_MIN_REMAINING_S,
+    refresh: Callable[[], None] | None = None,
+) -> str | None:
+    """Fetch the ``claude`` access token the confined agent will use.
+
+    The agent cannot reach the keychain (``security`` and the keychain
+    files are denied), and ``claude`` signs in through it. So the
+    harness, outside the sandbox, reads the access token once and hands
+    it to the agent as ``CLAUDE_CODE_OAUTH_TOKEN``. That is a narrower
+    grant than the keychain: one short-lived token that only does what
+    the agent's own sign-in does. The refresh token never leaves the
+    harness. The value is only ever held in memory; callers must
+    redact it from anything they write.
+
+    Parameters
+    ----------
+    environ : mapping of str to str, optional
+        Where to look for a token already provided; ``os.environ``.
+    run : callable, optional
+        ``subprocess.run``, replaceable in tests.
+    now : float, optional
+        Seconds since the epoch, replaceable in tests.
+    min_remaining : float, optional
+        Seconds the token must have left; ``TOKEN_MIN_REMAINING_S``.
+    refresh : callable, optional
+        Called once, with no arguments, when the token has less than
+        ``min_remaining`` left, before the keychain is read again
+        (``refresh_sign_in``). Only an expiry time is ever looked at.
+
+    Returns
+    -------
+    str or None
+        ``None`` when the environment already carries a sign-in
+        (``ALLOWED_SECRETS``); the contents of the file named by
+        ``PERFPROOF_EVAL_TOKEN_FILE`` when that is set; otherwise the
+        keychain's access token.
+
+    Raises
+    ------
+    SandboxUnavailableError
+        If the token file is missing or empty, or the keychain has no
+        usable sign-in, or its access token has less than
+        ``min_remaining`` left even after ``refresh`` (keychain only).
+    """
+    env = os.environ if environ is None else environ
+    if any(env.get(name) for name in ALLOWED_SECRETS):
+        return None
+    if env.get(TOKEN_FILE_ENV):
+        # The eval user token: long-lived, no keychain, no expiry check,
+        # no renewing turn.
+        return _token_from_file(Path(env[TOKEN_FILE_ENV]))
+    oauth = _read_oauth(run)
+    left = _seconds_left(oauth, now)
+    if left is not None and left < min_remaining and refresh is not None:
+        refresh()
+        oauth = _read_oauth(run)
+        left = _seconds_left(oauth, now)
     token = oauth.get("accessToken")
     if not isinstance(token, str) or not token:
         msg = "no claude sign-in found in the keychain; run `claude` once"
         raise SandboxUnavailableError(msg)
-    expires = oauth.get("expiresAt")
-    clock = time.time() if now is None else now
-    if isinstance(expires, int | float) and expires / 1000 < clock + 3600:
-        msg = "the claude access token expires within an hour; run `claude`"
+    if left is not None and left < min_remaining:
+        msg = (
+            f"the claude access token expires in {left / 60:.0f} minutes "
+            f"and a task needs {min_remaining / 60:.0f}: the CLI renews it "
+            "only when it is about to expire, so wait and retry, or sign "
+            "in again with `claude auth login`"
+        )
         raise SandboxUnavailableError(msg)
     return token
+
+
+def _seconds_left(oauth: Mapping[str, Any], now: float | None) -> float | None:
+    """Seconds until the access token expires; ``None`` if unknown."""
+    expires = oauth.get("expiresAt")
+    if not isinstance(expires, int | float):
+        return None
+    clock = time.time() if now is None else now
+    return expires / 1000 - clock
 
 
 def env_secrets(env: Mapping[str, str]) -> list[str]:

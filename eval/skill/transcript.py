@@ -7,6 +7,7 @@ unscored noise removed. Nothing here runs anything.
 
 from __future__ import annotations
 
+import ast
 import json
 import posixpath
 import re
@@ -737,6 +738,360 @@ def _subcommand_positionals(
     return _positionals(args[len(command) :], _VALUE_OPTS[command])
 
 
+# A script is read only when it imports nothing but these modules and
+# calls nothing but these names: anything else (``os``, ``shutil``,
+# ``subprocess``, ``importlib``, ``exec``, ``globals``, an alias of a
+# builtin) can write, rename or rebind by a route the syntax tree does
+# not show, so the caller falls back to the pattern match.
+_SAFE_MODULES = frozenset({"json", "pathlib", "re", "textwrap"})
+_SAFE_FUNCTIONS = frozenset(
+    {
+        "open",
+        "Path",
+        "PurePath",
+        "PosixPath",
+        "print",
+        "len",
+        "str",
+        "int",
+        "float",
+        "bool",
+        "list",
+        "dict",
+        "set",
+        "tuple",
+        "sorted",
+        "range",
+        "enumerate",
+        "zip",
+        "min",
+        "max",
+        "sum",
+        "any",
+        "all",
+        "isinstance",
+        "repr",
+    }
+)
+_SAFE_METHODS = frozenset(
+    {
+        "read",
+        "write",
+        "read_text",
+        "write_text",
+        "read_bytes",
+        "write_bytes",
+        "open",
+        "exists",
+        "mkdir",
+        "replace",
+        "format",
+        "join",
+        "split",
+        "splitlines",
+        "strip",
+        "rstrip",
+        "lstrip",
+        "startswith",
+        "endswith",
+        "lower",
+        "upper",
+        "count",
+        "find",
+        "index",
+        "append",
+        "extend",
+        "insert",
+        "pop",
+        "items",
+        "keys",
+        "values",
+        "get",
+        "setdefault",
+        "sub",
+        "search",
+        "match",
+        "fullmatch",
+        "findall",
+        "dump",
+        "dumps",
+        "load",
+        "loads",
+        "dedent",
+        "indent",
+    }
+)
+_PATH_CLASSES = frozenset({"Path", "PurePath", "PosixPath"})
+
+
+def _call_name(node: ast.Call) -> str:
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return ""
+
+
+def _literal_paths(
+    node: ast.expr, names: dict[str, list[str] | None]
+) -> list[str] | None:
+    """Resolve a path expression to the strings it can only be."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, ast.Name):
+        return names.get(node.id)
+    if (
+        isinstance(node, ast.Call)
+        and _call_name(node) in _PATH_CLASSES
+        and len(node.args) == 1
+        and not node.keywords
+    ):
+        return _literal_paths(node.args[0], names)
+    return None
+
+
+def _write_mode(call: ast.Call, position: int) -> bool | None:
+    """Tell whether ``open`` writes; ``None`` if that is unknown."""
+    mode: ast.expr | None = None
+    if len(call.args) > position:
+        mode = call.args[position]
+    for keyword in call.keywords:
+        if keyword.arg == "mode":
+            mode = keyword.value
+    if mode is None:
+        return False
+    if isinstance(mode, ast.Constant) and isinstance(mode.value, str):
+        return any(c in mode.value for c in "wax+")
+    return None
+
+
+def _reads_stdin_program(first_line: str) -> bool:
+    """Tell whether Python reads its program from the one here-document.
+
+    True for ``python3 - <<EOF`` and ``python3 <<EOF`` (options that
+    take no program, such as ``-I``, allowed). False for ``-c``, ``-m``,
+    a script file, a second here-document or a here-string.
+    """
+    if len(_HEREDOC.findall(first_line)) != 1 or "<<<" in first_line:
+        return False
+    words = _words(first_line.split("<<", 1)[0])
+    if not words or not words[0].rsplit("/", 1)[-1].startswith(
+        ("python", "pypy")
+    ):
+        return False
+    for word in words[1:]:
+        if word == "-":
+            continue
+        if word.startswith("-") and not word.startswith("--"):
+            if re.search(r"[cm]", word):
+                return False
+        elif word.startswith("--") or not word.startswith("-"):
+            return False
+    return True
+
+
+_REFLECTIVE_NAMES = frozenset(
+    {"modules", "f_globals", "f_locals", "f_back", "_getframe"}
+)
+
+
+def _is_plain(node: ast.AST) -> bool:
+    """Whether a node imports or calls only what the reader trusts."""
+    if isinstance(node, ast.Import):
+        return all(a.name.split(".")[0] in _SAFE_MODULES for a in node.names)
+    if isinstance(node, ast.ImportFrom):
+        return (node.module or "").split(".")[0] in _SAFE_MODULES
+    if isinstance(node, ast.Call):
+        func = node.func
+        if isinstance(func, ast.Name):
+            return func.id in _SAFE_FUNCTIONS
+        if isinstance(func, ast.Attribute):
+            return func.attr in _SAFE_METHODS
+        return False
+    return True
+
+
+_WRITERS = frozenset(
+    {"open", "write", "write_text", "write_bytes", "replace", "rename"}
+)
+
+
+def _shadows_or_passes_a_writer(nodes: list[ast.AST]) -> bool:
+    """Whether a listed name may not mean what the reader assumes.
+
+    The reader trusts a call by its name and finds writes only in calls
+    named for them, so a script that rebinds a listed name (an
+    assignment, ``def``, ``class``, parameter or import alias) or takes
+    a writing method without calling it (``sorted(key=p.write_text)``)
+    is not trusted.
+    """
+    listed = _SAFE_FUNCTIONS | _SAFE_METHODS
+    called = {id(n.func) for n in nodes if isinstance(n, ast.Call)}
+
+    def bound(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            return node.id
+        if isinstance(node, ast.FunctionDef | ast.ClassDef):
+            return node.name
+        if isinstance(node, ast.arg):
+            return node.arg
+        if isinstance(node, ast.alias):
+            return node.asname
+        return None
+
+    return any(
+        bound(node) in listed
+        or (
+            isinstance(node, ast.Attribute)
+            and node.attr in _WRITERS
+            and id(node) not in called
+        )
+        for node in nodes
+    )
+
+
+def _rebinds_by_reflection(node: ast.AST) -> bool:
+    """Whether a node can reach the script's names by another route.
+
+    A dunder or frame name (``sys.modules[...].p``, ``__main__.p``,
+    ``g.__dict__["p"]``, ``sys._getframe().f_globals``) can rebind a
+    name without a plain assignment, so a script holding one is not
+    trusted and falls back to the pattern match.
+    """
+    if isinstance(node, ast.Name):
+        ident = node.id
+    elif isinstance(node, ast.Attribute):
+        ident = node.attr
+    elif isinstance(node, ast.alias):
+        ident = node.name.split(".")[0]
+    else:
+        return False
+    return ident.startswith("__") or ident in _REFLECTIVE_NAMES
+
+
+def _python_write_targets(segment: str) -> list[str] | None:
+    """List the files a here-document's Python script writes.
+
+    Parameters
+    ----------
+    segment : str
+        One simple command with the here-document that feeds a Python
+        interpreter, as ``_segments`` keeps them.
+
+    Returns
+    -------
+    list of str or None
+        The literal paths that ``open(..., "w")``,
+        ``Path(...).write_text`` and ``Path(...).write_bytes`` write,
+        following a variable that only ever holds string literals.
+        ``None`` when that cannot be shown: the command is not exactly
+        one here-document read by Python from standard input, the
+        script does not parse (or is too deep to), a path is computed,
+        a name is bound in a way that is not a literal assignment, or a
+        call can run text, reach names by string or start another
+        program. The caller then falls back to the pattern match. That
+        match over-counts some scripts and, as before, misses writes
+        by other routes (``os.rename``, ``shutil.copy``, an aliased
+        ``open``, ``exec(open().read())``); this function does not
+        claim to close those.
+    """
+    first, _, rest = segment.partition("\n")
+    found = _HEREDOC.search(first)
+    if found is None or not _reads_stdin_program(first):
+        return None
+    end = re.compile(rf"^\s*{re.escape(found.group(2))}\s*$", re.M)
+    closing = end.search(rest)
+    body = rest[: closing.start()] if closing else rest
+    try:
+        tree = ast.parse(body)
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return None
+    names: dict[str, list[str] | None] = {}
+    nodes = list(ast.walk(tree))
+    if _shadows_or_passes_a_writer(nodes):
+        return None
+    for node in nodes:
+        if not _is_plain(node):
+            return None
+        if _rebinds_by_reflection(node):
+            return None
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    # No alias chasing: walk order is not source order.
+                    value = _literal_paths(node.value, {})
+                    old = names.get(target.id, [])
+                    names[target.id] = (
+                        None if value is None or old is None else old + value
+                    )
+    # A name is trusted only if every way it is bound is a plain
+    # assignment of a literal: a loop target, an annotated or augmented
+    # assignment, unpacking, a parameter, ``with ... as``, an import or
+    # a walrus rebinds it to something unseen.
+    plain: dict[str, int] = {}
+    for node in nodes:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    plain[target.id] = plain.get(target.id, 0) + 1
+    stored: dict[str, int] = {}
+    for node in nodes:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            stored[node.id] = stored.get(node.id, 0) + 1
+        elif isinstance(node, ast.arg):
+            names[node.arg] = None
+        elif isinstance(node, ast.alias):
+            names[(node.asname or node.name).split(".")[0]] = None
+        elif isinstance(
+            node, ast.ExceptHandler | ast.MatchAs | ast.MatchStar
+        ) and getattr(node, "name", None):
+            names[str(node.name)] = None
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            names[node.rest] = None
+        elif isinstance(node, ast.Global | ast.Nonlocal):
+            for ident in node.names:
+                names[ident] = None
+    for ident, count in stored.items():
+        if plain.get(ident, 0) != count:
+            names[ident] = None
+    paths: list[str] = []
+    for node in nodes:
+        if not isinstance(node, ast.Call):
+            continue
+        name = _call_name(node)
+        func = node.func
+        target: ast.expr | None = None
+        if name == "open" and isinstance(func, ast.Name):
+            writing = _write_mode(node, 1)
+            if writing is None or not node.args:
+                return None
+            target = node.args[0] if writing else None
+        elif name == "open" and isinstance(func, ast.Attribute):
+            # ``Path(...).open(mode)``; any other receiver (``io``,
+            # ``codecs``, ``builtins``) takes the path first: unknown.
+            if not (
+                isinstance(func.value, ast.Call)
+                and _call_name(func.value) in _PATH_CLASSES
+            ):
+                return None
+            writing = _write_mode(node, 0)
+            if writing is None:
+                return None
+            target = func.value if writing else None
+        elif name in {"write_text", "write_bytes"} and isinstance(
+            func, ast.Attribute
+        ):
+            target = func.value
+        if target is None:
+            continue
+        got = _literal_paths(target, names)
+        if got is None:
+            return None
+        paths += got
+    return paths
+
+
 def _segment_edits(segment: str, root: str | None) -> bool:
     # Redirections and options are read from the command line itself; a
     # here-document body (the rest) is only the python rule's text.
@@ -766,6 +1121,9 @@ def _segment_edits(segment: str, root: str | None) -> bool:
     if _git_edit(line):
         return True
     if head.startswith(("python", "pypy")) or "python" in segment[:40]:
+        proven = _python_write_targets(segment)
+        if proven is not None:
+            return any(_is_project_path(p, root) for p in proven)
         paths = [m.group("path") for m in _WRITE_OPEN.finditer(segment)]
         paths += [m.group("path") for m in _WRITE_PATH.finditer(segment)]
         if not paths and _PY_WRITES.search(segment):

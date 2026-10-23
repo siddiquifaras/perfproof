@@ -1054,7 +1054,12 @@ def run_task(
     repo = work / "repos" / task.id
     extra_path = [path_dir]
     spec: realrepo.RepoSpec | None = None
+    toolchains: list[Path] = []
     if task.repo is not None:
+        # Native toolchains first, so a launcher that runs the same one
+        # in a container (Linux binaries) never shadows them.
+        toolchains = realrepo.toolchain_dirs(task.repo)
+        extra_path = [*toolchains, path_dir]
         missing = realrepo.missing_requirements(task.repo)
         if missing:
             msg = (
@@ -1076,6 +1081,13 @@ def run_task(
             cache_dir or run_dir.parent / "cache",
             extra_path,
         )
+        if "go" in task.repo.requires and toolchains:
+            realrepo.prefill_go_modcache(
+                spec,
+                repo,
+                extra_path,
+                [] if task.repo.branch is None else [task.repo.branch],
+            )
         env = realrepo.task_env(spec, repo, extra_path)
     else:
         seeded = build_repo(task, repo, skill_dir)
@@ -1090,7 +1102,7 @@ def run_task(
     env["CLAUDE_CODE_TMPDIR"] = str(config_dir / "tmp")
     (config_dir / "tmp").mkdir(exist_ok=True)
     env.update(ISOLATION_ENV)
-    token = sandbox.claude_oauth_token()
+    token = sandbox.claude_oauth_token(refresh=sandbox.refresh_sign_in)
     if token is not None:
         env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     secrets = sandbox.env_secrets(env)
@@ -1116,6 +1128,7 @@ def run_task(
             cwd=repo,
             read=[
                 path_dir,
+                *toolchains,
                 work / "shims",
                 work / "sandbox" / task.id,
                 REPO_ROOT / ".venv",

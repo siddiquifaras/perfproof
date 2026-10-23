@@ -835,7 +835,7 @@ def test_a_sign_in_that_dies_mid_run_stops_and_leaves_no_task_record(
         )
         return meta, _REJECTED
 
-    def token() -> str:
+    def token(**_: object) -> str:
         return "tok-for-test"
 
     monkeypatch.setattr(runner, "build_repo", build)
@@ -1095,7 +1095,7 @@ def test_a_probe_that_times_out_is_not_signed_in(
     def hang(argv: list[str], **_: Any) -> Any:
         raise subprocess.TimeoutExpired(argv, 300)
 
-    def token() -> str:
+    def token(**_: object) -> str:
         return "tok-secret-2"
 
     monkeypatch.setattr(sandbox, "claude_oauth_token", token)

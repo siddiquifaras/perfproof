@@ -12,6 +12,7 @@ something itself. Nothing in them is typed by hand.
 import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -833,6 +834,157 @@ def test_what_counts_as_an_edit_of_the_code() -> None:
     )
     for command in not_edits:
         assert not bash(command), command
+
+
+_OWN_FILE_SCRIPTS = (
+    # r7-2: the agent rewrites its own harness; the text it injects
+    # holds an ``open('out/result.txt', 'w')`` that is data, not a call.
+    "python - <<'EOF'\np=\".perfproof/harness/work.py\"\ns=open(p).read()\n"
+    "s=s.replace('a',\"open('out/result.txt','w').write('x')\")\n"
+    'open(p,"w").write(s)\nEOF',
+    # r7-3: a spec edited through a variable path, with test paths in
+    # the data it writes.
+    "python3 - <<'EOF'\nimport json\np='.perfproof/specs/r.json'\n"
+    "s=json.load(open(p))\ns['c']=['pytest','xarray/tests/test_a.py']\n"
+    "json.dump(s,open(p,'w'))\nEOF",
+    "python3 - <<'EOF'\nfrom pathlib import Path\n"
+    "q=Path('.perfproof/harness/h.py')\nq.write_text('x = 1')\nEOF",
+)
+_CODE_SCRIPTS = (
+    "python3 - <<'EOF'\np='xarray/core/rolling.py'\ns=open(p).read()\n"
+    "open(p,'w').write(s)\nEOF",
+    "python3 - <<'EOF'\nfrom pathlib import Path\n"
+    "Path('src/a.py').write_text('x')\nEOF",
+    # one scratch write does not hide a code write beside it
+    "python3 - <<'EOF'\nopen('.perfproof/a','w')\nopen('src/a.py','w')\nEOF",
+    # a variable that may be either
+    "python3 - <<'EOF'\np='.perfproof/a'\np='src/a.py'\nopen(p,'w')\nEOF",
+    # computed paths and text run as code cannot be shown to be scratch
+    "python3 - <<'EOF'\nimport sys\nopen(sys.argv[1] + '.py','w')\nEOF",
+    "python3 - <<'EOF'\nexec(\"open('src/a.py','w')\")\nEOF",
+    "python3 - <<'EOF'\nimport subprocess\n"
+    "subprocess.run(['python','-c',\"open('src/a.py','w')\"])\nEOF",
+    # a name rebound some other way than a literal assignment
+    "python3 - <<'EOF'\np='.perfproof/a'\nfor p in ['src/a.py']:\n"
+    "    open(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\np: str = 'src/a.py'\n"
+    "open(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\np,q='src/a.py',1\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nif 1:\n    p='src/a.py'\n"
+    "q=p\nopen(q,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\ndef f(p):\n    open(p,'w')\n"
+    "f('src/a.py')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\n"
+    "[open(p,'w') for p in ['src/a.py']]\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\n"
+    "(lambda p: open(p,'w'))('src/a.py')\nEOF",
+    # other callables named open take the path first
+    "python3 - <<'EOF'\nimport io\nio.open('src/b.py','w')\nEOF",
+    "python3 - <<'EOF'\nimport codecs\ncodecs.open('src/b.py','w')\nEOF",
+    "python3 - <<'EOF'\nimport builtins\nbuiltins.open('src/b.py','w')\nEOF",
+    # Python must read its program from the one here-document
+    "python3 -c \"open('src/a.py','w')\" <<'EOF'\nx = 1\nEOF",
+    "python3 - <<'A' <<'B'\nx = 1\nA\nopen('src/a.py','w')\nB",
+    # names reached through match patterns or by string
+    "python3 - <<'EOF'\np='.perfproof/a'\nmatch 'src/a.py':\n"
+    "    case p:\n        open(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nvars()['p']='src/a.py'\n"
+    "open(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nglobals()['p']='src/a.py'\n"
+    "open(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nsetattr(__import__('sys'),'x',1)\n"
+    "open('src/a.py','w')\nEOF",
+    # names rebound through the module, its dict or the frame
+    "python3 - <<'EOF'\np='.perfproof/a'\nimport sys\n"
+    "sys.modules['__main__'].p='src/a.py'\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nimport __main__\n"
+    "__main__.p='src/a.py'\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nimport sys\n"
+    "sys.modules[__name__].__dict__['p']='src/a.py'\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nimport sys\n"
+    "sys._getframe().f_globals['p']='src/a.py'\nopen(p,'w')\nEOF",
+    # routes to the module's names that hide behind an alias or a
+    # string: only the listed imports and calls are trusted
+    "python3 - <<'EOF'\np='.perfproof/a'\nimport importlib\n"
+    "importlib.import_module('__main__').p='src/a.py'\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\ng=globals\n"
+    "g()['p']='src/a.py'\nopen(p,'w')\nEOF",
+    "python3 - <<'EOF'\np='.perfproof/a'\nfrom builtins import exec as e\n"
+    "e('p=\"src/a.py\"')\nopen(p,'w')\nEOF",
+    # a listed name rebound, or a writer passed rather than called
+    "python3 - <<'EOF'\nfrom pathlib import Path\n"
+    "q = Path('.perfproof/x')\nq.write_text('y')\n"
+    "print = Path('src/a.py').write_text\nprint('z')\nEOF",
+    "python3 - <<'EOF'\nfrom pathlib import Path\n"
+    "q = Path('.perfproof/x')\nq.write_text('y')\n"
+    "open = Path('src/a.py').open\nopen('w').write('z')\nEOF",
+    "python3 - <<'EOF'\nfrom pathlib import Path\n"
+    "q = Path('.perfproof/x')\nq.write_text('y')\n"
+    "sorted(['z'], key=Path('src/a.py').write_text)\nEOF",
+    # a script that does not parse falls back to the pattern match
+    "python3 - <<'EOF'\nopen('src/a.py','w') ??\nEOF",
+)
+
+
+def test_a_python_script_that_writes_only_perfproof_files_is_no_edit() -> None:
+    root = "/r/repos/t"
+    for command in _OWN_FILE_SCRIPTS:
+        assert not transcript.is_code_edit("Bash", {"command": command}, root)
+
+
+def test_a_python_script_that_writes_code_is_still_an_edit() -> None:
+    root = "/r/repos/t"
+    for command in _CODE_SCRIPTS:
+        assert transcript.is_code_edit("Bash", {"command": command}, root), (
+            command
+        )
+
+
+def test_a_script_too_deep_to_parse_falls_back_to_the_pattern_match(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def deep(*_: Any, **__: Any) -> None:
+        raise RecursionError
+
+    monkeypatch.setattr(transcript.ast, "parse", deep)
+    command = "python3 - <<'EOF'\nopen('src/a.py','w')\nEOF"
+    assert transcript.is_code_edit("Bash", {"command": command}, "/r/repos/t")
+
+    def full(*_: Any, **__: Any) -> None:
+        raise MemoryError
+
+    monkeypatch.setattr(transcript.ast, "parse", full)
+    assert transcript.is_code_edit("Bash", {"command": command}, "/r/repos/t")
+
+
+def test_a_profile_after_a_python_edit_of_code_still_fails() -> None:
+    ok, why = _grade(
+        [
+            _use(1, "Bash", command=_CODE_SCRIPTS[0]),
+            _out(1, ""),
+            _use(2, "Bash", command="perfproof profile rolling --json"),
+            _out(2, _PROFILE_OK),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is False
+    assert "after the first edit" in why
+
+
+def test_a_profile_after_editing_its_own_files_in_python_passes() -> None:
+    ok, why = _grade(
+        [
+            *[
+                event
+                for n, command in enumerate(_OWN_FILE_SCRIPTS, 1)
+                for event in (_use(n, "Bash", command=command), _out(n, ""))
+            ],
+            _use(9, "Bash", command="perfproof profile rolling --json"),
+            _out(9, _PROFILE_OK),
+            _say(_NAMED),
+        ]
+    )
+    assert ok is True, why
 
 
 def test_edit_tools_are_judged_by_the_project_path() -> None:

@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -272,6 +273,243 @@ def test_a_held_out_manifest_cannot_be_loaded() -> None:
     assert realrepo.load_spec("sharkdp-fd-pr853").setup
 
 
+_SKILL = runner.REPO_ROOT / "eval" / "skill"
+_CANDIDATE_TASKS = [
+    pytest.param(task, id=task.id)
+    for name in ("tasks-go.json", "tasks-native.json")
+    for task in taskset.load(_SKILL / name).tasks
+    if task.repo is not None
+]
+
+
+@pytest.mark.parametrize("task", _CANDIDATE_TASKS)
+def test_a_built_candidate_of_a_drawn_class_loads(task: taskset.Task) -> None:
+    assert task.repo is not None
+    assert realrepo.load_spec(task.repo.manifest).setup
+
+
+def _manifest(**fields: object) -> dict[str, object]:
+    base: dict[str, object] = {
+        "split": "development-candidate",
+        "status": "runs",
+        "target_class": "web",
+        "workload": {"verified": True},
+        "oracle": {"verified": True},
+    }
+    return {**base, **fields}
+
+
+def test_what_makes_a_candidate_usable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        realrepo,
+        "draw_state",
+        lambda: ({"java": "its held-out draw stopped"}, frozenset({"h"})),
+    )
+    assert realrepo.unusable_reason("t", _manifest()) is None
+    assert (
+        realrepo.unusable_reason("t", _manifest(split="development")) is None
+    )
+    refused = {
+        "held out": _manifest(split="held-out"),
+        "not built": _manifest(status="builds"),
+        "workload unverified": _manifest(workload={"verified": False}),
+        "oracle missing": _manifest(oracle=None),
+        "draw stopped": _manifest(target_class="java"),
+    }
+    for why, manifest in refused.items():
+        assert realrepo.unusable_reason("t", manifest), why
+    assert "not safe" in str(
+        realrepo.unusable_reason("t", _manifest(target_class="java"))
+    )
+    # The draw's own held-out picks are refused whatever the field says.
+    assert realrepo.unusable_reason("h", _manifest())
+
+
+@pytest.mark.parametrize("klass", ["serving", "gpu"])
+def test_a_candidate_of_an_unbuilt_class_is_refused(klass: str) -> None:
+    """The review marks serving and gpu as needing a GPU host; their
+    held-out draw holds unbuilt picks, so they count as unfinished."""
+    unsafe, _ = realrepo.draw_state()
+    assert klass in unsafe
+    reason = realrepo.unusable_reason("t", _manifest(target_class=klass))
+    assert reason
+    assert "not safe" in reason
+
+
+def test_a_drawn_held_out_task_is_never_a_candidate() -> None:
+    _, held_out = realrepo.draw_state()
+    assert "gin-gonic-gin-pr4466" in held_out
+    for name in held_out:
+        with pytest.raises(ValueError):  # noqa: PT011
+            realrepo.load_spec(name)
+
+
+def test_every_held_out_manifest_is_refused() -> None:
+    held = [
+        p
+        for p in realrepo.TASKS_DIR.glob("*/*.json")
+        if p.parent.name != "workloads"
+        and json.loads(p.read_text()).get("split") == "held-out"
+    ]
+    assert held
+    for path in held:
+        with pytest.raises(ValueError, match="development"):
+            realrepo.load_spec(path.stem)
+
+
+def _fake_go(directory: Path, body: str = "exit 0") -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    launcher = directory / "go"
+    launcher.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
+    launcher.chmod(0o755)
+    return launcher
+
+
+def _binary(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\xcf\xfa\xed\xfe not a script")
+    path.chmod(0o755)
+    return path
+
+
+def test_native_go_is_a_binary_never_a_container_launcher(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    shims = tmp_path / "shims"
+    _fake_go(shims)
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("PATH", str(shims))
+    assert realrepo.native_go() != shims, "a script is not native Go"
+    native = _binary(home / ".local" / "go" / "bin" / "go")
+    assert realrepo.native_go() == native.parent
+    # A native go on PATH is found first.
+    on_path = _binary(tmp_path / "bin" / "go")
+    monkeypatch.setenv("PATH", f"{shims}{os.pathsep}{on_path.parent}")
+    assert realrepo.native_go() == on_path.parent
+
+
+def test_native_go_comes_first_on_the_agent_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    native = _binary(home / ".local" / "go" / "bin" / "go")
+    shims = tmp_path / "work" / "shims" / "go"
+    shim = _fake_go(shims)
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    real = taskset.RealRepo(manifest="x", requires=["docker", "go"], shim="go")
+    dirs = [*realrepo.toolchain_dirs(real), tmp_path / "bin", shims]
+    assert dirs[0] == native.parent
+    repo = tmp_path / "work" / "repos" / "t"
+    repo.mkdir(parents=True)
+    env = realrepo.task_env(_spec("a", "b"), repo, dirs)
+    assert shutil.which("go", path=env["PATH"]) == str(native)
+    assert shutil.which("go", path=str(shims)) == str(shim)
+    other = taskset.RealRepo(manifest="x", requires=["uv"])
+    assert realrepo.toolchain_dirs(other) == []
+
+
+def test_a_native_go_satisfies_the_go_requirement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    real = taskset.RealRepo(manifest="x", requires=["go"])
+    assert realrepo.missing_requirements(real) == ["go"]
+    _binary(home / ".local" / "go" / "bin" / "go")
+    assert realrepo.missing_requirements(real) == []
+
+
+def test_the_module_cache_is_filled_in_the_private_home_before_the_agent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work = tmp_path / "work"
+    repo = work / "repos" / "t"
+    repo.mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "go.mod").write_text("module m\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "a")
+    _git(repo, "checkout", "-q", "-b", "pr")
+    (repo / "go.mod").write_text("module m\nrequire x v1\n")
+    (repo / "go.sum").write_text("x v1 h1:y\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "b")
+    _git(repo, "checkout", "-q", "main")
+    log = tmp_path / "go.log"
+    native = _fake_go(
+        tmp_path / "native",
+        f'echo "$HOME|$GOFLAGS|$(pwd)|$*|$GOTOOLCHAIN|$GOPATH" >> {log}',
+    )
+    monkeypatch.setenv("PATH", f"{native.parent}{os.pathsep}/usr/bin:/bin")
+    realrepo.prefill_go_modcache(
+        _spec("a", "b"), repo, [native.parent], refs=["pr"]
+    )
+    lines = log.read_text().splitlines()
+    assert len(lines) == 2
+    home, flags, cwd, args, toolchain, gopath = lines[0].split("|")
+    assert toolchain == "local"
+    assert gopath == f"{home}/go", "a private GOPATH, not the owner's"
+    # The agent's HOME is work/sandbox/<task>/private/home, and GOPATH
+    # defaults to $HOME/go, so the cache lands where the agent looks.
+    assert home == str(work / "sandbox" / "t" / "private" / "home")
+    assert flags == "-modcacherw"
+    assert Path(cwd).resolve() == repo.resolve()
+    assert args == "mod download"
+    copy = work / "sandbox" / "t" / "modfiles" / "pr"
+    assert lines[1].split("|")[3] == f"mod download -modfile {copy}/go.mod"
+    assert lines[1].split("|")[4] == "local"
+    assert "require x v1" in (copy / "go.mod").read_text()
+    assert (copy / "go.sum").is_file()
+    assert (repo / "go.mod").read_text() == "module m\n", "tree untouched"
+
+
+def test_a_failed_module_download_is_a_setup_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "work" / "repos" / "t"
+    repo.mkdir(parents=True)
+    (repo / "go.mod").write_text("module m\n")
+    native = _fake_go(tmp_path / "native", "echo no network >&2; exit 1")
+    monkeypatch.setenv("PATH", f"{native.parent}{os.pathsep}/usr/bin:/bin")
+    with pytest.raises(realrepo.SetupError, match="no network"):
+        realrepo.prefill_go_modcache(_spec("a", "b"), repo, [native.parent])
+
+
+def test_a_repo_without_go_mod_needs_no_download(tmp_path: Path) -> None:
+    repo = tmp_path / "work" / "repos" / "t"
+    repo.mkdir(parents=True)
+    realrepo.prefill_go_modcache(_spec("a", "b"), repo, [])
+
+
+def test_the_django_task_names_the_area_and_never_the_function_or_fix() -> (
+    None
+):
+    """Round 7: the agent profiled template rendering, so the cost of
+    the login check never showed. A user would say which views are slow;
+    they would not say which function, or how to fix it."""
+    task = next(t for t in REAL.tasks if t.id == "real-django-hidden-fix")
+    assert task.expect.hotspot is not None
+    prompt = task.prompt.lower()
+    assert prompt.startswith("/perfproof light ")
+    assert "login" in prompt
+    for forbidden in (
+        task.expect.hotspot.function.lower(),
+        "user_passes_test",
+        "decorator",
+        "decoration",
+        "async",
+        "coroutine",
+        "iscoroutine",
+        "21460",
+    ):
+        assert forbidden not in prompt, forbidden
+
+
 def _manifest_dirs(
     tmp_path: Path, split: str, status: str
 ) -> tuple[Path, Path]:
@@ -298,8 +536,10 @@ def _manifest_dirs(
     ("split", "status", "loads"),
     [
         ("development", "runs", True),
-        ("development-candidate", "runs", True),
-        ("development-candidate", "builds", True),
+        # a candidate needs verified workload and oracle and a safe
+        # class (see test_what_makes_a_candidate_usable)
+        ("development-candidate", "runs", False),
+        ("development-candidate", "builds", False),
         ("held-out", "runs", False),
         ("held-out", "builds", False),
         ("development-candidate", "candidate", False),
@@ -323,14 +563,31 @@ def test_which_splits_and_statuses_may_load(
             realrepo.load_spec("t")
 
 
+# Task files whose manifests the selection rule's draw lets in. The
+# Java and Node candidates only `build`, and the dotnet class's
+# held-out draw has not finished, so they stay out until it has.
+_LOADS = {
+    "tasks.json",
+    "tasks-real.json",
+    "tasks-go.json",
+    "tasks-native.json",
+    "tasks-ruby.json",
+}
+
+
 @pytest.mark.parametrize(
     "path",
     sorted((Path(__file__).parent).glob("tasks*.json")),
     ids=lambda p: p.name,
 )
-def test_every_task_file_loads(path: Path) -> None:
+def test_task_files_load_exactly_when_the_draw_allows(path: Path) -> None:
     found = taskset.load(path)
     assert found.tasks
     for task in found.tasks:
-        if task.repo is not None:
+        if task.repo is None:
+            continue
+        if path.name in _LOADS:
             assert realrepo.load_spec(task.repo.manifest).repository
+        else:
+            with pytest.raises(ValueError, match="development"):
+                realrepo.load_spec(task.repo.manifest)
