@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `9984f0a` | profile entry frames merged (PR #81): `frames_by_total` leaves out the frames before each stack's first project frame unless they have self time; Rust std/core/alloc and C++ std/__gnu_cxx/__cxxabiv1 frames compiled into an own binary are library (a frame is runtime only when no non-runtime identifier is left). fd `print_entry` total rank 17 -> 9; echo `ServeHTTP` 4 -> 2. Head fa6153c: Linux 5576 passed; Mac 5663 passed, 2 failed (java/node keeps-forking kill tests, pass alone: load flake); then main (worklog) merged and its own tests rerun: 1066 passed |
 | `5ed3757` | hidden-fix scoring merged (PR #80, T3.8): names matched as profilers print them (owner-qualified, Go/C++/Rust/Ruby normalised, file check), the window is the first N of each printed list (self and total kept apart), CLI text tables parsed, list names count as headings only as a JSON key or a lone line; django accepts `_view_wrapper`, fd accepts `output::print_entry`; naming needs the owner-qualified form. All 305 saved scores byte-identical. Head f227b0a: Mac 5627, Linux 5538 |
 | `56219d0` | batch full check on main after #73-#79, #67, #78: Mac 5493 passed, Linux 5404 passed, 0 failed |
 | `a52e543` | eval draws merged (PR #78, T3.8): development-named tasks never held-out; an unfillable slot is recorded and the draw goes on; step-1 reviews for java, dotnet, rust; Node, Java tasks re-checked to `runs`; loader treats unfilled held-out slots as done. All 9 task files (29 entries) load. Held-out: java 3 of 5, dotnet 0, rust 0. Head 179f6ad: Mac 5493, Linux 5404 |
@@ -244,6 +245,8 @@ Resumed 2026-10-21 on Faras's "continue". Stop at the next 5-hour limit and do n
 Skill-eval and real-repo runs since resuming: $20.22 summed from each run's reported `total_cost_usd` (3b-find 0.91, 3c 2.76, 3d-find 0.56, 3e 2.55, 3f 0.59, 3g 0.63, 3h 0.66, 3i 2.37, 3j 1.48, 4a 2.79, 4b 2.86, frames2py 0.85 + 1.21); API-equivalent figures on plan usage, not billed.
 
 ### Known gaps
+
+- `tests/profilers/test_{java,node}.py::test_a_command_that_keeps_forking_leaves_nothing_behind` failed together once in the Mac full suite on PR #81 (load about 3.5; a `sleep` from the forking loop outlived the kill) and passed alone. Load-sensitive; not yet fixed.
 
 - `tests/bench/test_stub.py::test_the_per_call_untimed_cost_is_added_to_the_hook_cost` is flaky under the emulated amd64 Linux check (overhead 3.3 ms vs a 2 ms bound): failed 2 of 3 on main 0fc398c and 1 of 3 on #55 in the same container, 2026-10-22. Timing bound too tight for emulation; not yet fixed.
 
