@@ -236,7 +236,11 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   or a declared quantile, batched where rounds are autocorrelated: pass
   under, breach over, `not_established` only when the bound straddles
   the cap. The candidate's median, bound, cap and rounds-over count are
-  always reported.
+  always reported, plus `reliable_value` (the closest value the
+  candidate reliably meets) and its gap to the cap. Skill follow-up
+  (Faras): a missed or too-close cap becomes a goal; the skill finds
+  and proves changes that close the gap, instead of stopping at "can't
+  tell".
 
 ### In progress
 
