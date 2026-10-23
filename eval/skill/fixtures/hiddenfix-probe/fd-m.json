@@ -1,0 +1,213 @@
+{
+ "basis": "unknown",
+ "cli_text": "Profile of fd-m (spec 000000000000) with command version unknown.\nTop frames by self time (share of the profiler's samples):\n   self  total  location  function\n  33.3%  33.3%  -  libsystem_kernel.dylib`__ulock_wait  (library)\n  33.3%  33.3%  -  libsystem_kernel.dylib`read  (library)\n  15.6%  15.6%  -  libsystem_kernel.dylib`lstat  (library)\n   5.6%   5.6%  -  libsystem_kernel.dylib`write  (library)\n   2.2%  30.0%  -  fd`fd::output::print_entry::ha19644765a9c40d9\n   1.1%   1.1%  -  fd`_$LT$core..str..lossy..Utf8Chunks$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::hbcb5d3b15aa662ed\n   1.1%   1.1%  -  libsystem_platform.dylib`_platform_memmove  (library)\n   1.1%   1.1%  -  fd`core::slice::memchr::memrchr::h746a03bcae7249ab\n   1.1%   1.1%  -  libsystem_malloc.dylib`_free  (library)\n   1.1%   1.1%  -  libsystem_malloc.dylib`_malloc_zone_malloc  (library)\n   1.1%   1.1%  -  libsystem_platform.dylib`_platform_memcmp  (library)\n   1.1%   1.1%  -  fd`std::sync::mpmc::Receiver$LT$T$GT$::recv::h551cf746036ed279\n   1.1%   1.1%  -  libsystem_malloc.dylib`_nanov2_free  (library)\n   1.1%   1.1%  -  libsystem_kernel.dylib`__munmap  (library)\nTop frames by total time (with callees; a frame can be here with no self time):\n   self  total  location  function\n   0.0%  66.7%  -  libsystem_pthread.dylib`thread_start  (library)\n   0.0%  66.7%  -  libsystem_pthread.dylib`_pthread_start  (library)\n   0.0%  66.7%  -  fd`std::sys::thread::unix::Thread::new::thread_start::h7cf39b7a7f135f48\n  33.3%  33.3%  -  libsystem_kernel.dylib`__ulock_wait  (library)\n  33.3%  33.3%  -  libsystem_kernel.dylib`read  (library)\n   0.0%  33.3%  -  dyld`start  (library)\n   0.0%  33.3%  -  fd`main\n   0.0%  33.3%  -  fd`std::sys::backtrace::__rust_begin_short_backtrace::hbd77625e636cfc61\n   0.0%  33.3%  -  fd`fd::main::h020d2e91688c21c3\n   0.0%  33.3%  -  fd`fd::walk::scan::h6c5b57f148ddc2ba\n   0.0%  33.3%  -  fd`std::thread::lifecycle::JoinInner$LT$T$GT$::join::h3306ad4cb9995805\n   0.0%  33.3%  -  libsystem_pthread.dylib`_pthread_join  (library)\n   0.0%  33.3%  -  fd`core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha396b8f9b044e434\n   0.0%  33.3%  -  fd`std::sys::backtrace::__rust_begin_short_backtrace::h886e930b64a774dd\n   0.0%  32.2%  -  fd`core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h46dc0d090c9b1ad6\nUnprofiled run: wall 0.756 s, CPU 0.134 s (summed over all threads and processes).\nFor at least 82% of wall time no thread of the benchmark was on a CPU: it was waiting, not computing.\nLoad average 3.6 on 10 CPUs.\nProfiled run: wall 0.168 s. Files: /work/.perfproof/p",
+ "frames_by_total": [
+  {
+   "file": null,
+   "function": "libsystem_pthread.dylib`thread_start",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.6667
+  },
+  {
+   "file": null,
+   "function": "libsystem_pthread.dylib`_pthread_start",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.6667
+  },
+  {
+   "file": null,
+   "function": "fd`std::sys::thread::unix::Thread::new::thread_start::h7cf39b7a7f135f48",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.6667
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`__ulock_wait",
+   "line": null,
+   "self_fraction": 0.3333,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`read",
+   "line": null,
+   "self_fraction": 0.3333,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "dyld`start",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`main",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`std::sys::backtrace::__rust_begin_short_backtrace::hbd77625e636cfc61",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`fd::main::h020d2e91688c21c3",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`fd::walk::scan::h6c5b57f148ddc2ba",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`std::thread::lifecycle::JoinInner$LT$T$GT$::join::h3306ad4cb9995805",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "libsystem_pthread.dylib`_pthread_join",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::ha396b8f9b044e434",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`std::sys::backtrace::__rust_begin_short_backtrace::h886e930b64a774dd",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "fd`core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h46dc0d090c9b1ad6",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.3222
+  }
+ ],
+ "hotspots": [
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`__ulock_wait",
+   "line": null,
+   "self_fraction": 0.3333,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`read",
+   "line": null,
+   "self_fraction": 0.3333,
+   "total_fraction": 0.3333
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`lstat",
+   "line": null,
+   "self_fraction": 0.1556,
+   "total_fraction": 0.1556
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`write",
+   "line": null,
+   "self_fraction": 0.0556,
+   "total_fraction": 0.0556
+  },
+  {
+   "file": null,
+   "function": "fd`fd::output::print_entry::ha19644765a9c40d9",
+   "line": null,
+   "self_fraction": 0.0222,
+   "total_fraction": 0.3
+  },
+  {
+   "file": null,
+   "function": "fd`_$LT$core..str..lossy..Utf8Chunks$u20$as$u20$core..iter..traits..iterator..Iterator$GT$::next::hbcb5d3b15aa662ed",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memmove",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "fd`core::slice::memchr::memrchr::h746a03bcae7249ab",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`_free",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`_malloc_zone_malloc",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memcmp",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "fd`std::sync::mpmc::Receiver$LT$T$GT$::recv::h551cf746036ed279",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`_nanov2_free",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`__munmap",
+   "line": null,
+   "self_fraction": 0.0111,
+   "total_fraction": 0.0111
+  }
+ ],
+ "profiler": "command",
+ "tool_version": null
+}

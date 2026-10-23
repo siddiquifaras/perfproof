@@ -1,0 +1,220 @@
+{
+ "basis": "wall",
+ "cli_text": "Profile of xarray-wl (spec 000000000000) with pyinstrument 5.1.3.\nTop frames by self time (share of the main thread's wall-clock time):\n   self  total  location  function\n  13.4%  13.4%  <built-in>  stat  (library)\n  11.0%  11.0%  <built-in>  getcwd  (library)\n   8.0%  11.1%  <frozen importlib._bootstrap_external>:123  <listcomp>  (library)\n   7.5%  21.6%  <frozen importlib._bootstrap_external>:123  _path_join  (library)\n   6.6%  28.2%  <frozen importlib._bootstrap_external>:1550  FileFinder.find_spec  (library)\n   3.6%   6.9%  <frozen importlib._bootstrap_external>:1553  FileFinder.find_spec  (library)\n   3.3%   3.3%  <frozen importlib._bootstrap>:236  _verbose_message  (library)\n   3.2%   3.2%  <built-in>  str.rstrip  (library)\n   2.9%   2.9%  <built-in>  str.join  (library)\n   1.9%   3.0%  <frozen importlib._bootstrap_external>:1529  FileFinder.find_spec  (library)\n   1.8%  76.7%  <frozen importlib._bootstrap>:925  _find_spec  (library)\n   1.4%   1.4%  <frozen importlib._bootstrap_external>:1366  PathFinder._path_importer_cache  (library)\n   1.1%  14.5%  <frozen importlib._bootstrap_external>:142  _path_stat  (library)\n   1.1%   1.1%  <frozen importlib._bootstrap_external>:66  _relax_case  (library)\n   1.1%   4.9%  <frozen importlib._bootstrap>:228  _call_with_frames_removed  (library)\nTop frames by total time (with callees; a frame can be here with no self time):\n   self  total  location  function\n   0.3%  94.8%  xarray/core/pycompat.py:56  is_duck_dask_array\n   0.3%  94.2%  xarray/core/pycompat.py:47  is_dask_collection\n   0.9%  93.9%  xarray/core/pycompat.py:21  DuckArrayModule.__init__\n   0.5%  85.8%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/importlib/__init__.py:127  import_module  (library)\n   3.2%   7.1%  .venv/lib/python3.9/site-packages/packaging/version.py:281  Version.__init__  (library)\n   0.7%   0.9%  .venv/lib/python3.9/site-packages/packaging/version.py:459  _cmpkey  (library)\n   0.3%   0.4%  xarray/core/utils.py:264  is_duck_array\n   0.4%   0.4%  .venv/lib/python3.9/site-packages/packaging/version.py:426  _parse_letter_version  (library)\n   0.0%   0.3%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/textwrap.py:430  dedent  (library)\n   0.0%   0.3%  .venv/lib/python3.9/site-packages/numpy/core/overrides.py:197  decorator  (library)\n   0.0%   0.2%  .venv/lib/python3.9/site-packages/pandas/util/_decorators.py:487  Appender.__call__  (library)\n   0.0%   0.2%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/re.py:304  _compile  (library)\n   0.0%   0.2%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/sre_compile.py:788  compile  (library)\n   0.0%   0.2%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/re.py:252  compile  (library)\n   0.0%   0.2%  /Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/typing.py:274  inner  (library)\nUnprofiled run: wall 19.8 s, CPU 6.11 s (summed over all threads and processes).\nFor at least 69% of wall time no thread of the benchmark was on a CPU: it was waiting, not computing.\nLoad average 4.5 on 10 CPUs.\nProfiled run: wall 5.96 s. Files: /work/.perfproof/p",
+ "frames_by_total": [
+  {
+   "file": "xarray/core/pycompat.py",
+   "function": "is_duck_dask_array",
+   "line": 56,
+   "self_fraction": 0.0028,
+   "total_fraction": 0.9482
+  },
+  {
+   "file": "xarray/core/pycompat.py",
+   "function": "is_dask_collection",
+   "line": 47,
+   "self_fraction": 0.0029,
+   "total_fraction": 0.9416
+  },
+  {
+   "file": "xarray/core/pycompat.py",
+   "function": "DuckArrayModule.__init__",
+   "line": 21,
+   "self_fraction": 0.0093,
+   "total_fraction": 0.9387
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/importlib/__init__.py",
+   "function": "import_module",
+   "line": 127,
+   "self_fraction": 0.0048,
+   "total_fraction": 0.8582
+  },
+  {
+   "file": ".venv/lib/python3.9/site-packages/packaging/version.py",
+   "function": "Version.__init__",
+   "line": 281,
+   "self_fraction": 0.0325,
+   "total_fraction": 0.0712
+  },
+  {
+   "file": ".venv/lib/python3.9/site-packages/packaging/version.py",
+   "function": "_cmpkey",
+   "line": 459,
+   "self_fraction": 0.0066,
+   "total_fraction": 0.0092
+  },
+  {
+   "file": "xarray/core/utils.py",
+   "function": "is_duck_array",
+   "line": 264,
+   "self_fraction": 0.0031,
+   "total_fraction": 0.0038
+  },
+  {
+   "file": ".venv/lib/python3.9/site-packages/packaging/version.py",
+   "function": "_parse_letter_version",
+   "line": 426,
+   "self_fraction": 0.0036,
+   "total_fraction": 0.0036
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/textwrap.py",
+   "function": "dedent",
+   "line": 430,
+   "self_fraction": 0.0002,
+   "total_fraction": 0.0034
+  },
+  {
+   "file": ".venv/lib/python3.9/site-packages/numpy/core/overrides.py",
+   "function": "decorator",
+   "line": 197,
+   "self_fraction": 0.0002,
+   "total_fraction": 0.0032
+  },
+  {
+   "file": ".venv/lib/python3.9/site-packages/pandas/util/_decorators.py",
+   "function": "Appender.__call__",
+   "line": 487,
+   "self_fraction": 0.0002,
+   "total_fraction": 0.0021
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/re.py",
+   "function": "_compile",
+   "line": 304,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0021
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/sre_compile.py",
+   "function": "compile",
+   "line": 788,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0021
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/re.py",
+   "function": "compile",
+   "line": 252,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0019
+  },
+  {
+   "file": "/Users/faras/.local/share/uv/python/cpython-3.9-macos-aarch64-none/lib/python3.9/typing.py",
+   "function": "inner",
+   "line": 274,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0016
+  }
+ ],
+ "hotspots": [
+  {
+   "file": "<built-in>",
+   "function": "stat",
+   "line": null,
+   "self_fraction": 0.1338,
+   "total_fraction": 0.1338
+  },
+  {
+   "file": "<built-in>",
+   "function": "getcwd",
+   "line": null,
+   "self_fraction": 0.1101,
+   "total_fraction": 0.1101
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "<listcomp>",
+   "line": 123,
+   "self_fraction": 0.0796,
+   "total_fraction": 0.1114
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "_path_join",
+   "line": 123,
+   "self_fraction": 0.0755,
+   "total_fraction": 0.2159
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "FileFinder.find_spec",
+   "line": 1550,
+   "self_fraction": 0.066,
+   "total_fraction": 0.2816
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "FileFinder.find_spec",
+   "line": 1553,
+   "self_fraction": 0.0363,
+   "total_fraction": 0.0689
+  },
+  {
+   "file": "<frozen importlib._bootstrap>",
+   "function": "_verbose_message",
+   "line": 236,
+   "self_fraction": 0.0326,
+   "total_fraction": 0.0326
+  },
+  {
+   "file": "<built-in>",
+   "function": "str.rstrip",
+   "line": null,
+   "self_fraction": 0.0318,
+   "total_fraction": 0.0318
+  },
+  {
+   "file": "<built-in>",
+   "function": "str.join",
+   "line": null,
+   "self_fraction": 0.029,
+   "total_fraction": 0.029
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "FileFinder.find_spec",
+   "line": 1529,
+   "self_fraction": 0.0193,
+   "total_fraction": 0.03
+  },
+  {
+   "file": "<frozen importlib._bootstrap>",
+   "function": "_find_spec",
+   "line": 925,
+   "self_fraction": 0.018,
+   "total_fraction": 0.7671
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "PathFinder._path_importer_cache",
+   "line": 1366,
+   "self_fraction": 0.0143,
+   "total_fraction": 0.0143
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "_path_stat",
+   "line": 142,
+   "self_fraction": 0.0109,
+   "total_fraction": 0.1447
+  },
+  {
+   "file": "<frozen importlib._bootstrap_external>",
+   "function": "_relax_case",
+   "line": 66,
+   "self_fraction": 0.0107,
+   "total_fraction": 0.0107
+  },
+  {
+   "file": "<frozen importlib._bootstrap>",
+   "function": "_call_with_frames_removed",
+   "line": 228,
+   "self_fraction": 0.0107,
+   "total_fraction": 0.0492
+  }
+ ],
+ "profiler": "pyinstrument",
+ "tool_version": "5.1.3"
+}

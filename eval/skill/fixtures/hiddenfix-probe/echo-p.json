@@ -1,0 +1,192 @@
+{
+ "basis": "unknown",
+ "cli_text": "Profile of echo-p (spec 000000000000) with command version unknown.\nTop frames by self time (share of the profiler's samples):\n   self  total  location  function\n  12.5%  29.2%  /usr/local/go/src/net/url/url.go:297  net/url.escape  (library)\n  12.5%  12.5%  /src/router.go:451  github.com/labstack/echo/v4.(*Router).Find  (library)\n  12.5%  12.5%  /src/router.go:408  github.com/labstack/echo/v4.(*Router).Find  (library)\n   8.3%   8.3%  /src/router.go:399  github.com/labstack/echo/v4.(*Router).Find  (library)\n   8.3%   8.3%  /usr/local/go/src/net/url/url.go:313  net/url.escape  (library)\n   8.3%   8.3%  /usr/local/go/src/net/url/url.go:112  net/url.shouldEscape  (library)\n   8.3%   8.3%  /usr/local/go/src/net/url/url.go:111  net/url.shouldEscape  (library)\n   4.2%   4.2%  /src/response.go:65  github.com/labstack/echo/v4.(*Response).WriteHeader  (library)\n   4.2%   4.2%  /usr/local/go/src/net/url/url.go:307  net/url.escape  (library)\n   4.2%   4.2%  /src/router.go:439  github.com/labstack/echo/v4.(*Router).Find  (library)\n   4.2%   4.2%  /usr/local/go/src/sync/pool.go:154  sync.(*Pool).Get  (library)\n   4.2%   4.2%  /src/router.go:340  github.com/labstack/echo/v4.(*Router).Find  (library)\n   4.2%   4.2%  /usr/local/go/src/sync/pool.go:121  sync.(*Pool).Put  (library)\n   4.2%   4.2%  /src/context.go:659  github.com/labstack/echo/v4.(*context).Reset  (library)\nTop frames by total time (with callees; a frame can be here with no self time):\n   self  total  location  function\n   0.0% 100.0%  /src/echo.go:632  github.com/labstack/echo/v4.(*Echo).ServeHTTP  (library)\n  41.7%  41.7%  /src/router.go:451  github.com/labstack/echo/v4.(*Router).Find  (library)\n  25.0%  41.7%  /usr/local/go/src/net/url/url.go:297  net/url.escape  (library)\n   0.0%  41.7%  /usr/local/go/src/net/url/url.go:758  net/url.(*URL).EscapedPath  (library)\n  16.7%  16.7%  /usr/local/go/src/net/url/url.go:112  net/url.shouldEscape  (library)\n   4.2%   4.2%  /src/response.go:65  github.com/labstack/echo/v4.(*Response).WriteHeader  (library)\n   4.2%   4.2%  /usr/local/go/src/sync/pool.go:154  sync.(*Pool).Get  (library)\n   4.2%   4.2%  /usr/local/go/src/sync/pool.go:121  sync.(*Pool).Put  (library)\n   4.2%   4.2%  /src/context.go:659  github.com/labstack/echo/v4.(*context).Reset  (library)\n   0.0%   4.2%  /src/echo.go:536  github.com/labstack/echo/v4.(*Echo).add.func1  (library)\n   0.0%   4.2%  /src/plain_bench_test.go:20  github.com/labstack/echo/v4.BenchmarkPlainPath.func1  (library)\n   0.0%   4.2%  /src/context.go:608  github.com/labstack/echo/v4.(*context).NoContent  (library)\nUnprofiled run: wall 6.34 s, CPU 0.0232 s (summed over all threads and processes).\nFor at least 100% of wall time no thread of the benchmark was on a CPU: it was waiting, not computing.\nLoad average 4.9 on 10 CPUs.\nProfiled run: wall 6.44 s. Files: /work/.perfproof/p",
+ "frames_by_total": [
+  {
+   "file": "/src/echo.go",
+   "function": "github.com/labstack/echo/v4.(*Echo).ServeHTTP",
+   "line": 632,
+   "self_fraction": 0.0,
+   "total_fraction": 1.0
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 451,
+   "self_fraction": 0.4167,
+   "total_fraction": 0.4167
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.escape",
+   "line": 297,
+   "self_fraction": 0.25,
+   "total_fraction": 0.4167
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.(*URL).EscapedPath",
+   "line": 758,
+   "self_fraction": 0.0,
+   "total_fraction": 0.4167
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.shouldEscape",
+   "line": 112,
+   "self_fraction": 0.1667,
+   "total_fraction": 0.1667
+  },
+  {
+   "file": "/src/response.go",
+   "function": "github.com/labstack/echo/v4.(*Response).WriteHeader",
+   "line": 65,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/usr/local/go/src/sync/pool.go",
+   "function": "sync.(*Pool).Get",
+   "line": 154,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/usr/local/go/src/sync/pool.go",
+   "function": "sync.(*Pool).Put",
+   "line": 121,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/context.go",
+   "function": "github.com/labstack/echo/v4.(*context).Reset",
+   "line": 659,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/echo.go",
+   "function": "github.com/labstack/echo/v4.(*Echo).add.func1",
+   "line": 536,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/plain_bench_test.go",
+   "function": "github.com/labstack/echo/v4.BenchmarkPlainPath.func1",
+   "line": 20,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/context.go",
+   "function": "github.com/labstack/echo/v4.(*context).NoContent",
+   "line": 608,
+   "self_fraction": 0.0,
+   "total_fraction": 0.0417
+  }
+ ],
+ "hotspots": [
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.escape",
+   "line": 297,
+   "self_fraction": 0.125,
+   "total_fraction": 0.2917
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 451,
+   "self_fraction": 0.125,
+   "total_fraction": 0.125
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 408,
+   "self_fraction": 0.125,
+   "total_fraction": 0.125
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 399,
+   "self_fraction": 0.0833,
+   "total_fraction": 0.0833
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.escape",
+   "line": 313,
+   "self_fraction": 0.0833,
+   "total_fraction": 0.0833
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.shouldEscape",
+   "line": 112,
+   "self_fraction": 0.0833,
+   "total_fraction": 0.0833
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.shouldEscape",
+   "line": 111,
+   "self_fraction": 0.0833,
+   "total_fraction": 0.0833
+  },
+  {
+   "file": "/src/response.go",
+   "function": "github.com/labstack/echo/v4.(*Response).WriteHeader",
+   "line": 65,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/usr/local/go/src/net/url/url.go",
+   "function": "net/url.escape",
+   "line": 307,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 439,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/usr/local/go/src/sync/pool.go",
+   "function": "sync.(*Pool).Get",
+   "line": 154,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/router.go",
+   "function": "github.com/labstack/echo/v4.(*Router).Find",
+   "line": 340,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/usr/local/go/src/sync/pool.go",
+   "function": "sync.(*Pool).Put",
+   "line": 121,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  },
+  {
+   "file": "/src/context.go",
+   "function": "github.com/labstack/echo/v4.(*context).Reset",
+   "line": 659,
+   "self_fraction": 0.0417,
+   "total_fraction": 0.0417
+  }
+ ],
+ "profiler": "command",
+ "tool_version": null
+}

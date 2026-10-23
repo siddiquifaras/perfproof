@@ -23,7 +23,7 @@
         "outcomes": [],
         "hotspot": {
           "file": "src/to_chars.cpp",
-          "function": "to_chars",
+          "function": "simdjson::internal::to_chars",
           "top_n": 5
         }
       }

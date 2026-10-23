@@ -21,10 +21,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+import hotspot_names
 import realrepo
 import transcript
 from runner import Meta, RunVerdict, State, TreeState
-from taskset import Task, TaskSet
+from taskset import Hotspot, HotspotName, Task, TaskSet
 
 # Words the skill must not put next to an uncalibrated estimate
 # (docs/skill.md, section 1, rule 1; SKILL.md "How to talk").
@@ -635,7 +636,8 @@ def hotspot_check(
 ) -> tuple[bool | None, str]:
     """Check the run found the known bottleneck from a profile.
 
-    The function must rank first in the output of the first successful
+    The function (or an accepted one) must be within the manifest's
+    ``top_n`` of either list printed from the first successful
     ``perfproof profile`` call before any edit of the project's code (a
     failed attempt before it does not matter), and be named, without a
     negation, in what the user could read after that call.
@@ -653,16 +655,16 @@ def hotspot_check(
                 " of the code"
             )
         return False, "no profile output with hotspots in the transcript"
-    top = ranked[0]
-    window = ranked[: hotspot.top_n]
-    if hotspot.function not in window:
+    window = transcript.window_frames(ranked, hotspot.top_n)
+    matched = _matched_entries(window, hotspot)
+    if not matched:
         if hotspot.top_n == 1:
-            return False, f"profile ranks {top} first"
+            return False, f"profile ranks {ranked[0].name} first"
         return False, (
             f"{hotspot.function} is not in the profile's top "
-            f"{hotspot.top_n}: {window}"
+            f"{hotspot.top_n}: {[frame.name for frame in window]}"
         )
-    pattern = re.compile(rf"\b{re.escape(hotspot.function)}\b")
+    pattern = re.compile("|".join(_naming_form(e.function) for e in matched))
     for text in after:
         for sentence in _sentences(text):
             if pattern.search(sentence) and not _NEGATION.search(sentence):
@@ -675,6 +677,53 @@ def hotspot_check(
         False,
         f"{hotspot.function} is in the profile but never named as the cost",
     )
+
+
+def _is_accepted(frame: transcript.RankedFrame, entry: HotspotName) -> bool:
+    """Whether a printed frame is the function a manifest entry names.
+
+    Names are compared by `hotspot_names.names_match` and files by
+    `hotspot_names.files_match`. An entry with no owner in its name
+    (``print_entry``) is not matched by a frame with no file: the name
+    alone cannot tell it from another module's function of that name.
+    """
+    short = hotspot_names.short_name(entry.function)
+    if short is not None and not short.path and frame.file is None:
+        return False
+    return hotspot_names.names_match(
+        frame.name, entry.function
+    ) and hotspot_names.files_match(frame.file, entry.file)
+
+
+def _matched_entries(
+    window: list[transcript.RankedFrame], hotspot: Hotspot
+) -> list[HotspotName]:
+    """List the accepted functions that a frame in the window is."""
+    return [
+        entry
+        for entry in hotspot.accepted()
+        if any(_is_accepted(frame, entry) for frame in window)
+    ]
+
+
+def _naming_form(function: str) -> str:
+    """Build the regex for the agent writing one accepted function.
+
+    A name with an owner (``Echo.ServeHTTP``) is named only in its
+    owner-qualified form (``Echo.ServeHTTP``, ``(*Echo).ServeHTTP``,
+    ``output::print_entry``, ``String#blank?``); the bare ``ServeHTTP``
+    does not name it. A name without one is named by itself.
+    """
+    short = hotspot_names.short_name(function)
+    if short is None:
+        return rf"(?<!\w){re.escape(function)}(?!\w)"
+    name = re.escape(short.name)
+    if not short.path:
+        return rf"(?<!\w){name}(?!\w)"
+    owner = short.path[-1]
+    if owner.startswith("<"):
+        owner = owner[1:].split(" as ")[0]
+    return rf"(?<!\w)\(?\*?{re.escape(owner)}\)?(?:::|[.#]){name}(?!\w)"
 
 
 _HARNESS = ("eval/tasks", "eval/mine", "checks.json", "SPLITS.md")

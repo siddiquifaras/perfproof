@@ -25,7 +25,7 @@
         "outcomes": [],
         "hotspot": {
           "file": "src/output.rs",
-          "function": "print_entry",
+          "function": "fd::output::print_entry",
           "top_n": 5
         }
       }

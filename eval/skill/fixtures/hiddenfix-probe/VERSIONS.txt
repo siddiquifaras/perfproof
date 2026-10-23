@@ -1,0 +1,28 @@
+Captured by the hidden-fix probe of 2026-10-23 (macOS, arm64), trimmed to
+the first 15 rows of each list; nothing was edited by hand. The
+workloads are the probe's own, not an agent's choice or the task
+manifests' command, so a different workload ranks differently (see the
+PR body for the probe's other workloads).
+
+hotspots
+  The `result.hotspots` of a real `perfproof profile --json` run, taken
+  before #77 (so the run had no `frames_by_total`).
+frames_by_total
+  `perfproof.profilers.folded.rank_file(..., top_n=200)` at 572e99a (the
+  function `profile` calls for `result.frames_by_total`), run on the
+  folded stacks that same profile run saved.
+
+cli_text
+  What `perfproof profile` (without --json) prints for those same 15
+  rows, rendered by `perfproof.commands.profile._text` at 572e99a from
+  the real Hotspot objects.
+
+django-m200.json   pyinstrument 5.1.3; 300,000 calls of a view wrapped by
+                   user_passes_test (a microbenchmark of the decorator)
+xarray-wl.json     pyinstrument 5.1.3; a probe script (its source is
+                   in the probe directory, not recorded here)
+echo-p.json        perfproof.profilers.native (command profiler, no tool
+                   version); go test -bench BenchmarkPlainPath
+sj-m.json          perfproof.profilers.native; ./eval_to_chars
+fd-m.json          perfproof.profilers.native; target/release/fd
+                   --color=always -HI -j1 . eval-tree (--own-module fd)

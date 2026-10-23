@@ -54,8 +54,15 @@
         "outcomes": [],
         "hotspot": {
           "file": "src/output.rs",
-          "function": "print_entry_colorized",
-          "top_n": 5
+          "function": "fd::output::print_entry_colorized",
+          "top_n": 5,
+          "accept": [
+            {
+              "file": "src/output.rs",
+              "function": "fd::output::print_entry",
+              "why": "In the release build (LTO, one codegen unit) print_entry_colorized is inlined into print_entry, so its frame never appears; print_entry is where its time shows. Same reason as tasks-rust.json."
+            }
+          ]
         }
       }
     },
@@ -84,7 +91,14 @@
         "hotspot": {
           "file": "django/contrib/auth/decorators.py",
           "function": "user_passes_test",
-          "top_n": 5
+          "top_n": 5,
+          "accept": [
+            {
+              "file": "django/contrib/auth/decorators.py",
+              "function": "_view_wrapper",
+              "why": "user_passes_test runs once, when the view is decorated. The per-request cost is its inner _view_wrapper (django/contrib/auth/decorators.py lines 54-60 at the task commit), which is the frame a request profile shows."
+            }
+          ]
         }
       }
     },

@@ -42,6 +42,27 @@ class BranchSpec(_Model):
     message: str
 
 
+class HotspotName(_Model):
+    """One function, in one file, that counts as the known bottleneck.
+
+    Attributes
+    ----------
+    file : str
+        Path of the module holding it, relative to the repo root.
+    function : str
+        Short name, as a person writes it (``to_chars``,
+        ``Echo.ServeHTTP``); matched against the names profilers print
+        by `hotspot_names.names_match`.
+    why : str
+        Why this function stands for the bottleneck; required for an
+        entry of ``Hotspot.accept``.
+    """
+
+    file: str
+    function: str
+    why: str = ""
+
+
 class Hotspot(_Model):
     """The known bottleneck of an example.
 
@@ -56,11 +77,38 @@ class Hotspot(_Model):
         ``perfproof profile`` output in the transcript (1: it must
         rank first, as for the small examples; 5 for real
         repositories), and be named, without a negation, after it.
+    accept : list of HotspotName
+        Further functions that count as the bottleneck, for when the
+        cost is not where the fix is edited: a function the compiler
+        inlines into its caller, or a wrapper that runs per call while
+        the named function runs once. Each carries its ``why``.
     """
 
     file: str
     function: str
     top_n: int = 1
+    accept: list[HotspotName] = []
+
+    @model_validator(mode="after")
+    def _accepted_say_why(self) -> Hotspot:
+        for extra in self.accept:
+            if not extra.why:
+                msg = f"accepted hotspot {extra.function!r} needs a why"
+                raise ValueError(msg)
+        return self
+
+    def accepted(self) -> list[HotspotName]:
+        """List every accepted function, the primary one first.
+
+        Returns
+        -------
+        list of HotspotName
+            The primary ``file`` and ``function``, then ``accept``.
+        """
+        return [
+            HotspotName(file=self.file, function=self.function),
+            *self.accept,
+        ]
 
 
 class RealRepo(_Model):

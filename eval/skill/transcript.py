@@ -14,7 +14,7 @@ import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, NamedTuple, cast
 
 Event = dict[str, Any]
 """One stream-json event."""
@@ -322,66 +322,295 @@ def seen_verdicts(turns: list[Turn]) -> list[SeenVerdict]:
     return found
 
 
-def _ranked_hotspots(text: str) -> list[str]:
-    """List the functions printed, largest ``total_fraction`` first.
+class RankedFrame(NamedTuple):
+    """A function a profile printed, with what was printed beside it.
 
-    Reads each printed object (JSON or a Python dict repr) that has a
-    ``function`` and a ``total_fraction``, and skips interpreter frames
-    (files in angle brackets) and code-object pseudo-functions such as
-    ``<module>``, whose total share covers the whole script and so
-    outranks every real function once printed.
+    Attributes
+    ----------
+    name : str
+        The function exactly as printed (qualified, with arguments or
+        hash, as the profiler gave it).
+    file : str or None
+        The source file printed beside it, ``None`` when none was.
+    total : float
+        Its total (inclusive) share, as printed.
+    source : {"self", "total"} or None
+        The list it was printed under: ``"self"`` for ``hotspots``,
+        ``"total"`` for ``frames_by_total``, ``None`` when no section
+        named either (it then ranks by total share, as one list).
+    rank : int
+        Its place in that list, from 1, in the order printed (for
+        ``None``: by total share).
     """
-    found: list[tuple[float, str]] = []
+
+    name: str
+    file: str | None
+    total: float
+    source: Literal["self", "total"] | None = None
+    rank: int = 0
+
+
+_FrameKey = tuple[str, str | None, Literal["self", "total"] | None]
+_SECTION_SOURCE: dict[str, Literal["self", "total"]] = {
+    "hotspots": "self",
+    "frames_by_total": "total",
+    "self": "self",
+    "total": "total",
+}
+# The list's name as a JSON or dict key, ...
+_KEY = re.compile(r"(?P<q>[\"'])(?P<word>hotspots|frames_by_total)(?P=q)\s*:")
+# ... or as the whole of a line, bar punctuation, a table border and a
+# trailing colon. A word inside a path or a function name is neither.
+_HEADING = re.compile(
+    r"^[ \t|#*=>_-]*(?:result\.)?[`\"']?(?P<word>hotspots|frames_by_total)"
+    r"[`\"']?(?:\[\])?[ \t:|]*$",
+    re.MULTILINE,
+)
+# The titles of the CLI's own text output (``perfproof profile``
+# without ``--json``), one per list.
+_TITLE = re.compile(r"Top frames by (?P<word>self|total) time")
+_BARE_NAME = re.compile(r"^\s*[A-Za-z_]\w*\s*$")
+
+
+def _ranked_hotspots(text: str) -> list[str]:
+    """List the functions printed, largest ``total_fraction`` first."""
+    names: list[str] = []
+    for frame in ranked_frames(text):
+        if frame.name not in names:
+            names.append(frame.name)
+    return names
+
+
+def _share(body: str, key: str) -> float | None:
+    match = re.search(rf"{_QUOTE}{key}{_QUOTE}\s*:\s*([0-9.eE+-]+)", body)
+    if match is None:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _objects(text: str) -> list[tuple[int, str, str | None, float]]:
+    """Read printed JSON or dict objects: offset, name, file, total."""
+    found: list[tuple[int, str, str | None, float]] = []
     for chunk in re.finditer(r"\{[^{}]*\}", text):
         body = chunk.group(0)
         func = re.search(
             rf"{_QUOTE}function{_QUOTE}\s*:\s*({_QUOTE})([^'\"]+)\1", body
         )
-        frac = re.search(
-            rf"{_QUOTE}total_fraction{_QUOTE}\s*:\s*([0-9.eE+-]+)", body
-        )
         where = re.search(
             rf"{_QUOTE}file{_QUOTE}\s*:\s*({_QUOTE})([^'\"]*)\1", body
         )
-        if func is None or frac is None:
+        total = _share(body, "total_fraction")
+        if func is None or total is None:
             continue
         if where is not None and where.group(2).startswith("<"):
             continue
         if func.group(2).startswith("<"):
             continue
-        try:
-            score = float(frac.group(1))
-        except ValueError:
+        file = None if where is None else where.group(2) or None
+        found.append((chunk.start(), func.group(2), file, total))
+    return found
+
+
+def _sections(text: str) -> list[tuple[int, Literal["self", "total"]]]:
+    """Find where each printed list starts.
+
+    A start is one of the CLI's titles (``Top frames by self time``,
+    ``Top frames by total time``), the list's name as a JSON or dict key
+    (``"hotspots":``), or a line that is only the name (with
+    punctuation, a table border or a trailing colon). The word inside a
+    path, a function name or a list of names is not a start, and a line
+    that holds a frame is never one. A bare name on a line of its own
+    followed by another bare name is a list of key names, not a
+    heading. A heading may have other lines (underline, column header,
+    note) before its first row. A bare name that ends a one-per-line
+    list of key names cannot be told from a heading and counts as one.
+    """
+    found: list[tuple[int, Literal["self", "total"]]] = [
+        (m.start(), _SECTION_SOURCE[m["word"]]) for m in _TITLE.finditer(text)
+    ]
+    found.extend(
+        (m.start(), _SECTION_SOURCE[m["word"]]) for m in _KEY.finditer(text)
+    )
+    for m in _HEADING.finditer(text):
+        end = m.end()
+        if end < len(text) and _BARE_NAME.match(_next_line(text, end + 1)):
             continue
-        found.append((score, func.group(2)))
-    if not found:
-        found = _hotspot_lines(text)
-    ordered: list[str] = []
-    for _, name in sorted(found, key=lambda pair: -pair[0]):
-        if name not in ordered:
-            ordered.append(name)
-    return ordered
+        found.append((m.start("word"), _SECTION_SOURCE[m["word"]]))
+    return sorted(found)
 
 
+def _next_line(text: str, start: int) -> str:
+    """Return the first non-blank line at or after ``start``."""
+    while start < len(text):
+        end = text.find("\n", start)
+        line = text[start : len(text) if end < 0 else end]
+        if line.strip():
+            return line
+        if end < 0:
+            break
+        start = end + 1
+    return ""
+
+
+def ranked_frames(text: str) -> list[RankedFrame]:
+    """List the frames printed, largest ``total_fraction`` first.
+
+    Reads each printed object (JSON or a Python dict repr) that has a
+    ``function`` and a ``total_fraction``, and skips interpreter frames
+    (files in angle brackets) and code-object pseudo-functions such as
+    ``<module>``, whose total share covers the whole script and so
+    outranks every real function once printed. Output with no objects
+    is read as one frame per line (see `_hotspot_lines`).
+
+    The CLI's titles, or the word ``hotspots`` or ``frames_by_total``
+    used as a JSON key or heading (see `_sections`), start a section:
+    the frames after it, up to the next, came from that list, and each
+    is ranked by its place in the order printed. Frames before any such
+    start form a single list ranked by total share. A function printed
+    more than once in a list (several lines of one function) is one
+    frame, at its first place and largest total.
+    """
+    entries = _objects(text)
+    if not entries:
+        entries = _hotspot_lines(text)
+    sections = _sections(text)
+    kept: dict[_FrameKey, tuple[float, int]] = {}
+    order: dict[Literal["self", "total"] | None, int] = {}
+    for at, name, file, total in entries:
+        source: Literal["self", "total"] | None = None
+        for start, kind in sections:
+            if start < at:
+                source = kind
+        key = (name, file, source)
+        if key in kept:
+            first, place = kept[key]
+            kept[key] = (max(first, total), place)
+            continue
+        order[source] = order.get(source, 0) + 1
+        kept[key] = (total, order[source])
+    frames = [
+        RankedFrame(name, file, total, source, place)
+        for (name, file, source), (total, place) in kept.items()
+    ]
+    frames.sort(key=lambda frame: -frame.total)
+    rank = 0
+    for at, frame in enumerate(frames):
+        if frame.source is None:
+            rank += 1
+            frames[at] = frame._replace(rank=rank)
+    return frames
+
+
+def window_frames(frames: list[RankedFrame], top_n: int) -> list[RankedFrame]:
+    """Take the frames within the first ``top_n`` of a printed list.
+
+    A profile has two lists, ``hotspots`` (by self share) and
+    ``frames_by_total`` (by total share), and an agent prints either or
+    both. A frame is in the window if it is among the first ``top_n``
+    of the list it was printed under, in the order printed. A frame
+    from one list is never ranked by the other's share. Frames printed
+    under neither name rank by total share. For ``top_n`` of 1 (the
+    small examples) the window is the one frame with the largest total
+    share, as before.
+
+    Parameters
+    ----------
+    frames : list of RankedFrame
+        As returned by `ranked_frames`.
+    top_n : int
+        The window size.
+
+    Returns
+    -------
+    list of RankedFrame
+        The frames in the window, largest total share first.
+    """
+    if top_n == 1:
+        return frames[:1]
+    return [frame for frame in frames if frame.rank <= top_n]
+
+
+_SHARE = r"(?:0?\.\d+|1\.0+|1)"
 _HOTSPOT_LINE = re.compile(
-    r"^\s*([A-Za-z_][\w.]*)\s+(\S+)(?:\s+\S+)*?\s+(0?\.\d+|1\.0+|1)\s*$"
+    rf"^\s*([A-Za-z_][\w.]*)\s+(\S+)(?:\s+\S+)*?\s+({_SHARE})\s*$"
 )
+# ``function file line self total`` with a function that has spaces or
+# punctuation of its own: a C++ argument list, a Go
+# ``(*Echo).ServeHTTP``, a macOS ``image`symbol``. Read from the right
+# so the function is whatever is left of the file.
+_FIELD_LINE = re.compile(
+    rf"^\s*(?P<func>\S.*?)\s+(?P<file>\S+)\s+(?:\d+|None|null|-)"
+    rf"(?:\s+{_SHARE})?\s+(?P<share>{_SHARE})\s*$"
+)
+_NO_FILE = frozenset({"None", "null", "-"})
+# A row of the CLI text tables: ``  53.4%  53.4%  file:line  function``
+# (``-`` for no location, a total left blank when unknown, and a
+# trailing ``(library)`` mark).
+_CLI_ROW = re.compile(
+    r"^\s+(?P<own>\d+(?:\.\d+)?)%\s+(?:(?P<total>\d+(?:\.\d+)?)%\s+)?"
+    r"(?P<where>\S+)  (?P<func>\S.*?)(?:  \(library\))?\s*$"
+)
+# Python's interpreter "files" contain a space (``<frozen
+# importlib._bootstrap>``), so they must be recognised before the
+# function is read as everything left of the file.
+_INTERPRETER_FILE = re.compile(r"\s<(?:frozen|built-in|string|stdin)\b")
 
 
-def _hotspot_lines(text: str) -> list[tuple[float, str]]:
+def _hotspot_lines(text: str) -> list[tuple[int, str, str | None, float]]:
     """Read hotspots printed one per line: function, file, ..., share.
 
     Agents often print ``result.hotspots[]`` compactly, for example
-    ``rolling_sum rolling.py 51 0.906``. The share is the last field;
-    lines whose file is an interpreter frame (angle brackets) are
-    skipped, as in the JSON reading.
+    ``rolling_sum rolling.py 51 0.906``, or as the skill documents,
+    ``function file line self_fraction total_fraction``. The share is
+    the last field (the total, when two are printed). Lines whose file
+    or function is an interpreter frame (angle brackets) are skipped,
+    as in the JSON reading. A function that is not a plain identifier
+    is read too, so long as the line has that shape.
+
+    Returns
+    -------
+    list of tuple
+        Each line's offset in ``text``, function, file and share.
     """
-    found: list[tuple[float, str]] = []
-    for line in text.splitlines():
-        match = _HOTSPOT_LINE.match(line)
-        if match is None or match.group(2).startswith("<"):
+    found: list[tuple[int, str, str | None, float]] = []
+    for line in re.finditer(r"^.*$", text, re.MULTILINE):
+        cli = _CLI_ROW.match(line.group(0))
+        if cli is not None:
+            where = cli["where"]
+            file = None if where == "-" else where
+            if file is not None and file.rpartition(":")[2].isdigit():
+                file = file.rpartition(":")[0]
+            if (file or "").startswith("<") or cli["func"].startswith("<"):
+                continue
+            own = float(cli["own"])
+            share = (float(cli["total"]) if cli["total"] else own) / 100
+            if max(own, share * 100) > 100:
+                continue
+            found.append((line.start(), cli["func"], file, share))
             continue
-        found.append((float(match.group(3)), match.group(1)))
+        if _INTERPRETER_FILE.search(line.group(0)):
+            continue
+        wide = _FIELD_LINE.match(line.group(0))
+        if wide is not None:
+            name, file, share = wide["func"], wide["file"], wide["share"]
+        else:
+            match = _HOTSPOT_LINE.match(line.group(0))
+            if match is None:
+                continue
+            name, file, share = match.group(1), match.group(2), match.group(3)
+        if file.startswith("<") or name.startswith("<"):
+            continue
+        found.append(
+            (
+                line.start(),
+                name,
+                None if file in _NO_FILE else file,
+                float(share),
+            )
+        )
     return found
 
 
@@ -1239,7 +1468,7 @@ def _defined_benchmarks(command: str) -> list[str]:
 
 def profile_before_edit(
     turns: list[Turn], root: str | None = None
-) -> tuple[list[str], list[str], str]:
+) -> tuple[list[RankedFrame], list[str], str]:
     """Find the first successful ``perfproof profile`` before any edit.
 
     A call counts as a profile call only if one of its simple commands
@@ -1261,8 +1490,8 @@ def profile_before_edit(
 
     Returns
     -------
-    tuple of (list of str, list of str, str)
-        The functions that profile printed, largest share first, and
+    tuple of (list of RankedFrame, list of str, str)
+        The frames that profile printed, largest share first, and
         every assistant text written after it; and a reason when there
         is none: ``"none"`` (no successful profile at all) or
         ``"after_edit"`` (one, but only after the first edit).
@@ -1270,7 +1499,7 @@ def profile_before_edit(
     edited = False
     defined: set[str] = set()
     calls: dict[str, tuple[bool, list[str], frozenset[str]]] = {}
-    ranked: list[str] | None = None
+    ranked: list[RankedFrame] | None = None
     late = False
     after: list[str] = []
     for turn in turns:
@@ -1304,7 +1533,7 @@ def profile_before_edit(
                     if known and not any(t in known for t in targets):
                         continue
                     text = _result_text(block)
-                    found = _ranked_hotspots(text)
+                    found = ranked_frames(text)
                     if not found or text.lstrip().startswith("Exit code"):
                         continue
                     if was_edited:

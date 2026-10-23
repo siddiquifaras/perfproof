@@ -1,0 +1,157 @@
+{
+ "basis": "unknown",
+ "cli_text": "Profile of sj-m (spec 000000000000) with command version unknown.\nTop frames by self time (share of the profiler's samples):\n   self  total  location  function\n  44.3%  75.6%  -  eval_to_chars`simdjson::internal::to_chars(char*, char const*, double)\n  31.3%  31.3%  -  libsystem_platform.dylib`_platform_memmove  (library)\n   9.6%   9.6%  -  eval_to_chars`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)\n   8.7%  94.9%  -  eval_to_chars`simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)\n   2.2%   2.2%  -  libsystem_kernel.dylib`madvise  (library)\n   2.1%   2.1%  -  eval_to_chars`DYLD-STUB$$memmove\n   0.9%   0.9%  -  libsystem_platform.dylib`_platform_memset  (library)\n   0.8%   0.8%  -  eval_to_chars`DYLD-STUB$$memcpy\nTop frames by total time (with callees; a frame can be here with no self time):\n   self  total  location  function\n   0.0% 100.0%  -  eval_to_chars`main  (library)\n   0.0%  99.5%  -  eval_to_chars`simdjson::to_string<simdjson::dom::element>(simdjson::dom::element)  (library)\n   8.7%  94.9%  -  eval_to_chars`simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)  (library)\n  44.3%  75.6%  -  eval_to_chars`simdjson::internal::to_chars(char*, char const*, double)  (library)\n  31.3%  31.3%  -  libsystem_platform.dylib`_platform_memmove  (library)\n   9.6%   9.6%  -  eval_to_chars`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)  (library)\n   2.2%   2.2%  -  libsystem_kernel.dylib`madvise  (library)\n   0.0%   2.2%  -  libsystem_malloc.dylib`free_medium  (library)\n   0.0%   2.2%  -  libsystem_malloc.dylib`mvm_madvise_free_plat  (library)\n   0.0%   2.2%  -  libsystem_malloc.dylib`<deduplicated_symbol>  (library)\n   2.1%   2.1%  -  eval_to_chars`DYLD-STUB$$memmove  (library)\n   0.9%   0.9%  -  libsystem_platform.dylib`_platform_memset  (library)\n   0.8%   0.8%  -  eval_to_chars`DYLD-STUB$$memcpy  (library)\nUnprofiled run: wall 1.62 s, CPU 1.56 s (summed over all threads and processes).\nFor at least 4% of wall time no thread of the benchmark was on a CPU: it was waiting, not computing.\nLoad average 3.0 on 10 CPUs.\nProfiled run: wall 1.55 s. Files: /work/.perfproof/p",
+ "frames_by_total": [
+  {
+   "file": null,
+   "function": "eval_to_chars`main",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 1.0
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::to_string<simdjson::dom::element>(simdjson::dom::element)",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.9954
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)",
+   "line": null,
+   "self_fraction": 0.087,
+   "total_fraction": 0.9487
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::to_chars(char*, char const*, double)",
+   "line": null,
+   "self_fraction": 0.4432,
+   "total_fraction": 0.7564
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memmove",
+   "line": null,
+   "self_fraction": 0.3132,
+   "total_fraction": 0.3132
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)",
+   "line": null,
+   "self_fraction": 0.0962,
+   "total_fraction": 0.0962
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`madvise",
+   "line": null,
+   "self_fraction": 0.022,
+   "total_fraction": 0.022
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`free_medium",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.022
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`mvm_madvise_free_plat",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.022
+  },
+  {
+   "file": null,
+   "function": "libsystem_malloc.dylib`<deduplicated_symbol>",
+   "line": null,
+   "self_fraction": 0.0,
+   "total_fraction": 0.022
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`DYLD-STUB$$memmove",
+   "line": null,
+   "self_fraction": 0.0211,
+   "total_fraction": 0.0211
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memset",
+   "line": null,
+   "self_fraction": 0.0092,
+   "total_fraction": 0.0092
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`DYLD-STUB$$memcpy",
+   "line": null,
+   "self_fraction": 0.0082,
+   "total_fraction": 0.0082
+  }
+ ],
+ "hotspots": [
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::to_chars(char*, char const*, double)",
+   "line": null,
+   "self_fraction": 0.4432,
+   "total_fraction": 0.7564
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memmove",
+   "line": null,
+   "self_fraction": 0.3132,
+   "total_fraction": 0.3132
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::dtoa_impl::to_decimal(unsigned long long, int)",
+   "line": null,
+   "self_fraction": 0.0962,
+   "total_fraction": 0.0962
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`simdjson::internal::string_builder<simdjson::internal::mini_formatter>::append(simdjson::dom::element)",
+   "line": null,
+   "self_fraction": 0.087,
+   "total_fraction": 0.9487
+  },
+  {
+   "file": null,
+   "function": "libsystem_kernel.dylib`madvise",
+   "line": null,
+   "self_fraction": 0.022,
+   "total_fraction": 0.022
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`DYLD-STUB$$memmove",
+   "line": null,
+   "self_fraction": 0.0211,
+   "total_fraction": 0.0211
+  },
+  {
+   "file": null,
+   "function": "libsystem_platform.dylib`_platform_memset",
+   "line": null,
+   "self_fraction": 0.0092,
+   "total_fraction": 0.0092
+  },
+  {
+   "file": null,
+   "function": "eval_to_chars`DYLD-STUB$$memcpy",
+   "line": null,
+   "self_fraction": 0.0082,
+   "total_fraction": 0.0082
+  }
+ ],
+ "profiler": "command",
+ "tool_version": null
+}
