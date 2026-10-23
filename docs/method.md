@@ -3664,6 +3664,375 @@ skew; the time budget in the real-trace runs (every replicate takes
 `t111p2-table-builds-compare.txt`), and where it lies was not
 examined.
 
+### T1.12 golden set (design, written before the recorded campaign)
+
+**Order of events.** The design below was committed (`387308e`) less
+than a minute before the recorded campaign started (10:58 UTC). A
+first campaign start at 10:50, with a wrapper that had a bias, ran
+before that commit and was discarded after about 7 minutes. What was
+looked at from it: 19 comparisons (10 at S = 1.00, 9 at S = 1.02) were
+replayed through the report pipeline and inspected for the injected
+size and the noise level. The replay of the 10 null comparisons also
+printed per-method verdicts, which were seen (KEEP / REJECT /
+INCONCLUSIVE of 10): `python_native` gated 0 / 7 / 3 and `hac_lf`
+0 / 10 / 0; `web_agentic` gated 0 / 0 / 10 and `hac_lf` 0 / 10 / 0;
+`llm_serving` gated 0 / 0 / 10 and `hac_lf` 0 / 6 / 4. No decision
+rule, cell size or method ordering was changed because of what was
+seen. The design is therefore
+fixed before the recorded data, not before every number seen. One
+rule was amended after the recorded data; see "Deviations" in the
+results.
+
+**Why.** T1.11 chose between the gated primary, `hac_lf` and the split
+on synthetic grids and on 19 A/A traces whose speedup was injected into
+the log ratios. Those test the interval, not the product. The owner
+asked for the choice to rest on end-to-end results on known answers:
+real benchmarks, a real slowdown of exactly known size, the real
+`perfproof compare` run to its last round, and the three methods
+replayed on the very same recorded executions.
+
+**Truth by injection.** Each workload runs through a wrapper
+(`studies/golden/wrap.py`, locked as the harness) that launches the
+real benchmark as a child, times it from spawn to exit (`work`), then
+spins on the wall clock until `f * work` more seconds have passed, and
+reports `work + spin` as the metric (a `reported` metric, as the T2.11
+traces used). The spin is scaled to that execution's own measured work,
+so the log ratio of a round is exactly `log(1 + f)` plus the A/A noise
+of the two works, with no calibration constant to drift. The spin goes
+into the **baseline** arm, so the candidate is faster by `1 + f`:
+`S = 1 + f`, the quantity the bar and the error table are about. (A
+slowdown in the candidate would only give regressions, which have no
+KEEP to get wrong.) The achieved spin of every execution is recorded;
+the cell's achieved effect is `exp(mean log((work + spin) / work))` over
+its baseline executions, which equals `1 + f` to the clock's resolution,
+and is reported beside the nominal one. The two trees are one commit;
+their A/A bias is estimated from the `f = 0` cell and reported. A cell's
+label is its nominal `S`; if the bias is large enough to move a cell
+across the bar the label is corrected before any decision is read.
+
+**Workloads.** Python (pure-Python, derived from the membership
+target), Node (the `bench.js` of T2.11 with `N` reduced), Java (the
+`Bench.java` of T2.11 with `N` reduced) and native C (a small
+deterministic program, `gcc -O2`), each sized to about 0.1 s of work per
+execution so that thousands of comparisons fit a dedicated box. The
+sizes differ from the T2.11 traces (0.4 to 1.5 s), which is stated where
+the two are compared.
+
+**Cells and size.** `S` in 1.00, 1.02, 1.03, 1.05 and 1.10 per
+workload, 200 comparisons for 1.00 and 1.03 (a cell with no error then
+has a one-sided 95% Clopper-Pearson upper bound of 1.49%), 100 for the
+others. Cells are interleaved in time in blocks so that a slow period
+of the host falls on every cell. Each comparison is one run of
+`perfproof compare` to its maximum rounds (120 for Python and native,
+60 for Node and Java); it is never repeated per method. Every execution
+is recorded by the wrapper: arm, order, `work`, `spin`, reported value,
+user and system CPU, instructions and cycles (`perf stat`), the 1-minute
+load, steal ticks, and the host.
+
+**Replay.** The recorded rounds of a comparison are the first `n` rounds
+of every schedule that fits them, so one comparison replays on
+`python_native` (60 rounds), `web_agentic` (30), `llm_serving` (22) and,
+where 120 rounds were recorded, `gpu_kernels` (120). Each is decided by
+`perfproof.stats.sequential.run_looks` as calibration does
+(`calibrated=True`, no time budget) for three methods on the same data:
+the gated primary (`batch_means`), `hac_lf` on every schedule, and the
+split (`hac_lf` on all but `gpu_kernels`, as `procedure_for_schedule`
+maps schedules). The wrong-KEEP rate of a method and cell is KEEPs over
+comparisons with `S <= 1.03`; the power is KEEPs over comparisons with
+`S` at 1.05 and 1.10; wrong-REJECTs are reported at 1.05 and 1.10. Each
+rate has its one-sided 95% Clopper-Pearson bound. Rounds to verdict are
+the rounds of the last look; wall time to verdict is the sum of the
+recorded execution times of those rounds (both arms, and the wrapper's
+startup excluded); the compute cost is the time the statistics code
+takes per verdict, measured on the replay host. Methods are compared
+pairwise on the same comparisons by the exact McNemar test on KEEP
+against not-KEEP, and every discordant pair is classed by the look at
+which the methods diverged and the reason (interval width, gate
+withholding, different look).
+
+**Choosing.** A method is admissible when its wrong-KEEP upper bound is
+at most 2.5% in every cell of every schedule. Among admissible methods
+the simplest is chosen, simplest meaning fewest decision paths: the
+gated primary (one interval, one gate), then `hac_lf` everywhere (one
+interval, no gate, a generated table), then the split (two intervals and
+a dispatch). Where the rule picks a method that is clearly weaker in
+power than another admissible one, the report says so with the numbers
+and the owner decides. The recommendation names every cell where the
+method loses to another by more than the McNemar error. If no method is
+admissible the report says so and recommends none.
+
+**Noise at the source.** A separate recorder (`studies/golden/noise.py`)
+runs A/A pairs of the Python and native workloads on the same box under
+four conditions: interleaved or blocked order, pinned (`taskset`) or
+not, and records wall time, CPU time, instructions and cycles per
+execution. The standard deviation and the order-centred lag-1 of the log
+ratio are compared across conditions and metrics. This is CPU data from
+one host and says nothing directly about a GPU; the report says what it
+does and does not imply for the GPU gap.
+
+**Not claimed.** One host (a KVM guest, one physical core with two SMT
+threads) and four short workloads. A different machine, a longer
+workload or a GPU may behave otherwise. Results from another host are
+never pooled with these.
+
+### T1.12 results (golden set)
+
+Everything below is measured and comes from committed files:
+`eval/golden/data/*.csv.gz` (every execution), `eval/golden/noise/*.csv`
+(the A/A recordings), and the tables made from them by
+`tests/golden/golden_report.py` and `golden_noise.py` into
+`eval/golden/results/` (`cells.csv`, `replay.md`, `summary.md`,
+`noise.md`). Sha256 of every copied file is in
+`eval/golden/data-sha256.txt` and `eval/golden/noise-sha256.txt`; the
+uncompressed CSVs' sha256 equal the box's (same files, one host).
+
+**What was run.** One host: the Hetzner CCX13 (KVM guest, AMD EPYC-Milan,
+one physical core with two SMT threads, kernel 7.0.0-30, Python 3.14.4).
+2,800 real `perfproof compare` runs, each once to its maximum rounds
+(Python and native 120, Node and Java 60), 700 per workload: 200 each at
+S = 1.00 and 1.03, 100 each at 1.02, 1.05 and 1.10. 504,000 recorded
+executions in all (every row of the CSVs is one). The batch ran
+10:58 to 04:53 UTC (17.9 h of box time); the noise recorder 05:00 to
+05:23; box time used by this task in all about 18.8 h.
+
+**Deviations from the design above, and what they cost.**
+
+- The cells of 100 that carry a wrong-KEEP bound (S = 1.02; 1.05 and
+  1.10 are power cells) cannot show 2.5% even with no error (n = 100
+  gives 2.95%). **Under the rule as
+  registered ("Choosing": 2.5% in every cell) no method is admissible,
+  because the 14 cells of 100 at S = 1.02 per method cannot pass.** The
+  rule was amended to judge only the cells of 200 (S = 1.00, 1.03):
+  proposed by the task author after seeing the data; accepted by the
+  owner on 2026-10-23. Every method had 0 wrong-KEEPs in
+  the S = 1.02 cells. Both readings are in `summary.md` and `replay.md`.
+- The first batch was discarded after about 7 minutes: the wrapper read
+  `/proc/stat` before stamping the end of the child, which put about
+  100 us on the candidate arm only. The shipped wrapper stamps first; the
+  time after the child exits is 10 us on each arm in an unspun cell
+  (about 0.017% of the Python work); in a spun cell the baseline arm's
+  is absorbed by the spin window and only the candidate's remains. And `test_wrapper_overhead_after_exit_is_negligible` holds it
+  under 60 us.
+- The slowdown is in the **baseline** arm so the candidate is faster by
+  `1 + f` (see "Truth by injection"). `tests/calibration/traces/targets/`
+  (since #84: the agent, llm and web targets) holds none of the four
+  workloads used here; they are in `studies/golden/targets/` (Node and
+  Java derived from the T2.11 sources, `N` reduced; Python and C written
+  for this).
+- Node and Java recorded 60 rounds, so they have no `gpu_kernels`
+  replay (that schedule needs 120).
+- The injected size is exact to the clock (achieved spin 2.9563% against
+  2.9559% expected at the 1.03 cell, Python; within 0.003 points at every
+  spun cell, `summary.md`). The measured mean log ratio of Python, native
+  and Node cells is between -0.062 and +0.038 points of expected; four
+  cells are beyond 2.4 standard errors (native 1.03 -0.023, z = -3.0;
+  python 1.02 -0.062, -2.6; native 1.10 -0.054, -2.5; node 1.00 +0.038,
+  +2.5), so a small shortfall for native is not excluded. The 10 us
+  after-exit time on the candidate arm of a spun cell explains at most
+  0.02 points of a shortfall and cannot explain node's positive one.
+  Java's cells run from -0.03 to +0.18 points of expected, three of five
+  above +0.1 (1.03: +0.116, z = +2.1; 1.05: +0.132; 1.10: +0.184), with a
+  null cell at -0.006 (SE 0.054), so Java's A/A bias cannot be pinned
+  below about +-0.1 points and a Java KEEP at nominal 1.03 may not be
+  wrong. Two of the five failing gated cells below are Java cells
+  (`java/web_agentic`, `java/llm_serving`); the verdict on the gated
+  primary does not depend on them, since native/web_agentic,
+  native/llm_serving and node/web_agentic fail at 2 of 200 each.
+
+**Wrong-KEEP, cells of 200 (28 per method: 4 workloads, S = 1.00 and 1.03,
+the schedules each can replay).**
+
+| Method | Wrong-KEEPs in 5,600 | Worst cell | Worst CP95 | Cells above 2.5% |
+|---|---|---|---|---|
+| gated primary | 16 | java/llm_serving/1.03: 4 of 200 | 4.52% | 5 |
+| `hac_lf` everywhere | 3 | three cells with 1 of 200 | 2.35% | 0 |
+| split | 4 | native/gpu_kernels/1.03: 1 of 200 | 2.35% | 0 |
+
+The five failing cells of the gated primary are native, Node and Java on
+`web_agentic`, native and Java on `llm_serving`, all at 1.03 (2 or 4 of
+200). `hac_lf` passes every cell, with a margin of one error: a cell with 1
+of 200 has bound 2.35%, with 2 of 200 it would be 3.11%. The three cells
+are node/python_native/1.03, node/web_agentic/1.03 and
+java/python_native/1.03. The split differs from `hac_lf` only on
+`gpu_kernels`, where it is the gated primary: one more wrong-KEEP
+(native/1.03) than `hac_lf`'s none there.
+
+**Power and rounds (`replay.md`, `summary.md`).** Wrong-REJECTs at
+S = 1.05 and 1.10: 0 for every method and cell (`cells.csv`). KEEP rate at S = 1.05
+and 1.10 over 100 comparisons: `hac_lf` is at or above the gated primary
+in every one of the 28 cells (no row in "Where `hac_lf` keeps fewer").
+Python on `web_agentic` at 1.05: 76 against 14; native on `llm_serving`
+at 1.10: 100 against 0; Java at 1.05 is low for both (20 against 19 on
+`python_native`, 7 against 7, 3 against 3) because its log ratio has a
+standard deviation of 6.1%. On `gpu_kernels` (Python and native only, 120
+rounds) both give 100% at 1.05 and 1.10. Mean rounds to a verdict at
+S = 1.10, over workloads: `python_native` 47.1 gated against 21.7
+`hac_lf`; `web_agentic` 28.2 against 21.0; `llm_serving` 21.9 against
+16.9; `gpu_kernels` 60.7 against 20.5, which is 10.0 against 5.1 s,
+6.4 against 4.9 s, 5.0 against 3.9 s and 9.2 against 3.1 s of recorded
+execution time. At the null (1.00) the gated primary's mean is 44.8
+rounds against 29.4 on `python_native`. The statistics cost per verdict
+is 0.2 to 1.0 ms for every method, against seconds of execution.
+
+**McNemar (exact, KEEP against not-KEEP, discordant pairs pooled over
+cells).**
+
+| Schedule | S | gated only KEEP | `hac_lf` only KEEP | p |
+|---|---|---|---|---|
+| python_native | at most 1.03 | 2 | 2 | 1 |
+| web_agentic | at most 1.03 | 5 | 0 | 0.0625 |
+| llm_serving | at most 1.03 | 7 | 0 | 0.0156 |
+| gpu_kernels | at most 1.03 | 1 | 0 | 1 |
+| python_native | at least 1.05 | 5 | 82 | 5e-19 |
+| web_agentic | at least 1.05 | 5 | 432 | 7e-121 |
+| llm_serving | at least 1.05 | 5 | 485 | 1e-136 |
+| gpu_kernels | at least 1.05 | 0 | 0 | 1 |
+
+`hac_lf` and the split are identical on every schedule but `gpu_kernels`
+(one discordant pair there, native 1.03). The classes of disagreement
+(`replay.md`): (a) `hac_lf` KEEP and the gated primary INCONCLUSIVE (84, 432
+and 485 comparisons on the three non-GPU schedules; 82, 432 and 485 are at
+S >= 1.05, and the other 2 on `python_native` are `hac_lf`'s own
+wrong-KEEPs at 1.03, node and Java).
+The gate withheld the last look in 76 of 84 on `python_native`
+(`autocorrelated_rounds`), 390 of 432 on `web_agentic` (`outlier_rounds`
+271, `autocorrelated_rounds` 119) and 182 of 485 on `llm_serving` (129
+and 53), mean estimate at the verdict 1.08 to 1.09. The rest are plain
+INCONCLUSIVE with an interval still on the bar (8, 42 and 303
+comparisons, mean estimate 1.056, 1.060, 1.077). INFERENCE: the gate
+fires on short heavy-tailed series whose sample lag-1 is noisy, since
+the real lag-1 is near 0 (below). (b) The gated
+primary keeps and `hac_lf` is plain INCONCLUSIVE in 7, 10 and 12
+comparisons on the three schedules (5 each at S >= 1.05 and the wrong-
+KEEPs of (c)), mean estimate 1.054, 1.049, 1.053: marginal estimates
+(INFERENCE: `hac_lf`'s critical value is wider there). (c) At
+S <= 1.03 the gated-only KEEPs (2, 5, 7 and 1 on the four schedules)
+are its wrong-KEEPs (INFERENCE: a narrower interval at 22 to 30 rounds
+than the table's worst case over rho).
+
+**Real lag-1.** The order-centred lag-1 of the log ratio in the null
+cell: Python +0.006, native -0.023, Node +0.037, Java -0.007. In the A/A
+recordings with interleaved order it is between -0.05 and +0.19, apart
+from one pinned native pass at +0.22 (wall), +0.30 (CPU) and +0.31
+(cycles) (`noise.md`).
+The gate and the 0.3 floor were set for a dependence the real data does
+not show on this host.
+
+**Noise at the source (`noise.md`; CPU data, one host, 600 pairs per
+condition, two passes in opposite condition order).**
+
+| Control | Effect, measured |
+|---|---|
+| Interleaved against blocked order | Blocked: lag-1 +0.37 to +0.66 on every wall, CPU and cycle series (drift between the A block and the B block), SD of the log ratio up to 2 times larger (Python wall 4.8, 6.5, 5.3 and 5.5% against 2.9, 4.1, 4.8 and 3.5% interleaved; native 2.8 to 3.9% against 2.0 to 2.2%), and a mean bias up to +0.57 points (Python) against within +-0.13 interleaved. Interleaving is the large control. |
+| CPU pinning (`taskset -c 0`) | No consistent effect: Python interleaved wall SD 2.9 and 4.1% unpinned, 4.8 and 3.5% pinned (pinned higher in pass 1, lower in pass 2); native 2.2 and 2.2% unpinned, 2.0 and 2.2% pinned. The wall SD of the same condition moved by up to 40% between passes (CPU time and cycles by 52 to 53%, the stats-auditor's figures). |
+| Metric: CPU time against wall time | CPU SD against wall SD in the golden null: Python 1.67 against 2.77%, native 0.69 against 1.01%, Node 1.48 against 1.55%, Java 7.04 against 6.11% (larger). A different quantity (it omits waiting), and no gain for Node or Java. |
+| Metric: instructions | Native 0.0000% (deterministic), Python 0.07% (nearly deterministic), Node 0.44%, but Java 7.5%, worse than wall (6.1%): JIT-compiled code is not instruction-deterministic. Instructions are a different estimand from time. |
+| Frequency and steal as covariates | Regressing the wall-time log ratio on the cycles-per-task-clock ratio and the steal difference explains R^2 of 0.000 (Python), 0.197 (native), 0.041 (Node), 0.053 (Java); SD falls from 1.01 to 0.90% for native and by under 0.3 points elsewhere. |
+
+Would that alone close the GPU gap? **INFERENCE, from CPU data; no GPU
+was run.** The gap is a loss of power against the gated primary under
+synthetic correlation 0.6 to 0.7, which comes from the width of the
+critical value (the table's worst case over rho up to the limit), not
+from the noise level. Controls at the source scale the noise: they
+narrow both intervals alike, and on these data they move nothing that
+the gap depends on, because the real interleaved lag-1 is already about
+0. Interleaving, which perfproof always does, is what keeps the lag-1
+near 0 (blocked order gives +0.4 to +0.7). So noise control cannot close
+a gap that exists by construction at rho 0.6 to 0.7; what it can do is
+make the effect large against the noise, where both methods decide and
+the gap vanishes, as it does here on `gpu_kernels` (both 100% at 1.05).
+Whether a real GPU's paired rounds reach rho 0.6 is not known.
+
+**Decision data.**
+
+- **Under the admissibility rule as registered (wrong-KEEP CP95 at most
+  2.5% in every cell), no method is admissible**: the cells of 100 at S
+  = 1.02 cannot meet 2.5% with 0 errors (2.95%), and every method had 0
+  errors there. The statement "`hac_lf` everywhere and the split are
+  admissible" rests on judging only the cells of 200 (S = 1.00, 1.03),
+  an amendment proposed by the task author after seeing the data and
+  accepted by the owner on 2026-10-23.
+  On that amended reading the gated primary is not admissible (5 cells
+  above 2.5%).
+- Robustness of that amended reading, from the stats-auditor's audit of
+  PR #82 (its simulations; not committed, not re-derived by the task author): the
+  gated primary is robustly inadmissible, probability of passing again
+  about 0.005. `hac_lf` passing is sensitive to the draw: the
+  probability it passes again is about 0.39 (cluster bootstrap) to 0.76
+  (pooled over the 14 cells), consistent with its margin of one error
+  per cell; for the split, the method the owner kept, about 0.29 to
+  0.62; for the gated primary 0.006 and 0.005. On `gpu_kernels` the
+  golden data cannot show the power gap; the simulation gap the audit
+  quotes is -17 points at rho 0.6 and -35 at rho 0.7 at S = 1.10, CV 5%
+  on the `gpu_kernels` schedule (at S = 1.05 it is about 7 to 8 points). The cells share comparisons (one recorded comparison is
+  replayed on up to four schedules), so the wrong-KEEP counts are not
+  independent: the 16 gated errors come from 10 distinct comparisons.
+- **Owner's decision, 2026-10-23 (Faras, in chat).** (1) He accepts the
+  amendment: admissibility is judged on the cells of 200 only. The
+  decision is the owner's; the statement above stands that no method
+  is admissible under the rule as registered. (2) Under it the split is
+  admissible: 4 wrong-KEEPs in 5,600, no cell of 200 above 2.5%. (3)
+  The simplicity order fixed above would have picked **`hac_lf`
+  everywhere**; he **kept the split** (`hac_lf` for `python_native`,
+  `web_agentic` and `llm_serving`, the gated primary for `gpu_kernels`)
+  because of the simulated GPU power gap (-17 points at rho 0.6, -35 at
+  rho 0.7, at S = 1.10, CV 5%, `gpu_kernels` schedule), which the golden data cannot test. "The T1.11 decision"
+  therefore stands unchanged. (4) The paid GPU golden run is not run
+  now; it waits for GPU work.
+- It loses to another method in these places, with numbers: (1) 15
+  comparisons across the three non-GPU schedules (5 each) at S >= 1.05
+  where the gated primary keeps and `hac_lf` does not, against 999 in
+  the other direction (counted per schedule); (2) on `gpu_kernels` it is 0 against 1 in wrong-
+  KEEPs of the gated primary, no loss; (3) its margin on the rule is one
+  error per cell (2.35% against 2.5%); (4) Java is weak for every method
+  at 1.05 (3 to 20%), for noise reasons. It gains nothing it does not
+  also have on the split except on `gpu_kernels`, where the split loses
+  rounds (48.3 against 24.4 at the null; 60.7 against 20.5 at 1.10) and
+  adds one wrong-KEEP.
+- **Does "split by schedule" stand?** Not shown to be needed by this
+  data (INFERENCE). The split exists to protect GPU power at paired
+  correlation 0.6 to 0.7, and this data cannot test that: the only
+  120-round real data is two short CPU workloads, both methods are at
+  100% at 1.05 and 1.10 there (a saturated cell), and the real
+  interleaved lag-1 is about 0 (at most +0.04 pooled in the null
+  cells). What the data shows is that the split costs two procedures
+  and a dispatch and, on `gpu_kernels`, keeps the gated primary's
+  one extra wrong-KEEP and its 2x rounds, for no measured gain. The
+  synthetic gap (up to 36 points at rho 0.6 to 0.7) is neither
+  contradicted nor reached. The owner kept the split (decision above);
+  the paid GPU run below is the test that could confirm or retire it.
+
+**Proposed, deferred by the owner (2026-10-23), not run: one paid GPU
+golden run on Modal.** Workload: a
+small CUDA C++ benchmark binary (matrix multiply or a reduction, 0.1 to
+0.3 s per execution, CUDA events as the reported value, spin added to
+the baseline arm as in `wrap.py`), so a process start is about 0.3 s and
+not the seconds a framework import costs. Cells: S = 1.00 and 1.03 at 200
+comparisons each, `gpu_kernels` schedule (120 rounds, 240 executions per
+comparison), 400 comparisons: about 96,000 executions, at about 0.4 s
+each 10.7 h of one GPU. GPU: a T4 or L4 (the cheapest class that gives a
+stable kernel timing); at an assumed 0.6 to 0.8 USD per hour that is
+about 6 to 9 USD. The price is an estimate from memory of Modal's list
+and must be checked against the current Modal page before approval;
+`gpu-run` states the final figures. Fail-fast: a server-less binary, a
+health check of the GPU's clocks before round 1, and the log tail on any
+failure. It answers the one question this study cannot: whether `hac_lf`
+on a real GPU's rounds loses power to the gated primary, and whether its
+wrong-KEEP stays at or below 2.5%.
+
+**Not shown.** One host (a KVM guest); four short workloads (0.06 to
+0.15 s of work), against the T2.11 traces' 0.4 to 1.5 s; no GPU; no
+loaded host (the box was otherwise idle); the golden run's own noise
+level moved between hours (from the golden CSVs, the SD of
+log(work_A / work_B) pooled over all cells by campaign hour has a
+largest-to-smallest ratio of 1.40 Python, 2.12 native, 2.19 Node and
+1.15 Java over hours with at least 35 comparisons, and 1.57, 2.69,
+2.19 and 1.16 counting every hour, including hours of fewer than
+35 comparisons, so native and Node moved by more than 2x and Java by
+under 20% either way); the margin of `hac_lf` on the rule is one error
+per cell, so the result is "not shown to fail at 200 comparisons", not
+"controlled at 1.25%".
+
 ### T1.13 results (the split as shipped)
 
 `perfproof compare` decides with `procedure_for_schedule` ("The T1.11

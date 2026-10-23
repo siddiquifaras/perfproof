@@ -1,0 +1,16 @@
+python-interleaved-free-pass1: 1200 runs in 70s
+python-interleaved-pinned-pass1: 1200 runs in 71s
+python-blocked-free-pass1: 1200 runs in 70s
+python-blocked-pinned-pass1: 1200 runs in 70s
+python-blocked-pinned-pass2: 1200 runs in 70s
+python-blocked-free-pass2: 1200 runs in 70s
+python-interleaved-pinned-pass2: 1200 runs in 70s
+python-interleaved-free-pass2: 1200 runs in 70s
+native-interleaved-free-pass1: 1200 runs in 102s
+native-interleaved-pinned-pass1: 1200 runs in 103s
+native-blocked-free-pass1: 1200 runs in 103s
+native-blocked-pinned-pass1: 1200 runs in 103s
+native-blocked-pinned-pass2: 1200 runs in 104s
+native-blocked-free-pass2: 1200 runs in 103s
+native-interleaved-pinned-pass2: 1200 runs in 103s
+native-interleaved-free-pass2: 1200 runs in 103s

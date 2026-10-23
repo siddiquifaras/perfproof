@@ -1,0 +1,37 @@
+Provenance of eval/golden/data and eval/golden/noise (read off
+the Hetzner CCX13 host on 2026-10-23 after the runs; the host is
+a Hetzner CCX13, an AMD EPYC-Milan KVM guest with 2 vCPUs = 1 core x 2
+threads, as lscpu reports it).
+
+Host: Linux 7.0.0-30-generic x86_64, Ubuntu 26.04.1 LTS.
+Tools: gcc 15.2.0 (Ubuntu 15.2.0-16ubuntu1), node v22.22.1, openjdk
+25.0.4.1 2026-08-18, perf 7.0.14, Python 3.14.4 (venv with numpy 2.5.4,
+pydantic 2.14.1, perfproof 0.1.0 installed from the T1.12 worktree
+whose src/ equals origin/task/t1.11-phase2 at 20d75ee; T1.12 changes
+nothing under src/).
+
+Golden campaign: tmux session "golden", started 2026-10-22 10:58 UTC,
+last comparison 2026-10-23 04:53 UTC (campaign.log). Noise recorder:
+2026-10-23 05:00 to 05:23 UTC, `noise.py --pairs 600`.
+A first campaign start at 10:50 UTC the same day used a wrapper that
+read /proc/stat before stamping the end of the child; it ran about 7
+minutes, was killed and its output deleted (nothing of it is here).
+
+The files that produced the data, by sha256 as found on the box (and
+equal to the files committed under studies/golden/, except noise.py: a
+later commit added a 60 s alarm in execute() to it, no other change; the
+committed noise.py is 9ef5c52de64c84017c8dfce8d0ebb1c923f1bec872c80e14574309ebbf9b7761):
+7a28ba6c8ab39666ff275f465afc870d69455349ef13829422eb8f5c5ceeca7b  wrap.py
+7bb0135f1dbc8149d91334d210a7984b21c76f254c38556dd9cb374b7bffa219  campaign.py
+57371fd2f0a4b739de4ba423374948befcde6677f1fb0931b40fe00c4edb0a0d  noise.py
+f45185a7547097dbc9420b65117d9abf8bf12cf9d1d9c2b7b9bb57090b61a692  targets/java/Bench.java
+13e74a6e14752d8be6601e915205894b91f713c3c399649516c755042b75a49d  targets/native/bench.c
+1f0ba7cf97d26363b35e13f59cde92f21197da6f07b10f8edc9fe8e996bb8765  targets/node/bench.js
+4c4aa363d03c12099884bac3c3498eb6d611b3b5f08da7ef8807d5451283aa09  targets/python/bench.py
+
+The uncompressed CSVs' sha256 (equal on the box and on the Mac; see
+data-sha256.txt for the gzipped files committed here):
+2b5607c69cbc93ceab5cf0463adec12b54eaec299a64595916914d0407f4241b  java.csv
+d0d742353404f7f59e2c8724e83f62dcca998ccb2273af5827918c909f7603b5  native.csv
+b3531c79e426503566051c872814ff14498a508120956d52b9d3f72c9ed05041  node.csv
+669f5a523c184f5311c8d319812aa271a3ff53c439fbc2a7074b2e60d1c0ee25  python.csv

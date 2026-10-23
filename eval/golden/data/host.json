@@ -1,0 +1,7 @@
+{
+ "node": "perfproof-traces",
+ "system": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+ "machine": "x86_64",
+ "python": "3.14.4",
+ "cpu": "AMD EPYC-Milan Processor"
+}
