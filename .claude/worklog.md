@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `5ed3757` | hidden-fix scoring merged (PR #80, T3.8): names matched as profilers print them (owner-qualified, Go/C++/Rust/Ruby normalised, file check), the window is the first N of each printed list (self and total kept apart), CLI text tables parsed, list names count as headings only as a JSON key or a lone line; django accepts `_view_wrapper`, fd accepts `output::print_entry`; naming needs the owner-qualified form. All 305 saved scores byte-identical. Head f227b0a: Mac 5627, Linux 5538 |
 | `56219d0` | batch full check on main after #73-#79, #67, #78: Mac 5493 passed, Linux 5404 passed, 0 failed |
 | `a52e543` | eval draws merged (PR #78, T3.8): development-named tasks never held-out; an unfillable slot is recorded and the draw goes on; step-1 reviews for java, dotnet, rust; Node, Java tasks re-checked to `runs`; loader treats unfilled held-out slots as done. All 9 task files (29 entries) load. Held-out: java 3 of 5, dotnet 0, rust 0. Head 179f6ad: Mac 5493, Linux 5404 |
 | `3b97d5a` | coverage gate wired into compare merged (PR #67, T2.24): `correctness.coverage_command` runs the declared coverage command on the candidate and checks that the changed lines ran (lcov/Cobertura reports; Python built in). Head 3dceb1f: Mac 5456, Linux 5370; then main (#76, #79, worklog; no overlap) merged and its own plus eval tests rerun: 1878 passed (pytest exit 0) |
