@@ -24,7 +24,7 @@
   "workload": {
     "command": "node eval_bench.js",
     "source": "written here from the description of https://github.com/fastify/fastify/pull/7056 (the per-request child logger, with request logging on): GET /item/:id served in process by app.inject with a pino logger writing to a discarded stream, a fixed warm-up then a fixed window, eval/tasks/workloads/fastify-fastify-pr7056/bench.js",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": "node --test test/child-logger-factory.test.js test/encapsulated-child-logger-factory.test.js test/logger/*.test.js",
@@ -38,26 +38,26 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies installed with npm install --ignore-scripts and --before the merge date (the repository has no lockfile). The workload and oracle command lines are run without a shell, so the oracle's globs are expanded by node --test itself. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree The workload was edited after this run (its reported value is printed with toPrecision(12) instead of toFixed(9)), and it has not been run again, so the workload is marked unverified and the status is builds: the workload was run only in an earlier form.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies installed with npm install --ignore-scripts and --before the merge date (the repository has no lockfile). The workload and oracle command lines are run without a shell, so the oracle's globs are expanded by node --test itself. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-09-27",
       "exit_code": 0,
-      "duration_s": 63.29,
-      "date": "2026-10-22T00:23:52+00:00",
+      "duration_s": 8.28,
+      "date": "2026-10-23T02:08:02+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "added 653 packages in 1m\nnpm warn Unknown project config \"min-release-age\". This will stop working in the next major version of npm.\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+      "output_tail": "added 653 packages in 8s\nnpm warn Unknown project config \"min-release-age\". This will stop working in the next major version of npm.\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options."
     },
     {
       "step": "setup",
       "tree": "task",
       "command": "cp ../../../../tasks/workloads/fastify-fastify-pr7056/bench.js eval_bench.js",
       "exit_code": 0,
-      "duration_s": 0.01,
-      "date": "2026-10-22T00:24:55+00:00",
+      "duration_s": 0.0,
+      "date": "2026-10-23T02:08:10+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -66,28 +66,28 @@
       "tree": "task",
       "command": "node --test test/child-logger-factory.test.js test/encapsulated-child-logger-factory.test.js test/logger/*.test.js",
       "exit_code": 0,
-      "duration_s": 0.75,
-      "date": "2026-10-22T00:24:55+00:00",
+      "duration_s": 0.74,
+      "date": "2026-10-23T02:08:10+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "✔ request (87.438042ms)\n▶ response serialization\n  ✔ Should use serializers from plugin and route (50.922834ms)\n  ✔ Should use serializers from instance fastify and route (3.419334ms)\n  ✔ Should use serializers inherit from contexts (2.159041ms)\n  ✔ should serialize request and response (1.926ms)\n✔ response serialization (59.392792ms)\nℹ tests 61\nℹ suites 0\nℹ pass 61\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 718.923542"
+      "output_tail": "✔ request (95.915292ms)\n▶ response serialization\n  ✔ Should use serializers from plugin and route (47.845208ms)\n  ✔ Should use serializers from instance fastify and route (5.27025ms)\n  ✔ Should use serializers inherit from contexts (2.102917ms)\n  ✔ should serialize request and response (1.762167ms)\n✔ response serialization (57.708833ms)\nℹ tests 61\nℹ suites 0\nℹ pass 61\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 711.846958"
     },
     {
       "step": "workload",
       "tree": "task",
       "command": "node eval_bench.js",
       "exit_code": 0,
-      "duration_s": 0.54,
-      "date": "2026-10-22T00:24:56+00:00",
+      "duration_s": 0.42,
+      "date": "2026-10-23T02:08:11+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "PERFPROOF {\"value\": 0.000018370}\nchecksum 420000"
+      "output_tail": "PERFPROOF {\"value\": 0.0000134954972000}\nchecksum 420000"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-09-27",
       "exit_code": 0,
-      "duration_s": 3.95,
-      "date": "2026-10-22T00:24:57+00:00",
+      "duration_s": 4.19,
+      "date": "2026-10-23T02:08:11+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": "added 653 packages in 4s\nnpm warn Unknown project config \"min-release-age\". This will stop working in the next major version of npm.\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options."
     },
@@ -97,7 +97,7 @@
       "command": "cp ../../../../tasks/workloads/fastify-fastify-pr7056/bench.js eval_bench.js",
       "exit_code": 0,
       "duration_s": 0.0,
-      "date": "2026-10-22T00:25:01+00:00",
+      "date": "2026-10-23T02:08:16+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -107,19 +107,19 @@
       "command": "node --test test/child-logger-factory.test.js test/encapsulated-child-logger-factory.test.js test/logger/*.test.js",
       "exit_code": 0,
       "duration_s": 0.74,
-      "date": "2026-10-22T00:25:01+00:00",
+      "date": "2026-10-23T02:08:16+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "✔ request (102.139708ms)\n▶ response serialization\n  ✔ Should use serializers from plugin and route (39.094291ms)\n  ✔ Should use serializers from instance fastify and route (3.546875ms)\n  ✔ Should use serializers inherit from contexts (2.015542ms)\n  ✔ should serialize request and response (2.439458ms)\n✔ response serialization (47.875708ms)\nℹ tests 62\nℹ suites 0\nℹ pass 62\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 709.647625"
+      "output_tail": "✔ request (75.027458ms)\n▶ response serialization\n  ✔ Should use serializers from plugin and route (43.754583ms)\n  ✔ Should use serializers from instance fastify and route (2.901875ms)\n  ✔ Should use serializers inherit from contexts (2.347875ms)\n  ✔ should serialize request and response (7.470917ms)\n✔ response serialization (57.720542ms)\nℹ tests 62\nℹ suites 0\nℹ pass 62\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 710.15025"
     },
     {
       "step": "workload",
       "tree": "reference",
       "command": "node eval_bench.js",
       "exit_code": 0,
-      "duration_s": 0.47,
-      "date": "2026-10-22T00:25:01+00:00",
+      "duration_s": 0.44,
+      "date": "2026-10-23T02:08:16+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "PERFPROOF {\"value\": 0.000015102}\nchecksum 420000"
+      "output_tail": "PERFPROOF {\"value\": 0.0000140009389333}\nchecksum 420000"
     }
   ],
   "split": "development-candidate",

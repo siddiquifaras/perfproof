@@ -25,7 +25,7 @@
   "workload": {
     "command": "java -cp target/classes:eval-wl Base64Workload",
     "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1674 (Base64Variant.encode): a program encoding 16 byte, 1 KiB and 64 KiB payloads in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java)",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
@@ -39,16 +39,16 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21).",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 7.1,
-      "date": "2026-10-22T00:14:37+00:00",
+      "duration_s": 5.96,
+      "date": "2026-10-23T02:20:52+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -57,8 +57,8 @@
       "tree": "task",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java",
       "exit_code": 0,
-      "duration_s": 0.28,
-      "date": "2026-10-22T00:14:44+00:00",
+      "duration_s": 0.22,
+      "date": "2026-10-23T02:20:58+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -67,8 +67,8 @@
       "tree": "task",
       "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
       "exit_code": 0,
-      "duration_s": 6.0,
-      "date": "2026-10-22T00:14:44+00:00",
+      "duration_s": 4.65,
+      "date": "2026-10-23T02:20:58+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -77,18 +77,18 @@
       "tree": "task",
       "command": "java -cp target/classes:eval-wl Base64Workload",
       "exit_code": 0,
-      "duration_s": 0.98,
-      "date": "2026-10-22T00:14:50+00:00",
+      "duration_s": 5.47,
+      "date": "2026-10-23T02:21:02+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 7 21391 us\nwarmup 8 23096 us\nwarmup 9 23214 us\nwarmup 10 21691 us\nwarmup 11 20514 us\nwarmup 12 20189 us\nwarmup 13 22575 us\nwarmup 14 20104 us\nwarmup 15 23378 us\nwarmup 16 20112 us\nwarmup 17 22601 us\nwarmup 18 23117 us\nwarmup 19 22110 us\nwarmup 20 19824 us\nstabilised after 20 iterations"
+      "output_tail": "warmup 195 24449 us\nwarmup 196 24197 us\nwarmup 197 22204 us\nwarmup 198 24475 us\nwarmup 199 23769 us\nwarmup 200 24237 us\nwarmup 201 22860 us\nwarmup 202 24398 us\nwarmup 203 24069 us\nwarmup 204 22258 us\nwarmup 205 24270 us\nwarmup 206 22977 us\nwarmup 207 23631 us\nwarmup 208 22486 us\nstabilised after 208 iterations"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 6.38,
-      "date": "2026-10-22T00:14:51+00:00",
+      "duration_s": 5.62,
+      "date": "2026-10-23T02:21:08+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -97,8 +97,8 @@
       "tree": "reference",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java",
       "exit_code": 0,
-      "duration_s": 0.26,
-      "date": "2026-10-22T00:14:57+00:00",
+      "duration_s": 0.25,
+      "date": "2026-10-23T02:21:14+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -107,8 +107,8 @@
       "tree": "reference",
       "command": "./mvnw -q -B test -Dtest=Base64CodecTest",
       "exit_code": 0,
-      "duration_s": 5.87,
-      "date": "2026-10-22T00:14:58+00:00",
+      "duration_s": 4.98,
+      "date": "2026-10-23T02:21:14+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -117,13 +117,13 @@
       "tree": "reference",
       "command": "java -cp target/classes:eval-wl Base64Workload",
       "exit_code": 0,
-      "duration_s": 0.45,
-      "date": "2026-10-22T00:15:03+00:00",
+      "duration_s": 1.86,
+      "date": "2026-10-23T02:21:19+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 8 8181 us\nwarmup 9 8564 us\nwarmup 10 8123 us\nwarmup 11 8059 us\nwarmup 12 10460 us\nwarmup 13 10370 us\nwarmup 14 8138 us\nwarmup 15 9399 us\nwarmup 16 9151 us\nwarmup 17 8062 us\nwarmup 18 8421 us\nwarmup 19 8292 us\nwarmup 20 8063 us\nwarmup 21 8617 us\nstabilised after 21 iterations"
+      "output_tail": "warmup 187 8224 us\nwarmup 188 7912 us\nwarmup 189 7881 us\nwarmup 190 8183 us\nwarmup 191 7876 us\nwarmup 192 7911 us\nwarmup 193 7882 us\nwarmup 194 8208 us\nwarmup 195 7833 us\nwarmup 196 7898 us\nwarmup 197 7953 us\nwarmup 198 8179 us\nwarmup 199 7925 us\nwarmup 200 7805 us\nstabilised after 200 iterations"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T00:14:16+00:00",
   "miner": "written by hand for T5.11 (no Java repository in the pool)"
 }

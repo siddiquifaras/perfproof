@@ -1,5 +1,6 @@
 """Real-repository seeding, against a real local git "remote"."""
 
+import importlib
 import json
 import os
 import shutil
@@ -338,6 +339,22 @@ def test_a_candidate_of_an_unbuilt_class_is_refused(klass: str) -> None:
     assert "not safe" in reason
 
 
+def test_a_draw_ending_with_unfilled_slots_is_safe() -> None:
+    unsafe, _ = realrepo.draw_state()  # puts eval/mine on sys.path
+    draw = importlib.import_module("draw")
+    mined = importlib.import_module("task")
+    sel = draw.load_selection()
+    held = draw.draw_splits(mined.load_tasks(), sel)["held-out"]
+    short = [
+        k
+        for k, d in held.items()
+        if d.unfilled and d.stopped is None and k not in sel.unbuilt_classes
+    ]
+    assert short
+    for klass in short:
+        assert klass not in unsafe, klass
+
+
 def test_a_drawn_held_out_task_is_never_a_candidate() -> None:
     _, held_out = realrepo.draw_state()
     assert "gin-gonic-gin-pr4466" in held_out
@@ -563,19 +580,25 @@ def test_which_splits_and_statuses_may_load(
             realrepo.load_spec("t")
 
 
-# Task files whose manifests the selection rule's draw lets in. The
-# Java and Node candidates only `build`, and the dotnet and rust
-# classes' held-out draws have not finished, so they stay out until
-# they have. A file can mix both: the rust file also names fd-pr853, a
-# drawn development task.
+# Task files whose manifests the selection rule's draw lets in. With
+# unfilled slots counting as a finished draw, every task file loads:
+# each names only drawn development tasks or built development
+# candidates of a
+# class whose held-out draw is finished. A file naming a task the draw
+# refuses leaves this set, and its tasks that load individually go into
+# _ALSO_LOADS.
 _LOADS = {
     "tasks.json",
     "tasks-real.json",
     "tasks-go.json",
     "tasks-native.json",
     "tasks-ruby.json",
+    "tasks-java.json",
+    "tasks-node.json",
+    "tasks-dotnet.json",
+    "tasks-rust.json",
 }
-_ALSO_LOADS = {"sharkdp-fd-pr853"}
+_ALSO_LOADS: set[str] = set()
 
 
 @pytest.mark.parametrize(

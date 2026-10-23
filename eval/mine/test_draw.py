@@ -280,3 +280,59 @@ def test_committed_splits_match_the_draw() -> None:
 def test_every_review_names_a_task_in_the_pool() -> None:
     ids = {t.id for t in load_tasks()}
     assert set(draw.load_selection().review) <= ids
+
+
+def test_an_unfillable_slot_is_recorded_and_the_draw_goes_on() -> None:
+    # One task of each family but published-benchmark: the second
+    # known-change slot has nothing left, and the later slots must
+    # still be tried.
+    tasks = [t for t in _pool(1) if t.family != "published-benchmark"]
+    out = draw_splits(tasks, _selection(tasks))
+    by = out["held-out"]["python"]
+    assert by.stopped is None
+    assert [v.slot for v in by.picks] == [
+        "known-change",
+        "hidden-fix",
+        "nothing-to-keep",
+    ]
+    assert by.unfilled == ["known-change", "published-benchmark"]
+    text = draw.report(out, _selection(tasks))
+    assert "Slot unfilled: no candidate (known-change)." in text
+
+
+def test_a_task_named_in_a_development_file_is_not_held_out() -> None:
+    tasks = _pool(4)
+    sel = _selection(tasks)
+    first = _first(tasks, "known-change", "h", 1)[0]
+    out = draw_splits(tasks, sel, {first: "tasks-x.json"})
+    by = out["held-out"]["python"]
+    visit = next(v for v in by.visits if v.task_id == first)
+    assert visit.outcome == "passed"
+    assert visit.reason == "named in eval/skill/tasks-x.json (development)"
+    assert first not in {v.task_id for v in by.picks}
+    # It stays eligible for the development draw.
+    dev = {v.task_id for v in out["development"]["python"].picks}
+    assert first in dev
+
+
+def test_development_named_reads_the_task_files(tmp_path: Path) -> None:
+    (tmp_path / "tasks-a.json").write_text(
+        '{"tasks": [{"repo": {"manifest": "m1"}}, {"repo": "x"}, {}]}'
+    )
+    (tmp_path / "tasks-b.json").write_text(
+        '{"tasks": [{"repo": {"manifest": "m1"}},'
+        ' {"repo": {"manifest": "m2"}}]}'
+    )
+    (tmp_path / "other.json").write_text(
+        '{"tasks": [{"repo": {"manifest": "m3"}}]}'
+    )
+    assert draw.development_named(tmp_path) == {
+        "m1": "tasks-a.json",
+        "m2": "tasks-b.json",
+    }
+
+
+def test_no_committed_held_out_task_is_named_in_a_task_file() -> None:
+    named = draw.development_named()
+    held = {t.id for t in load_tasks() if t.split == "held-out"}
+    assert not held & set(named)

@@ -24,8 +24,8 @@
   "target_class": "java",
   "workload": {
     "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
-    "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1706, whose harness is not in the tree: a program writing 30-digit BigDecimals (their text cached) through UTF8JsonGenerator with USE_FAST_DOUBLE_WRITER off, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java). In single runs on JDK 21 (macOS arm64), the last warm-up iterations in the recorded workload output took about 16 ms on the task tree and 16 to 20 ms on the reference tree; that is one run each, and no conclusion is drawn from it. The description's own table (JDK 17, another harness, an earlier form of the loop) shows the copy path halved.",
-    "verified": false
+    "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1706, whose harness is not in the tree: a program writing 30-digit BigDecimals (their text cached) through UTF8JsonGenerator with USE_FAST_DOUBLE_WRITER off, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java). The description's own table (JDK 17, another harness, an earlier form of the loop) shows the copy path halved.",
+    "verified": true
   },
   "oracle": {
     "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
@@ -39,16 +39,16 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21). The workload ran; the recorded tails do not settle whether this change is faster, so that is open: labelling decides what the task is worth. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21).",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 6.81,
-      "date": "2026-10-22T00:15:43+00:00",
+      "duration_s": 9.47,
+      "date": "2026-10-23T01:59:55+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -57,8 +57,8 @@
       "tree": "task",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.29,
-      "date": "2026-10-22T00:15:49+00:00",
+      "duration_s": 0.31,
+      "date": "2026-10-23T02:00:05+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -67,8 +67,8 @@
       "tree": "task",
       "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
       "exit_code": 0,
-      "duration_s": 5.63,
-      "date": "2026-10-22T00:15:50+00:00",
+      "duration_s": 6.01,
+      "date": "2026-10-23T02:00:05+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -77,18 +77,18 @@
       "tree": "task",
       "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
       "exit_code": 0,
-      "duration_s": 0.74,
-      "date": "2026-10-22T00:15:55+00:00",
+      "duration_s": 3.15,
+      "date": "2026-10-23T02:00:11+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 7 15602 us\nwarmup 8 16510 us\nwarmup 9 16883 us\nwarmup 10 16407 us\nwarmup 11 16144 us\nwarmup 12 15895 us\nwarmup 13 16568 us\nwarmup 14 15361 us\nwarmup 15 15989 us\nwarmup 16 15220 us\nwarmup 17 16510 us\nwarmup 18 16100 us\nwarmup 19 16300 us\nwarmup 20 16605 us\nstabilised after 20 iterations"
+      "output_tail": "warmup 187 10875 us\nwarmup 188 11153 us\nwarmup 189 10854 us\nwarmup 190 10830 us\nwarmup 191 11042 us\nwarmup 192 10781 us\nwarmup 193 11036 us\nwarmup 194 10879 us\nwarmup 195 10853 us\nwarmup 196 11086 us\nwarmup 197 12377 us\nwarmup 198 22861 us\nwarmup 199 22672 us\nwarmup 200 17535 us\nstabilised after 200 iterations"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 6.47,
-      "date": "2026-10-22T00:15:56+00:00",
+      "duration_s": 6.74,
+      "date": "2026-10-23T02:00:14+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -97,8 +97,8 @@
       "tree": "reference",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1706/NumberWriteWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.3,
-      "date": "2026-10-22T00:16:03+00:00",
+      "duration_s": 0.41,
+      "date": "2026-10-23T02:00:21+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -107,8 +107,8 @@
       "tree": "reference",
       "command": "./mvnw -q -B test -Dtest=GeneratorBasicTest",
       "exit_code": 0,
-      "duration_s": 6.44,
-      "date": "2026-10-22T00:16:03+00:00",
+      "duration_s": 5.77,
+      "date": "2026-10-23T02:00:21+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -117,13 +117,13 @@
       "tree": "reference",
       "command": "java -cp target/classes:eval-wl NumberWriteWorkload",
       "exit_code": 0,
-      "duration_s": 0.88,
-      "date": "2026-10-22T00:16:09+00:00",
+      "duration_s": null,
+      "date": "2026-10-23T02:00:27+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 7 18612 us\nwarmup 8 21279 us\nwarmup 9 18928 us\nwarmup 10 17117 us\nwarmup 11 19777 us\nwarmup 12 20080 us\nwarmup 13 17382 us\nwarmup 14 19676 us\nwarmup 15 17995 us\nwarmup 16 18629 us\nwarmup 17 18028 us\nwarmup 18 17054 us\nwarmup 19 16051 us\nwarmup 20 18665 us\nstabilised after 20 iterations"
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
     }
   ],
-  "split": "development-candidate",
+  "split": "held-out",
   "mined_at": "2026-10-22T00:14:18+00:00",
   "miner": "written by hand for T5.11 (no Java repository in the pool)"
 }

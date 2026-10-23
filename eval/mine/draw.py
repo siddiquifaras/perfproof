@@ -5,7 +5,9 @@ set is chosen"), applied to the manifests under ``eval/tasks/`` and
 the hand review recorded in ``eval/tasks/selection.json``:
 
 1. A candidate the review removed (step 1) is never drawn. Its reason
-   is in the review.
+   is in the review. A task a development task file
+   (``eval/skill/tasks*.json``) names was used for development and is
+   skipped by the held-out draw, with that as the reason.
 2. The rest are ordered by ``sha256(salt + task id)``, hex digest
    compared as text.
 3. Per target class, five slots are filled in that order: two
@@ -13,7 +15,8 @@ the hand review recorded in ``eval/tasks/selection.json``:
    published-benchmark task. A slot takes the first candidate of its
    family whose manifest status is ``runs`` or ``reference-fails``. A
    slot whose family has no candidate left takes the next known-change
-   task instead.
+   task instead. A slot with no candidate left at all is recorded as
+   unfilled and the draw goes on to the next slot.
 4. A candidate whose status is ``failed`` or ``builds`` (it can't be
    built or run here) is passed over, with its manifest's
    ``status_reason`` as the reason. A reference tree that fails its
@@ -41,10 +44,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -59,6 +63,7 @@ from task import (
 )
 
 SELECTION = TASKS_DIR / "selection.json"
+SKILL_DIR = TASKS_DIR.parent / "skill"
 REPORT = TASKS_DIR / "SPLITS.md"
 CLASSES: tuple[TargetClass, ...] = (
     "python",
@@ -142,12 +147,16 @@ class ClassDraw:
     visits : list of Visit
         Every candidate looked at, in the order looked at.
     stopped : str or None
-        Why the draw could not finish, or None when all five slots
-        are filled.
+        Why the draw could not finish (a candidate needs a review or a
+        build), or None when every slot was either filled or recorded
+        as unfilled.
+    unfilled : list of Family
+        Slots no remaining candidate could fill, in slot order.
     """
 
     visits: list[Visit] = field(default_factory=list[Visit])
     stopped: str | None = None
+    unfilled: list[Family] = field(default_factory=list[Family])
 
     @property
     def picks(self) -> list[Visit]:
@@ -194,12 +203,42 @@ def load_selection(path: Path = SELECTION) -> Selection:
     return Selection.model_validate_json(path.read_text())
 
 
+def development_named(skill_dir: Path = SKILL_DIR) -> dict[str, str]:
+    """Return the tasks the skill eval's development task files name.
+
+    A task used for development never moves to the held-out set
+    (docs/evaluation.md), so the held-out draw skips every manifest
+    id a ``tasks*.json`` file names under ``repo.manifest``.
+
+    Parameters
+    ----------
+    skill_dir : Path
+        Directory holding the ``tasks*.json`` files.
+
+    Returns
+    -------
+    dict of str to str
+        Manifest id to the name of the first file that names it.
+    """
+    named: dict[str, str] = {}
+    for path in sorted(skill_dir.glob("tasks*.json")):
+        data = json.loads(path.read_text())
+        for entry in data.get("tasks", []):
+            repo = entry.get("repo")
+            if isinstance(repo, dict):
+                manifest = cast(dict[str, Any], repo).get("manifest")
+                if isinstance(manifest, str):
+                    named.setdefault(manifest, path.name)
+    return named
+
+
 def _draw_class(
     klass: TargetClass,
     tasks: list[Task],
     salt: str,
     sel: Selection,
     taken: set[str],
+    skip: dict[str, str],
 ) -> ClassDraw:
     unbuilt = klass in sel.unbuilt_classes
     queues: dict[Family, list[Task]] = {}
@@ -213,6 +252,16 @@ def _draw_class(
         queue = queues.get(family, [])
         while queue:
             task = queue.pop(0)
+            if task.id in skip:
+                draw.visits.append(
+                    Visit(
+                        task.id,
+                        family,
+                        "passed",
+                        f"named in eval/skill/{skip[task.id]} (development)",
+                    )
+                )
+                continue
             review = sel.review.get(task.id)
             if review is None:
                 draw.stopped = f"{task.id} needs its step-1 review"
@@ -257,13 +306,14 @@ def _draw_class(
         if filled is None:
             break
         if filled is False:
-            draw.stopped = f"no {slot} or known-change candidate left"
-            break
+            draw.unfilled.append(slot)
     return draw
 
 
 def draw_splits(
-    tasks: list[Task], sel: Selection
+    tasks: list[Task],
+    sel: Selection,
+    named: dict[str, str] | None = None,
 ) -> dict[DrawnSplit, dict[TargetClass, ClassDraw]]:
     """Draw both splits.
 
@@ -273,6 +323,9 @@ def draw_splits(
         The whole candidate pool.
     sel : Selection
         Salts, unbuildable classes and step-1 reviews.
+    named : dict of str to str, optional
+        Tasks named in a development task file, which the held-out
+        draw skips; defaults to `development_named`.
 
     Returns
     -------
@@ -280,6 +333,8 @@ def draw_splits(
         Per split, per class, the draw. The development split has no
         entry for a class in ``sel.unbuilt_classes``.
     """
+    if named is None:
+        named = development_named()
     out: dict[DrawnSplit, dict[TargetClass, ClassDraw]] = {}
     taken: set[str] = set()
     for split in SPLITS:
@@ -287,7 +342,14 @@ def draw_splits(
         for klass in CLASSES:
             if split == "development" and klass in sel.unbuilt_classes:
                 continue
-            draw = _draw_class(klass, tasks, sel.salts[split], sel, taken)
+            draw = _draw_class(
+                klass,
+                tasks,
+                sel.salts[split],
+                sel,
+                taken,
+                named if split == "held-out" else {},
+            )
             out[split][klass] = draw
             taken.update(v.task_id for v in draw.picks)
     return out
@@ -370,6 +432,10 @@ def report(
                 )
             done = len(draw.picks)
             lines += ["", f"{done} of {len(SLOTS)} slots filled."]
+            lines += [
+                f"Slot unfilled: no candidate ({slot})."
+                for slot in draw.unfilled
+            ]
             if draw.stopped:
                 lines.append(f"Stopped: {draw.stopped}.")
             lines.append("")

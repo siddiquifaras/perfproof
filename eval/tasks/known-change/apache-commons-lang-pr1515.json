@@ -23,7 +23,7 @@
   "workload": {
     "command": "java -cp target/classes:eval-wl GetDigitsWorkload",
     "source": "written here: StringUtils.getDigits on random strings of 10 to 10,000 characters, in process, warmed up until stable (eval/tasks/workloads/apache-commons-lang-pr1515/GetDigitsWorkload.java). The tree's own JMH class StringUtilsGetDigitsBenchmark times copies of two implementations, not StringUtils.getDigits",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": "mvn -q -B -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true test -Dtest=StringUtilsTest",
@@ -37,17 +37,17 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). The repository has no Maven wrapper and this Mac has no Maven, so it is built where Maven is installed (the Linux box eval/tasks/workloads/java/Dockerfile: Temurin 21 and apt's Maven. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The repository has no Maven wrapper and this Mac has no Maven, so mvn ran through a launcher that runs it in the official Temurin 21 image with Maven (eval/tasks/workloads/java/Dockerfile, perfproof-java:21, built locally, never pushed), with the tree bind-mounted; javac and the workload ran on the host JDK 21.",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "mvn -q -B -DskipTests -Dmaven.javadoc.skip=true -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true compile",
       "exit_code": 0,
-      "duration_s": 51.18,
-      "date": "2026-10-22T00:15:20+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 5.55,
+      "date": "2026-10-23T01:59:22+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -55,9 +55,9 @@
       "tree": "task",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/apache-commons-lang-pr1515/GetDigitsWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.32,
-      "date": "2026-10-22T00:16:11+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 0.41,
+      "date": "2026-10-23T01:59:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -65,9 +65,9 @@
       "tree": "task",
       "command": "mvn -q -B -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true test -Dtest=StringUtilsTest",
       "exit_code": 0,
-      "duration_s": 18.25,
-      "date": "2026-10-22T00:16:12+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 9.4,
+      "date": "2026-10-23T01:59:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -75,19 +75,19 @@
       "tree": "task",
       "command": "java -cp target/classes:eval-wl GetDigitsWorkload",
       "exit_code": 0,
-      "duration_s": 0.42,
-      "date": "2026-10-22T00:16:30+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
-      "output_tail": "warmup 17 4055 us\nwarmup 18 6933 us\nwarmup 19 3738 us\nwarmup 20 3895 us\nwarmup 21 3809 us\nwarmup 22 4556 us\nwarmup 23 3771 us\nwarmup 24 5259 us\nwarmup 25 3663 us\nwarmup 26 4104 us\nwarmup 27 3655 us\nwarmup 28 4690 us\nwarmup 29 3689 us\nwarmup 30 7666 us\nstabilised after 30 iterations"
+      "duration_s": 0.83,
+      "date": "2026-10-23T01:59:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "warmup 187 2994 us\nwarmup 188 3148 us\nwarmup 189 3095 us\nwarmup 190 3124 us\nwarmup 191 3026 us\nwarmup 192 2996 us\nwarmup 193 3122 us\nwarmup 194 3033 us\nwarmup 195 3351 us\nwarmup 196 3128 us\nwarmup 197 3100 us\nwarmup 198 3197 us\nwarmup 199 3116 us\nwarmup 200 3117 us\nstabilised after 200 iterations"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "mvn -q -B -DskipTests -Dmaven.javadoc.skip=true -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true compile",
       "exit_code": 0,
-      "duration_s": 6.0,
-      "date": "2026-10-22T00:16:30+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 4.03,
+      "date": "2026-10-23T01:59:38+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -95,9 +95,9 @@
       "tree": "reference",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/apache-commons-lang-pr1515/GetDigitsWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.49,
-      "date": "2026-10-22T00:16:36+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 0.33,
+      "date": "2026-10-23T01:59:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -105,9 +105,9 @@
       "tree": "reference",
       "command": "mvn -q -B -Drat.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -Danimal.sniffer.skip=true -Djapicmp.skip=true test -Dtest=StringUtilsTest",
       "exit_code": 0,
-      "duration_s": 11.96,
-      "date": "2026-10-22T00:16:37+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
+      "duration_s": 8.84,
+      "date": "2026-10-23T01:59:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
     {
@@ -115,13 +115,13 @@
       "tree": "reference",
       "command": "java -cp target/classes:eval-wl GetDigitsWorkload",
       "exit_code": 0,
-      "duration_s": 0.18,
-      "date": "2026-10-22T00:16:49+00:00",
-      "machine": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.43",
-      "output_tail": "warmup 10 1994 us\nwarmup 11 3728 us\nwarmup 12 2148 us\nwarmup 13 1842 us\nwarmup 14 1854 us\nwarmup 15 1859 us\nwarmup 16 3080 us\nwarmup 17 1730 us\nwarmup 18 1745 us\nwarmup 19 1714 us\nwarmup 20 1936 us\nwarmup 21 2259 us\nwarmup 22 5670 us\nwarmup 23 2304 us\nstabilised after 23 iterations"
+      "duration_s": null,
+      "date": "2026-10-23T01:59:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
     }
   ],
-  "split": "development-candidate",
+  "split": "held-out",
   "mined_at": "2026-10-22T00:14:23+00:00",
   "miner": "written by hand for T5.11 (no Java repository in the pool)"
 }

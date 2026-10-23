@@ -51,8 +51,8 @@ def test_a_task_names_a_built_development_manifest(
     identifier = task["repo"]["manifest"]
     data = manifest(identifier)
     assert data["split"] != "held-out"
-    assert data["status"] == "builds"
-    assert data["workload"]["verified"] is False
+    assert data["status"] == "runs"
+    assert data["workload"]["verified"] is True
     assert data["oracle"]["verified"] is True
     steps = {(run["step"], run["tree"]) for run in data["runs"]}
     assert {("workload", "task"), ("oracle", "task")} <= steps

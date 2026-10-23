@@ -119,9 +119,10 @@ def draw_state() -> tuple[dict[str, str], frozenset[str]]:
     -------
     tuple of (dict of str to str, frozenset of str)
         Per target class that is *not* safe, why: its held-out draw
-        is for a class the review marks unbuildable here, stopped
-        before filling every slot, or short of ``len(draw.SLOTS)``
-        picks. And the ids the draw assigns to the held-out split.
+        is for a class the review marks unbuildable here, or stopped at
+        a candidate that needs a step-1 review or a build. A draw that
+        ended with slots recorded as unfilled is complete and safe. And
+        the ids the draw assigns to the held-out split.
     """
     mine = str(REPO_ROOT / "eval" / "mine")
     if mine not in sys.path:
@@ -138,8 +139,6 @@ def draw_state() -> tuple[dict[str, str], frozenset[str]]:
             unsafe[klass] = f"unbuilt here ({sel.unbuilt_classes[klass]})"
         elif held.stopped is not None:
             unsafe[klass] = f"its held-out draw stopped: {held.stopped}"
-        elif len(held.picks) != len(draw.SLOTS):
-            unsafe[klass] = "its held-out draw has unfilled slots"
     held_out = frozenset(
         v.task_id for d in draws["held-out"].values() for v in d.picks
     )

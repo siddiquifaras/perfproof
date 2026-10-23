@@ -125,7 +125,7 @@
       "output_tail": "html bytes 23680 sha256 969C7589461449D117AD1ABECA40CBEFEBD5E81BF0B6AFE20A4F1FC980EB8E0E\nPERFPROOF {\"value\": 0.0002242575}"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T22:14:25+00:00",
   "miner": "written by hand for T5.14 (no C# repository in the pool)"
 }

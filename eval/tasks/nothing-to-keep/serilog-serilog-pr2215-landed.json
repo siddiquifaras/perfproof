@@ -122,7 +122,7 @@
       "output_tail": "json bytes 4844890 sha256 A1B692377DD58F344FD6469A660BC745FEADA98F0F17392B383C4C9E02BA58FB\nPERFPROOF {\"value\": 2.02065E-07}"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T22:14:25+00:00",
   "miner": "written by hand for T5.14 (no C# repository in the pool)"
 }

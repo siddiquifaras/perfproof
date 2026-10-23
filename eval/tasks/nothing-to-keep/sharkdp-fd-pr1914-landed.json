@@ -121,7 +121,7 @@
       "output_tail": "eval-tree/top39/sub42/file085.sh\neval-tree/top39/sub42/file013.sh\neval-tree/top39/sub42/file070.txt\neval-tree/top39/sub42/file012.png\neval-tree/top39/sub42/file002.md\neval-tree/top39/sub42/file026.md\neval-tree/top39/sub42/file037.sh\neval-tree/top39/sub42/file089.py\neval-tree/top39/sub42/file090.md\neval-tree/top39/sub42/file000.rs\neval-tree/top39/sub42/file096.rs\neval-tree/top39/sub42/file083.tar.gz\neval-tree/top39/sub42/file024.rs\neval-tree/top39/sub42/file004.png\neval-tree/top39/sub42/file091.tar.gz"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T17:26:24+00:00",
   "miner": "written by hand for T5.13 (Rust tasks of the pool's fd repository), then built and run with eval/mine/check.py"
 }

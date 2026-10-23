@@ -98,25 +98,44 @@ Salt `perfproof-heldout-2026-10-16`.
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `apache-commons-lang-pr1515` | known-change | known-change | taken | Runtime optimization: StringUtils.getDigits fills a char[] instead of appending to a StringBuilder (7 lines added, 5 removed in StringUtils.java); the description gives no timings |
+| 2 | `fasterxml-jackson-core-pr1706` | known-change | known-change | taken | Runtime optimization: UTF8JsonGenerator writes number text straight into the output byte[] instead of through writeRaw(String); the description's table shows the BigDecimal copy path roughly halved |
+| 3 | `fasterxml-jackson-core-pr1674` | hidden-fix |  | passed | named in eval/skill/tasks-java.json (development) |
+| 4 | `google-guava-4802ac3c1b` | known-change |  | passed | named in eval/skill/tasks-java.json (development) |
+| 5 | `google-gson-pr3115-landed` | nothing-to-keep | nothing-to-keep | taken | After-landed: NonNullElementWrapperList.removeIf delegates to ArrayList.removeIf instead of the quadratic iterator removal; the description's table shows 1388 ms to 0.8 ms at 200,000 elements. The task tree is the merge |
 
-0 of 5 slots filled.
-Stopped: apache-commons-lang-pr1515 needs its step-1 review.
+3 of 5 slots filled.
+Slot unfilled: no candidate (hidden-fix).
+Slot unfilled: no candidate (published-benchmark).
 
 ### held-out: rust
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `sharkdp-fd-pr1422` | known-change |  | passed | named in eval/skill/tasks-rust.json (development) |
+| 2 | `sharkdp-fd-pr1914-landed` | nothing-to-keep |  | passed | named in eval/skill/tasks-rust.json (development) |
 
 0 of 5 slots filled.
-Stopped: sharkdp-fd-pr1422 needs its step-1 review.
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (hidden-fix).
+Slot unfilled: no candidate (nothing-to-keep).
+Slot unfilled: no candidate (published-benchmark).
 
 ### held-out: dotnet
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `xoofx-markdig-pr866` | known-change |  | passed | named in eval/skill/tasks-dotnet.json (development) |
+| 2 | `xoofx-markdig-pr922` | hidden-fix |  | passed | named in eval/skill/tasks-dotnet.json (development) |
+| 3 | `serilog-serilog-pr2215-landed` | nothing-to-keep |  | passed | named in eval/skill/tasks-dotnet.json (development) |
 
 0 of 5 slots filled.
-Stopped: xoofx-markdig-pr866 needs its step-1 review.
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (hidden-fix).
+Slot unfilled: no candidate (nothing-to-keep).
+Slot unfilled: no candidate (published-benchmark).
 
 ## development
 
@@ -189,22 +208,34 @@ Not drawn yet: the held-out picks of this class are unbuilt (needs a GPU host).
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `google-guava-4802ac3c1b` | known-change | known-change | taken | Runtime optimization: AbstractNonStreamingHashFunction buffers in a ByteBuffer so putInt, putChar and the like are much faster, at a small cost on bytes (the commit message); a source change under guava/src and android/guava/src |
+| 2 | `fasterxml-jackson-core-pr1674` | hidden-fix | hidden-fix | taken | Runtime optimization: Base64Variant.encode writes into an exactly sized char[] instead of a StringBuilder; the description's table shows 2.0x to 3.7x for PEM with quotes |
+| 3 | `fasterxml-jackson-core-pr1704-landed` | nothing-to-keep | nothing-to-keep | taken | After-landed: char[] counterparts of NumberOutput.outputDouble and outputFloat, so WriterBasedJsonGenerator with USE_FAST_DOUBLE_WRITER writes doubles and floats without a temporary String; the description describes the allocation it avoids and gives no timings. The task tree is the merge |
 
-0 of 5 slots filled.
-Stopped: fasterxml-jackson-core-pr1706 needs its step-1 review.
+3 of 5 slots filled.
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (published-benchmark).
 
 ### development: rust
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `sharkdp-fd-pr1422` | known-change | known-change | taken | Runtime optimization: the walker sends results to the printing thread in batches instead of one at a time (src/walk.rs, src/dir_entry.rs, src/exec/job.rs); the description's tables show full-traversal times on three corpora |
+| 2 | `sharkdp-fd-pr1914-landed` | nothing-to-keep | nothing-to-keep | taken | After-landed: calls is_dir on the DirEntry's file_type instead of on the path, saving a syscall per entry (src/walk.rs); the description gives no timings. The task tree is the merge |
 
-0 of 5 slots filled.
-Stopped: sharkdp-fd-pr1422 needs its step-1 review.
+2 of 5 slots filled.
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (hidden-fix).
+Slot unfilled: no candidate (published-benchmark).
 
 ### development: dotnet
 
 | # | Task | Family | Slot | Outcome | Reason |
 |---:|---|---|---|---|---|
+| 1 | `xoofx-markdig-pr866` | known-change | known-change | taken | Runtime optimization: the alert inline parser checks for the '!' marker first and caches the per-alert class string instead of building it by substring, lowercase and concatenation; the description gives no timings |
+| 2 | `xoofx-markdig-pr922` | hidden-fix | hidden-fix | taken | Runtime optimization: PipeTableParser builds a flat sibling structure instead of a deeply nested tree, O(n^2) to O(n) for large tables; the description gives scaling ratios and the PR adds a benchmark |
+| 3 | `serilog-serilog-pr2215-landed` | nothing-to-keep | nothing-to-keep | taken | After-landed: JsonFormatter writes TraceId and SpanId as quoted strings directly instead of through WriteQuotedJsonString; the description gives no timings. The task tree is the merge |
 
-0 of 5 slots filled.
-Stopped: xoofx-markdig-pr866 needs its step-1 review.
+3 of 5 slots filled.
+Slot unfilled: no candidate (known-change).
+Slot unfilled: no candidate (published-benchmark).

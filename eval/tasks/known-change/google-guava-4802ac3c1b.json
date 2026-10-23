@@ -24,7 +24,7 @@
   "workload": {
     "command": "java -cp guava/target/classes:eval-wl HasherWorkload",
     "source": "written here from the commit message of https://github.com/google/guava/commit/4802ac3c1be4ac806b8ca4477e5e875bb5f84e16 (\"faster putInt, putChar, etc.\"): hashing a few primitives, a string and a byte array through a Hasher of Hashing.farmHashFingerprint64(), in process, warmed up until stable (eval/tasks/workloads/google-guava-4802ac3c1b/HasherWorkload.java)",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": "./mvnw -q -B -pl guava-tests -am package -Dtest=FarmHashFingerprint64Test,HashingTest -Dsurefire.failIfNoSpecifiedTests=false",
@@ -38,16 +38,16 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21); the jre flavour only. The oracle's surefire reports in the work tree, read after the run, show 47 tests run with no failure on each tree (FarmHashFingerprint64Test 6, HashingTest 40, collect.HashingTest 1); the recorded output tail does not carry them because the command runs with -q. The setup and oracle output tails say \"Unable to locate a Java Runtime\": that is printed by the macOS /usr/bin/java stub that the Maven wrapper probes (inference), and the build and the workload then ran with the JDK on the PATH (exit 0, jar built). The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21); the jre flavour only. The oracle's surefire reports in the work tree, read after the run, show 47 tests run with no failure on each tree (FarmHashFingerprint64Test 6, HashingTest 40, collect.HashingTest 1); the recorded output tail does not carry them because the command runs with -q. The setup and oracle output tails say \"Unable to locate a Java Runtime\": that is printed by the macOS /usr/bin/java stub that the Maven wrapper probes (inference), and the build and the workload then ran with the JDK on the PATH (exit 0, jar built).",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "./mvnw -q -B -pl guava -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dmaven.test.skip=true package",
       "exit_code": 0,
-      "duration_s": 30.73,
-      "date": "2026-10-22T00:29:34+00:00",
+      "duration_s": 13.41,
+      "date": "2026-10-23T02:21:27+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": "The operation couldn’t be completed. Unable to locate a Java Runtime.\nPlease visit http://www.java.com for information on installing Java."
     },
@@ -56,8 +56,8 @@
       "tree": "task",
       "command": "javac -cp guava/target/classes -d eval-wl ../../../../tasks/workloads/google-guava-4802ac3c1b/HasherWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.57,
-      "date": "2026-10-22T00:30:05+00:00",
+      "duration_s": 0.25,
+      "date": "2026-10-23T02:21:41+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -66,8 +66,8 @@
       "tree": "task",
       "command": "./mvnw -q -B -pl guava-tests -am package -Dtest=FarmHashFingerprint64Test,HashingTest -Dsurefire.failIfNoSpecifiedTests=false",
       "exit_code": 0,
-      "duration_s": 86.83,
-      "date": "2026-10-22T00:30:06+00:00",
+      "duration_s": 38.58,
+      "date": "2026-10-23T02:21:41+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": "The operation couldn’t be completed. Unable to locate a Java Runtime.\nPlease visit http://www.java.com for information on installing Java."
     },
@@ -76,18 +76,18 @@
       "tree": "task",
       "command": "java -cp guava/target/classes:eval-wl HasherWorkload",
       "exit_code": 0,
-      "duration_s": 3.43,
-      "date": "2026-10-22T00:31:33+00:00",
+      "duration_s": 13.56,
+      "date": "2026-10-23T02:22:20+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 7 82478 us\nwarmup 8 72816 us\nwarmup 9 78355 us\nwarmup 10 81070 us\nwarmup 11 72021 us\nwarmup 12 84521 us\nwarmup 13 80558 us\nwarmup 14 77736 us\nwarmup 15 73227 us\nwarmup 16 89795 us\nwarmup 17 87639 us\nwarmup 18 72465 us\nwarmup 19 76621 us\nwarmup 20 82539 us\nstabilised after 20 iterations"
+      "output_tail": "warmup 187 60277 us\nwarmup 188 60706 us\nwarmup 189 60643 us\nwarmup 190 60843 us\nwarmup 191 60815 us\nwarmup 192 60619 us\nwarmup 193 60377 us\nwarmup 194 60766 us\nwarmup 195 60677 us\nwarmup 196 60647 us\nwarmup 197 61091 us\nwarmup 198 60704 us\nwarmup 199 60282 us\nwarmup 200 61218 us\nstabilised after 200 iterations"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "./mvnw -q -B -pl guava -am -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dmaven.test.skip=true package",
       "exit_code": 0,
-      "duration_s": 29.67,
-      "date": "2026-10-22T00:31:36+00:00",
+      "duration_s": 12.51,
+      "date": "2026-10-23T02:22:33+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": "The operation couldn’t be completed. Unable to locate a Java Runtime.\nPlease visit http://www.java.com for information on installing Java."
     },
@@ -96,8 +96,8 @@
       "tree": "reference",
       "command": "javac -cp guava/target/classes -d eval-wl ../../../../tasks/workloads/google-guava-4802ac3c1b/HasherWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.5,
-      "date": "2026-10-22T00:32:06+00:00",
+      "duration_s": 0.25,
+      "date": "2026-10-23T02:22:46+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -106,8 +106,8 @@
       "tree": "reference",
       "command": "./mvnw -q -B -pl guava-tests -am package -Dtest=FarmHashFingerprint64Test,HashingTest -Dsurefire.failIfNoSpecifiedTests=false",
       "exit_code": 0,
-      "duration_s": 79.5,
-      "date": "2026-10-22T00:32:06+00:00",
+      "duration_s": 35.93,
+      "date": "2026-10-23T02:22:46+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": "The operation couldn’t be completed. Unable to locate a Java Runtime.\nPlease visit http://www.java.com for information on installing Java."
     },
@@ -116,13 +116,13 @@
       "tree": "reference",
       "command": "java -cp guava/target/classes:eval-wl HasherWorkload",
       "exit_code": 0,
-      "duration_s": 1.18,
-      "date": "2026-10-22T00:33:26+00:00",
+      "duration_s": 2.8,
+      "date": "2026-10-23T02:23:22+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 26 13386 us\nwarmup 27 17949 us\nwarmup 28 12675 us\nwarmup 29 15162 us\nwarmup 30 13039 us\nwarmup 31 13460 us\nwarmup 32 12861 us\nwarmup 33 13560 us\nwarmup 34 12447 us\nwarmup 35 27026 us\nwarmup 36 16526 us\nwarmup 37 20514 us\nwarmup 38 19921 us\nwarmup 39 14107 us\nstabilised after 39 iterations"
+      "output_tail": "warmup 188 11815 us\nwarmup 189 12478 us\nwarmup 190 11651 us\nwarmup 191 12052 us\nwarmup 192 11708 us\nwarmup 193 12267 us\nwarmup 194 12313 us\nwarmup 195 12085 us\nwarmup 196 12281 us\nwarmup 197 11684 us\nwarmup 198 12259 us\nwarmup 199 11534 us\nwarmup 200 12010 us\nwarmup 201 12004 us\nstabilised after 201 iterations"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T00:14:21+00:00",
   "miner": "written by hand for T5.11 (no Java repository in the pool)"
 }

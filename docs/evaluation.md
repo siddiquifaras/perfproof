@@ -117,7 +117,10 @@ disagreement is reported as run-to-run variance of the agent.
 - **Held-out tasks**: never seen during development, run once per
   release candidate, scored by the rules above.
 
-A task used for development never moves to the held-out set.
+A task used for development never moves to the held-out set. A task
+named in a development task file (`eval/skill/tasks*.json`) counts as
+used for development, and the held-out draw skips it, recording that as
+the reason.
 
 **How the held-out set is chosen.** The mined manifests are a
 candidate pool. The selection rule is fixed here before any task is
@@ -127,14 +130,18 @@ built for it:
    request or commit (not an optimization, a revert for a build or CI
    failure, a workload that doesn't exercise the change) are removed
    first, each with its reason recorded. This reads only the change,
-   never a result.
+   never a result. A task a development task file names is skipped
+   too (see above).
 2. The rest are ordered by `sha256(salt + task id)`, with the salt
    `perfproof-heldout-2026-10-16`.
 3. Per target class, the held-out set takes, in that order, the first
    candidates that build and run here (or on the class's GPU host): two
    known-change tasks, one hidden-fix task, one nothing-to-keep task and
    one published-benchmark task, five in all. Where a class has no
-   candidate of a family, the next known-change task takes its place.
+   candidate of a family, the next known-change task takes its place. A
+   slot no candidate can fill is recorded as unfilled and the draw goes
+   on to the next slot, so a small pool gives a held-out set of fewer
+   than five.
 4. Apart from step 1, whether a candidate builds is the only thing
    looked at, and it is judged on the task tree alone: its setup, its
    workload and its required oracle at the task's starting commit.
@@ -177,12 +184,11 @@ used, with one addition. A pool candidate drawn into neither split
 (`development-candidate`) is used when it built and ran here with its
 workload and oracle verified, and the selection rule's own draw
 (`eval/mine/draw.py`, run by `realrepo.load_spec`) shows its class's
-held-out draw complete, with no unbuilt picks, under the current pool
-and statuses: it is then not a held-out task. The `split` field is
+held-out draw complete (every slot filled or recorded as unfilled),
+with no unbuilt picks, under the current pool and statuses: it is then not a held-out task. The `split` field is
 written only by that script, so it is never edited to promote a task.
-A held-out task never enters this set. Java (its draw stopped at a
-step-1 review), serving and GPU (unbuilt picks) stay out until their
-held-out draws are made and built; a change to the pool or statuses
+A held-out task never enters this set. Serving and GPU (unbuilt
+picks) stay out until their held-out draws are made and built; a change to the pool or statuses
 can change this answer.
 
 | Family | Seeded as | Prompt | Passes when |

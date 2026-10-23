@@ -31,7 +31,7 @@
   "workload": {
     "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
     "source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1704: doubles written through WriterBasedJsonGenerator with USE_FAST_DOUBLE_WRITER on, in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java), run on the tree where the change is already in",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
@@ -45,16 +45,16 @@
     }
   ],
   "audit": null,
-  "status": "builds",
-  "status_reason": "built here, and the oracle ran on the task and reference trees (see runs); the workload was run too, but only in an earlier form (below). Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21. The workload runs recorded here predate the warm-up rule now in the committed workload (a floor of 200 iterations, 1% tolerance, a cap of 600 that reports instead of failing); the iteration bodies are unchanged, but the program that ran is not the committed one, so workload.verified is false until it is run again on a quiet machine.",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built with the project's Maven wrapper and the JDK on the PATH (Eclipse Temurin 21).",
   "runs": [
     {
       "step": "setup",
       "tree": "task",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 12.88,
-      "date": "2026-10-22T00:50:01+00:00",
+      "duration_s": 5.51,
+      "date": "2026-10-23T02:23:29+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -63,8 +63,8 @@
       "tree": "task",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.54,
-      "date": "2026-10-22T00:50:14+00:00",
+      "duration_s": 0.25,
+      "date": "2026-10-23T02:23:34+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -73,8 +73,8 @@
       "tree": "task",
       "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
       "exit_code": 0,
-      "duration_s": 11.43,
-      "date": "2026-10-22T00:50:15+00:00",
+      "duration_s": 4.73,
+      "date": "2026-10-23T02:23:35+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -83,18 +83,18 @@
       "tree": "task",
       "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
       "exit_code": 0,
-      "duration_s": 0.75,
-      "date": "2026-10-22T00:50:26+00:00",
+      "duration_s": 1.49,
+      "date": "2026-10-23T02:23:39+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 15 13447 us\nwarmup 16 11293 us\nwarmup 17 8230 us\nwarmup 18 7498 us\nwarmup 19 7195 us\nwarmup 20 7384 us\nwarmup 21 7403 us\nwarmup 22 7030 us\nwarmup 23 6828 us\nwarmup 24 15944 us\nwarmup 25 13705 us\nwarmup 26 13548 us\nwarmup 27 15527 us\nwarmup 28 11220 us\nstabilised after 28 iterations"
+      "output_tail": "warmup 187 6588 us\nwarmup 188 6367 us\nwarmup 189 6473 us\nwarmup 190 6212 us\nwarmup 191 6313 us\nwarmup 192 6270 us\nwarmup 193 6306 us\nwarmup 194 6197 us\nwarmup 195 6253 us\nwarmup 196 6587 us\nwarmup 197 6269 us\nwarmup 198 6392 us\nwarmup 199 6417 us\nwarmup 200 6350 us\nstabilised after 200 iterations"
     },
     {
       "step": "setup",
       "tree": "reference",
       "command": "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "exit_code": 0,
-      "duration_s": 10.92,
-      "date": "2026-10-22T00:50:27+00:00",
+      "duration_s": 5.37,
+      "date": "2026-10-23T02:23:41+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -103,8 +103,8 @@
       "tree": "reference",
       "command": "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1704-landed/DoubleWriteWorkload.java",
       "exit_code": 0,
-      "duration_s": 0.36,
-      "date": "2026-10-22T00:50:38+00:00",
+      "duration_s": 0.25,
+      "date": "2026-10-23T02:23:46+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -113,8 +113,8 @@
       "tree": "reference",
       "command": "./mvnw -q -B test -Dtest=FastDoubleCharBufferBoundaryTest,SchubfachWriteCharBufferTest",
       "exit_code": 0,
-      "duration_s": 6.44,
-      "date": "2026-10-22T00:50:38+00:00",
+      "duration_s": 4.47,
+      "date": "2026-10-23T02:23:47+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
       "output_tail": ""
     },
@@ -123,13 +123,13 @@
       "tree": "reference",
       "command": "java -cp target/classes:eval-wl DoubleWriteWorkload",
       "exit_code": 0,
-      "duration_s": 0.62,
-      "date": "2026-10-22T00:50:45+00:00",
+      "duration_s": 1.53,
+      "date": "2026-10-23T02:23:51+00:00",
       "machine": "macOS-15.7.7-arm64-arm-64bit",
-      "output_tail": "warmup 7 7890 us\nwarmup 8 7716 us\nwarmup 9 8912 us\nwarmup 10 7615 us\nwarmup 11 7646 us\nwarmup 12 7442 us\nwarmup 13 7817 us\nwarmup 14 7435 us\nwarmup 15 8518 us\nwarmup 16 7216 us\nwarmup 17 14880 us\nwarmup 18 24217 us\nwarmup 19 19836 us\nwarmup 20 23191 us\nstabilised after 20 iterations"
+      "output_tail": "warmup 187 6534 us\nwarmup 188 6540 us\nwarmup 189 6372 us\nwarmup 190 9207 us\nwarmup 191 6813 us\nwarmup 192 6467 us\nwarmup 193 6441 us\nwarmup 194 6390 us\nwarmup 195 6342 us\nwarmup 196 6682 us\nwarmup 197 6677 us\nwarmup 198 6508 us\nwarmup 199 6374 us\nwarmup 200 6394 us\nstabilised after 200 iterations"
     }
   ],
-  "split": "development-candidate",
+  "split": "development",
   "mined_at": "2026-10-22T00:49:56+00:00",
   "miner": "written by hand for T5.11 (no Java repository in the pool)"
 }

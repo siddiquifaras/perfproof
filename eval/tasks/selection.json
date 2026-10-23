@@ -29,6 +29,13 @@
         "https://github.com/apache/arrow/pull/48898"
       ]
     },
+    "apache-commons-lang-pr1515": {
+      "keep": true,
+      "reason": "Runtime optimization: StringUtils.getDigits fills a char[] instead of appending to a StringBuilder (7 lines added, 5 removed in StringUtils.java); the description gives no timings",
+      "read": [
+        "https://github.com/apache/commons-lang/pull/1515"
+      ]
+    },
     "assafelovic-gpt-researcher-pr1641": {
       "keep": true,
       "reason": "Runtime optimization: context compression skips the embedding-based filter for documents under a size threshold (P99 30 s to 22 s per the description). It can change which context is kept, which the oracle has to catch",
@@ -213,6 +220,27 @@
         "https://github.com/fastapi/fastapi/pull/2615"
       ]
     },
+    "fasterxml-jackson-core-pr1674": {
+      "keep": true,
+      "reason": "Runtime optimization: Base64Variant.encode writes into an exactly sized char[] instead of a StringBuilder; the description's table shows 2.0x to 3.7x for PEM with quotes",
+      "read": [
+        "https://github.com/FasterXML/jackson-core/pull/1674"
+      ]
+    },
+    "fasterxml-jackson-core-pr1704-landed": {
+      "keep": true,
+      "reason": "After-landed: char[] counterparts of NumberOutput.outputDouble and outputFloat, so WriterBasedJsonGenerator with USE_FAST_DOUBLE_WRITER writes doubles and floats without a temporary String; the description describes the allocation it avoids and gives no timings. The task tree is the merge",
+      "read": [
+        "https://github.com/FasterXML/jackson-core/pull/1704"
+      ]
+    },
+    "fasterxml-jackson-core-pr1706": {
+      "keep": true,
+      "reason": "Runtime optimization: UTF8JsonGenerator writes number text straight into the output byte[] instead of through writeRaw(String); the description's table shows the BigDecimal copy path roughly halved",
+      "read": [
+        "https://github.com/FasterXML/jackson-core/pull/1706"
+      ]
+    },
     "flashinfer-ai-flashinfer-pr3761": {
       "keep": true,
       "reason": "Runtime optimization: vectorized loads and stores and a work-sized block in CUTLASS fused-MoE expand and activation kernels",
@@ -239,6 +267,20 @@
       "reason": "Runtime optimization: recovery's stack() reads only the needed source line instead of whole files; the description's benchmark shows 116 µs to 78 µs per op",
       "read": [
         "https://github.com/gin-gonic/gin/pull/4466"
+      ]
+    },
+    "google-gson-pr3115-landed": {
+      "keep": true,
+      "reason": "After-landed: NonNullElementWrapperList.removeIf delegates to ArrayList.removeIf instead of the quadratic iterator removal; the description's table shows 1388 ms to 0.8 ms at 200,000 elements. The task tree is the merge",
+      "read": [
+        "https://github.com/google/gson/pull/3115"
+      ]
+    },
+    "google-guava-4802ac3c1b": {
+      "keep": true,
+      "reason": "Runtime optimization: AbstractNonStreamingHashFunction buffers in a ByteBuffer so putInt, putChar and the like are much faster, at a small cost on bytes (the commit message); a source change under guava/src and android/guava/src",
+      "read": [
+        "https://github.com/google/guava/commit/4802ac3c1be4ac806b8ca4477e5e875bb5f84e16"
       ]
     },
     "gso-huggingface-transformers-211f93a": {
@@ -646,11 +688,32 @@
         "https://github.com/scipy/scipy/pull/26368"
       ]
     },
+    "serilog-serilog-pr2215-landed": {
+      "keep": true,
+      "reason": "After-landed: JsonFormatter writes TraceId and SpanId as quoted strings directly instead of through WriteQuotedJsonString; the description gives no timings. The task tree is the merge",
+      "read": [
+        "https://github.com/serilog/serilog/pull/2215"
+      ]
+    },
     "sgl-project-sglang-pr41223": {
       "keep": true,
       "reason": "Runtime optimization: one Triton launch config (BLOCK_SIZE_M=8, num_warps=1) for Mamba2 selective_state_update at dstate 128; 1.19x to 2.02x on B200, bitwise-identical outputs",
       "read": [
         "https://github.com/sgl-project/sglang/pull/41223"
+      ]
+    },
+    "sharkdp-fd-pr1422": {
+      "keep": true,
+      "reason": "Runtime optimization: the walker sends results to the printing thread in batches instead of one at a time (src/walk.rs, src/dir_entry.rs, src/exec/job.rs); the description's tables show full-traversal times on three corpora",
+      "read": [
+        "https://github.com/sharkdp/fd/pull/1422"
+      ]
+    },
+    "sharkdp-fd-pr1914-landed": {
+      "keep": true,
+      "reason": "After-landed: calls is_dir on the DirEntry's file_type instead of on the path, saving a syscall per entry (src/walk.rs); the description gives no timings. The task tree is the merge",
+      "read": [
+        "https://github.com/sharkdp/fd/pull/1914"
       ]
     },
     "sharkdp-fd-pr343": {
@@ -791,6 +854,20 @@
       "reason": "Class wrong: switches GLM-5.3-Flash's prefill indexer top-k to an AITER kernel that \"only runs on gfx950\" (AMD). docs/targets.md puts AMD GPUs outside the serving class",
       "read": [
         "https://github.com/vllm-project/vllm/pull/60753"
+      ]
+    },
+    "xoofx-markdig-pr866": {
+      "keep": true,
+      "reason": "Runtime optimization: the alert inline parser checks for the '!' marker first and caches the per-alert class string instead of building it by substring, lowercase and concatenation; the description gives no timings",
+      "read": [
+        "https://github.com/xoofx/markdig/pull/866"
+      ]
+    },
+    "xoofx-markdig-pr922": {
+      "keep": true,
+      "reason": "Runtime optimization: PipeTableParser builds a flat sibling structure instead of a deeply nested tree, O(n^2) to O(n) for large tables; the description gives scaling ratios and the PR adds a benchmark",
+      "read": [
+        "https://github.com/xoofx/markdig/pull/922"
       ]
     }
   }
