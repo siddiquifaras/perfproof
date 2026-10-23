@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `7a6640c` | skill round 7 merged (PR #75): project's own benchmarks first, locked harness copies under `.perfproof/harness/`, workload breadth (main entry points; enlarge when start-up dominates), hotspot print format `function file line self total` in CLI order, no direction words even negated; r7 run archives (3/8, 3/8, 1/6 real; 17/20, 20/20 examples; no wrong KEEP; about $9). Head 5675c72: Mac 5148, Linux 5066 |
 | `eb9a6f5` | C/C++ done well merged (PR #73, T5.4 with T5.3 native coverage): native runtime gate (`nativebuildinfo.py`), native profiler (perf on Linux, `sample` on macOS), llvm-cov/gcov coverage (`native_coverage.py`), playbook native.md, three eval tasks (simdjson, lz4, zstd). Checked head c156ef7: Mac 5147, Linux 5066; then main (#71, sandbox only, no overlap) merged and its own tests rerun: 119 passed |
 | `34a8113` | eval sandbox git fix merged (PR #71): `agent_env` sets `GIT_EXEC_PATH` to the toolchain's git-core, so the toolbin-linked git finds its helpers and fetch/clone work under the sandbox (test fails without the line). Head 5f31023 (1e5b1d8 + main): Mac 5083, Linux 5002 |
 | `9b4ef64` | install-skills source fix merged (PR #72): `skill_source()` prefers the checkout's `skills/perfproof` over the editable install's stale data copy (main's install test failed on every stale Mac venv; a wheel install still uses the data copy, reviewer checked in a fresh venv). Mac 5082, Linux 5002 |
