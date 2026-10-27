@@ -33,6 +33,22 @@ Tracks run in parallel; dates are when each must be done.
 6. Release: T6.2 README with every claim linked to a run, 10-31; Faras's
    hands-on try 10-31 to 11-01; T6.3 publish (Faras) 11-02.
 
+**Revised 2026-10-28 after the 10-24 to 10-28 pause (lead).** Launch stays 11-02.
+- 10-28: T2.15 guardrails (#90) merged; skill round 9 rounds 2 and 3;
+  T3.16 install and first run.
+- 10-29: CALIBRATED prerequisites (the GPU real-trace cell at larger R;
+  `keep_blocked` for custom schedules and alpha; the calibrated domain
+  in method.md; committed traces); the p99 measurement channel; T3.15
+  brief output; the skill change "missed cap or short result becomes
+  a goal, then keep going?".
+- 10-30: CALIBRATED flip with the stats-auditor; GPU MPS path; T3.9
+  Codex verified; T3.14 tiers as presets measured on the eval set
+  (the full cost-curve study after launch).
+- 10-31: T6.2 README with every claim linked to a run; the full checks
+  and CI once.
+- 11-01: Faras's hands-on try; fixes only.
+- 11-02: T6.3 publish (Faras).
+
 ## Priority (Faras, 2026-10-19)
 
 The `/perfproof` skill is the product: it has to work end to end, in
