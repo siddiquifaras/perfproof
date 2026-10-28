@@ -35,7 +35,11 @@ Use this shape, leaving out empty parts:
 Read `verdict.outcome`, `verdict.reason`, `verdict.rule`,
 `verdict.gate`, `verdict.calibration` and `verdict.diagnostics`. Say
 "the bar" as the number from the spec, `1 + min_effect` (3% by
-default). Ratios are old time divided by new time; say so once.
+default). Ratios are old time divided by new time; say so once, in those words,
+and never explain a ratio's direction with a comparison word.
+When the result is short of the user's goal, end with where they stand,
+the gap to the goal, one concrete next step and "keep going?" (SKILL.md,
+"How to talk").
 
 `compare --json` carries `not_verified`, `warnings` and
 `measured_metric`, but not yet which tests failed, which output

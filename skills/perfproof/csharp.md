@@ -46,6 +46,22 @@ differ, and the gate says so.
   are recorded with their values, and a difference is a warning. Never
   set one in the spec to change a single version.
 
+- A benchmark project you keep under `.perfproof/harness/` is locked, and
+  `bin/` and `obj/` written there count as edits to locked files
+  (`compare` refuses with the `lock` gate). Copy the sources to a folder
+  outside the harness in `setup` and build there, or build with `-o` and
+  `-p:BaseIntermediateOutputPath` pointing outside it.
+- A build that prints nothing for minutes is hung, not slow. In a
+  restricted environment (no network, a locked-down sandbox) the build
+  server and node reuse can wedge; run it in one process: `dotnet build
+  -m:1 -nodeReuse:false -p:UseSharedCompilation=false`, in `setup` and by
+  hand. If restore fails on `NU1900`, the vulnerability audit is trying
+  the network: add `-p:NuGetAudit=false`.
+- A `global.json` that pins an SDK that is not installed fails every
+  `dotnet` command run beneath it. Never edit it: it applies from the
+  working directory upward, so run the command from a folder above it
+  and pass the project path.
+
 ## Warm-up: the tiered JIT
 
 Every execution is a new process, so the spec's `warmup` executions do

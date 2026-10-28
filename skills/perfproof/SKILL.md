@@ -32,7 +32,23 @@ the user.
     these words even to say you are not using them or to describe an
     idea's room to improve: say "the cap is 1.04x" or "it is 3% of
     the run". Say the claim can't be checked until perfproof can
-    give a verdict.
+    give a verdict. The rule covers every sentence of a paragraph that
+    holds a number, ratio, estimate, range or interval, whatever the
+    sentence is about. The words to keep out of such a paragraph:
+    faster, slower, quicker, shorter, longer, speedup, gain, win,
+    better, worse, regression, improve, improvement, slows, beats,
+    outperforms, efficient, efficiency, less time, cuts the time,
+    reduces the time, sped up, "times as fast", "dropped from",
+    "fraction of the time", "order of magnitude", "points to",
+    "suggests". These all break it: "I'm not claiming a gain", "I can't
+    confirm it is faster than main", "a faster subset of the tests",
+    "it would look better than it is", "less time per call", "kept or
+    faster". Write the sentence without the word: "perfproof can't give
+    a verdict on <change> yet", "a smaller subset of the tests", "the
+    ratio is old time divided by new time". Put the estimate in a
+    paragraph of its own ("The estimate is X, range A to B.") and the
+    rest of your prose in other paragraphs. To refer to a claim's own
+    words, put them in quotation marks.
   - **Verdicts**: only from `compare`, only when
     `verdict.calibration == "calibrated"`. Only then say "kept" or
     "faster".
@@ -40,6 +56,18 @@ the user.
   `verdict.diagnostics.procedure_uncalibrated: true`. Say: "perfproof can't keep
   changes yet. The estimate is X (range A to B), not yet a verdict." Do
   not offer to rerun it: a rerun cannot change that.
+- Every stop short of the user's goal (INCONCLUSIVE, an estimate whose
+  range does not clear the bar, a speedup short of the target, a cap
+  missed) ends with four things, never a dead end: where the user
+  stands (the estimate and its range, or the closest value perfproof
+  reliably reached: a fact about the run, not a verdict), the gap
+  between that and the goal, one concrete next step (the next idea and
+  its cap, a larger workload, a different angle), and the question
+  "keep going?" as the one question, recommendation first (for example
+  "Keep going with <idea>, or stop here?"). Numbers here are
+  information, never a KEEP, and the wording rules above still apply:
+  any estimate goes in its own paragraph, the gap and next step in
+  plain sentences around it, never in the same paragraph as a number.
 - Before anything is decided, name a goal by its metric ("the time
   the `rolling_sum` calls take") and the bar as a line ("the low end of
   the range must be above 3%"), never as "faster" or "beats".
@@ -63,7 +91,9 @@ the user.
   before it, or it answered `ok: false`). An uncalibrated INCONCLUSIVE
   is "not yet a verdict" to the user, but `compare` did return one:
   its line is `Result: INCONCLUSIVE (<verdict.reason>)`, never NO
-  VERDICT.
+  VERDICT. The line reports the last `compare` verdict even when you
+  did something after it (deleted a branch, answered a question): never
+  put prose in it.
 
 ## What the user asked for
 
@@ -78,12 +108,19 @@ Look at what the user wrote when they asked for perfproof:
    speedups for that. If it names an existing branch or PR, ask once
    whether to prove it instead.
 
+A long or rambling prompt: pull out the slow area, the goal and any
+limits, and drop the rest. Claims in it ("it's the database layer",
+"everything is slow") are leads to check against the code and the
+profile, never facts; if the profile contradicts one, say so plainly in
+one line. Ask at most one short question, only when the repo cannot answer it, and never
+ask the user to write a benchmark.
+
 Depth decides how much you explore: how many ideas and attempts. It
 never changes how a change is measured or what counts as kept.
 
 | Depth | Find | Prove |
 |---|---|---|
-| `light` | one workload, one profile, the top one or two ideas, one attempt | default for proving |
+| `light` | one workload (a second only under step 2's rule: two at most, say so), the top one or two ideas, one attempt | default for proving |
 | `medium` (default for find) | the workload the user cares about, the top three to five ideas across the angles | the same, plus the claim check |
 | `full` | every angle in discovery.md, several attempts | every candidate in the branch, one at a time |
 
@@ -168,8 +205,8 @@ No discovery. One candidate at a time, against its parent.
    say so before you start. Never end your turn while it runs: run it
    in the foreground; if your tool's time limit is shorter, add
    `--detach` and follow it with `perfproof status <id> --json` (never
-   by looking its process up by name), and wait for the verdict, then
-   report. A finished `status` gives only a summary: read the record at
+   by looking its process up by name), and wait for the verdict. If
+   `--detach` fails with `spawn_failed`, run in the foreground. A finished `status` gives only a summary: read the record at
    `verdict.record_path` for the full `verdict` (with `diagnostics` and
    `calibration`), `gates` and `measured_metric`, and give the
    `report.md` beside it as the run record.
@@ -198,21 +235,20 @@ No discovery. One candidate at a time, against its parent.
 1. **Understand, then ask once.** Run `perfproof init --json` (once
    per repository; it writes only `.perfproof/`). It proposes
    `targets[]`, `workloads[]` and goals, each with an `id` and its
-   evidence, and `questions[]` for what it could not find out. Look for
-   the project's own benchmarks first (a `benchmarks/` or `bench/`
-   directory, asv, pytest-benchmark, `cargo bench`, `go test -bench`,
-   JMH, benchmark.js or tinybench) and prefer one that exercises what
-   the user asked about; with no target named, propose the path the
-   project's own benchmarks and README point at, and say why. Prefer a
-   workload that runs the project's most-used public entry points
-   over the first or most niche benchmark in a list: a function that
-   every call goes through only shows up when the workload makes many
-   different calls. A benchmark that exercises one feature hides cost
-   that every call into the library pays; for a library whose users make
-   many small calls, make the first workload a loop over many different
-   public operations at the input sizes those users have, and if the
-   calls are small, keep the arithmetic small so per-call overhead
-   shows in the profile. A profile covers the whole process, start-up
+   evidence, and `questions[]` for what it could not find out. The
+   first workload is end-to-end use through the outer entry point a
+   caller uses, not an inner component, on realistic input, the way
+   users run it, and it covers the project's main operations, not one.
+   Match what users see: output to a terminal can take different code
+   paths than output to a pipe, so run it the way a person does unless
+   the user said otherwise, and say so in the plan. The project's own
+   micro-benchmarks and unit tests that call internal components
+   directly are sources for the second workload or for inputs, never
+   the first. With no workload given, infer use from the README usage
+   examples, entry points, main modes and flags, and `examples/`; say
+   which you picked and why, in one line. Where users make many small
+   calls, keep the input sizes small so per-call overhead shows.
+   A profile covers the whole process, start-up
    and imports included, so loop long enough that those are a minor
    share. When you enlarge a workload, tell the user what it now does
    (the input repeated many times), never how long a run took in
@@ -247,17 +283,14 @@ No discovery. One candidate at a time, against its parent.
    (`is_library` false) high there and low or absent in `hotspots` is
    a candidate: its time is in the calls it makes, so call it less or
    make those calls cheaper. If most of the profile is interpreter
-   start-up or
-   imports, the workload does too little work per run: make it do
-   more (a loop of calls inside the process, a larger input) and
-   profile again before choosing an idea. If CPU is well below wall, the program is mostly
-   waiting: look at I/O and services, not loops. For a native
+   start-up or imports, the workload does too little work per run: loop
+   it or enlarge the input and profile again. If CPU is well below wall,
+   the program is mostly waiting: look at I/O and services, not loops. For a native
    C or C++ program, profile it through `perfproof profile` with the
    native recorder in [native.md](native.md) (`--profiler-command`,
    `--own-module <binary>`): it starts the program itself and runs the
    system `sample` on macOS (by process id) or `perf` on Linux (which
-   must be on PATH). For Rust, use the recorder in [rust.md](rust.md).
-   Do not
+   must be on PATH). Do not
    look a process up by name (`pgrep`, `sample <name>`, `ps`): in a
    restricted environment those fail, and the result would be a profile
    perfproof did not make. If the recorder itself fails, read its error
@@ -265,26 +298,41 @@ No discovery. One candidate at a time, against its parent.
    sample by hand, use the pid of a child you started, call each
    function's share an estimate, name the sampler, and say perfproof's
    profile did not run.
-   For Java and other JVM code, read [java.md](java.md) first: how to
-   launch the benchmark so the runtime is identified, how to warm it
-   up, how to profile it, and what usually goes wrong.
-   For Rust, read [rust.md](rust.md) first: how to launch the built
-   binary so the toolchain is identified, what a first run costs, how to
-   profile it, and what usually goes wrong.
-   For Go, read [go.md](go.md) first: how to build and launch the
-   benchmark so the runtime is identified, how to profile it with
-   pprof, and what usually goes wrong.
-   For Ruby, read [ruby.md](ruby.md) first: how to launch it so the
-   runtime is identified, how YJIT and the collector enter the noise,
-   how to profile it with stackprof, and what usually goes wrong.
-   For C# and other .NET code, read [csharp.md](csharp.md) first: how to
-   build and launch the application, how the tiered JIT enters the
-   noise, how to profile it with dotnet-trace, and what usually goes
-   wrong.
-   For C and C++, read [native.md](native.md) first: how to build and
-   launch the benchmark so the toolchain is identified, how to profile
-   it with `sample` or `perf`, how to check the change ran, and what
-   usually goes wrong.
+   Before profiling, read the playbook for the language: Java and other
+   JVM code [java.md](java.md), Rust [rust.md](rust.md), Go
+   [go.md](go.md), Ruby [ruby.md](ruby.md), C# and .NET
+   [csharp.md](csharp.md), C and C++ [native.md](native.md). Each says
+   how to launch so the runtime is identified, how to warm up, how to
+   profile, and what usually goes wrong.
+   Check `result.project_frames_above_bar[]`: the project's own
+   functions at or above the bar, not cut to the top 15. Walk it in
+   order of total share and name any function at 5% or more you skip,
+   with the reason. The workload is too narrow if the list is empty, the
+   profile is flat (no project function far above the rest, for example
+   none above about 10% total), the top entries are only the driving
+   loop, start-up or one kernel, or the workload exercised one
+   feature or one call path. Then
+   profile a second workload before you choose an idea, even at `light`
+   and before any "keep going?": it must enter through a different
+   entry point or direction than the first (another kind of
+   operation, the outer entry point instead of an inner component,
+   other input kinds),
+   from another source (the project's tests or benchmarks, another
+   mode). The same workload with a larger input or more iterations is
+   not a second one. At `light`, two workloads at most; say so.
+   Coverage check: list the public entry points or main code paths the
+   workload did not reach (from the code, `--help` and the README) and
+   run `perfproof profile show <name> --function <function> --json` on
+   up to 5 of them, and on any function you suspect from reading the
+   code that sits below the printed rows. It gives `total_fraction`,
+   `cap` and `cap_above_bar` from the saved profile. `found: false`
+   means this workload never ran it or it was inlined: read the skipped
+   branches (options, modes, input shapes) and say whether a workload
+   that reaches them is worth running.
+   A user's claim decides only what the first workload looks at; the
+   second is always general use of the project. If the claim's workload
+   shows no project function above the bar, say the profile doesn't
+   support the claim.
    Then, before you read code or pick an idea, tell the user in plain
    sentences which functions the profile points at, each by its name and
    file, with its share as a fact about the profile ("<share> of the samples
@@ -342,6 +390,14 @@ without saying what differs.
 
 - Fewer turns: take the next step in the same turn when nothing needs
   an answer.
+- Never end a turn while a command you started is still running (a
+  build, a profile, `compare`, a test run). If your tool moves it to
+  the background, check its output file in a loop every few seconds
+  until it finishes: "I'll report when it finishes" ends the session
+  with no report. A build that prints nothing for
+  minutes is hung: stop it and rerun it in one process with the
+  language file's flags. If you do have to stop, say what is unfinished
+  and end with the `Result:` line.
 - Read one function, not the whole file; never re-read a file you have.
 - Never read raw logs, profiler files, `record.json` or `samples.npz`;
   the JSON fields above are enough. Give the path if the user wants
