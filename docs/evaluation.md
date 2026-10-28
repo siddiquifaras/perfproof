@@ -155,6 +155,28 @@ built for it:
 The development set is drawn from the rest of the pool the same way,
 with the salt `perfproof-development-2026-10-16`.
 
+**Discovery supplement (fixed 2026-10-28, before any task is built
+for it).** The per-class rule above gives about one hidden-fix task per
+built class, too few to measure discovery. A second held-out draw takes
+hidden-fix tasks only:
+
+1. The pool is every mined hidden-fix candidate. Step 1 above applies,
+   and so does the skip of any task a development task file names, or
+   that the per-class held-out draw already took.
+2. The rest are ordered by `sha256(salt + task id)` with the salt
+   `perfproof-heldout-discovery-2026-10-28`.
+3. It takes, in that order, the first 8 that build and run on this Mac,
+   judged as in step 4 above, with at most 2 from any one language. A
+   pool too small for 8 gives fewer; more candidates may be mined first
+   with `eval/mine`, by the same mining rules, before the draw is made.
+4. Steps 4 and 5 above apply. The skill is frozen at a recorded commit
+   before the first run, and the set is run once for that commit and
+   scored by the hidden-fix rule. Nobody who edits `skills/` reads the
+   tasks before that run.
+
+These tasks live in `eval/skill/tasks-heldout-discovery.json`; they
+never become development tasks.
+
 ## What we publish
 
 `eval/` holds every task manifest (repository, commit, workload,
