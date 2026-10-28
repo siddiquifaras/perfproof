@@ -38,7 +38,14 @@ from perfproof.bench.conditions import (
 from perfproof.bench.estimates import ExponentFit, fit_exponent
 from perfproof.schema import BenchmarkSpec
 
-__all__ = ["SizeKnob", "SizesResult", "measure_sizes", "parse_knob"]
+__all__ = [
+    "SizeKnob",
+    "SizesResult",
+    "measure_sizes",
+    "parse_factors",
+    "parse_knob",
+    "size_spec",
+]
 
 _NAME: Final = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _MIN_SIZES: Final = 3
@@ -138,6 +145,72 @@ def parse_knob(kind: Literal["arg", "env"], text: str) -> SizeKnob:
         msg = f"a size flag starts with '-', got {name!r}"
         raise MeasureError("invalid_arguments", msg)
     return SizeKnob(kind, name, base)
+
+
+def parse_factors(text: str) -> tuple[int, ...]:
+    """Parse a size list such as ``1,2,4`` or ``1x,2x,4x``.
+
+    Parameters
+    ----------
+    text : str
+        Comma-separated integer multipliers, each optionally with an
+        ``x`` suffix.
+
+    Returns
+    -------
+    tuple of int
+        The multipliers in the order given.
+
+    Raises
+    ------
+    ValueError
+        If fewer than three are distinct or any is below 1.
+    """
+    try:
+        values = tuple(
+            int(part.strip().removesuffix("x"))
+            for part in text.split(",")
+            if part.strip()
+        )
+    except ValueError:
+        values = ()
+    if len(set(values)) < _MIN_SIZES or min(values, default=0) < 1:
+        msg = (
+            "expected at least three distinct integer multipliers of 1 or "
+            f"more, such as 1,2,4,8, got {text!r}"
+        )
+        raise ValueError(msg)
+    return values
+
+
+def size_spec(
+    spec: BenchmarkSpec, knob: SizeKnob, factor: int
+) -> BenchmarkSpec:
+    """Return the spec set to run at ``knob.base * factor``.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The benchmark.
+    knob : SizeKnob
+        The input that sets the size.
+    factor : int
+        Multiplier of ``knob.base``.
+
+    Returns
+    -------
+    perfproof.schema.BenchmarkSpec
+        A copy with the size flag appended to the command, or the
+        variable set, exactly as `measure_sizes` runs each size. Its
+        ``spec_hash`` is not the original's: report the original's.
+    """
+    condition = _condition(knob, factor)
+    return spec.model_copy(
+        update={
+            "command": (*spec.command, *condition.argv_extra),
+            "env": {**spec.env, **condition.env},
+        }
+    )
 
 
 def _condition(knob: SizeKnob, factor: int) -> Condition:

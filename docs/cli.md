@@ -107,6 +107,9 @@ The result also carries, added after the keys above:
   cut at.
 - `own_modules`: the `--own-module` values the run was given, which
   `profile show` needs to classify frames the same way.
+- `size`: only in a run made by `profile --sizes`: `kind`, `name`,
+  `base`, `factor`, `value` and the `group` the sizes of one command
+  share. A plain profile has no `size` key.
 
 ### Looking a function up: `profile show`
 
@@ -162,6 +165,162 @@ Error codes: `not_a_repository`, `invalid_name`, `invalid_argument`
 directory name), `invalid_pattern`, `not_found` (no saved run, or none
 with that id), `ambiguous_run`, `invalid_record` (`result.json` is not
 a profile result), `state_read_failed` and `invalid_profile`.
+
+### Profiles at several sizes: `profile --sizes`
+
+```
+perfproof profile <name> --sizes 1,2,4 (--size-arg=--n=1000 | --size-env N=1000)
+                  [--profiler ...] [--json]
+```
+
+Profiles the benchmark once per size, using the size mechanism of
+`measure --sizes`: `--size-arg=FLAG=BASE` appends `FLAG <size>` to the
+spec's command, `--size-env NAME=BASE` sets the variable, and the sizes
+are `BASE` times each multiplier of the list (at least three distinct;
+an `x` suffix is allowed). Each size is an ordinary profile run: its own
+directory and `result.json`, with one added key, `size` (`kind`, `name`,
+`base`, `factor`, `value`, `group`; absent from a plain profile). The
+runs go back to back and nothing else happens between them: the
+summaries, evidence, saved results and fits are made after the last
+profiled run, so perfproof's own work never sits between two runs. A
+failure at one size ends the command with the error of that run,
+naming the size (`details.size`); the
+directories and the profiler's raw output of the sizes already
+profiled stay, but no result is saved for any size (so `profile show`
+and `--rank` do not see them).
+
+Then it fits how each project function's **cost** grows with size.
+Cost at a size is the function's total share of that size's profile
+times the unprofiled run's wall time there, in seconds (an estimate:
+two separate runs). The exponent `e` of `cost ~ size ** e` is the
+slope of a least-squares line on the logs
+(`perfproof.bench.estimates.fit_exponent`), with its 95% interval,
+`r_squared` and `n`, the number of sizes that saw the function. The
+workload's own exponent is fitted the same way to the wall times. Each
+fitted function gets an `evidence`: `shown` when the lower end of its
+interval is above the upper end of the workload's (its share, and so
+its cap, rises at bigger inputs, at these sizes); `lead` when not, but
+its exponent is at least 0.25 above the workload's (the intervals
+overlap, so the fits cannot tell the two apart: a place to look, with
+the note `interval_overlaps_workload`; 0.25 is an arbitrary display
+margin that only keeps near-ties out of the leads); `none` otherwise;
+`null` without a fit or a workload fit. Only `shown` is ever worded as
+"faster than the workload" or "its ceiling rises". The method and its
+limits are in `perfproof.profilers.growth`.
+
+`--json` result: `name`, `spec_hash` (the benchmark's, not the
+size-modified command's), `size_group`, `knob`, `sizes`, `runs`
+(`factor`, `size`, `run_id`, `directory`, `wall_seconds`,
+`profiled_wall_seconds`), `workload` (`exponent`, `low`, `high`,
+`r_squared`, `n`; `null` below three sizes), `functions` (every project
+function seen at any size, by exponent descending), `faster_than_workload`
+(those with `evidence` `shown` or `lead`, or that appear only at larger
+sizes),
+`growth_file` and `labels`. Each function has `function`, `file`,
+`line`, `frame_kind`, `costs`, `total_fractions` and `samples` (one per
+size, `null` where unseen), `fit` (`null` when fewer than three sizes
+saw it), `evidence`, `appears_at_larger_sizes`
+and `notes`. The same document is saved as
+`.perfproof/profiles/<name>/growth-<group>.json`.
+
+`notes` say when to distrust a fit: `few_points` (fewer than four
+sizes; three give an interval with one degree of freedom, which is
+very wide), `noisy` (`r_squared` below 0.9 or an interval wider than
+1), `few_samples` (under 30 samples at some size, counting a
+pyinstrument millisecond as a sample), `missing_sizes` (seen at only
+some sizes; fitted from those, and not at all below three: `no_fit`).
+Limits: one profile per size, so fits rest on 3 or 4 points; a wall
+time with start-up in it pulls the workload's exponent toward 0 and
+flags more functions; a function that dominates the workload has the
+workload's own exponent and is not flagged (its cap at the largest
+size, in `profile show --rank`, shows it); a knob that changes no work gives exponents near
+0; functions match across sizes by kind, file and name, not line.
+
+Errors, beyond those of `profile`: `invalid_argument` (`--sizes` without
+`--size-arg` or `--size-env`, or the reverse, or a malformed knob);
+fewer than three distinct sizes is a usage error (exit 2).
+
+### Ranking across saved profiles: `profile show --rank`
+
+```
+perfproof profile show --rank [<name>...] [--top N] [--json]
+```
+
+Reads every saved profile run of the named benchmarks (every benchmark
+with saved profiles when none is named) and ranks the project's
+functions across all of them. It profiles nothing: each run's folded
+stacks are streamed once, so with many large profiles it takes as long
+as reading them. `--rank` replaces `--function`; a benchmark named
+`show` is still profiled as usual unless `--rank`, `--function` or a
+second name follows. Run directories are named by their UTC start to the microsecond, rising
+with each one a process creates, so the latest run (what `profile show`
+reads by default) is the last created, also within one `--sizes` run.
+Delete old runs under `.perfproof/profiles/` when
+the code has changed: the ranking has no notion of a stale profile.
+
+The rule is fixed: **cap at the largest size measured, descending.**
+Within each benchmark, take the profile at its largest measured size (a
+plain profile is its own largest) and the function's cap there,
+`1 / (1 - p)` for its total share `p` in that profile; across
+benchmarks take the largest of these. A function that is a whole
+profile has no finite cap and comes first. A function not sampled at a
+benchmark's largest size has an unknown cap there (not a small one); if
+that is so for every benchmark that saw it, its cap is unknown and it
+comes last, saying so. Ties go to the function seen in more profiles,
+then file, line and name. Real inputs are at least the test size, so a
+function that is costly only at small sizes does not outrank one that
+dominates at the largest. Nothing is projected beyond the measured
+sizes. The highest cap in any profile stays in each row as
+`best_any_size`, labelled informational and never used to rank. A cap
+is a bound, never a measured effect. A **wrapper** (`wrapper` true: a
+known cap that is not finite, and no time of its own, such as `main`)
+keeps its place in the JSON, flagged; the text output lists wrappers
+after the real candidates and says so.
+
+`--json` result: `benchmarks`, `runs` (`benchmark`, `run_id`, `size`,
+`factor`, `samples`, `wall_seconds`), `skipped_runs` (a run that cannot
+be read, with the `reason`; it never fails the ranking), `order`,
+`functions`, `coverage` and `labels`. Each function row has
+`function`, `file`, `line`, `frame_kind`, `wrapper`, `cap` (the ranking
+cap above; `null` when not finite or unknown) and `cap_known`,
+`total_fraction` and `self_fraction` (in the profile of that cap;
+`null` when unknown), `cap_above_bar` (that run's bar), `ranked_in`
+(benchmark, `run_id`, `size` of that profile), `at_largest` (per
+benchmark that saw it: the largest `size`, `seen`, `run_id`,
+`total_fraction`, `cap`; the last three `null` when not seen there),
+`best_any_size` (`cap`, `total_fraction`, benchmark, `run_id`, `size`,
+`label`), `seen_in` (benchmark, `run_id`, `size`, `factor`, total share
+and cap in each profile that saw it), `growth` and
+`ceiling_rises_with_size`. `growth` is the fit of the most-pointed
+`--sizes` run of the benchmark that saw the function: `exponent`,
+`low`, `high`, `n`, `workload_exponent`, `evidence`,
+`appears_at_larger_sizes` and `notes`, as above; `null` when no scaling
+run saw it. `ceiling_rises_with_size` is `true` only when the
+growth is `shown`, `false` when the evidence is `none`, and `null` for
+a lead, for a function seen only at larger sizes, and for a function no
+scaling run saw (`growth` tells these apart). A `true` with `few_points`
+or `noisy` in `notes` still rests on few, scattered points. The text
+output is the top `--top` rows in words, then the never-sampled files.
+
+**Never sampled.** `coverage` lists the project's source files that no
+function of any saved profile sampled: `source_files`, `sampled`,
+`never_sampled` (the count), `never_sampled_by_suffix`, `files` (all of
+them, at most 5000), `suffixes` and `suffix_source`, `walk_truncated`
+and `excluded`. It is not line or branch coverage: a file listed was
+never run by the saved workloads, or only for too little time to be
+sampled. Source files are those of the project walk that `init` uses
+(VCS, virtualenv, build and cache directories skipped; depth and file
+count bounded), with a suffix of a language the project has, minus test
+files (a `test` or `tests` directory, `test_*`, `*_test.*`,
+`conftest.py`). The project model records target classes, not
+languages, so the suffixes are a fixed table per target class (Python
+for every class but `native`, whose C, C++, Rust and Go suffixes stand
+in for it; `.cu` and `.cuh` for `gpu_kernel`) plus the suffix of every
+project file a profile did sample; with no project model, the sampled
+files' suffixes alone.
+
+Errors: `not_a_repository`, `invalid_name`, `not_found` (no readable
+saved profile) and `state_read_failed`.
 
 ## Long runs
 

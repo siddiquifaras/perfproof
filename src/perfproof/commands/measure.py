@@ -86,6 +86,7 @@ from perfproof.bench.scaling import (
     SizeKnob,
     SizesResult,
     measure_sizes,
+    parse_factors,
     parse_knob,
 )
 from perfproof.bench.setting import (
@@ -522,20 +523,9 @@ def _load_text(
 def _factors(text: str) -> tuple[int, ...]:
     """Parse ``--sizes``, for argparse."""
     try:
-        values = tuple(
-            int(part.strip().removesuffix("x"))
-            for part in text.split(",")
-            if part.strip()
-        )
-    except ValueError:
-        values = ()
-    if len(set(values)) < 3 or min(values, default=0) < 1:
-        msg = (
-            "expected at least three distinct integer multipliers of 1 or "
-            f"more, such as 1,2,4,8, got {text!r}"
-        )
-        raise argparse.ArgumentTypeError(msg)
-    return values
+        return parse_factors(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def _positive_int(text: str) -> int:

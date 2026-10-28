@@ -60,7 +60,7 @@ from perfproof.schema import (
     WorkloadSource,
 )
 
-__all__ = ["Proposal", "Question", "detect", "slug"]
+__all__ = ["Proposal", "Question", "detect", "slug", "walk_files"]
 
 SKIP_DIRS: Final = frozenset(
     {
@@ -88,6 +88,10 @@ SKIP_DIRS: Final = frozenset(
         ".idea",
         ".eggs",
         "scratch",
+        "vendor",
+        "third_party",
+        "generated",
+        "bazel-out",
     }
 )
 """Directories the walk never enters. ``candidates`` holds perfproof's
@@ -333,6 +337,26 @@ def _walk(root: Path) -> _Tree:
 
     visit(root, "", 0)
     return _Tree(root, files, truncated)
+
+
+def walk_files(root: Path) -> tuple[list[str], bool]:
+    """List a repository's files as `detect` sees them.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Repository root.
+
+    Returns
+    -------
+    files : list of str
+        Sorted root-relative POSIX paths, skipping `SKIP_DIRS` and
+        stopping at `MAX_DEPTH` and `MAX_FILES`.
+    truncated : bool
+        Whether a bound cut the walk short.
+    """
+    tree = _walk(root)
+    return tree.files, tree.truncated
 
 
 def _dir(path: str) -> str:

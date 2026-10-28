@@ -26,6 +26,18 @@ without profiling again. A failed write is ``state_write_failed``.
 
 ``profile show NAME [RUN_ID] --function PATTERN`` looks functions up in
 such a saved run; see `perfproof.commands._profile_show`.
+``profile show --rank [NAME...]`` ranks project functions across every
+saved run and lists the source files no run sampled; see
+`perfproof.commands._profile_rank`.
+
+``--sizes LIST`` with ``--size-arg=FLAG=BASE`` or ``--size-env
+NAME=BASE`` profiles once per size, as ``measure --sizes`` sets sizes,
+saving one run each (its ``result.json`` gains a ``size`` key). The
+profiled runs go first and back to back; the summaries, saved results
+and the growth fits (`perfproof.profilers.growth`) come after the last
+one. The result is the growth document, also saved as
+``growth-<group>.json`` beside the runs, in place of a single profile's
+result; see ``docs/cli.md``.
 
 ``--json`` result
 -----------------
@@ -131,11 +143,19 @@ import os
 import re
 import secrets
 import subprocess
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, cast
 
+from perfproof.bench.conditions import MeasureError
 from perfproof.bench.evidence import hypothesis_id, write_evidence
+from perfproof.bench.scaling import (
+    SizeKnob,
+    parse_factors,
+    parse_knob,
+    size_spec,
+)
 from perfproof.bench.snapshot import (
     GIT_TIMEOUT_SECONDS,
     SnapshotError,
@@ -148,8 +168,16 @@ from perfproof.bench.spec import (
     spec_record_path,
 )
 from perfproof.commands import CommandError, JsonValue, Output
+from perfproof.commands._profile_rank import GROWTH_PREFIX, rank
 from perfproof.commands._profile_show import RESULT_FILE, show
-from perfproof.profilers.folded import DEFAULT_TOP_N
+from perfproof.profilers.folded import DEFAULT_TOP_N, FoldedStackError
+from perfproof.profilers.growth import (
+    FunctionKey,
+    SizePoint,
+    analyse_growth,
+    project_functions,
+    workload_json,
+)
 from perfproof.profilers.run import (
     Profile,
     ProfileError,
@@ -221,6 +249,33 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "folded stacks",
     )
     parser.add_argument(
+        "--rank",
+        action="store_true",
+        help="with show: rank project functions across every saved "
+        "profile of the named benchmarks (all when none is named); "
+        "profile show --rank [NAME...]",
+    )
+    parser.add_argument(
+        "--sizes",
+        type=_factors,
+        metavar="LIST",
+        help="profile at each multiple of the base size, such as 1,2,4 "
+        "(at least 3), and fit each function's growth; needs --size-arg "
+        "or --size-env",
+    )
+    knob = parser.add_mutually_exclusive_group()
+    knob.add_argument(
+        "--size-arg",
+        metavar="FLAG=BASE",
+        help="flag that sets the input size, appended as 'FLAG size'; "
+        "write it as --size-arg=--n=1000",
+    )
+    knob.add_argument(
+        "--size-env",
+        metavar="NAME=BASE",
+        help="environment variable that sets the input size",
+    )
+    parser.add_argument(
         "--spec-hash",
         metavar="HASH",
         help="spec version, by hash or unique prefix (default: the only one)",
@@ -243,7 +298,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         type=_positive_int,
         default=DEFAULT_TOP_N,
         metavar="N",
-        help=f"frames in each list (default: {DEFAULT_TOP_N})",
+        help="frames in each list; with --rank, rows shown in the text "
+        f"(default: {DEFAULT_TOP_N})",
     )
     parser.add_argument(
         "--timeout",
@@ -293,6 +349,17 @@ def run(args: argparse.Namespace) -> Output:
     name = cast("str", args.name)
     extra = cast("list[str]", args.show_args)
     function = cast("str | None", args.function)
+    ranking = cast("bool", args.rank)
+    if ranking and name != "show":
+        msg = "--rank belongs to `profile show --rank [NAME...]`"
+        raise CommandError("invalid_argument", msg)
+    if name == "show" and ranking:
+        if function is not None:
+            msg = "--rank and --function are separate questions"
+            raise CommandError("invalid_argument", msg)
+        return rank(
+            _repo_root(cast("Path", args.repo)), extra, cast("int", args.top)
+        )
     if name == "show" and (extra or function is not None):
         if not 1 <= len(extra) <= 2:
             msg = "usage: profile show NAME [RUN_ID] --function PATTERN"
@@ -309,6 +376,8 @@ def run(args: argparse.Namespace) -> Output:
             "--function belong to `profile show`"
         )
         raise CommandError("invalid_argument", msg)
+    sizes = cast("tuple[int, ...] | None", args.sizes)
+    knob = _size_knob(args, sizes)
     template = _template(cast("str | None", args.profiler_command))
     root = _repo_root(cast("Path", args.repo))
     spec = _spec(root, name, cast("str | None", args.spec_hash))
@@ -322,10 +391,56 @@ def run(args: argparse.Namespace) -> Output:
         )
     except ProfileError as exc:
         raise CommandError(exc.code, exc.message) from exc
-    out_dir = _new_directory(root, name)
+    if sizes is None or knob is None:
+        out_dir = _new_directory(root, name)
+        profile = _profile(spec, root, out_dir, profiler, template, args)
+        result, text = _finish(spec, profile, root, out_dir, args, None)
+        return Output(result=result, text=text)
+    return _profile_sizes(spec, root, knob, sizes, profiler, template, args)
+
+
+def _factors(text: str) -> tuple[int, ...]:
+    """Parse ``--sizes``, for argparse."""
     try:
-        profile = profile_benchmark(
-            spec,
+        return parse_factors(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _size_knob(
+    args: argparse.Namespace, sizes: tuple[int, ...] | None
+) -> SizeKnob | None:
+    """Read the size knob, which goes with ``--sizes`` only."""
+    arg = cast("str | None", args.size_arg)
+    env = cast("str | None", args.size_env)
+    if sizes is None:
+        if arg is not None or env is not None:
+            msg = "--size-arg and --size-env need --sizes"
+            raise CommandError("invalid_argument", msg)
+        return None
+    try:
+        if arg is not None:
+            return parse_knob("arg", arg)
+        if env is not None:
+            return parse_knob("env", env)
+    except MeasureError as exc:
+        raise CommandError("invalid_argument", exc.message) from exc
+    msg = "--sizes needs --size-arg FLAG=BASE or --size-env NAME=BASE"
+    raise CommandError("invalid_argument", msg)
+
+
+def _profile(
+    run_spec: BenchmarkSpec,
+    root: Path,
+    out_dir: Path,
+    profiler: ProfilerName,
+    template: tuple[str, ...],
+    args: argparse.Namespace,
+) -> Profile:
+    """Run ``run_spec`` unprofiled and profiled into ``out_dir``."""
+    try:
+        return profile_benchmark(
+            run_spec,
             root,
             out_dir,
             profiler=profiler,
@@ -340,6 +455,24 @@ def run(args: argparse.Namespace) -> Output:
         if exc.gate is not None:
             details["gate"] = exc.gate.model_dump(mode="json")
         raise CommandError(exc.code, exc.message, details) from exc
+
+
+def _finish(
+    spec: BenchmarkSpec,
+    profile: Profile,
+    root: Path,
+    out_dir: Path,
+    args: argparse.Namespace,
+    size: dict[str, JsonValue] | None,
+) -> tuple[dict[str, JsonValue], str]:
+    """Summarise, store evidence for and save one finished profile.
+
+    Raises
+    ------
+    CommandError
+        ``invalid_result`` or ``state_write_failed``.
+    """
+    name = spec.name
     try:
         summary = brief(
             summarise_profile(
@@ -380,8 +513,191 @@ def run(args: argparse.Namespace) -> Output:
     result["own_modules"] = list(cast("list[str]", args.own_module))
     result["run_id"] = out_dir.name
     result["finished_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    if size is not None:
+        result["size"] = size
     _save(out_dir, result)
-    return Output(result=result, text=_text(spec, profile, out_dir))
+    return result, _text(spec, profile, out_dir)
+
+
+_GROWTH_LABELS: Final = {
+    "cost": "estimate: total share of a profile times the unprofiled "
+    "wall time, in seconds",
+    "growth": "estimate: a fit to a few profiles, one per size; not a "
+    "measured effect of any change",
+}
+
+
+def _profile_sizes(
+    spec: BenchmarkSpec,
+    root: Path,
+    knob: SizeKnob,
+    sizes: tuple[int, ...],
+    profiler: ProfilerName,
+    template: tuple[str, ...],
+    args: argparse.Namespace,
+) -> Output:
+    """Profile at each size, then fit every function's growth.
+
+    The profiled runs go first, back to back, and nothing else: the
+    summaries, evidence, saved results and fits are made after the last
+    one, so none of that work runs between two profiled runs.
+    """
+    name = spec.name
+    factors = list(dict.fromkeys(sizes))
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    group = f"{stamp}-{secrets.token_hex(3)}"
+    # Every directory first: creating one runs git, which must not sit
+    # between two profiled runs.
+    directories = [_new_directory(root, name) for _ in factors]
+    taken: list[tuple[int, Path, Profile]] = []
+    for factor, out_dir in zip(factors, directories, strict=True):
+        run_spec = size_spec(spec, knob, factor)
+        try:
+            profile = _profile(
+                run_spec, root, out_dir, profiler, template, args
+            )
+        except CommandError as exc:
+            where = f"at size {knob.base * factor} (multiplier {factor})"
+            raise CommandError(
+                exc.code,
+                f"{exc.message} ({where})",
+                {**exc.details, "size": knob.base * factor},
+            ) from exc
+        taken.append((factor, out_dir, profile))
+    runs: list[JsonValue] = []
+    tables: list[dict[FunctionKey, tuple[Hotspot, SizePoint]]] = []
+    walls: list[float] = []
+    for factor, out_dir, profile in taken:
+        value = knob.base * factor
+        size: dict[str, JsonValue] = {
+            "kind": knob.kind,
+            "name": knob.name,
+            "base": knob.base,
+            "factor": factor,
+            "value": value,
+            "group": group,
+        }
+        _finish(spec, profile, root, out_dir, args, size)
+        tables.append(_functions(profile, root, args))
+        walls.append(profile.unprofiled.wall_seconds)
+        runs.append(
+            {
+                "factor": factor,
+                "size": value,
+                "run_id": out_dir.name,
+                "directory": str(out_dir),
+                "wall_seconds": profile.unprofiled.wall_seconds,
+                "profiled_wall_seconds": profile.profiled_wall_seconds,
+            }
+        )
+    try:
+        growth = analyse_growth(
+            [knob.base * f for f in factors], walls, tables
+        )
+    except ValueError as exc:
+        msg = f"growth could not be fitted: {exc}"
+        raise CommandError("invalid_result", msg) from exc
+    functions: list[JsonValue] = list(growth.functions)
+    document: dict[str, JsonValue] = {
+        "name": name,
+        "spec_hash": spec.spec_hash,
+        "group": group,
+        "knob": {"kind": knob.kind, "name": knob.name, "base": knob.base},
+        "sizes": [knob.base * f for f in factors],
+        "runs": runs,
+        "workload": workload_json(growth.workload),
+        "functions": functions,
+        "labels": dict(_GROWTH_LABELS),
+    }
+    path = (
+        root / STATE_DIR / "profiles" / name / f"{GROWTH_PREFIX}{group}.json"
+    )
+    _save_json(path, document)
+    faster = [
+        f
+        for f in growth.functions
+        if f["evidence"] in ("shown", "lead")
+        or f["appears_at_larger_sizes"] is True
+    ]
+    result = dict(document)
+    result["size_group"] = group
+    result["growth_file"] = str(path)
+    result["faster_than_workload"] = list[JsonValue](faster)
+    return Output(result=result, text=_sizes_text(result, faster))
+
+
+def _functions(
+    profile: Profile, root: Path, args: argparse.Namespace
+) -> dict[FunctionKey, tuple[Hotspot, SizePoint]]:
+    """Read every project function of a finished profile."""
+    try:
+        table, _ = project_functions(
+            profile.folded_path,
+            root,
+            cast("list[str]", args.own_module),
+            weight_unit=profile.weight_unit,
+        )
+    except FoldedStackError as exc:
+        msg = f"{profile.folded_path} is not folded stacks: {exc}"
+        raise CommandError("invalid_profile", msg) from exc
+    except OSError as exc:
+        raise _os_error("state_read_failed", exc, profile.folded_path) from exc
+    return table
+
+
+def _sizes_text(
+    result: dict[str, JsonValue], faster: list[dict[str, JsonValue]]
+) -> str:
+    """Render the growth result for a person."""
+    sizes = cast("list[int]", result["sizes"])
+    runs = cast("list[dict[str, JsonValue]]", result["runs"])
+    walls = ", ".join(
+        f"{float(cast('float', r['wall_seconds'])):.3g} s" for r in runs
+    )
+    lines = [
+        f"Profiled {result['name']} at sizes "
+        f"{', '.join(map(str, sizes))}; unprofiled wall time {walls}."
+    ]
+    workload = result["workload"]
+    if isinstance(workload, dict):
+        lines.append(
+            "The whole workload's wall time grows as size^"
+            f"{float(cast('float', workload['exponent'])):.2f} "
+            f"(n={workload['n']})."
+        )
+    if not faster:
+        lines.append(
+            "No project function was found growing faster than the workload."
+        )
+    lines.extend(_growth_line(f) for f in faster)
+    lines.append(f"Growth fits saved to {result['growth_file']}.")
+    return "\n".join(lines)
+
+
+def _growth_line(f: dict[str, JsonValue]) -> str:
+    """Say how one function grows, and how well that is shown."""
+    fit = f["fit"]
+    where = f"{f['file']}:{f['line']}" if f["file"] else "-"
+    if isinstance(fit, dict):
+        growth = (
+            f"size^{float(cast('float', fit['exponent'])):.2f} (95% "
+            f"{float(cast('float', fit['low'])):.2f} to "
+            f"{float(cast('float', fit['high'])):.2f}, n={fit['n']})"
+        )
+    else:
+        growth = "seen only at the larger sizes"
+    notes = cast("list[str]", f["notes"])
+    caveat = f"; unreliable: {', '.join(notes)}" if notes else ""
+    if f["evidence"] == "shown":
+        verdict = "Grows faster than the workload (shown at these sizes)"
+    else:
+        verdict = (
+            "A lead, not shown at these sizes (the intervals overlap the "
+            "workload's)"
+            if f["evidence"] == "lead"
+            else "A lead, not shown (seen only at larger sizes)"
+        )
+    return f"{verdict}: {f['function']} ({where}), cost {growth}{caveat}."
 
 
 def _save(out_dir: Path, result: dict[str, JsonValue]) -> None:
@@ -395,8 +711,18 @@ def _save(out_dir: Path, result: dict[str, JsonValue]) -> None:
     CommandError
         ``state_write_failed``, if the file cannot be written.
     """
-    path = out_dir / RESULT_FILE
-    temporary = out_dir / f".{RESULT_FILE}.tmp"
+    _save_json(out_dir / RESULT_FILE, result)
+
+
+def _save_json(path: Path, result: dict[str, JsonValue]) -> None:
+    """Write ``result`` to ``path``, whole or not at all.
+
+    Raises
+    ------
+    CommandError
+        ``state_write_failed``, if the file cannot be written.
+    """
+    temporary = path.with_name(f".{path.name}.tmp")
     data = json.dumps(result, indent=2, allow_nan=False) + "\n"
     try:
         with temporary.open("w", encoding="utf-8") as f:
@@ -542,8 +868,13 @@ def _spec(root: Path, name: str, prefix: str | None) -> BenchmarkSpec:
 
 
 def _new_directory(root: Path, name: str) -> Path:
-    """Create this run's directory under ``.perfproof/profiles``."""
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    """Create this run's directory under ``.perfproof/profiles``.
+
+    The name starts with the UTC time to the microsecond, forced to
+    rise with each directory this process creates, so names sort in
+    creation order and "latest" is the last one created.
+    """
+    stamp = _next_stamp()
     path = (
         root
         / STATE_DIR
@@ -562,6 +893,19 @@ def _new_directory(root: Path, name: str) -> Path:
     except OSError as exc:
         raise _os_error("state_write_failed", exc, path) from exc
     return path
+
+
+_last_stamp_us = 0
+"""Microseconds of the newest stamp this process issued."""
+
+
+def _next_stamp() -> str:
+    """Return a run-name stamp later than every earlier one."""
+    global _last_stamp_us
+    _last_stamp_us = max(time.time_ns() // 1000, _last_stamp_us + 1)
+    seconds, micro = divmod(_last_stamp_us, 1_000_000)
+    when = datetime.fromtimestamp(seconds, UTC)
+    return f"{when.strftime('%Y%m%dT%H%M%S')}{micro:06d}Z"
 
 
 def _os_error(code: str, exc: OSError, path: Path) -> CommandError:
