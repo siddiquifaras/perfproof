@@ -273,6 +273,15 @@ class Profile:
         share is at least the spec's ``min_effect``, by total share,
         at most `perfproof.profilers.query.PROJECT_FRAMES_LIMIT`. Not
         cut to ``top_n``.
+    project_frames_seen : bool
+        Whether any sampled stack held a frame classified as the
+        project's own. False when none was, whatever the bar: the
+        project is unknown to this profile.
+    frames_by_module : bool
+        Whether the frames name code by module, so ``--own-module``
+        decides which are the project's, not the project root.
+    project_root : pathlib.Path
+        The root frames' paths were classified against.
     """
 
     profiler: ProfilerName
@@ -291,6 +300,9 @@ class Profile:
     folded_path: Path
     log_paths: tuple[Path, ...]
     project_frames_above_bar: tuple[Hotspot, ...]
+    project_frames_seen: bool
+    frames_by_module: bool
+    project_root: Path
 
 
 @dataclass(frozen=True, slots=True)
@@ -500,6 +512,9 @@ def profile_benchmark(
         folded_path=folded,
         log_paths=tuple(logs),
         project_frames_above_bar=ranking.above_bar,
+        project_frames_seen=ranking.has_project,
+        frames_by_module=ranking.by_module,
+        project_root=tree_root,
     )
 
 

@@ -62,6 +62,17 @@ such a saved run; see `perfproof.commands._profile_show`.
     `perfproof.profilers.query.PROJECT_FRAMES_LIMIT`, so every project
     function worth a cap is here. Frames ``frames_by_total`` leaves out
     are left out.
+``next_step``
+    ``{"code", "message"}`` when ``project_frames_above_bar`` is empty;
+    ``null`` otherwise. ``code`` is ``no_project_frame_above_bar`` when
+    some frame was classified as the project's and none is at the bar
+    (profile a second workload that enters the project another way
+    before choosing an idea), or ``project_frames_unknown`` when no
+    frame was classified as the project's (frames named by module: rerun
+    with ``--own-module``; frames with source paths: check ``--repo``
+    and that the workload calls the project's code, not an installed
+    copy). The text output prints the message as one line.
+    No other condition sets it.
 ``min_effect``, ``own_modules``
     The spec's bar, and the ``--own-module`` values; ``profile show``
     reads them from the saved result.
@@ -151,6 +162,24 @@ from perfproof.schema import BenchmarkSpec, Hotspot
 
 __all__ = ["RESULT_FILE", "add_arguments", "run"]
 
+_NO_FRAME_CODE: Final = "no_project_frame_above_bar"
+_NO_FRAME_MESSAGE: Final = (
+    "No function of this project is at or above the bar in this workload. "
+    "Before choosing an idea, profile a second workload that enters the "
+    "project another way (another entry point or direction)."
+)
+_UNKNOWN_CODE: Final = "project_frames_unknown"
+_UNKNOWN_MODULE_MESSAGE: Final = (
+    "No frame in this profile was matched to this project's code. Rerun "
+    "with --own-module <name>, the project's native binary or library "
+    "as it is named in the frames (the part before the backtick), so "
+    "its functions can be found."
+)
+_UNKNOWN_PATH_MESSAGE: Final = (
+    "No frame in this profile is under this project's root ({root}). "
+    "Check --repo points at the project, and that the workload calls "
+    "the project's code, not only an installed copy of it."
+)
 _HASH_FILE: Final = re.compile(r"^[0-9a-f]{64}\.json$")
 _HEX: Final = re.compile(r"^[0-9a-f]+$")
 _ZERO_HASH: Final = "0" * 64
@@ -566,6 +595,7 @@ def _result(
         "hotspots": hotspots,
         "frames_by_total": by_total,
         "project_frames_above_bar": above,
+        "next_step": _next_step(profile),
         "unprofiled": {
             "wall_seconds": plain.wall_seconds,
             "cpu_seconds": plain.cpu_seconds,
@@ -581,6 +611,24 @@ def _result(
         "folded": str(profile.folded_path),
         "logs": [str(p) for p in profile.log_paths],
     }
+
+
+def _next_step(profile: Profile) -> JsonValue:
+    """Return the hint if no project frame is above the bar.
+
+    Distinguishes a project with no frame at the bar from a profile in
+    which no frame was classified as the project's at all.
+    """
+    if profile.project_frames_above_bar:
+        return None
+    if not profile.project_frames_seen:
+        message = (
+            _UNKNOWN_MODULE_MESSAGE
+            if profile.frames_by_module
+            else _UNKNOWN_PATH_MESSAGE.format(root=profile.project_root)
+        )
+        return {"code": _UNKNOWN_CODE, "message": message}
+    return {"code": _NO_FRAME_CODE, "message": _NO_FRAME_MESSAGE}
 
 
 def _location(hotspot: Hotspot) -> str:
@@ -620,6 +668,9 @@ def _text(spec: BenchmarkSpec, profile: Profile, out_dir: Path) -> str:
         ]
     )
     lines.extend(_row(h) for h in profile.frames_by_total)
+    step = _next_step(profile)
+    if isinstance(step, dict):
+        lines.append(str(step["message"]))
     plain = profile.unprofiled
     share = plain.cpu_seconds / plain.wall_seconds
     lines.append(

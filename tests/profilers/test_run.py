@@ -847,6 +847,7 @@ def test_cli_profiles_with_a_command_profiler(
         "hotspots",
         "frames_by_total",
         "project_frames_above_bar",
+        "next_step",
         "unprofiled",
         "profiled_wall_seconds",
         "load_average",
@@ -1399,3 +1400,164 @@ def test_text_reads_cpu_time_as_summed_over_threads(
     assert "(summed over all threads and processes)" in text
     assert says in " ".join(text.split())
     assert never not in text
+
+
+HINT = "No function of this project is at or above the bar in this workload."
+
+
+@pytest.mark.parametrize(
+    ("min_effect", "hinted"),
+    [(0.1, False), (5.0, True)],
+    ids=["above", "none"],
+)
+def test_next_step_is_set_only_without_a_project_frame_above_the_bar(
+    tree: Path, min_effect: float, hinted: bool
+) -> None:
+    spec = make_spec([sys.executable, "work.py"], min_effect=min_effect)
+    profile, out = run_profile(spec, tree, template=rooted_template(tree))
+    assert bool(profile.project_frames_above_bar) is not hinted
+    result = profile_command._result(spec, profile, out)  # pyright: ignore[reportPrivateUsage]
+    text = profile_command._text(spec, profile, out)  # pyright: ignore[reportPrivateUsage]
+    step = cast("dict[str, str] | None", result["next_step"])
+    if hinted:
+        assert step is not None
+        assert step["code"] == "no_project_frame_above_bar"
+        assert step["message"].startswith(HINT)
+        assert text.splitlines().count(step["message"]) == 1
+    else:
+        assert step is None
+        assert HINT not in text
+
+
+MODULE_HINT = "Rerun with --own-module <name>"
+PATH_HINT = "is under this project's root ("
+RUST = FIXTURES / "rust" / "fd-threads.folded.txt"
+PYTHON = PYSPY / "rolling.txt"
+
+
+@pytest.mark.parametrize(
+    ("fixture", "own_modules", "min_effect", "code", "says"),
+    [
+        (RUST, (), 0.1, "project_frames_unknown", MODULE_HINT),
+        (RUST, ("fd",), 5.0, "no_project_frame_above_bar", HINT),
+        (RUST, ("fd",), 0.001, None, ""),
+        (PYTHON, (), 0.1, "project_frames_unknown", PATH_HINT),
+    ],
+    ids=[
+        "rust-unclassified",
+        "rust-classified-below-bar",
+        "rust-classified-above-bar",
+        "python-outside-root",
+    ],
+)
+def test_next_step_tells_an_unknown_project_from_one_below_the_bar(
+    tree: Path,
+    fixture: Path,
+    own_modules: tuple[str, ...],
+    min_effect: float,
+    code: str | None,
+    says: str,
+) -> None:
+    spec = make_spec([sys.executable, "work.py"], min_effect=min_effect)
+    out = tree.parent / "out"
+    out.mkdir()
+    template = (
+        sys.executable,
+        str(tree / "copy_profiler.py"),
+        str(fixture),
+        "{output}",
+        "{command}",
+    )
+    profile = profile_benchmark(
+        spec,
+        tree,
+        out,
+        profiler="command",
+        process_env=process_env(),
+        template=template,
+        own_modules=own_modules,
+    )
+    result = profile_command._result(spec, profile, out)  # pyright: ignore[reportPrivateUsage]
+    text = profile_command._text(spec, profile, out)  # pyright: ignore[reportPrivateUsage]
+    step = cast("dict[str, str] | None", result["next_step"])
+    assert (step or {}).get("code") == code
+    if step is None:
+        assert HINT not in text
+        assert MODULE_HINT not in text
+        assert PATH_HINT not in text
+        return
+    assert says in step["message"]
+    assert step["message"] in text.splitlines()
+    if code == "project_frames_unknown" and fixture == PYTHON:
+        assert str(tree) in step["message"]
+        assert "--own-module" not in step["message"]
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_cli_carries_the_next_step_in_json_and_text(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    status, document = cli_json(
+        capsys,
+        "profile",
+        "rolling-sum",
+        "--profiler-command",
+        template,
+        "--repo",
+        str(repo),
+    )
+    assert status == 0, document
+    result = document["result"]
+    assert result["project_frames_above_bar"] == []
+    assert result["next_step"]["code"] == "project_frames_unknown"
+    saved = Path(result["directory"]) / "result.json"
+    assert json.loads(saved.read_text())["next_step"] == result["next_step"]
+    status = main(
+        [
+            "profile",
+            "rolling-sum",
+            "--profiler-command",
+            template,
+            "--repo",
+            str(repo),
+        ]
+    )
+    text, _ = capsys.readouterr()
+    assert status == 0
+    assert result["next_step"]["message"] in text.splitlines()
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_a_result_saved_before_next_step_still_loads(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    status, ran = cli_json(
+        capsys,
+        "profile",
+        "rolling-sum",
+        "--profiler-command",
+        template,
+        "--repo",
+        str(repo),
+    )
+    assert status == 0, ran
+    saved = Path(ran["result"]["directory"]) / "result.json"
+    old = json.loads(saved.read_text())
+    del old["next_step"]
+    saved.write_text(json.dumps(old), encoding="utf-8")
+    status, document = cli_json(
+        capsys,
+        "profile",
+        "show",
+        "rolling-sum",
+        "--function",
+        "_find_and_load",
+        "--repo",
+        str(repo),
+    )
+    assert status == 0, document
+    assert document["result"]["found"] is True

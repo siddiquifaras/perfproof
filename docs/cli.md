@@ -85,6 +85,24 @@ The result also carries, added after the keys above:
   the printed lists don't reach it. Frames the total ranking leaves
   out (synthetic and entry frames, and the frames on every stack above
   the point where stacks first differ) are not in it either.
+- `next_step`: `null`, or `{"code", "message"}` exactly when
+  `project_frames_above_bar` is empty, by one of two codes. Which one
+  is decided over every sampled stack, not the printed lists.
+  `no_project_frame_above_bar`: some frame was classified as the
+  project's and none is at the bar, so profile a second workload that
+  enters the project another way (another entry point or direction)
+  before choosing an idea. `project_frames_unknown`: no frame was
+  classified as the project's at all. The message depends on how the
+  frames name their code. Frames written `module`symbol` with no source
+  file (native, Rust, .NET without sources) are the project's only when
+  `--own-module` names their binary or library, so it says to rerun
+  with `--own-module <name>`. Frames with source paths (Python, Node,
+  Java, Go, Ruby) are classified by the project root, which
+  `--own-module` cannot change, so it says no frame is under the root
+  (it names the root) and to check `--repo` and that the workload calls
+  the project's code, not only an installed copy. No other condition sets it. The text output
+  prints the message as one line. Results saved before it existed lack the key; readers treat a
+  missing key as `null`.
 - `min_effect`: the spec's bar as a fraction, which the list above was
   cut at.
 - `own_modules`: the `--own-module` values the run was given, which

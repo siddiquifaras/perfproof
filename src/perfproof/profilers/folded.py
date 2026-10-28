@@ -406,6 +406,15 @@ class Ranking:
     matched : int
         Functions eligible for ``by_total`` (those matching
         ``name_filter`` when one was given), before ``top_n`` cut them.
+    has_project : bool
+        Whether any stack with samples holds a frame classified as the
+        project's own. False means the project is unknown to this
+        profile (for native frames, no ``own_modules`` matched).
+    by_module : bool
+        Whether the frames name their code by module, not by a source
+        file: some frame is written ``module`symbol`` with no file, and
+        none has a source file. Only then can ``own_modules`` decide
+        which frames are the project's; otherwise the project root does.
     """
 
     by_self: tuple[Hotspot, ...]
@@ -413,6 +422,8 @@ class Ranking:
     samples: int
     above_bar: tuple[Hotspot, ...] = ()
     matched: int = 0
+    has_project: bool = False
+    by_module: bool = False
 
 
 _PSEUDO_NAME: Final = re.compile(r"<[^<>\s]+>")
@@ -623,6 +634,8 @@ def rank(
     in_work: list[bool] = []
     no_project_below: list[bool] = []
     has_project = False
+    module_named = False
+    path_named = False
     prefix: list[int] | None = None
     samples = 0
     for number, raw in enumerate(lines, start=1):
@@ -647,6 +660,10 @@ def rank(
                 if not text_frame:
                     raise FoldedStackError("empty frame", number)
                 frame = normaliser.frame(text_frame)
+                if frame.file is None:
+                    module_named = module_named or "`" in frame.function
+                elif not frame.file.startswith("<"):
+                    path_named = True
                 frame_id = frame_ids.get(frame)
                 if frame_id is None:
                     frame_id = len(frames)
@@ -791,6 +808,8 @@ def rank(
         samples,
         function_hotspots(above),
         len(eligible),
+        has_project,
+        module_named and not path_named,
     )
 
 
