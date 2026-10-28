@@ -1155,7 +1155,7 @@ Mac and on Linux CI, with decoys that must be refused.
     deleted line, and a non-Python change without the opt-in.
   - Effort: high
 
-- [ ] **T2.15 Guardrails**
+- [x] **T2.15 Guardrails** (siddiquifaras/perfproof#90, `f561240`; peak memory = largest single process via a posix_spawn helper; absolute caps on a rank bound scoped to the session, not to persistent drift; only median caps calibrated)
   - Owns: `src/perfproof/stats/guardrails.py`,
     `tests/stats/test_guardrails.py`, the guardrail step in
     `src/perfproof/stats/decision.py`, guardrail cells in
