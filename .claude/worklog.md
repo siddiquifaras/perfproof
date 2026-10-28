@@ -324,6 +324,15 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- **#90 audit nits for the CALIBRATED doc pass** (stats-auditor PASS at f3533f2, non-blocking):
+  - `guardrails.py:640-642` (`LimitBounds`) still says "each wrong with probability at most `tail`" without the scope.
+  - `cli.md:274`, `schema.py:893,1849` and `guardrails.py:446` use 0.99 as the quantile example, though only the median is calibrated.
+  - Scope numbers in method.md:
+    - the Linux upper miss at n=120 reaches 10.9%, not 7.3%;
+    - "28 of 32" counts n=60 and n=120 together (14 of 16 at n=120);
+    - the 62 to 391 range omits a period-150 oscillation at 781 of 4000.
+  - Fix in the task that makes `docs/method.md` name the calibrated domain.
+
 - **Eval edit detector is strict on purpose** (PR #97 closed, 2026-10-28). An agent that writes scratch files after `cd .perfproof/...` (rust-fd in d1), or edits a scratch copy (dotnet), is scored as editing code before profiling, so the hotspot check fails though the profile came first. Four review rounds of a cd-tracking fix each leaked real edits (subshells, a cd in loop bodies, `builtin cd`). Read hidden-fix hotspot results by hand when the detail says "first successful profile came after the first edit".
 - **`reset_tmp` and read-only dirs** (PR #96 review, non-blocking): `rmtree(ignore_errors=True)` leaves a 0555 subdir, and the next `mkdir` raises `FileExistsError`, which aborts the re-run until it's removed by hand.
 - **Eval-only tool faults** (d1 diagnosis): `ps` can't exec under seatbelt, so `compare --detach` fails with `spawn_failed`, and `_kill.descendants` returns None inside the eval sandbox. The native setup env drops `SDKROOT` (`side_effects.py:184`); the cause is the sandbox closing xcrun's cache dir. A real user doesn't hit either.
