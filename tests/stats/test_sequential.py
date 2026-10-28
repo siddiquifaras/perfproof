@@ -12,6 +12,7 @@ import math
 from collections.abc import Callable
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from functools import partial
 from typing import Any, ClassVar, cast
 
 import numpy as np
@@ -23,7 +24,8 @@ from scipy import stats  # pyright: ignore[reportMissingTypeStubs]
 
 from perfproof.schema import GateName, GateResult, LookSchedule
 from perfproof.stats import decision, sequential
-from perfproof.stats.decision import IntervalRules, decide
+from perfproof.stats.decision import IntervalRules
+from perfproof.stats.decision import decide as decide_with
 from perfproof.stats.intervals import (
     LIBM_ULPS,
     t_interval,
@@ -69,6 +71,9 @@ isf_t = cast(
     "Callable[[float, int], float]",
     stats.t.isf,  # pyright: ignore[reportUnknownMemberType]
 )
+
+decide = partial(decide_with, guardrails={})
+"""`decide` with no guardrails in the comparison (an empty mapping)."""
 
 
 def alternating(m: float, s: float, n: int) -> FloatArray:

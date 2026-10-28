@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -19,6 +19,7 @@ from pydantic import ValidationError
 
 from perfproof.bench import compare as compare_module
 from perfproof.bench.compare import (
+    PEAK_MEMORY_MEASURE,
     SAMPLES_NAME,
     CompareResult,
     CompareStoppedError,
@@ -326,11 +327,26 @@ def test_passing_gates_end_inconclusive_with_the_interval(
         "coverage": "not_available",
     }
     assert [g.gate for g in record.gates] == ALL_GATES
-    assert {g.metric: g.status for g in record.guardrails} == {
-        "peak_memory": "unmeasurable",
+    states = {g.metric: g.status for g in record.guardrails}
+    # Twelve rounds leave two blocks, so whether the interval of the
+    # memory ratio clears the allowance depends on page-level jitter;
+    # either way it was measured, and the evidence is recorded.
+    assert states.pop("peak_memory") in (
+        "passed",
+        "not_established",
+        "unmeasurable",
+    )
+    assert states == {
         "peak_gpu_memory": "not_applicable",
         "p99_latency": "not_applicable",
     }
+    memory = record.guardrails[0]
+    assert memory.measure == PEAK_MEMORY_MEASURE
+    if memory.status != "unmeasurable":
+        assert memory.estimate is not None
+        assert memory.worsening is not None
+        lower, upper = memory.worsening.lower, memory.worsening.upper
+        assert lower <= memory.estimate <= upper
     codes = {w.code for w in record.warnings}
     assert "differential_checks_not_run" in codes
     assert record.order_seed == 7
@@ -1290,28 +1306,47 @@ def test_a_schedule_outside_the_calibrated_ones_runs_to_a_verdict(
 
 
 @pytest.mark.parametrize(
-    ("looks", "max_rounds", "applicable", "blocked"),
+    ("looks", "max_rounds", "guardrail", "blocked"),
     [
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, False, False),
-        ({"n0": 20, "k": 20, "max_looks": 6}, 120, False, False),
-        ({"n0": 20, "k": 20, "max_looks": 10}, 200, False, True),
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, True, True),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "none", False),
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, "none", False),
+        ({"n0": 20, "k": 20, "max_looks": 10}, 200, "none", True),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "peak_memory", False),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "p99_latency", True),
     ],
-    ids=["python-default", "gpu-default", "late-looks", "guardrail"],
+    ids=[
+        "python-default",
+        "gpu-default",
+        "late-looks",
+        "measured-guardrail",
+        "unmeasured-guardrail",
+    ],
 )
 def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
-    looks: dict[str, int], max_rounds: int, applicable: bool, blocked: bool
+    looks: dict[str, int], max_rounds: int, guardrail: str, blocked: bool
 ) -> None:
-    guardrails = [
+    """A guardrail with a value to measure does not block by itself.
+
+    ``peak_memory`` is decided at each look from its measurements; one
+    the runner records no value for, such as ``p99_latency``, can never
+    be shown compliant, so the spec rules out a KEEP.
+    """
+    guardrails: list[dict[str, Any]] = [
         {
-            "metric": "peak_memory",
+            "metric": g["metric"],
             "direction": "lower_is_better",
-            "unit": "bytes",
+            "unit": g["unit"],
+            "allowance": 0.1,
+            "allowance_source": "default",
+        }
+        if g["metric"] == guardrail
+        else {
+            "metric": g["metric"],
+            "direction": "lower_is_better",
+            "unit": g["unit"],
             "applicable": False,
             "reason": "not used here",
         }
-        if g["metric"] == "peak_memory" and not applicable
-        else g
         for g in GUARDRAILS
     ]
     spec = BenchmarkSpec.model_validate(
@@ -2022,6 +2057,230 @@ def test_control_nothing_unverified_is_not_blocked(
     assert seen.held == [False]
 
 
+def memory_work(scale: float, mib: int) -> str:
+    """`det_work` that also holds ``mib`` MiB resident while it runs.
+
+    Large enough that the peak is the benchmark's own on every platform,
+    above the launch helper's floor on Linux.
+    """
+    return (
+        f"SCALE = {scale}\n\n\ndef run():\n"
+        f"    buf = bytearray({mib} << 20)\n"
+        "    buf[::4096] = bytes(len(buf[::4096]))\n"
+        "    return 42\n"
+    )
+
+
+def memory_guardrail(allowance: float) -> list[dict[str, Any]]:
+    """Declare ``peak_memory`` with ``allowance``, the rest n/a."""
+    return [
+        {
+            "metric": "peak_memory",
+            "direction": "lower_is_better",
+            "unit": "bytes",
+            "allowance": allowance,
+            "allowance_source": "project",
+        },
+        *NOT_APPLICABLE[1:],
+    ]
+
+
+def web_spec(**changes: Any) -> BenchmarkSpec:
+    """The web schedule, decided with ``hac_lf``: looks at 10, 20, 30.
+
+    The first look has too few observations for an interval, so the
+    first that can decide is at 20 rounds.
+    """
+    return keepworthy_spec(
+        budget={"max_rounds": 30, "max_seconds": 300.0},
+        looks={"n0": 10, "k": 10, "max_looks": 3},
+        **changes,
+    )
+
+
+WIDE_BENCH = DET_BENCH.replace("(n * 37) % 11 - 5", "(n * 37) % 31 - 15")
+"""`DET_BENCH` with 31 distinct values, so that 30 rounds pass the
+continuity check of a ``reported`` metric."""
+
+
+def memory_project(tmp_path: Path, mib: int) -> Project:
+    return make_project(
+        tmp_path, bench=WIDE_BENCH, baseline=memory_work(1.0, mib)
+    )
+
+
+def test_a_memory_breach_at_a_rule_2_look_is_a_guardrail_reject(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = memory_project(tmp_path, 20)
+    fast_fat = project.candidate("fat", {"work.py": memory_work(0.5, 64)})
+    result = project.run(fast_fat, web_spec(guardrails=memory_guardrail(0.1)))
+    record = result.record
+    verdict = record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "REJECT",
+        "guardrail",
+        2,
+    )
+    assert verdict.procedure == "hac_lf"
+    assert verdict.estimate is not None
+    assert verdict.estimate > 1.03
+    assert seen.rules == [4, 2]
+    memory = record.guardrails[0]
+    assert (memory.metric, memory.status) == ("peak_memory", "breached")
+    assert memory.measure == PEAK_MEMORY_MEASURE
+    assert memory.estimate is not None
+    assert memory.estimate > 1.1
+    assert memory.worsening is not None
+    assert memory.worsening.lower > 1.1
+    assert "breached" in result.report_path.read_text()
+
+
+def test_a_declared_limit_quantile_reaches_the_limit_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calibrated(monkeypatch)
+    quantiles: list[float] = []
+    real = compare_module.evaluate_guardrail
+
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        quantiles.append(kwargs["quantile"])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(compare_module, "evaluate_guardrail", spy)
+    project = memory_project(tmp_path, 20)
+    candidate = project.candidate("fat", {"work.py": memory_work(0.5, 64)})
+    guardrails = memory_guardrail(0.1)
+    guardrails[0]["limits"] = [{"value": 1.0e12, "label": "cap"}]
+    guardrails[0]["limit_quantile"] = 0.99
+    result = project.run(candidate, web_spec(guardrails=guardrails))
+    assert quantiles
+    assert set(quantiles) == {0.99}
+    standing = result.record.guardrails[0].standing
+    assert [s.quantile for s in standing] == [0.99]
+
+
+def test_a_measured_memory_within_its_allowance_does_not_block_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = memory_project(tmp_path, 20)
+    same_memory = project.candidate("lean", {"work.py": memory_work(0.5, 20)})
+    spec = web_spec(guardrails=memory_guardrail(0.5))
+    with pytest.raises(CompareStoppedError) as stopped:
+        project.run(same_memory, spec)
+    # A KEEP is not built in the thin path: the look would have kept,
+    # with the guardrail passed, so nothing withheld it. At the first
+    # look the guardrail had no interval yet, so it was not established.
+    assert stopped.value.code == "internal_fault"
+    assert seen.rules == [4, 2]
+    assert seen.blocked == [True, False]
+
+
+def scripted_guardrail(
+    monkeypatch: pytest.MonkeyPatch, status_at: dict[int, str]
+) -> list[int]:
+    """Make `evaluate_guardrail` answer ``status_at`` by look length.
+
+    Returns the observation counts it was asked about. Only the status
+    is scripted; the intervals are the real ones.
+    """
+    real = compare_module.evaluate_guardrail
+    asked: list[int] = []
+
+    def scripted(*args: Any, **kwargs: Any) -> Any:
+        found = real(*args, **kwargs)
+        n = int(args[0].shape[1])
+        asked.append(n)
+        return replace(found, status=np.array([status_at[n]]))
+
+    monkeypatch.setattr(compare_module, "evaluate_guardrail", scripted)
+    return asked
+
+
+def test_a_guardrail_not_established_yet_lets_the_look_continue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    asked = scripted_guardrail(
+        monkeypatch,
+        {10: "not_established", 20: "not_established", 30: "passed"},
+    )
+    project = memory_project(tmp_path, 20)
+    spec = web_spec(guardrails=memory_guardrail(0.5))
+    with pytest.raises(CompareStoppedError) as stopped:
+        project.run(
+            project.candidate("lean", {"work.py": memory_work(0.5, 20)}),
+            spec,
+        )
+    assert stopped.value.code == "internal_fault"
+    # Look 2 held the KEEP for the guardrail and went on; look 3 would
+    # have kept.
+    assert asked == [10, 20, 30]
+    assert seen.rules == [4, 2, 2]
+    assert seen.blocked == [True, True, False]
+    assert seen.held == [False, True, False]
+
+
+def test_an_unmeasurable_guardrail_ends_the_run_at_that_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = memory_project(tmp_path, 20)
+    spec = web_spec(
+        guardrails=[
+            *memory_guardrail(0.5)[:2],
+            {
+                "metric": "p99_latency",
+                "direction": "lower_is_better",
+                "unit": "s",
+                "allowance": 0.05,
+                "allowance_source": "default",
+            },
+        ]
+    )
+    result = project.run(
+        project.candidate("lean", {"work.py": memory_work(0.5, 20)}), spec
+    )
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.rule) == ("INCONCLUSIVE", 2)
+    assert verdict.rounds == 20
+    assert seen.held == [False, True]
+    by_metric = {g.metric: g for g in result.record.guardrails}
+    assert by_metric["p99_latency"].status == "unmeasurable"
+    assert "p99_latency" in by_metric["p99_latency"].reason
+
+
+def test_an_unknown_peak_memory_is_unmeasurable_not_measured_on_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    real = compare_module.Runner.run_round
+
+    def blind(self: Runner, index: int) -> Round:
+        rnd = real(self, index)
+        if index != 3:
+            return rnd
+        samples = tuple(
+            s.model_copy(update={"max_rss_bytes": None}) for s in rnd.samples
+        )
+        return replace(rnd, samples=samples)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(compare_module.Runner, "run_round", blind)
+    project = memory_project(tmp_path, 20)
+    result = project.run(
+        project.candidate("lean", {"work.py": memory_work(0.5, 20)}),
+        web_spec(guardrails=memory_guardrail(0.5)),
+    )
+    memory = result.record.guardrails[0]
+    assert memory.status == "unmeasurable"
+    assert "unknown for 2 of 40 executions" in memory.reason
+    assert memory.measure == PEAK_MEMORY_MEASURE
+    assert memory.worsening is None
+    assert seen.held == [False, True]
+
+
 def test_an_unidentified_runtime_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2594,7 +2853,16 @@ def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             correctness={},
-            guardrails=[GUARDRAILS[0]],
+            guardrails=[
+                GUARDRAILS[0],
+                {
+                    "metric": "p99_latency",
+                    "direction": "lower_is_better",
+                    "unit": "s",
+                    "allowance": 0.05,
+                    "allowance_source": "default",
+                },
+            ],
             budget={"max_rounds": 12, "max_seconds": 300.0},
             looks={"n0": 12, "k": 2, "max_looks": 1},
         )
@@ -2613,9 +2881,14 @@ def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
 
     assert items[("gate", "correctness")]["status"] == "not_available"
     assert items[("gate", "coverage")]["reason"]
-    assert items[("guardrail", "peak_memory")]["status"] == "unmeasurable"
+    memory = items.get(("guardrail", "peak_memory"))
+    assert memory is None or memory["status"] in (
+        "not_established",
+        "unmeasurable",
+    )
     assert items[("guardrail", "peak_gpu_memory")]["status"] == "not_declared"
-    assert items[("guardrail", "p99_latency")]["status"] == "not_declared"
+    assert items[("guardrail", "p99_latency")]["status"] == "unmeasurable"
+    assert "record" in items[("guardrail", "p99_latency")]["reason"]
     for code in (*withholding, "schedule_uncalibrated"):
         entry = items[("warning", code)]
         assert entry["status"] == "withholds_keep"

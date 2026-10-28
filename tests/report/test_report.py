@@ -7,6 +7,7 @@ value, not a measurement.
 
 import ast
 import errno
+import importlib
 import math
 import os
 import subprocess
@@ -225,6 +226,18 @@ def memory_result(
         "estimate": estimate,
         "worsening": iv(*worsening, confidence=0.995),
         "candidate": iv(5e8, 6e8, confidence=0.995),
+        "standing": [
+            {
+                "label": "container memory limit",
+                "limit": 8e9,
+                "quantile": 0.5,
+                "typical": 5.4e8,
+                "reliable_value": 6e8,
+                "gap": 6e8 - 8e9,
+                "rounds_over": 0,
+                "rounds": 40,
+            }
+        ],
     }
 
 
@@ -877,6 +890,28 @@ def test_guardrail_blockers_are_named() -> None:
     ]
 
 
+def test_a_regression_within_its_allowance_is_reported_with_how_much() -> None:
+    text = render(keep())
+    assert (
+        "Regression within the allowance: costs 2.00% on the point "
+        "estimate, inside the allowance of 10.00% from `default`. The "
+        "allowance is a refusal threshold, not a budget to spend"
+    ) in text
+
+
+def test_no_regression_line_for_a_guardrail_that_did_not_get_worse() -> None:
+    better = memory_result(estimate=0.97, worsening=(0.95, 0.99))
+    text = render(record(guardrails=[better, latency_result()]))
+    assert "on the point estimate" not in text
+
+
+def test_a_memory_result_names_what_was_measured() -> None:
+    named = {**memory_result(), "measure": "largest single process's peak"}
+    text = render(record(guardrails=[named, latency_result()]))
+    assert "Measured as: largest single process's peak" in text
+    assert "Measured as" not in render(keep())
+
+
 def test_gate_verdict_makes_no_speed_claim() -> None:
     for gate in GATES:
         build = CASES[f"reject_{gate}"]
@@ -1381,3 +1416,56 @@ def test_not_verified_things_are_named_on_an_uncalibrated_inconclusive() -> (
     assert "- Gate `runtime`: not available (" in text
     assert "- Guardrail `peak_gpu_memory`: not declared (" in text
     assert "`peak_gpu_memory`: not declared" in text.split("## Guardrails")[1]
+
+
+def _standing_for(
+    direction: str, *, reliable: float | None, gap: float | None
+) -> str:
+    from perfproof.schema import (
+        AbsoluteLimit,
+        GuardrailSpec,
+        LimitStanding,
+    )
+
+    spec = GuardrailSpec.model_validate(
+        {
+            "metric": (
+                "peak_memory"
+                if direction == "lower_is_better"
+                else "throughput"
+            ),
+            "direction": direction,
+            "unit": "MB",
+            "limits": [{"value": 500.0, "label": "memory"}],
+        }
+    )
+    assert isinstance(spec.limits[0], AbsoluteLimit)
+    found = LimitStanding(
+        label="memory",
+        limit=500.0,
+        quantile=0.5,
+        typical=480.0,
+        reliable_value=reliable,
+        gap=gap,
+        rounds_over=4,
+        rounds=40,
+    )
+    module = importlib.import_module("perfproof.report.render")
+    return module._standing_line(spec, found)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_a_limit_line_scopes_the_claim_to_the_session() -> None:
+    clear = _standing_for("lower_is_better", reliable=497.0, gap=-3.0)
+    assert clear == (
+        "Limit memory: median 480.0 MB; in these runs it stayed under "
+        "497.0 MB (cap 500.0 MB, 3.0 MB to spare); 4 of 40 rounds over the "
+        "cap. On a busier or quieter machine this number can move"
+    )
+    short = _standing_for("lower_is_better", reliable=512.0, gap=12.0)
+    assert "(cap 500.0 MB, 12.0 MB short)" in short
+    floor = _standing_for("higher_is_better", reliable=520.0, gap=20.0)
+    assert "stayed over 520.0 MB (cap 500.0 MB, 20.0 MB to spare)" in floor
+    for line in (clear, short, floor):
+        assert "reliably" not in line
+        for word in ("faster", "slower", "better", "worse"):
+            assert word not in line

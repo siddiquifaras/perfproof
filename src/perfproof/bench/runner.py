@@ -43,15 +43,29 @@ What is measured
     event, the runner refuses to start with the reason; it never makes
     up a value.
 
-Peak resident set size comes from ``os.wait4``'s ``ru_maxrss``, which
-is in bytes on macOS and in KiB on Linux; it is normalized to bytes.
-On Linux the value is also floored by this process's own resident
-memory: the child starts as a copy of (or sharing) the launching
-process's address space, and the kernel keeps that address space's
-high-water mark when the child calls ``exec``. A Linux value no larger
-than this process's own peak (``getrusage(RUSAGE_SELF)``) therefore
-cannot be told apart from the floor, so it is ``None`` with the reason
-in `Execution.max_rss_missing`. A larger value is the child's own.
+Peak resident set size is the largest single process's peak, the
+metric ``peak_memory`` names in ``docs/method.md``: ``os.wait4``'s
+``ru_maxrss`` of the benchmark process, which includes its waited-for
+descendants as a maximum, never a sum. It is in bytes on macOS and in
+KiB on Linux, and is normalized to bytes. A process that was never
+reaped by its parent is not in it, and nothing here sums a process
+tree.
+
+On Linux a child starts from the resident-set high-water mark of the
+address space it was forked from, and the kernel keeps it across
+``exec``. Forked from this process, a NumPy-sized one, every smaller
+benchmark would report this process's own peak, which is no
+measurement. So on Linux each execution is launched, timed and reaped
+by a small helper process (`perfproof.bench.launch_helper`), and the
+benchmark's mark starts from the helper's few megabytes. The helper
+reports that floor (its own high-water mark, read just before the
+spawn) and a
+value at or below it is ``None`` with the reason in
+`Execution.max_rss_missing`; a larger value is the benchmark's own.
+macOS reports a child's own peak, so it needs no helper and has no
+floor. The helper does the timing itself, around the same spawn and
+wait as the direct path, and is started before the timed region, so
+the benchmark's wall and CPU times are not changed by it.
 
 What is recorded
 ----------------
@@ -100,6 +114,9 @@ of the spec or the host and raises the plain `RunnerError`.
 
 Waiting for exit
 ----------------
+On Linux the launch helper does the waiting (see above), with a
+``SIGCHLD`` wakeup in its own process. Without the helper, which is
+how macOS runs and what the tests also exercise on every platform:
 macOS waits on a kqueue ``NOTE_EXIT`` event and Linux on a pidfd.
 Where ``pidfd_open`` is missing (Linux before 5.3, some emulators) a
 SIGCHLD handler and wakeup fd stand in, on the main thread only; any
@@ -123,9 +140,11 @@ reach.
 """
 
 import errno
+import fcntl
 import functools
 import gc
 import json
+import marshal
 import math
 import os
 import re
@@ -183,6 +202,15 @@ _PROBE_TIMEOUT_SECONDS: Final = 30.0
 _LABEL: Final = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 _SCHEDULED_LABEL: Final = re.compile(r"(?:warmup|round)-[0-9]+")
 _PROGRAM_ERRNOS: Final = PROGRAM_ERRNOS
+_HELPER: Final = Path(__file__).with_name("launch_helper.py")
+_HELPER_GRACE_SECONDS: Final = 30.0
+"""How long past the spec's timeout the runner waits for the launch
+helper's report: the helper enforces the timeout itself, so this only
+bounds a helper that is stuck."""
+_MAX_WAIT_SECONDS: Final = 2_000_000.0
+"""Longest bound the runner puts on that wait; ``subprocess`` takes it
+as a ``poll`` timeout, which has a ceiling. Past it the wait is
+unbounded and the helper's own deadline still applies."""
 
 MAX_TIMEOUT_SECONDS: Final = 2_147_483.0
 """Longest execution timeout the runner accepts, in seconds (about 24.8
@@ -454,13 +482,32 @@ class Round:
 
 
 @dataclass(frozen=True, slots=True)
+class _Usage:
+    """The resource use ``wait4`` reports for one child.
+
+    ``maxrss`` is as the platform gives it: KiB on Linux, bytes on
+    macOS.
+    """
+
+    utime: float
+    stime: float
+    maxrss: int
+
+
+@dataclass(frozen=True, slots=True)
 class _Exit:
-    """Raw result of one timed child process."""
+    """Raw result of one timed child process.
+
+    ``floor_kib`` is the peak resident size the child started from, in
+    KiB, when the launch helper measured it (Linux only); ``None`` on
+    the direct path, where this process's own peak is the floor.
+    """
 
     wall_ns: int
     status: int
-    usage: resource.struct_rusage
+    usage: _Usage
     timed_out: bool
+    floor_kib: int | None = None
 
 
 def round_orders(seed: int, rounds: int) -> tuple[Arm, ...]:
@@ -582,6 +629,13 @@ class Runner:
         Environment every child inherits before the spec's declared
         variables are applied on top. Defaults to a copy of this
         process's environment, taken now.
+    isolate_launch : bool, optional
+        Whether each execution is launched, timed and reaped by the
+        small helper process of `perfproof.bench.launch_helper` so its
+        peak resident size starts from the helper's, not this
+        process's; see the module docstring. Defaults to True on
+        Linux, where the kernel carries the launching process's peak
+        into the child, and False elsewhere.
 
     Raises
     ------
@@ -604,6 +658,7 @@ class Runner:
         *,
         order_seed: int,
         base_env: Mapping[str, str] | None = None,
+        isolate_launch: bool | None = None,
     ) -> None:
         if sys.platform not in ("darwin", "linux"):
             msg = f"the runner supports macOS and Linux, not {sys.platform}"
@@ -621,6 +676,9 @@ class Runner:
             self._trees[arm] = root
         _check_timeout(spec.timeout_seconds)
         self._spec = spec
+        self._isolated = (
+            _default_isolation() if isolate_launch is None else isolate_launch
+        )
         self._order_seed = order_seed
         self._orders = round_orders(order_seed, spec.budget.max_rounds)
         environ = os.environ if base_env is None else base_env
@@ -931,6 +989,7 @@ class Runner:
                     out,
                     err,
                     spec.timeout_seconds,
+                    isolated=self._isolated,
                 )
         except _LaunchError as exc:
             cause = exc.__cause__
@@ -956,8 +1015,8 @@ class Runner:
             msg = f"{harness} stopped the execution: {exc}"
             raise RunnerError(msg) from exc
         wall = done.wall_ns / 1e9
-        cpu = done.usage.ru_utime + done.usage.ru_stime
-        rss, rss_missing = _rss_bytes(done.usage.ru_maxrss)
+        cpu = done.usage.utime + done.usage.stime
+        rss, rss_missing = _rss_bytes(done.usage.maxrss, done.floor_kib)
         exit_code = os.waitstatus_to_exitcode(done.status)
 
         if done.timed_out:
@@ -1109,8 +1168,13 @@ def _run_timed(
     stdout: BinaryIO,
     stderr: BinaryIO,
     timeout_seconds: float,
+    *,
+    isolated: bool,
 ) -> _Exit:
     """Exec ``program`` with ``argv`` in its own process group and wait.
+
+    With ``isolated`` the launch, the timing and the reaping are done by
+    `_run_isolated`'s helper process; otherwise here, in this process.
 
     The timed region spans the spawn and the wait. On timeout or on any
     exception while waiting, the process group is killed and the child
@@ -1127,6 +1191,10 @@ def _run_timed(
         If the child was reaped by someone else in this process.
     """
     _check_timeout(timeout_seconds)
+    if isolated:
+        return _run_isolated(
+            argv, program, cwd, env, stdout, stderr, timeout_seconds
+        )
     deadline_offset = math.ceil(timeout_seconds * 1e9)
     with _exit_waiter() as wait_for_exit:
         gc_was_enabled = gc.isenabled()
@@ -1168,7 +1236,150 @@ def _run_timed(
             if gc_was_enabled:
                 gc.enable()
     return _Exit(
-        wall_ns=end - start, status=status, usage=usage, timed_out=not exited
+        wall_ns=end - start,
+        status=status,
+        usage=_Usage(
+            utime=usage.ru_utime, stime=usage.ru_stime, maxrss=usage.ru_maxrss
+        ),
+        timed_out=not exited,
+    )
+
+
+def _default_isolation() -> bool:
+    """Whether executions go through the launch helper by default.
+
+    Only Linux needs it: macOS reports a child's own peak, and Linux
+    floors it at the launching process's.
+    """
+    return sys.platform == "linux"
+
+
+def _high_fd(fd: int) -> int:
+    """Return a close-on-exec duplicate of ``fd`` numbered 10 or more.
+
+    The launch helper owns descriptors 0 to 2 and inherits the rest by
+    number, so a descriptor handed to it must not collide with them,
+    which it could when this process runs with a standard stream closed.
+    """
+    return fcntl.fcntl(fd, fcntl.F_DUPFD_CLOEXEC, 10)
+
+
+def _run_isolated(
+    argv: Sequence[str],
+    program: str,
+    cwd: str,
+    env: Mapping[str, str],
+    stdout: BinaryIO,
+    stderr: BinaryIO,
+    timeout_seconds: float,
+) -> _Exit:
+    """Run one execution through the launch helper and read its result.
+
+    The helper does the work `_run_timed` does in this process, with
+    the same timed region and the same group kill on timeout; see
+    `perfproof.bench.launch_helper`. The timing, status and usage are
+    its report. This process only waits for that report, with no limit
+    of its own beyond the spec's timeout and `_HELPER_GRACE_SECONDS`.
+    If this call is interrupted a byte goes down the lifeline pipe,
+    and the helper kills the benchmark's process group.
+
+    Raises
+    ------
+    _LaunchError
+        If the helper could not start the program; the ``OSError`` is
+        its ``__cause__``, with the errno and file name the helper saw.
+    RunnerError
+        If the helper itself failed or was interrupted.
+    """
+    life_r, life_w = os.pipe()
+    fds = [_high_fd(f.fileno()) for f in (stdout, stderr)]
+    fds.append(_high_fd(life_r))
+    request = marshal.dumps(
+        {
+            "program": program,
+            "argv": list(argv),
+            "cwd": cwd,
+            "env": dict(env),
+            "timeout_ns": math.ceil(timeout_seconds * 1e9),
+            "stdout_fd": fds[0],
+            "stderr_fd": fds[1],
+            "lifeline_fd": fds[2],
+        }
+    )
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        try:
+            proc = subprocess.Popen(
+                [sys.executable, "-S", "-I", "-B", str(_HELPER)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                pass_fds=fds,
+            )
+        except OSError as exc:
+            raise _LaunchError from exc
+        bound = timeout_seconds + _HELPER_GRACE_SECONDS
+        try:
+            out, err = proc.communicate(
+                request, timeout=None if bound > _MAX_WAIT_SECONDS else bound
+            )
+        except BaseException:
+            os.write(life_w, b"x")
+            os.close(life_w)
+            life_w = -1
+            try:
+                proc.communicate(timeout=_HELPER_GRACE_SECONDS)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+            raise
+        finally:
+            for pipe in (proc.stdin, proc.stdout, proc.stderr):
+                if pipe is not None:
+                    pipe.close()
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+        for fd in (*fds, life_r, life_w):
+            if fd >= 0:
+                os.close(fd)
+    return _helper_result(proc.returncode, out, err)
+
+
+def _helper_result(returncode: int, out: bytes, err: bytes) -> _Exit:
+    """Turn the helper's report into an `_Exit`, or raise why not."""
+    tail = err.decode("utf-8", "replace")[-500:].strip()
+    if returncode != 0 or not out:
+        msg = f"the launch helper exited {returncode} without a report"
+        raise RunnerError(f"{msg}: {tail}" if tail else msg)
+    report = cast("dict[str, object]", marshal.loads(out))  # noqa: S302
+    if report.get("interrupted"):
+        msg = "the launch helper was interrupted by a signal"
+        raise RunnerError(msg)
+    fault = cast("dict[str, object] | None", report.get("error"))
+    if fault is not None:
+        code, text = fault.get("errno"), fault.get("strerror")
+        if not isinstance(code, int):
+            msg = f"the launch helper could not start the program: {fault}"
+            raise RunnerError(msg)
+        name = fault.get("filename")
+        cause = OSError(
+            code,
+            text if isinstance(text, str) else os.strerror(code),
+            name if isinstance(name, str) else None,
+        )
+        raise _LaunchError from cause
+    return _Exit(
+        wall_ns=int(cast("int", report["wall_ns"])),
+        status=int(cast("int", report["status"])),
+        usage=_Usage(
+            utime=float(cast("float", report["utime"])),
+            stime=float(cast("float", report["stime"])),
+            maxrss=int(cast("int", report["maxrss"])),
+        ),
+        timed_out=bool(report["timed_out"]),
+        floor_kib=int(cast("int", report["floor"])),
     )
 
 
@@ -1352,20 +1563,28 @@ def _kill_group(pgid: int) -> None:
         os.killpg(pgid, signal.SIGKILL)
 
 
-def _rss_bytes(maxrss: int) -> tuple[int | None, str | None]:
+def _rss_bytes(
+    maxrss: int, floor_kib: int | None = None
+) -> tuple[int | None, str | None]:
     """Convert a child's ``ru_maxrss`` to bytes, or say why it can't.
 
-    macOS reports bytes. Linux reports KiB, floored by this process's
-    own resident memory (see the module docstring), so a Linux value
-    at or below this process's peak is unknown.
+    macOS reports bytes and has no floor. Linux reports KiB, floored by
+    the resident size of the process the child was forked from (see the
+    module docstring): the launch helper's, read just before ``exec``,
+    when ``floor_kib`` is given, else this process's own peak. A Linux
+    value at or below the floor is unknown.
     """
     if sys.platform == "linux":
-        own = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        if maxrss <= own:
+        if floor_kib is None:
+            floor_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            whose = "the launching process's own"
+        else:
+            whose = "the launch helper's own"
+        if maxrss <= floor_kib:
             return None, (
                 f"Linux ru_maxrss {maxrss * 1024} bytes does not exceed "
-                f"the launching process's own peak of {own * 1024} bytes, "
-                "which the kernel counts for the child too"
+                f"{whose} peak of {floor_kib * 1024} bytes, which the "
+                "kernel counts for the child too"
             )
         return maxrss * 1024, None
     return maxrss, None

@@ -112,6 +112,7 @@ __all__ = [
     "ImplementationEvent",
     "Interval",
     "Invalidation",
+    "LimitStanding",
     "LinkedLibrary",
     "LockManifest",
     "LockRole",
@@ -862,9 +863,11 @@ class GuardrailSpec(_Model):
     """
 
     metric: Code
-    """Name of the guarded metric, such as ``peak_memory`` (max RSS of
-    the whole process tree), ``peak_gpu_memory`` or ``p99_latency``.
-    Shares a namespace with `BenchmarkSpec.objective`."""
+    """Name of the guarded metric, such as ``peak_memory`` (the largest
+    single process's peak RSS: the benchmark's own, or the largest of
+    the descendants it waited for, never a sum over a tree),
+    ``peak_gpu_memory`` or ``p99_latency``. Shares a namespace with
+    `BenchmarkSpec.objective`."""
     direction: Direction
     """Whether smaller or larger values are better; the worsening ratio
     is oriented so that above 1 means the candidate is worse."""
@@ -885,6 +888,12 @@ class GuardrailSpec(_Model):
     target class, or the project."""
     limits: tuple[AbsoluteLimit, ...] = ()
     """Absolute limits on the candidate's own value."""
+    limit_quantile: Level | None = None
+    """The statistic every limit of this guardrail refers to: the
+    quantile of the candidate's own values a cap is on, such as ``0.99``
+    for a p99 cap. ``None`` means the median, ``0.5``. Left out of
+    ``spec_hash`` while ``None``, so a spec written before this field
+    existed keeps its hash."""
 
     @model_validator(mode="after")
     def _check_checks(self) -> Self:
@@ -1039,6 +1048,9 @@ class BenchmarkSpec(_Model):
         payload = self.model_dump(mode="json", exclude_computed_fields=True)
         if self.setup is None:
             del payload["setup"]
+        for guard in payload["guardrails"]:
+            if guard["limit_quantile"] is None:
+                del guard["limit_quantile"]
         if self.correctness.coverage_command is None:
             del payload["correctness"]["coverage_command"]
             del payload["correctness"]["coverage_timeout_seconds"]
@@ -1814,6 +1826,65 @@ class Verdict(_Model):
             raise ValueError(msg)
 
 
+class LimitStanding(_Model):
+    """Where the candidate stands against one absolute limit.
+
+    Recorded for every limit of a measured guardrail, whatever the
+    outcome, so a user always sees how far from the cap the candidate
+    is. ``reliable_value`` is information, not a verdict: the verdict is
+    the guardrail's status, and this never causes a KEEP by itself.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``gap`` is not exactly ``reliable_value - limit``, or
+        ``rounds_over`` exceeds ``rounds``.
+    """
+
+    label: Text
+    """`AbsoluteLimit.label` of the limit."""
+    limit: Positive
+    """The cap, in the guardrail's unit."""
+    quantile: Level
+    """The statistic the cap is on: ``0.5`` the median, ``0.99`` p99."""
+    typical: Positive
+    """The sample quantile of the candidate's values at that level, in
+    the guardrail's unit: the median, or the declared quantile."""
+    reliable_value: Positive | None
+    """The closest value the candidate met in these runs: the one-sided
+    bound on the statistic, in the direction of the cap, the upper bound
+    for a cap to stay under and the lower bound for a floor. Within the
+    cap exactly when the limit is shown met in the session. It is a
+    property of the session and the machine's state during it, not a
+    guarantee for another machine or load. ``None`` while too few
+    rounds give a bound."""
+    gap: float | None
+    """``reliable_value - limit``, signed: a cap to stay under is met
+    when it is at most 0, a floor when it is at least 0. ``None`` with
+    ``reliable_value``."""
+    rounds_over: Count
+    """Rounds whose value is beyond the cap (above a ceiling, below a
+    floor)."""
+    rounds: Count
+    """Rounds the figures use."""
+
+    @model_validator(mode="after")
+    def _check_figures(self) -> Self:
+        if (self.reliable_value is None) != (self.gap is None):
+            msg = "reliable_value and gap are set together"
+            raise ValueError(msg)
+        if (
+            self.reliable_value is not None
+            and self.gap != self.reliable_value - self.limit
+        ):
+            msg = "gap is reliable_value minus limit, exactly"
+            raise ValueError(msg)
+        if self.rounds_over > self.rounds:
+            msg = f"{self.rounds_over} rounds over of {self.rounds}"
+            raise ValueError(msg)
+        return self
+
+
 class GuardrailResult(_Model):
     """How one guardrail of the spec ended a comparison.
 
@@ -1847,11 +1918,28 @@ class GuardrailResult(_Model):
     """Interval on the worsening ratio, at confidence
     ``1 - alpha / (2 K G)``; checked against ``1 + allowance``."""
     candidate: Interval | None = None
-    """Interval on the candidate's own value, in the guardrail's unit,
-    at the same confidence; checked against the absolute limits."""
+    """Interval on the statistic the limits are on (the median unless
+    `GuardrailSpec.limit_quantile` says otherwise) of the candidate's
+    own values, in the guardrail's unit: the order-statistic bounds of
+    ``docs/method.md``, checked against the absolute limits. Their
+    ``confidence`` is the design level, shown only for rounds that
+    behave like a stable machine; under persistent drift the bounds miss
+    far more often (``docs/method.md``, "Scope of the claim"), so read
+    them as describing this session."""
+    standing: tuple[LimitStanding, ...] = ()
+    """One entry per absolute limit, in the spec's order, for every
+    evaluated guardrail with limits: empty only where nothing was
+    measured."""
     reason: Str = ""
     """Why the guardrail is `unmeasurable`, `not_declared` or
     `not_applicable`; required for those three."""
+    measure: Str = ""
+    """What the metric is, exactly, as measured in this run, so that a
+    name never stands for two quantities. For ``peak_memory``: the
+    largest single process's peak resident set size. Empty for a
+    guardrail that was not applied (`not_declared`, `not_applicable`),
+    which measured nothing. Not a measurement: an `unmeasurable`
+    guardrail names it too."""
 
     @model_validator(mode="after")
     def _check_status(self) -> Self:
@@ -2296,6 +2384,45 @@ def _check_guardrail_status(
         raise ValueError(msg)
 
 
+def _check_standing(spec: GuardrailSpec, result: GuardrailResult) -> None:
+    """Check the standing figures match the spec's limits and interval.
+
+    Present for each limit exactly when the candidate's interval is, in
+    the spec's order, with the spec's caps, and ``reliable_value`` is
+    the bound of the recorded interval on the cap's side: the upper
+    bound for a lower-is-better guardrail, the lower for a floor.
+    """
+    standing = result.standing
+    if not standing:
+        if result.candidate is not None and spec.limits:
+            msg = f"guardrail {spec.metric} needs a standing per limit"
+            raise ValueError(msg)
+        return
+    if len(standing) != len(spec.limits):
+        msg = f"guardrail {spec.metric} needs one standing per limit"
+        raise ValueError(msg)
+    side = (
+        None
+        if result.candidate is None
+        else result.candidate.upper
+        if spec.direction == "lower_is_better"
+        else result.candidate.lower
+    )
+    quantile = 0.5 if spec.limit_quantile is None else spec.limit_quantile
+    for limit, found in zip(spec.limits, standing, strict=True):
+        if (
+            found.label != limit.label
+            or found.limit != limit.value
+            or found.quantile != quantile
+            or found.reliable_value != side
+        ):
+            msg = (
+                f"guardrail {spec.metric}: standing for {limit.label!r} "
+                "does not match the limit and the recorded interval"
+            )
+            raise ValueError(msg)
+
+
 class RunRecord(_Model):
     """Everything about one comparison; written as ``record.json``.
 
@@ -2488,6 +2615,7 @@ class RunRecord(_Model):
                     raise ValueError(msg)
             else:
                 _check_guardrail_status(specs[result.metric], result)
+                _check_standing(specs[result.metric], result)
 
     def _check_keep_blockers(self, status: Mapping[str, str]) -> None:
         """Check rule 2's outcome against the gates and guardrails.

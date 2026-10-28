@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from functools import partial
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -36,7 +37,7 @@ from perfproof.schema import (
     TreeEnvironment,
     Verdict,
 )
-from perfproof.stats.decision import decide
+from perfproof.stats.decision import decide as decide_with
 from perfproof.stats.intervals import (
     LIBM_ULPS,
     PairedInterval,
@@ -72,6 +73,9 @@ ndtri = cast(
     "Callable[[float], float]",
     special.ndtri,  # pyright: ignore[reportUnknownMemberType]
 )
+
+decide = partial(decide_with, guardrails={})
+"""`decide` with no guardrails in the comparison (an empty mapping)."""
 
 
 def step(x: float, k: int) -> float:

@@ -26,6 +26,7 @@ from perfproof.schema import (
     GuardrailSpec,
     TargetClass,
 )
+from perfproof.stats.guardrails import resolve_allowance
 
 __all__ = [
     "ALIASES",
@@ -64,17 +65,11 @@ ALIASES: Final[Mapping[str, str]] = {
 }
 """Short names accepted for a metric."""
 
-_ALLOWANCE: Final[Mapping[str, float]] = {
-    "peak_memory": 0.10,
-    "peak_gpu_memory": 0.10,
-    "p99_latency": 0.05,
-}
-"""Provisional allowances of ``docs/method.md``."""
-
 
 def _guardrail(
     metric: str, allowance: float, source: str, reason: str
 ) -> GuardrailSpec:
+    """Build a guardrail; ``source`` is the allowance's origin."""
     direction, unit = KNOWN_METRICS[metric]
     if unit is None:
         msg = f"the unit of {metric} is not fixed by its name"
@@ -107,14 +102,26 @@ def default_guardrails(
     Returns
     -------
     tuple of GuardrailSpec
-        The class's default guardrails with the provisional
-        allowance of each and source ``default``.
+        The class's default guardrails, each with the allowance
+        `perfproof.stats.guardrails.resolve_allowance` gives it (the
+        provisional default, or the class's own) and where it came
+        from.
     """
-    return tuple(
-        _guardrail(m, _ALLOWANCE[m], "default", f"default for {target_class}")
-        for m in DEFAULT_GUARDRAILS[target_class]
-        if m != primary
-    )
+    found: list[GuardrailSpec] = []
+    for metric in DEFAULT_GUARDRAILS[target_class]:
+        if metric == primary:
+            continue
+        resolved = resolve_allowance(metric, target_class=target_class)
+        if resolved is None:
+            msg = f"no allowance is known for the default guardrail {metric}"
+            raise ValueError(msg)
+        allowance, source = resolved
+        found.append(
+            _guardrail(
+                metric, allowance, source, f"default for {target_class}"
+            )
+        )
+    return tuple(found)
 
 
 def parse_guardrail(text: str) -> GuardrailSpec:

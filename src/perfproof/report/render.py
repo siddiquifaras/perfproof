@@ -38,6 +38,7 @@ from perfproof.schema import (
     GuardrailResult,
     GuardrailSpec,
     Interval,
+    LimitStanding,
     RunRecord,
     Verdict,
 )
@@ -216,6 +217,19 @@ def _interval(iv: Interval, unit: str | None = None) -> str:
     return (
         f"{_num(iv.lower)} to {_num(iv.upper)}{scale} at confidence "
         f"{_num(iv.confidence)}"
+    )
+
+
+def _bounds_in_session(iv: Interval, unit: str) -> str:
+    """Render the cap statistic's bounds, scoped to the session.
+
+    No confidence level is printed: the rank bounds' level is shown only
+    for rounds that behave like a stable machine (``docs/method.md``,
+    "Scope of the claim"), so it is not stated for the cap.
+    """
+    return (
+        f"{_num(iv.lower)} to {_num(iv.upper)} {_text(unit)}; this "
+        "describes the session and can move on a busier or quieter machine"
     )
 
 
@@ -800,6 +814,9 @@ def _guardrail_lines(
             f"Worsening ratio estimate: {_num(result.estimate)}; above 1 "
             "means the candidate is worse"
         )
+        items += _regression_line(spec, result, result.estimate)
+    if result.measure:
+        items.append(f"Measured as: {_text(result.measure)}")
     if spec.allowance is not None:
         items.append(
             f"Allowance: {_num(spec.allowance)} from "
@@ -823,14 +840,78 @@ def _guardrail_lines(
     ]
     if spec.limits or result.candidate is not None:
         items.append(
-            "Candidate interval: "
+            "Candidate bounds in these runs: "
             + (
                 "not computed"
                 if result.candidate is None
-                else _interval(result.candidate, spec.unit)
+                else _bounds_in_session(result.candidate, spec.unit)
             )
         )
+    items += [_standing_line(spec, st) for st in result.standing]
     return [*_bullets([head]), *_bullets(items, 2)]
+
+
+def _standing_line(spec: GuardrailSpec, found: LimitStanding) -> str:
+    """Say where the candidate stands against one absolute limit.
+
+    Always the figures, whatever the outcome: the typical value (the
+    median, or the declared quantile), the bound the candidate
+    meets in these runs, the cap, how far short or to spare it is, and
+    how many rounds were beyond it. The bound is information, not a
+    verdict, and a property of the session: it says nothing about a
+    busier or quieter machine.
+    """
+    ceiling = spec.direction == "lower_is_better"
+    unit = _text(spec.unit)
+    what = (
+        "median"
+        if found.quantile == 0.5
+        else f"quantile {_num(found.quantile)}"
+    )
+    beyond = "over" if ceiling else "under"
+    rounds = f"{found.rounds_over} of {found.rounds} rounds {beyond} the cap"
+    head = f"Limit {_text(found.label)}: {what} {_num(found.typical)} {unit}"
+    if found.reliable_value is None or found.gap is None:
+        return (
+            f"{head}; cap {_num(found.limit)} {unit}; no bound yet, too "
+            f"few rounds; {rounds}"
+        )
+    side = "under" if ceiling else "over"
+    short = found.gap > 0 if ceiling else found.gap < 0
+    spare = "short" if short else "to spare"
+    margin = f"{_num(abs(found.gap))} {unit} {spare}"
+    return (
+        f"{head}; in these runs it stayed {side} "
+        f"{_num(found.reliable_value)} {unit} (cap {_num(found.limit)} "
+        f"{unit}, {margin}); {rounds}. On a busier or quieter machine "
+        "this number can move"
+    )
+
+
+def _regression_line(
+    spec: GuardrailSpec, result: GuardrailResult, estimate: float
+) -> list[str]:
+    """Flag a guardrail that got worse but is not refused.
+
+    "Guardrails" in ``docs/method.md``: the allowance is a refusal
+    threshold, not a budget, so a change that costs memory or latency
+    within it is reported with how much, however small. The percentage
+    is display only, from the point estimate.
+    """
+    if estimate <= 1 or result.status not in ("passed", "not_established"):
+        return []
+    cost = f"{(estimate - 1) * 100:.2f}%"
+    if result.status == "passed" and spec.allowance is not None:
+        return [
+            f"Regression within the allowance: costs {cost} on the point "
+            f"estimate, inside the allowance of {spec.allowance * 100:.2f}% "
+            f"from `{spec.allowance_source}`. The allowance is a refusal "
+            "threshold, not a budget to spend"
+        ]
+    return [
+        f"Regression: costs {cost} on the point estimate, and whether it "
+        "stays within the allowance and limits is not established"
+    ]
 
 
 def _guardrails(record: RunRecord) -> str:

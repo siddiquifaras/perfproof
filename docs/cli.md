@@ -279,6 +279,29 @@ fail-closed choice, and so does any
 `autocorrelated_rounds` and `outlier_rounds` are null: it has no gate.
 `docs/method.md`, "The T1.11 decision", is the rule.
 
+A guardrail with absolute limits adds `standing` to its result in the
+record (`record.json`, `guardrails[]`), one entry per limit in the spec's
+order, for every outcome of a guardrail that was evaluated. The fields
+are additive (a reader that does not know `standing` or the spec's
+optional `limit_quantile` loses nothing, and a spec that sets no
+`limit_quantile` hashes as before):
+
+| Field | Type | |
+|---|---|---|
+| `label`, `limit` | string, number | The limit's label and cap, in the guardrail's unit |
+| `quantile` | number | The statistic the cap is on: 0.5 (the median) unless the spec declares `limit_quantile`, such as 0.99 |
+| `typical` | number | The sample's own value of that statistic |
+| `reliable_value` | number or null | The one-sided bound in the cap's direction, in these runs: the upper bound for a cap, the lower for a floor. Its design confidence holds only for rounds that behave like a stable machine; it is not claimed for drift or another machine. Null while too few rounds give a bound, and for a guardrail recorded `unmeasurable` |
+| `gap` | number or null | `reliable_value - limit`, signed; null with `reliable_value`. For a cap, at most 0 is met; for a floor, at least 0 |
+| `rounds_over`, `rounds` | integers | Rounds beyond the cap, of the rounds the figures use |
+
+`reliable_value` is information, never a verdict: the status is read off
+the recorded interval, and the figure never by itself causes a KEEP.
+The report prints one line per limit, for example `Limit memory: median
+498 MB; in these runs it stayed under 512 MB (cap 500 MB, 12 MB short);
+4 of 40 rounds over the cap. On a busier or quieter machine this number
+can move`. The figures describe the session, on the machine as it was. `docs/method.md`, "Absolute limits", is the rule.
+
 When changed lines ran under no check, the `coverage` gate is
 `not_available` and its `not_verified` reason names them by file
 (`work.py lines 12-14 never ran`); the JSON fields are unchanged. The

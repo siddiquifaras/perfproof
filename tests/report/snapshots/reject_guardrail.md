@@ -56,7 +56,8 @@ Not recorded: the repository and the candidate's commit.
   - Allowance: 0.1 from `default`, refused beyond 1 + allowance
   - Worsening interval: 1.15 to 1.25 at confidence 0.995
   - Absolute limit, a ceiling: container memory limit, 8000000000.0 bytes
-  - Candidate interval: 500000000.0 to 600000000.0 bytes at confidence 0.995
+  - Candidate bounds in these runs: 500000000.0 to 600000000.0 bytes; this describes the session and can move on a busier or quieter machine
+  - Limit container memory limit: median 540000000.0 bytes; in these runs it stayed under 600000000.0 bytes (cap 8000000000.0 bytes, 7400000000.0 bytes to spare); 0 of 40 rounds over the cap. On a busier or quieter machine this number can move
 - `p99_latency`: not applicable
   - Reason: a batch job serves no requests
 

@@ -1674,12 +1674,27 @@
             }
           ],
           "default": null,
-          "description": "Interval on the candidate's own value, in the guardrail's unit,\nat the same confidence; checked against the absolute limits."
+          "description": "Interval on the statistic the limits are on (the median unless\n`GuardrailSpec.limit_quantile` says otherwise) of the candidate's\nown values, in the guardrail's unit: the order-statistic bounds of\n``docs/method.md``, checked against the absolute limits. Their\n``confidence`` is the design level, shown only for rounds that\nbehave like a stable machine; under persistent drift the bounds miss\nfar more often (``docs/method.md``, \"Scope of the claim\"), so read\nthem as describing this session."
+        },
+        "standing": {
+          "default": [],
+          "description": "One entry per absolute limit, in the spec's order, for every\nevaluated guardrail with limits: empty only where nothing was\nmeasured.",
+          "items": {
+            "$ref": "#/$defs/LimitStanding"
+          },
+          "title": "Standing",
+          "type": "array"
         },
         "reason": {
           "default": "",
           "description": "Why the guardrail is `unmeasurable`, `not_declared` or\n`not_applicable`; required for those three.",
           "title": "Reason",
+          "type": "string"
+        },
+        "measure": {
+          "default": "",
+          "description": "What the metric is, exactly, as measured in this run, so that a\nname never stands for two quantities. For ``peak_memory``: the\nlargest single process's peak resident set size. Empty for a\nguardrail that was not applied (`not_declared`, `not_applicable`),\nwhich measured nothing. Not a measurement: an `unmeasurable`\nguardrail names it too.",
+          "title": "Measure",
           "type": "string"
         }
       },
@@ -1695,7 +1710,7 @@
       "description": "One metric that must not get worse while the primary improves.\n\nFixed with the spec, before any round, so an allowance can never be\nchosen after seeing the data. An applicable guardrail checks a\nrelative allowance, absolute limits, or both; one marked not\napplicable checks nothing and says why.\n\nRaises\n------\npydantic.ValidationError\n    If a guardrail marked not applicable has no reason or has an\n    allowance or limits, an applicable one has neither,\n    ``allowance`` and ``allowance_source`` are not set together, or\n    a known metric name has the wrong direction (see\n    `BenchmarkSpec.objective`).",
       "properties": {
         "metric": {
-          "description": "Name of the guarded metric, such as ``peak_memory`` (max RSS of\nthe whole process tree), ``peak_gpu_memory`` or ``p99_latency``.\nShares a namespace with `BenchmarkSpec.objective`.",
+          "description": "Name of the guarded metric, such as ``peak_memory`` (the largest\nsingle process's peak RSS: the benchmark's own, or the largest of\nthe descendants it waited for, never a sum over a tree),\n``peak_gpu_memory`` or ``p99_latency``. Shares a namespace with\n`BenchmarkSpec.objective`.",
           "pattern": "^[a-z][a-z0-9_]*$",
           "title": "Metric",
           "type": "string"
@@ -1767,6 +1782,21 @@
           },
           "title": "Limits",
           "type": "array"
+        },
+        "limit_quantile": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1,
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The statistic every limit of this guardrail refers to: the\nquantile of the candidate's own values a cap is on, such as ``0.99``\nfor a p99 cap. ``None`` means the median, ``0.5``. Left out of\n``spec_hash`` while ``None``, so a spec written before this field\nexisted keeps its hash.",
+          "title": "Limit Quantile"
         }
       },
       "required": [
@@ -2256,6 +2286,86 @@
         "detected_at"
       ],
       "title": "Invalidation",
+      "type": "object"
+    },
+    "LimitStanding": {
+      "additionalProperties": false,
+      "description": "Where the candidate stands against one absolute limit.\n\nRecorded for every limit of a measured guardrail, whatever the\noutcome, so a user always sees how far from the cap the candidate\nis. ``reliable_value`` is information, not a verdict: the verdict is\nthe guardrail's status, and this never causes a KEEP by itself.\n\nRaises\n------\npydantic.ValidationError\n    If ``gap`` is not exactly ``reliable_value - limit``, or\n    ``rounds_over`` exceeds ``rounds``.",
+      "properties": {
+        "label": {
+          "description": "`AbsoluteLimit.label` of the limit.",
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "limit": {
+          "description": "The cap, in the guardrail's unit.",
+          "exclusiveMinimum": 0,
+          "title": "Limit",
+          "type": "number"
+        },
+        "quantile": {
+          "description": "The statistic the cap is on: ``0.5`` the median, ``0.99`` p99.",
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Quantile",
+          "type": "number"
+        },
+        "typical": {
+          "description": "The sample quantile of the candidate's values at that level, in\nthe guardrail's unit: the median, or the declared quantile.",
+          "exclusiveMinimum": 0,
+          "title": "Typical",
+          "type": "number"
+        },
+        "reliable_value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The closest value the candidate met in these runs: the one-sided\nbound on the statistic, in the direction of the cap, the upper bound\nfor a cap to stay under and the lower bound for a floor. Within the\ncap exactly when the limit is shown met in the session. It is a\nproperty of the session and the machine's state during it, not a\nguarantee for another machine or load. ``None`` while too few\nrounds give a bound.",
+          "title": "Reliable Value"
+        },
+        "gap": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "``reliable_value - limit``, signed: a cap to stay under is met\nwhen it is at most 0, a floor when it is at least 0. ``None`` with\n``reliable_value``.",
+          "title": "Gap"
+        },
+        "rounds_over": {
+          "description": "Rounds whose value is beyond the cap (above a ceiling, below a\nfloor).",
+          "minimum": 0,
+          "title": "Rounds Over",
+          "type": "integer"
+        },
+        "rounds": {
+          "description": "Rounds the figures use.",
+          "minimum": 0,
+          "title": "Rounds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "limit",
+        "quantile",
+        "typical",
+        "reliable_value",
+        "gap",
+        "rounds_over",
+        "rounds"
+      ],
+      "title": "LimitStanding",
       "type": "object"
     },
     "LinkedLibrary": {

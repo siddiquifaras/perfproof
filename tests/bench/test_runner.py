@@ -1,5 +1,6 @@
 import gc
 import json
+import marshal
 import math
 import os
 import resource
@@ -79,6 +80,39 @@ def make_spec(
         timeout_seconds=timeout,
         harness=("bench.py",),
     )
+
+
+DIRECT_ONLY = frozenset(
+    {
+        "test_sigchld_fallback_without_pidfd",
+        "test_sigchld_fallback_forwards_the_callers_sigchld",
+        "test_sigchld_fallback_refuses_a_handler_it_cannot_restore",
+        "test_sigchld_fallback_works_above_fd_1024",
+    }
+)
+"""Tests of the in-process exit wait. The helper's own wait is a plain
+SIGCHLD wakeup in its own process, which every other test exercises."""
+
+
+@pytest.fixture(autouse=True, params=["direct", "helper"])
+def launch_path(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> str:
+    """Run every test on both launch paths, on every platform.
+
+    ``direct`` launches and reaps in this process, as macOS does;
+    ``helper`` goes through `perfproof.bench.launch_helper`, as Linux
+    does. Each path's code is plain POSIX, so both run everywhere and a
+    test that holds on one but not the other fails here.
+    """
+    path = str(request.param)
+    name = cast("str", request.node.originalname)  # pyright: ignore[reportUnknownMemberType]
+    if path == "helper" and name in DIRECT_ONLY:
+        pytest.skip("tests the in-process wait, which the helper replaces")
+    monkeypatch.setattr(
+        runner_module, "_default_isolation", lambda: path == "helper"
+    )
+    return path
 
 
 @pytest.fixture
@@ -181,25 +215,70 @@ def test_max_rss_is_in_bytes(trees: dict[Arm, Path], tmp_path: Path) -> None:
         assert ex.max_rss_missing is None
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux", reason="Linux floors ru_maxrss at the parent"
+SMALL_BENCHMARK = (
+    "b = bytearray(16 * 1024 * 1024)\n"
+    "b[::4096] = b'x' * len(range(0, len(b), 4096))"
 )
-def test_small_max_rss_is_measured_off_linux(
-    trees: dict[Arm, Path], tmp_path: Path
+"""A small Python benchmark: a 16 MiB buffer on a bare interpreter, well
+under this test process's own peak (NumPy and pydantic are loaded) and
+far above a launch helper's."""
+
+
+def test_a_small_python_benchmark_has_a_measured_peak_by_default(
+    trees: dict[Arm, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    for sample in (
-        make_runner(make_spec(), trees, tmp_path).run_round(0).samples
-    ):
+    """The default path measures an ordinary small benchmark everywhere.
+
+    The platform's own default, not the parametrized path: macOS reads
+    the child's peak directly, Linux through the launch helper, which
+    keeps the kernel from flooring it at this process's resident size.
+    """
+    monkeypatch.undo()
+    assert own_peak_rss_bytes() > 64 * MIB
+    runner = make_runner(make_spec(SMALL_BENCHMARK), trees, tmp_path)
+    rnd = runner.run_round(0)
+    for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
         assert sample.max_rss_bytes is not None
-        assert MIB <= sample.max_rss_bytes < 128 * MIB
+        assert 16 * MIB <= sample.max_rss_bytes < 128 * MIB
+        assert ex.max_rss_missing is None
+
+
+def test_the_launch_helper_measures_a_small_benchmark_on_any_platform(
+    trees: dict[Arm, Path], tmp_path: Path, launch_path: str
+) -> None:
+    if launch_path != "helper":
+        pytest.skip("the direct path is the one the helper replaces")
+    runner = make_runner(make_spec(SMALL_BENCHMARK), trees, tmp_path)
+    for sample in runner.run_round(0).samples:
+        assert sample.max_rss_bytes is not None
+        assert 16 * MIB <= sample.max_rss_bytes < 128 * MIB
+
+
+def test_the_helper_floor_is_far_below_this_process(
+    trees: dict[Arm, Path], tmp_path: Path, launch_path: str
+) -> None:
+    if launch_path != "helper" or sys.platform != "linux":
+        pytest.skip("the floor is Linux-only and the helper's to lower")
+    runner = make_runner(make_spec("pass"), trees, tmp_path)
+    for ex in runner.run_round(0).executions:
+        if ex.max_rss_bytes is None:
+            reason = ex.max_rss_missing or ""
+            floor = int(reason.split("peak of ")[1].split(" bytes")[0])
+            assert "launch helper" in reason
+            assert floor < 32 * MIB
+            assert floor < own_peak_rss_bytes() // 2
 
 
 @pytest.mark.skipif(
     sys.platform != "linux", reason="the ru_maxrss floor is Linux-only"
 )
-def test_small_max_rss_is_unknown_on_linux(
-    trees: dict[Arm, Path], tmp_path: Path
+def test_a_tiny_benchmark_on_the_direct_path_is_unknown_on_linux(
+    trees: dict[Arm, Path], tmp_path: Path, launch_path: str
 ) -> None:
+    if launch_path != "direct":
+        pytest.skip("the helper path is the one that avoids this")
     if own_peak_rss_bytes() < 64 * MIB:
         pytest.skip("this process is too small to floor the child's RSS")
     rnd = make_runner(make_spec(), trees, tmp_path).run_round(0)
@@ -967,8 +1046,10 @@ def test_sigchld_fallback_works_above_fd_1024(
 
 
 def test_a_child_reaped_by_a_caller_handler_is_unknown(
-    trees: dict[Arm, Path], tmp_path: Path
+    trees: dict[Arm, Path], tmp_path: Path, launch_path: str
 ) -> None:
+    if launch_path != "direct":
+        pytest.skip("through the helper the caller never owns the child")
     if sys.platform == "linux" and not runner_module._pidfd_available():  # pyright: ignore[reportPrivateUsage]
         pytest.skip("the SIGCHLD fallback replaces the caller's handler")
 
@@ -986,6 +1067,28 @@ def test_a_child_reaped_by_a_caller_handler_is_unknown(
         signal.signal(signal.SIGCHLD, previous)
     assert type(info.value) is RunnerError
     assert "perfproof's own process" in str(info.value)
+
+
+def test_a_caller_handler_that_reaps_cannot_lose_a_helper_run(
+    trees: dict[Arm, Path], tmp_path: Path, launch_path: str
+) -> None:
+    if launch_path != "helper":
+        pytest.skip("the direct path reports this as an error instead")
+
+    def reap_everything(signum: int, frame: FrameType | None) -> None:
+        with suppress(ChildProcessError):
+            while os.waitpid(-1, os.WNOHANG)[0]:
+                pass
+
+    previous = signal.signal(signal.SIGCHLD, reap_everything)
+    try:
+        spec = make_spec("import time; time.sleep(0.3)")
+        samples = make_runner(spec, trees, tmp_path).run_round(0).samples
+    finally:
+        signal.signal(signal.SIGCHLD, previous)
+    for sample in samples:
+        assert sample.exit_code == 0
+        assert sample.wall_seconds >= 0.3
 
 
 def test_an_oversized_environment_blames_neither_arm(
@@ -1137,3 +1240,237 @@ def test_counter_counts_instructions_with_perf(
     assert min(s.value for s in high.samples) > max(
         s.value for s in low.samples
     )
+
+
+def run_helper_by_hand(
+    tmp_path: Path,
+    code: str,
+    *,
+    timeout_s: float,
+    fork_exec: bool,
+    close_lifeline_when: Path | None = None,
+    send_stop: bool = True,
+    program: str = PY,
+) -> dict[str, object]:
+    """Speak the launch helper's protocol directly, without the runner.
+
+    Starts the helper on a benchmark running ``code`` (``program`` is
+    the executable; the argv is the interpreter's), on the ``fork``
+    path or the one it picks by itself, closes the lifeline once the
+    file ``close_lifeline_when`` exists (never when ``None``), and
+    returns the helper's report.
+    """
+    out = (tmp_path / "out").open("wb")
+    err = (tmp_path / "err").open("wb")
+    life_r, life_w = os.pipe()
+    request = marshal.dumps(
+        {
+            "program": program,
+            "argv": [PY, "-c", code],
+            "cwd": str(tmp_path),
+            "env": dict(os.environ),
+            "timeout_ns": int(timeout_s * 1e9),
+            "stdout_fd": out.fileno(),
+            "stderr_fd": err.fileno(),
+            "lifeline_fd": life_r,
+            "fork_exec": fork_exec,
+        }
+    )
+    helper = Path(runner_module.__file__).with_name("launch_helper.py")
+    proc = subprocess.Popen(
+        [PY, "-S", "-I", str(helper)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        pass_fds=(out.fileno(), err.fileno(), life_r),
+    )
+    os.close(life_r)
+    try:
+        assert proc.stdin is not None
+        proc.stdin.write(request)
+        proc.stdin.close()
+        if close_lifeline_when is not None:
+            deadline = time.monotonic() + 30
+            while not close_lifeline_when.exists():
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            if send_stop:
+                os.write(life_w, b"x")
+            os.close(life_w)
+            life_w = -1
+        assert proc.stdout is not None
+        report = proc.stdout.read()
+        proc.stdout.close()
+        proc.wait(timeout=30)
+    finally:
+        if life_w >= 0:
+            os.close(life_w)
+        out.close()
+        err.close()
+    assert proc.returncode == 0
+    return cast("dict[str, object]", marshal.loads(report))  # noqa: S302
+
+
+@pytest.fixture(params=["auto", "fork"])
+def fork_exec(request: pytest.FixtureRequest, launch_path: str) -> bool:
+    """Run a test of the helper's protocol once per spawn path.
+
+    ``auto`` is the path the helper picks on this host and ``fork`` the
+    one it falls back to under emulation. The tests speak to the helper
+    directly, so the runner's own launch paths do not apply.
+    """
+    if launch_path != "helper":
+        pytest.skip("speaks to the helper, not through the runner")
+    return request.param == "fork"
+
+
+def process_is_gone(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    return False
+
+
+def test_a_stop_byte_on_the_lifeline_kills_the_benchmark_group(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    pid_file = tmp_path / "pid"
+    code = (
+        "import os, subprocess, sys, time\n"
+        "child = subprocess.Popen([sys.executable, '-c', "
+        "'import time; time.sleep(60)'])\n"
+        # Written then renamed: the lifeline closes once the file
+        # exists, so it must never exist empty.
+        f"open({str(pid_file)!r} + '.tmp', 'w').write(str(child.pid))\n"
+        f"os.replace({str(pid_file)!r} + '.tmp', {str(pid_file)!r})\n"
+        "time.sleep(60)"
+    )
+    report = run_helper_by_hand(
+        tmp_path,
+        code,
+        timeout_s=60,
+        fork_exec=fork_exec,
+        close_lifeline_when=pid_file,
+    )
+    assert report == {"interrupted": True}
+    grandchild = int(pid_file.read_text())
+    deadline = time.monotonic() + 5
+    while not process_is_gone(grandchild) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert process_is_gone(grandchild)
+
+
+def test_a_runner_that_dies_does_not_stop_the_benchmark(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    marker = tmp_path / "started"
+    code = (
+        f"open({str(marker)!r}, 'w').write('x')\nimport time; time.sleep(1.5)"
+    )
+    report = run_helper_by_hand(
+        tmp_path,
+        code,
+        timeout_s=60,
+        fork_exec=fork_exec,
+        close_lifeline_when=marker,
+        send_stop=False,
+    )
+    assert report["status"] == 0
+    assert report["timed_out"] is False
+
+
+def test_the_helper_reports_a_timeout_and_kills_the_group(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    report = run_helper_by_hand(
+        tmp_path,
+        "import time; time.sleep(60)",
+        timeout_s=0.5,
+        fork_exec=fork_exec,
+    )
+    assert report["timed_out"] is True
+    assert report["status"] == signal.SIGKILL
+    wall = cast("int", report["wall_ns"])
+    assert 0.5e9 <= wall < 5e9
+
+
+def test_the_helper_runs_the_benchmark_in_its_own_group(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    marker = tmp_path / "group"
+    code = (
+        "import os\n"
+        f"open({str(marker)!r}, 'w').write("
+        "f'{os.getpgrp()} {os.getpid()}')"
+    )
+    report = run_helper_by_hand(
+        tmp_path, code, timeout_s=30, fork_exec=fork_exec
+    )
+    assert report["status"] == 0
+    group, pid = marker.read_text().split()
+    assert group == pid
+    assert int(group) != os.getpgrp()
+
+
+def test_the_helper_gives_the_benchmark_its_streams_and_nothing_else(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    if sys.platform != "linux":
+        pytest.skip("reads /proc/self/fd")
+    code = (
+        "import os, sys\n"
+        "sys.stdout.write('out'); sys.stderr.write('err')\n"
+        "sys.stdout.flush(); sys.stderr.flush()\n"
+        "held = []\n"
+        "for fd in range(3, 64):\n"
+        "    try:\n"
+        "        held.append(os.readlink(f'/proc/self/fd/{fd}'))\n"
+        "    except OSError:\n"
+        "        pass\n"
+        "open('held', 'w').write('\\n'.join(held))"
+    )
+    report = run_helper_by_hand(
+        tmp_path, code, timeout_s=30, fork_exec=fork_exec
+    )
+    assert report["status"] == 0
+    assert (tmp_path / "out").read_text() == "out"
+    assert (tmp_path / "err").read_text() == "err"
+    # What a plain child of this process holds (on an emulated host the
+    # emulator's own descriptors): the helper adds nothing to it, and
+    # in particular never the output files or the lifeline.
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    subprocess.run([PY, "-c", code], cwd=plain, check=True, timeout=30)
+    held = set((tmp_path / "held").read_text().split("\n"))
+    expected = set((plain / "held").read_text().split("\n"))
+    extra = {
+        t
+        for t in held - expected
+        if not t.endswith("/held") and not t.startswith("/dev/pts")
+    }
+    assert not extra
+
+
+def test_the_helper_reports_why_a_program_cannot_start(
+    tmp_path: Path, fork_exec: bool
+) -> None:
+    missing = str(tmp_path / "missing")
+    report = run_helper_by_hand(
+        tmp_path, "pass", timeout_s=30, fork_exec=fork_exec, program=missing
+    )
+    fault = cast("dict[str, object]", report["error"])
+    assert fault["errno"] == 2
+    assert fault["filename"] == missing
+    script = tmp_path / "script"
+    script.write_text("echo hi\n")
+    script.chmod(0o755)
+    report = run_helper_by_hand(
+        tmp_path,
+        "pass",
+        timeout_s=30,
+        fork_exec=fork_exec,
+        program=str(script),
+    )
+    fault = cast("dict[str, object]", report["error"])
+    assert fault["errno"] == 8
+    assert fault["filename"] == str(script)

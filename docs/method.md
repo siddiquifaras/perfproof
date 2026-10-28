@@ -2765,7 +2765,7 @@ The project can override that per workload, and the reason is recorded.
 
 | Guardrail | Applies by default to | Provisional allowance |
 |---|---|---|
-| Peak memory: max RSS of the whole process tree | every target class | 10% |
+| Peak memory: the largest single process's peak resident set size | every target class | 10% |
 | Peak GPU memory | LLM serving, GPU kernels and PyTorch | 10% |
 | p99 latency, when it isn't the primary | web services, LLM serving, agentic apps | 5% |
 
@@ -2779,6 +2779,47 @@ guardrail as `not_declared`, with the reason. Where the target class
 is unknown, the defaults are peak memory, peak GPU memory and p99
 latency, so a spec that declares none of them records all three.
 
+**What peak memory is.** The largest single process's peak resident
+set size: `ru_maxrss` of the benchmark process as `wait4` reports it,
+which is the maximum over that process and the descendants it waited
+for, never a sum. A descendant nobody waited for, or one that outlived
+the benchmark, is not in it, and two processes of 100 MB each count as
+100 MB, not 200 MB. It is not the peak of the whole process tree, which
+this page said before T2.15; the owner directed on 2026-10-23 that
+perfproof measure on a normal busy machine, which rules out the tree
+peak and an unmeasurable default: a tree peak needs a cgroup (`memory.peak` on Linux, where
+one can be created and read) or polling the benchmark, and perfproof
+never polls while a round runs. The tree peak is not built; it is a
+follow-up where cgroup v2 is available. The record names what was
+measured (`measure` on the guardrail's result), so the name
+`peak_memory` never stands for two quantities.
+
+macOS reports a child's own peak. Linux gives a child the high-water
+mark of the address space it was started from and keeps it across
+`exec`. A benchmark started from perfproof itself, a NumPy-sized
+process, would report at least perfproof's own peak, and every smaller
+benchmark would be `unmeasurable`. So on Linux each execution is
+started, timed and reaped by a small helper process
+(`perfproof.bench.launch_helper`: a bare Python process of a few
+megabytes that imports nothing else), and the benchmark's mark starts
+from the helper's. The helper reports that floor, its own high-water
+mark read just before the spawn; a peak at or below it (a bare
+interpreter, about 7 to 10 MB on arm64) is unknown, and the guardrail
+is then `unmeasurable` with that reason, never measured on the rounds
+that remain. The helper does the timing around the same spawn and wait
+as the direct path, started before the timed region, so wall and CPU
+times change by no more than this, measured on Linux arm64 in Docker, for a
+trivial command (60 rounds per arm, medians of wall time), the helper
+ran from 0.13 ms faster to 0.27 ms slower than the direct path in two
+repetitions (4.56 vs 4.42 ms, 3.75 vs 4.02 ms), a difference of the
+size of the noise (standard deviations 0.2 to 3 ms) and about 7% of a
+bare-interpreter run at worst, negligible for a benchmark of 100 ms. A
+helper that used `fork` added 0.3 ms to every execution on top of that
+and was dropped. Under user-mode emulation (amd64
+containers on Apple silicon) `posix_spawn` does not report an `exec`
+failure, so the helper probes (before its clock starts) and falls back to `fork` and
+`execve` with an error pipe there.
+
 **The defaults are not permission to regress.** 10% and 5% are the
 refusal thresholds used until the project sets its own. They are not a
 budget to spend. Every guardrail's measured change is reported, and a
@@ -2790,10 +2831,118 @@ class, or the project.
 **Absolute limits.** A project can also set absolute limits, such as a
 memory ceiling (a container limit, the GPU's capacity) or a latency
 SLO. A limit is checked on the candidate's own measurements, not on a
-ratio: compliance is shown when the upper bound of the candidate's
-metric is within the limit, a breach when its lower bound is beyond
-it. A change can sit within its relative allowance and still breach an
-absolute limit.
+ratio, and on a robust statistic of them, not their mean: compliance is
+shown when the upper bound of that statistic is within the limit, a
+breach when its lower bound is beyond it, and the guardrail is
+`not_established` only while the bounds straddle the limit. A change can
+sit within its relative allowance and still breach an absolute limit.
+
+**The owner's decision on limits (Faras, 2026-10-23).** Absolute caps
+are judged on a robust, rank-based bound of the candidate's own
+statistic, and the numbers are always reported. This replaces the
+earlier rule that held the guardrail whenever the sample showed
+outliers (that rule is gone; "Guardrail calibration results" records
+why). Three parts:
+
+1. **The statistic.** The median of the candidate's values, or the
+   quantile the project declares for the limit (`limit_quantile` on the
+   guardrail spec). Only median caps are calibrated. A declared quantile
+   is passed through but is not calibrated, and a quantile near 1 has no
+   bound at the default budgets (a p99 cap needs 546 to 684 independent
+   rounds; budgets reach 120): a limit-only p99 guardrail is then
+   recorded `unmeasurable` (no `reliable_value`; `typical` and
+   `rounds_over` are reported), and one with an allowance is
+   `not_established`; a KEEP is withheld either way. A few wild rounds move
+   an order statistic only by changing its rank, so a spike does not
+   decide the check; a hard ceiling that no single execution may cross
+   (an out-of-memory limit) is a different claim, about the maximum,
+   that this check does not make, and a project that needs it should
+   declare a quantile near 1 and run enough rounds for a bound to exist.
+2. **The bound.** The exact distribution-free order-statistic bounds
+   for a quantile `q` of `n` values: the upper bound is the `r`-th
+   smallest value with `r` least such that `P(Bin(n, q) >= r) <=
+   tail`, the lower bound the `s`-th with `s` largest such that
+   `P(Bin(n, q) <= s - 1) <= tail`, at `tail = alpha / (4 K G)` on each
+   side (confidence `1 - alpha / (2 K G)` two-sided, the guardrail's
+   own), computed exactly in rational arithmetic (`rank_bounds`). They
+   assume nothing of the shape of the values. They do assume the rounds
+   are exchangeable, and rounds are dependent, so the indices are taken
+   at an effective count: with `rho` the upper confidence bound (2
+   standard errors, the `hac_lf` z doubled, clipped to 0.99) on the lag-1
+   autocorrelation of the values' ranks (average ranks, each round
+   centred on the mean rank of its order, as the primary's diagnostic
+   does), `kappa = (1 + rho) / (1 - rho)` is the variance inflation of
+   the mean of an AR(1) series and `n' = floor(n / kappa)` the
+   independent rounds' worth; `rank_bounds(n')` gives indices `(s, r)`
+   that map back to `s n / n'` rounded down and `r n / n'` rounded up of
+   the `n` sorted values (`limit_bounds`). Blocking the rounds and
+   taking the median of each block was tried and dropped: under an order
+   effect or a slow mode a block's average sits between the modes, and
+   its median is not the series' median (coverage failures of 16% at
+   one exposed scenario against a 0.4% design). No bound exists until `n'`
+   is large enough for both indices (for the median at the usual
+   confidences 8 to 10 independent rounds; for a quantile near 1,
+   hundreds), and until one does the guardrail is held at INCONCLUSIVE
+   as `not_established` is. The schema cannot record `not_established`
+   without an interval (an interval no check reads establishes nothing),
+   so a limit-only guardrail with no bound yet is recorded
+   `unmeasurable`, with the reason and the `standing` numbers that exist
+   (typical, rounds over).
+3. **The numbers.** For every limit, whatever its status, the record
+   carries (`standing` on the guardrail's result, `LimitStanding`):
+   - `typical`: the sample's own median, or declared quantile;
+   - `reliable_value`: the one-sided bound in the cap's direction (the
+     upper bound for a cap, the lower for a floor), at the guardrail's
+     design confidence, which is shown for rounds that behave like a
+     stable machine and is not claimed for drift (see "Scope of the
+     claim"); `null` until a bound exists, and for a guardrail
+     recorded `unmeasurable`;
+   - `limit` and `gap = reliable_value - limit`, signed (negative: the
+     cap is met with that margin, for a ceiling; positive: short by
+     that much);
+   - `rounds_over` of `rounds`: how many rounds were beyond the cap.
+
+   The report says it in one line per limit, for example "median 498 MB;
+   in these runs it stayed under 512 MB (cap 500 MB, 12 MB short); 4 of
+   40 rounds over the cap. On a busier or quieter machine this number
+   can move". `reliable_value` is information, not a verdict. The
+   status is read off the recorded interval, which is the bounds, and
+   `reliable_value` is its one side; it never by itself causes a KEEP,
+   and it never turns a `not_established` or `breached` guardrail into a
+   pass.
+
+**Scope of the claim (lead decision, T2.15).** The bound covers rounds
+that behave like a stable machine: values whose dependence the AR(1)
+widening describes. An absolute level is a property of the machine's
+state during the session as well as of the code, and 120 rounds cannot
+learn a long-run level that drifts. So the claim, in the record's text
+and in the report, is "in these runs, on the machine as it was", never
+an unconditional "reliably under". The confidence printed with the
+cap bound (the record's `candidate.confidence`) is the design level for
+that case and is not shown for drift. Known limits, measured by the
+audits: on persistent series the bound misses its tail (local-level
+10.5% to 12.1%, regime 1.5% to 5.9% at fixed `n = 120`, over two audit
+runs, against 0.21%; on the repo's real A/A traces at `n = 120`, loaded
+Linux rows up to 7.3% and 18.4%, Mac rows up to 19.5% and 32.2%, 28 of
+32 Mac rows above 4 times the tail; verdict-level false passes at 1.01
+of 62 to 391 of 4000 across the audits), and the failed replacements are recorded under
+"Guardrail calibration results". The `CALIBRATED` flip for guardrail
+caps does not claim coverage under persistent drift. No diagnostic that
+already exists detects drift in the candidate's own values (the gate on
+the allowance's log ratios applies only to batch means and to the
+ratios; the effective-rounds count is below `n` on ordinary data), so
+nothing flags it and nothing here changes a status.
+
+The earlier decision that the guardrail hold its verdict on outliers
+(B1, same date) is superseded, and so is its schema consequence: a limit
+is no longer recorded `unmeasurable` for outliers. The gated batch means
+procedure still holds an *allowance* look, as the primary's gate does.
+
+**Fail closed without guardrails.** `decide` takes the guardrail
+actions as an argument; `guardrails=None` is not "no guardrails", it is
+unchecked: a KEEP is then withheld as INCONCLUSIVE (`insufficient_evidence`,
+rule 2) with the guardrail `unchecked` named, never given. The empty
+mapping means the spec has none to check.
 
 **Status.** Every guardrail ends a comparison in exactly one state:
 
@@ -2819,10 +2968,16 @@ give KEEP:
   narrow its interval;
 - or some guardrail `unmeasurable` or `not_declared`: **INCONCLUSIVE**
   at that look, naming it, because more rounds can't measure or declare
-  it. An applicable metric that can't be measured never
-  passes silently, and a default one nobody declared is not passed
-  either: declaring it, with an allowance, in a new spec is what makes
-  the change keepable.
+  it, whether or not another guardrail is `not_established`. An
+  applicable metric that can't be measured never passes silently, and a
+  default one nobody declared is not passed either: declaring it, with
+  an allowance, in a new spec is what makes the change keepable.
+
+The precedence is written once, in `perfproof.stats.decision`
+(`guardrail_actions`): a breach, then a blocker no round lifts (a gate
+`not_available`, a guardrail `unmeasurable` or `not_declared`), then a
+guardrail not yet established, then KEEP. A breach stays a REJECT even
+when a gate is `not_available`, because a REJECT keeps nothing.
 
 A performance REJECT or INCONCLUSIVE stands as it is, with the
 guardrails reported alongside. Requiring compliance to be shown, not
@@ -2830,13 +2985,61 @@ merely not disproved, means a noisy guardrail such as p99 can hold a
 change at INCONCLUSIVE; the evidence planning report names it as the
 blocker.
 
+**Which interval.** A check is decided by the primary's own code
+(`decide_look`), with the arms ordered so that the worsening ratio is
+the speedup it computes and the allowance as its `min_effect` (0 for a
+limit), so the interval, its outward rounding, the widening for
+resolution and the one comparison with the bar are the primary's.
+
+- **Allowance.** The worsening ratio of a round is `candidate /
+  baseline` when lower is better and `baseline / candidate` when higher
+  is better, paired by round, so above 1 is worse. Its interval is
+  within the allowance `a` when `U <= 1 + a` and breached when `L > 1 +
+  a`.
+- **Limit.** The rank bounds above on the candidate's own values, not
+  paired with the baseline and not a ratio: within a ceiling when the
+  upper bound is at most the limit, breached when the lower bound is
+  above it, in the metric's unit, with the comparison exact on the
+  recorded interval. All of a guardrail's limits are judged on the one
+  pair of bounds the record holds. The resolution step does not widen
+  it: an order statistic of the measured values is not biased by a
+  step.
+- **Procedure.** The primary's: `hac_lf` on the three schedules
+  `procedure_for_schedule` gives it, the gated batch means otherwise. Where
+  `hac_lf`'s table does not reach the confidence `1 - alpha / (2 K G)`
+  (`K G` above 12, its last tabulated look count), the gated batch means
+  is used, as for an `alpha` the table cannot reach; the choice depends on
+  the spec alone and is made before the first round. Under the gated
+  procedure the diagnostic gate applies to the guardrail's own log
+  ratios: a look it holds back leaves the allowance check open. A limit
+  on the same guardrail is not held: its rank bound decides it (breach
+  over the cap, otherwise not established). The record cannot show an
+  allowance interval that says otherwise, since the schema ties a status
+  to the intervals recorded with it, so that interval is not recorded;
+  a guardrail with no limit that ends there is recorded `unmeasurable`,
+  with the gate's reason and no interval, and one with a limit keeps the
+  limit's interval and numbers.
+- **Resolution.** Guardrail values are widened as under "Resolution",
+  with the page size as the step of a resident size; a value no larger
+  than its step makes the guardrail `unmeasurable`.
+- **Missing values.** A guardrail is measured on every round or not at
+  all. A round whose value is unknown in either arm makes it
+  `unmeasurable`, because the rounds that lack a resident size are the
+  small ones, and an interval on those that remain would lean toward
+  large.
+- **One host.** Guardrails are decided on one host. A cross-host
+  guardrail has no calibration, and `compare` refuses cross-host runs.
+
 **Error control.** Let `G` count every allowance and limit checked. Each
 guardrail check at a look uses confidence `1 - alpha / (2 K G)`, with
 the same margin as the primary under "Stopping". By the union bound,
 the chance of a KEEP while some guardrail is truly beyond its
 allowance or limit is at most 1.25%, and the chance that a guardrail
 shows a breach when all are truly within is at most 1.25%; both are
-held to 2.5% in calibration. The primary interval and its false-KEEP bound are
+held to 2.5% in calibration. These bounds are for rounds that behave
+like a stable machine (the simulator's dependence); for an absolute
+limit under persistent drift they are measured false, see "Scope of the
+claim" above. The primary interval and its false-KEEP bound are
 unchanged, because guardrails can only turn a KEEP into a REJECT or an
 INCONCLUSIVE. Calibration measures guardrail false passes and false
 breaches per cell under the acceptance rule.
@@ -3061,6 +3264,84 @@ Until a target class passes on its held-out traces, its verdicts carry
 
 Calibration results are written to this page with the seed, `R`, the
 observed rates, and their Clopper-Pearson bounds.
+
+### Guardrail cells
+
+Prespecified here for T2.15, before the run of record, and not
+changed after seeing its results. The acceptance rule above applies
+unchanged to every guardrail cell: the one-sided 95% Clopper-Pearson
+upper bound on its error rate at `R = 4000` is at most 2.5%.
+
+- **Seeds.** `7282691080722525374` for the run of record and
+  `9113244239656782113` for a second complete run, each drawn from the
+  operating system's entropy pool after the last change to the procedure
+  and before its run began (the page under "Guardrail calibration results"
+  names the earlier pairs discarded). Each cell draws from its own
+  `SeedSequence` keyed by the CRC-32 of its name.
+- **Cells.** One host. Each of the four look schedules of the primary's
+  calibration; the scenarios of the primary's main grid (the development
+  and exposed scenarios, 25 on one host) and three of page-quantised memory
+  (values in whole 4 KiB pages: `pages_exact`, a level drawn per
+  replication and no noise, so only the rounding varies; `pages_tight`,
+  noise of 0.05% on 160 MB; `pages_noisy`, noise of 2% on 20 MB), with the
+  resolution step passed as the page. Primary data of the verdict process
+  below come from the cell's scenario (`lognormal_cv5` for the page ones).
+- **Configurations.** `rel1`: an allowance of 10% alone, `G = 1`; true
+  worsening ratios 1.00, 1.05, 1.10 (exactly on the bar, where compliance is
+  still true) within and 1.11 (the nearest beyond), 1.20, 1.50 beyond.
+  `rel3`: the same guardrail in a spec of three checks, `G = 3`, which
+  sends the python_native schedule (`K = 6`) to the gated batch means;
+  ratios 1.10 and 1.11. `limit`: the allowance with true ratio 1 (within)
+  and one absolute limit, `G = 2`; true candidate value over the limit
+  0.90, 0.97, 1.00 (on it, still within), 1.01, 1.03 and 1.10 (beyond).
+  The truth of a limit cell is the median of the candidate's value over
+  the session, the statistic the check bounds: the median of 2.4 million
+  draws of the simulator's candidate time at ratio 1 (a fixed generator,
+  so a number, about 1e-4 of a value at the noisiest scenario), divided
+  by the cell's ratio (drift scenarios are left out of `limit`, since
+  their median moves with the look). The check is on the median because
+  a slow mode or outliers move it by their rank, not their size.
+- **Messy cells.** Every cell is run and every one is judged by the rule.
+  A `limit` cell in a scenario with a slow mode or outliers (`bimodal`,
+  `outliers`, `A00-outliers-only`, `A00-outliers-5pct-x5-cv1`,
+  `A00-outliers-1pct-x5-cv1`, `A20261053-04`, `A20261054-08`,
+  `A20261055-17`; 192 per run) is called messy, only to report them
+  apart; the harness's flag for it is `messy`.
+- **Coverage of the bounds.** Per limit cell, the order-statistic bounds
+  on the median are also judged as bounds, apart from the verdict: at the
+  first look length (`n0`) and at `max_rounds`, over all replications,
+  the upper bound must not fall below the true median, nor the lower rise
+  above it, more often than its tail `alpha / (4 K G)` allows: the
+  one-sided 95% Clopper-Pearson lower bound on the miss rate must be at
+  most the tail. A replication with no bound yet claims nothing and
+  misses nothing. This is the test that `reliable_value` has the
+  design confidence on the simulator's AR(1) dependence, in every cell
+  including the messy ones; it says nothing about persistent drift.
+- **Two processes, one error each.** On the same replications. *Guardrail
+  alone*: the comparison stops at the first look at which the guardrail
+  is `passed` or `breached`; a false pass is `passed` while the guardrail
+  is truly beyond, a false breach `breached` while it is truly within.
+  *Verdict*: a second, independent draw of paired rounds with a true
+  primary speedup of 1.20 supplies the primary's look, and each look's
+  rule and the guardrail's status go through `guardrail_actions`; the
+  comparison stops at the first look that does not continue. A false KEEP
+  is a KEEP while the guardrail is truly beyond, a false guardrail REJECT
+  a REJECT (`guardrail`) while it is truly within. A cell passes only if
+  both bounds are at most 2.5%.
+- **Reported, not part of the rule.** Per cell: how often the guardrail decides
+  (`passed`, `breached`, undecided), the verdict's outcomes, and the 95th
+  percentile of rounds used.
+- **Sensitivity.** An exploratory run at seed `12345` (not evidence)
+  showed the cells can fail: with the per-check confidence narrowed to 0.95
+  the cell `python_native/lognormal_cv5/rel1/1.10` gave 94 false breaches
+  of 4000 and `gpu_kernels/RHO0.7/rel1/1.10` 260, both failing; with the
+  design's confidence they gave 17 and 54. The same run showed the
+  `limit` cells in scenarios with 4% to 5% outliers failing at 1.03 under
+  the first limit check (a mean-based interval); its other choices were
+  the nearest-beyond ratios (1.11 and 1.01). A first version of this
+  section left those cells out of the rule; the owner decided
+  (2026-10-23) that every cell is judged, and then that the limit is
+  judged on a rank-based bound ("The owner's decision on limits").
 
 ### Calibration results
 
@@ -4083,6 +4364,186 @@ calibration is under "Calibration results"), the real traces beyond the
 the golden set's regression subset replays to the same verdicts
 (`tests/golden/`, `test_golden_replay.py`).
 
+### Guardrail calibration results
+
+Written by T2.15, from the cells prespecified under "Guardrail cells".
+Two complete runs, each of `R = 4000` replications in each of 1448 cells:
+the run of record at seed `7282691080722525374` and the second at
+`9113244239656782113`, each drawn from the operating system's entropy
+pool after the last change to the procedure (a held allowance no longer
+opens a limit check on the same guardrail) and before its run began; the
+second was drawn after the first run finished. The per-cell counts,
+bounds, rates and coverage counts are in
+`tests/calibration/results/guardrails-seed-<seed>.csv`, one row
+per cell (`tests/calibration/run_guardrails.py` writes them and
+`tests/calibration/test_guardrail_calibration.py` rereads them). The
+Monte Carlo error of a count is its binomial standard error,
+`sqrt(R p (1 - p))`: 7.0 errors (0.18 points) at `p = 1.25%`, 8.4 (0.21
+points) at 1.8%, and 9.9 at the limit's 2.5%. Five earlier pairs of
+runs were discarded when the procedure changed under them: at seeds
+`1207914073704812776` and `3446032127890382136`, before the audit's
+resolution fix; at `2016041637316749836` and `1318306460384291183`,
+before the owner's decision on outliers; at `1056003977118079300` and
+`3221232511688091121`, under the outlier-hold rule that the owner's
+decision of 2026-10-23 replaced with the rank-based bound; and at
+`3085425174870641519` and `6809304517246236052`, before the held
+allowance stopped opening limit checks (the audit found their counts
+differ from a rerun of the code at one cell). None is evidence for what
+shipped. The outlier-hold rule was replaced because the hold acts on
+the sample: 43 and 44 of the 192 messy limit cells failed with false
+passes of up to 49% of runs, because a spike a look has not yet seen is
+not held and the data then look clean.
+
+**Result.** Every one of the 1448 cells passes the acceptance rule in
+both processes at both seeds, the 192 messy limit cells included, and
+every limit cell passes the coverage rule. The largest bound is 2.05%
+(INFERENCE of the margin: 83 errors is the most a cell can have and
+pass): `web_agentic/RHO0.7/rel1/1.10` at the second seed, 67 false
+breaches of 4000 by the guardrail alone (32 in the verdict); at the seed
+of record the largest is `gpu_kernels/RHO0.7/rel1/1.10`, 60 alone (1.86%).
+
+By configuration and true value, the most errors in any cell (any
+schedule and scenario, both seeds), of 4000, and the largest bound of
+the guardrail alone and the verdict:
+
+| Configuration | True value | Truly | Cells (both seeds) | Most errors, alone | Most errors, verdict | Largest bound |
+|---|---|---|---|---|---|---|
+| `rel1` | 1.00 | within | 224 | 8 | 1 | 0.36% |
+| `rel1` | 1.05 | within | 224 | 25 | 3 | 0.87% |
+| `rel1` | 1.10 (on the bar) | within | 224 | 67 | 53 | 2.05% |
+| `rel1` | 1.11 | beyond | 224 | 53 | 23 | 1.66% |
+| `rel1` | 1.20 | beyond | 224 | 14 | 1 | 0.55% |
+| `rel1` | 1.50 | beyond | 224 | 0 | 0 | 0.07% |
+| `rel3` | 1.10 (on the bar) | within | 224 | 32 | 26 | 1.07% |
+| `rel3` | 1.11 | beyond | 224 | 22 | 8 | 0.78% |
+| `limit` | 0.90 | within | 184 | 5 | 1 | 0.26% |
+| `limit` | 0.97 | within | 184 | 9 | 1 | 0.39% |
+| `limit` | 1.00 (on the limit) | within | 184 | 12 | 6 | 0.49% |
+| `limit` | 1.01 | beyond | 184 | 2 | 1 | 0.16% |
+| `limit` | 1.03 | beyond | 184 | 2 | 1 | 0.16% |
+| `limit` | 1.10 | beyond | 184 | 0 | 0 | 0.07% |
+
+The error rate at the cells on the bar reaches 1.7% (67 of 4000, in
+the AR(1) scenarios with `rho` 0.7), above the 1.25% the design aims at:
+the union bound is a design target, not a measured guarantee, and the
+margin to 83 errors there is 16, 1.9 binomial standard errors at that
+rate, so a third seed could fail a cell there (INFERENCE, from the
+binomial: about 3% for that cell at 1.7%). The `rel3` cells use the gated
+batch means on python_native and gpu_kernels (`K G` of 18) and `hac_lf`
+on the others (`K G` of 9); all pass. The bounds above are per cell: an
+event that spans several guardrails at once (three exactly on their
+allowances, `G = 3`) was not calibrated as one cell, and the audit
+measured a breach somewhere at up to 96 of 4000 in the worst scenario,
+so "held to 2.5%" is shown per check and per verdict, not for that
+aggregate.
+
+**Coverage of the limit bounds.** In every one of the 552 limit cells of
+each run the bounds on the median cover it with their stated confidence
+by the coverage rule above, at `n0` and at `max_rounds`, in clean and
+messy cells alike. The rule divides the misses by all `R`
+replications, a replication with no bound counting as a hit, so it
+shows the bounds' error rate as a share of runs, not as a share of the
+values a user is shown; early bounds exist only where the sample's
+dependence looked low, and among those few bounded replications the miss
+share is higher (the audit measured up to 7 of 18 in one cell at `n0`
+and up to 8% of reported values in a held-out cell at the deciding
+look). Pooled over the clean cells of both runs, at `max_rounds` the
+upper bound fell below the true median in 163 of 1,839,822 bounded
+replications (0.009%) and the lower bound rose above it in 319 (0.017%);
+at `n0`, 452 of 235,415 (0.19%) and 436 (0.19%). In the messy cells, at
+`max_rounds`, 87 of 1,204,251 (0.007%) and 153 (0.013%); at `n0`, 109 of
+168,800 (0.06%) and 125 (0.07%). The bounded share at `n0` is small (8%
+of replications in a clean cell on average), the replications that have
+a bound that early may be those whose dependence the sample underrated
+(INFERENCE), which is the effect the 2-standard-error bound on the
+dependence is there to limit. A cell where the dependence is underrated
+is where this check goes wrong, as in any bound that estimates the
+dependence of a short series.
+
+**Power: how often a limit ends `not_established`.** What follows is the
+share of runs of the guardrail alone at the end of the comparison
+(percent of replications, averaged over the cells of a kind, both seeds;
+a clean cell is one without a slow mode or outliers), for a true median
+below the limit (0.90, 0.97), on it (1.00) and beyond (1.01, 1.03, 1.10):
+
+| True median over the limit | Clean: passed / breached / not established | Messy: passed / breached / not established |
+|---|---|---|
+| 0.90 | 49.8 / 0.0 / 50.2 | 28.7 / 0.0 / 71.3 |
+| 0.97 | 26.8 / 0.0 / 73.2 | 21.3 / 0.0 / 78.7 |
+| 1.00 | 0.0 / 0.0 / 99.9 | 0.0 / 0.0 / 100.0 |
+| 1.01 | 0.0 / 11.4 / 88.6 | 0.0 / 35.7 / 64.3 |
+| 1.03 | 0.0 / 28.2 / 71.8 | 0.0 / 61.5 / 38.5 |
+| 1.10 | 0.0 / 54.0 / 46.0 | 0.0 / 75.3 / 24.7 |
+
+Within the limit by 10%, a messy cell shows the pass in 28.7% of runs
+and a clean one in 49.8%; the rest are not established, which withholds
+a KEEP at INCONCLUSIVE with the numbers reported (`typical`,
+`reliable_value`, `gap`), as "The numbers" above says. A mean-based
+interval passed more (70% of clean runs at 0.90 and 45% at 0.97 under
+the earlier rule) but also passed candidates beyond their limit (up to
+49% of runs at 1.01 and 1.03; at most 2 of 4000 in any cell under this
+rule). The cost is power, and it is the owner's decision (2026-10-23).
+Clean and messy columns are different scenarios, not a like-for-like
+comparison.
+
+**Audit finding on dependence (stats-auditor, T2.15).** The coverage
+above is measured on the simulator's dependence, which is AR(1). The
+audit measured the rank bound outside it, with its own generators and on
+real traces. A local-level series (slow share 0.5, `rho` 0.97) at fixed
+`n = 120` missed the median above 10.6% and below 12.1% of the time
+against a 0.21% tail, a persistent two-state regime 5.6% and 1.5%, and
+on the repo's real A/A traces at `n = 120` loaded Linux rows missed up
+to 7.3% and 18.4% and Mac rows up to 19.5% and 32.2%, 28 of 32 Mac rows
+above 4 times the tail (quiet Linux traces were fine, worst 0.91%; the
+windows overlap, so those rates are noisy). Verdict-level false passes
+at a true ratio of 1.01 reached 211 to 368 of 4000 on the local-level
+series, and two drift scenarios (outside the cells, which exclude drift)
+gave 136 and 270 of 4000. So the stated confidence is a property of
+series whose dependence is AR(1)-like; on persistent regimes and drift
+it is not shown and the audit found it false. Decision (lead, following Faras's standing rule): keep the rank bound
+and scope the claim to the session, as under "Scope of the claim"; no
+redesign.
+Two replacements were tried at fixed `n` (60 and 120, `R` = 4000, tail
+0.21% per side, seeds in the PR) and neither held the tail on the
+audit's persistent series at a usable power: a batch-indicator
+t-bound (4 to 10 batches) missed the median 3% to 15% on the local-level
+series and 2.6% to 8.5% on the regime series, and AR(1) with
+`rho` 0.9 still 0.9% to 8%; a rank bound whose effective rounds come
+from a Bartlett long-run variance of the exceedance indicator, widened
+by a chi-square upper bound, missed 1.3% to 4% on the local-level
+series at a 10% widening level and met the tail only at a level (0.001)
+where it had a bound in 42% of AR(1) `rho` 0.5 runs at `n` = 120 and 10%
+of local-level ones. Whatever widens enough to cover them withholds the
+answer on ordinary autocorrelated data.
+
+**What is not checked.** The audit found that a mean-based check fails on
+real, unpaired time traces whose own values are strongly autocorrelated
+(lag-1 up to 0.94), and that the relative allowance is not calibrated
+under one-version skew (the primary's stated limit under "Assumptions"
+applies to a guardrail too). The rank bound widens for dependence by the
+AR(1) model; the audit ran it on the real traces and measured misses far
+above its tail on loaded ones (see "Audit finding on dependence"), and
+the claim is scoped to the session for that reason. An out-of-memory ceiling is a claim about the largest
+value, and is not checked here.
+
+**What is measured, not only what is judged.** How often the allowance's
+guardrail decides (percent of runs, `rel1`, seed of record, guardrail
+alone; the rest are undecided at the last look): at 1% noise every
+schedule passes at ratios 1.00 and 1.05 (llm_serving 99.9% at 1.05) and
+breaches at 1.20 and 1.50 in 100% of runs; at 5% noise the shares that
+pass at 1.00 and at 1.05 and breach at 1.20 are 100%, 89% and 100% on
+python_native, 98%, 46% and 97% on web_agentic, 88%, 26% and 83% on
+llm_serving, and 100% each on gpu_kernels; at 15% noise llm_serving
+passes at 1.00 in 10% of runs and breaches at 1.20 in 7%, and
+python_native in 51% and 42%. Page-quantised memory with no noise
+(`pages_exact`) decides every run at each ratio but 1.10 (on the bar),
+where it never decides, correctly: the widening for the page step keeps
+the exact ratio from showing a breach. Noisy guardrails hold a KEEP at
+INCONCLUSIVE, as "Decision" says.
+
+**Reported at an exploratory seed, not evidence:** the sensitivity
+runs and the exploratory grid at seed `12345` under "Guardrail cells".
+
 ## What the record contains
 
 - Outcome, reason, the gate or rule that decided it, speedup estimate,
@@ -4096,6 +4557,11 @@ the golden set's regression subset replays to the same verdicts
   declared or printed), and the widening it added; `coarse_resolution`
   when it applied
 - Gates and their results, including recorded differences between arms
+- Each guardrail's status, its worsening estimate and intervals, the
+  candidate's interval against each absolute limit, where its allowance
+  came from, and what the metric measured (`peak_memory` is the
+  largest single process's peak resident set size); the report flags
+  every regression within an allowance with how much it costs
 - Machine fingerprint: CPU, cores, frequency policy, load, power source,
   thermal state, GPU, driver and clocks when present
 - Warnings, for example running on battery or a busy machine

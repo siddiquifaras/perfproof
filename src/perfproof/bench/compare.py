@@ -125,6 +125,27 @@ The resolution stop is recorded as rule 5 INCONCLUSIVE
 schema now has the ``coarse_resolution`` diagnostic and its rule 1
 INCONCLUSIVE, but compare doesn't use them yet (T2.5).
 
+Guardrails
+----------
+Per "Guardrails" in ``docs/method.md``. ``peak_memory`` is measured: the
+largest single process's peak resident set size of each execution
+(`perfproof.bench.runner`), as bytes. At each look every applicable
+guardrail with a value is evaluated by
+`perfproof.stats.guardrails.evaluate_guardrail` on the rounds so far, at
+confidence ``1 - alpha / (2 K G)`` and with the procedure the primary's
+(`perfproof.stats.guardrails.guardrail_procedure`), with the resolution
+widening at the page size. A round with no value (Linux, where a
+benchmark peaking below the launch helper's own few megabytes can't be
+told from it) makes the guardrail ``unmeasurable`` with that reason:
+perfproof never measures it on the rounds that are left. The statuses
+decide a rule 2 look as `perfproof.stats.decision.guardrail_actions`
+says: a breach is a REJECT (``guardrail``) and ends the comparison, an
+``unmeasurable`` or ``not_declared`` guardrail withholds the KEEP for
+good (the run ends at that look), and a ``not_established`` one holds it
+while more rounds can narrow its interval, so the look continues. The
+record keeps every measured guardrail's estimate and intervals, whether
+or not it breached.
+
 Withheld, not refused
 ----------------------
 Per "Unknown is not wrong" in ``docs/method.md``, what perfproof cannot
@@ -139,8 +160,9 @@ before it, as a budget end, with the warning ``time_limit_reached``.
 
 What the thin path does not do yet
 ----------------------------------
-- Guardrails (T2.15): every applicable guardrail is ``unmeasurable``,
-  with that reason; one marked not applicable keeps the spec's reason.
+- Guardrails other than ``peak_memory``: the runner records no
+  per-execution value for them, so an applicable one is ``unmeasurable``
+  with that reason, and a KEEP is withheld.
 - Cross-host comparisons (``allow_cross_host``) are refused.
 """
 
@@ -149,6 +171,7 @@ import itertools
 import json
 import math
 import re
+import resource
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -217,6 +240,7 @@ from perfproof.schema import (
     GateName,
     GateResult,
     GuardrailResult,
+    GuardrailSpec,
     Interval,
     LockManifest,
     MachineFingerprint,
@@ -230,7 +254,19 @@ from perfproof.schema import (
     TreeEnvironment,
     Verdict,
 )
-from perfproof.stats.decision import GATE_PRECEDENCE, decide
+from perfproof.stats.decision import (
+    GATE_PRECEDENCE,
+    decide,
+    guardrail_actions,
+)
+from perfproof.stats.guardrails import (
+    GuardrailLook,
+    check_count,
+    evaluate_guardrail,
+    guardrail_confidence,
+    guardrail_procedure,
+    guardrail_result,
+)
 from perfproof.stats.intervals import HAC_MIN_N, hac_lf_interval, t_interval
 from perfproof.stats.sequential import (
     BATCH_BLOCK,
@@ -246,6 +282,7 @@ from perfproof.stats.sequential import (
 
 __all__ = [
     "CALIBRATED",
+    "PEAK_MEMORY_MEASURE",
     "SAMPLES_NAME",
     "CompareResult",
     "CompareStoppedError",
@@ -273,8 +310,19 @@ _NUMBER: Final = re.compile(
 _LAUNCH_EXIT: Final = 127
 _AUTOCORRELATION_WARN: Final = 0.3
 _SKEW_WARN: Final = 2.0
-_GUARDRAILS_NOT_BUILT: Final = (
-    "guardrails are not measured yet (plan task T2.15)"
+PEAK_MEMORY_MEASURE: Final = (
+    "the largest single process's peak resident set size: ru_maxrss of "
+    "the benchmark process as wait4 reports it, the maximum over the "
+    "descendants it waited for, never a sum over a process tree"
+)
+"""What ``peak_memory`` is measured as, written into the record."""
+_NO_VALUE: Final = (
+    "perfproof records no per-execution value for {metric}, only wall "
+    "and CPU time and peak resident size, so it was not measured and a "
+    "KEEP is withheld"
+)
+_NO_LOOK: Final = (
+    "the comparison ended before its first look, so no interval was computed"
 )
 _NO_CHECK: Final = (
     "the spec declares no correctness check (no test command and no "
@@ -346,6 +394,30 @@ class _Ended:
     used: int
     looks: int
     confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class _GuardrailEvaluation:
+    """One guardrail at the last look: its statistics, or why none."""
+
+    look: GuardrailLook | None
+    reason: str
+
+
+def _no_source(metric: str, unit: str) -> str | None:
+    """Say why ``metric`` has no value to measure, or ``None``.
+
+    Only ``peak_memory``, in bytes, has one: the runner's peak resident
+    size.
+    """
+    if metric != "peak_memory":
+        return _NO_VALUE.format(metric=metric)
+    if unit != "bytes":
+        return (
+            "peak_memory is measured in bytes, but the spec's unit is "
+            f"{unit!r}, so it was not measured and a KEEP is withheld"
+        )
+    return None
 
 
 class _CandidateFailedError(Exception):
@@ -519,6 +591,18 @@ class _Run:
         self.suite: SuiteComparison | None = None
         self.untracked: tuple[str, ...] | None = None
         self.untracked_error = ""
+        checks = check_count(spec.guardrails)
+        self.guardrail_procedure: Procedure = (
+            guardrail_procedure(self.procedure, spec.looks.max_looks, checks)
+            if checks
+            else self.procedure
+        )
+        self.guardrail_confidence = (
+            guardrail_confidence(spec.alpha, spec.looks.max_looks, checks)
+            if checks
+            else look_confidence(spec.alpha, spec.looks.max_looks)
+        )
+        self.guardrail_looks: dict[str, _GuardrailEvaluation] = {}
 
     def stop(self, code: str, message: str) -> CompareStoppedError:
         """Build the no-verdict stop for this run."""
@@ -1110,10 +1194,13 @@ class _Run:
                 last = self._look(used, final, confidence, steps)
                 if self.journal is not None and index >= len(restored):
                     self.journal.looks(self.looks)
-                if str(last.action[0]) != "CONTINUE" or bool(last.held[0]):
-                    # A held rule 2 can't become a KEEP by more rounds
-                    # (what withholds it is fixed for this run), so it
-                    # ends here, INCONCLUSIVE, as "Decision rule" says.
+                if str(last.action[0]) != "CONTINUE" or self._ends_rule_2(
+                    last
+                ):
+                    # A held rule 2 whose blocker no round lifts ends
+                    # here, INCONCLUSIVE, as "Decision rule" says, and a
+                    # guardrail breach is its REJECT; a guardrail only
+                    # not established yet goes on.
                     break
             if exhausted:
                 break
@@ -1127,6 +1214,7 @@ class _Run:
         """Decide one look on the first ``used`` rounds."""
         b, c = self._values(used, lambda s: s.value)
         qb, qc = self._steps(used)
+        self.guardrail_looks = self._evaluate_guardrails(used, final)
         return decide_look(
             b[np.newaxis, :],
             c[np.newaxis, :],
@@ -1161,19 +1249,127 @@ class _Run:
             dtype=np.bool_,
         )
 
-    def _keep_blocked(self) -> bool:
-        """Whether a KEEP is withheld, for any reason known so far.
+    def _fixed_blocker(self) -> bool:
+        """Whether something no further round lifts withholds a KEEP.
 
         `keep_blocked` on the spec, and what this run found out: a gate
         ``not_available``, a counter that fell back to wall time, a
-        value of unknown resolution.
+        value of unknown resolution, a guardrail that is
+        ``unmeasurable``.
         """
         return (
             keep_blocked(self.spec)
             or self.fallback_reason is not None
             or self._resolution_unknown()
             or any(g.status == "not_available" for g in self.gates.values())
+            or self._guardrails_with("unmeasurable")
         )
+
+    def _guardrails_with(self, status: str) -> bool:
+        """Whether a guardrail has ``status`` at this look."""
+        return any(
+            str(e.look.status[0]) == status
+            for e in self.guardrail_looks.values()
+            if e.look is not None
+        ) or (
+            status == "unmeasurable"
+            and any(e.look is None for e in self.guardrail_looks.values())
+        )
+
+    def _keep_blocked(self) -> bool:
+        """Whether a KEEP is withheld at this look, for any reason.
+
+        A fixed blocker, or a guardrail breached or not established
+        yet; the last two are the guardrail step's to separate
+        (`_ends_rule_2`).
+        """
+        return (
+            self._fixed_blocker()
+            or self._guardrails_with("breached")
+            or self._guardrails_with("not_established")
+        )
+
+    def _ends_rule_2(self, look: Look) -> bool:
+        """Whether a rule 2 look that does not keep ends the comparison.
+
+        By `perfproof.stats.decision.guardrail_actions`: a breach is a
+        REJECT, and a blocker no round lifts is INCONCLUSIVE now; a
+        guardrail only not established holds the KEEP back and the
+        comparison goes on while budget remains.
+        """
+        if int(look.rule[0]) != 2:
+            return False
+        step = guardrail_actions(
+            np.int8(2),
+            breached=self._guardrails_with("breached"),
+            fixed=self._fixed_blocker(),
+            pending=self._guardrails_with("not_established"),
+            budget_remains=True,
+        )
+        return str(step.action) in ("REJECT", "INCONCLUSIVE")
+
+    def _evaluate_guardrails(
+        self, used: int, final: bool
+    ) -> "dict[str, _GuardrailEvaluation]":
+        """Evaluate each applicable guardrail on the first rounds.
+
+        One evaluation per guardrail, replacing the last look's. A
+        guardrail with no value to measure, or a round missing its
+        value, is ``unmeasurable`` with the reason, never measured on
+        what is left.
+        """
+        evaluated: dict[str, _GuardrailEvaluation] = {}
+        for g in self.spec.guardrails:
+            if not g.applicable:
+                continue
+            reason = _no_source(g.metric, g.unit)
+            data = None if reason is not None else self._rss_values(used)
+            if isinstance(data, str):
+                reason = data
+            if reason is not None or not isinstance(data, tuple):
+                evaluated[g.metric] = _GuardrailEvaluation(
+                    None, reason or _NO_LOOK
+                )
+                continue
+            b, c = data
+            page = float(resource.getpagesize())
+            evaluated[g.metric] = _GuardrailEvaluation(
+                evaluate_guardrail(
+                    b[np.newaxis, :],
+                    c[np.newaxis, :],
+                    direction=g.direction,
+                    allowance=g.allowance,
+                    limits=tuple(float(x.value) for x in g.limits),
+                    confidence=self.guardrail_confidence,
+                    procedure=self.guardrail_procedure,
+                    final=np.array([final]),
+                    candidate_first=self._candidate_first(used)[np.newaxis, :],
+                    baseline_step=np.full((1, used), page),
+                    candidate_step=np.full((1, used), page),
+                    quantile=(
+                        0.5 if g.limit_quantile is None else g.limit_quantile
+                    ),
+                ),
+                "",
+            )
+        return evaluated
+
+    def _rss_values(
+        self, used: int
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | str:
+        """Return both arms' peak sizes, or why one is unknown."""
+        samples = [s for m in self.measured[:used] for s in m.samples]
+        unknown = sum(s.max_rss_bytes is None for s in samples)
+        if unknown:
+            return (
+                f"peak resident size is unknown for {unknown} of "
+                f"{len(samples)} executions: Linux counts the launching "
+                "process's own peak for a child, and a benchmark whose "
+                "peak does not exceed the launch helper's own few "
+                "megabytes can't be told apart from it"
+            )
+        b, c = self._values(used, lambda s: float(s.max_rss_bytes or 0))
+        return b, c
 
     def _metric_kind(self) -> MetricKind:
         """Return the kind of value produced: wall on a fallback."""
@@ -1284,9 +1480,14 @@ class _Run:
                     "that a blocker holds back from KEEP"
                 )
                 raise self.stop("internal_fault", msg)
+        refused = (
+            look is not None
+            and int(look.rule[0]) == 2
+            and self._guardrails_with("breached")
+        )
         verdict = Verdict(
-            outcome="INCONCLUSIVE",
-            reason="insufficient_evidence",
+            outcome="REJECT" if refused else "INCONCLUSIVE",
+            reason="guardrail" if refused else "insufficient_evidence",
             rule=2 if look is not None and int(look.rule[0]) == 2 else 5,
             estimate=estimate,
             interval=interval,
@@ -1313,12 +1514,7 @@ class _Run:
                 )
             )
         guardrails = tuple(
-            GuardrailResult(
-                metric=g.metric,
-                status="unmeasurable" if g.applicable else "not_applicable",
-                reason=_GUARDRAILS_NOT_BUILT if g.applicable else g.reason,
-            )
-            for g in self.spec.guardrails
+            self._guardrail_result(g) for g in self.spec.guardrails
         ) + tuple(
             GuardrailResult(
                 metric=metric,
@@ -1332,6 +1528,27 @@ class _Run:
             for metric in undeclared_guardrails(self.spec)
         )
         return self._write(verdict, self._listed_gates(), guardrails)
+
+    def _guardrail_result(self, g: GuardrailSpec) -> GuardrailResult:
+        """Record one declared guardrail as the last look left it."""
+        if not g.applicable:
+            return GuardrailResult(
+                metric=g.metric, status="not_applicable", reason=g.reason
+            )
+        measure = PEAK_MEMORY_MEASURE if g.metric == "peak_memory" else ""
+        found = self.guardrail_looks.get(g.metric)
+        if found is None or found.look is None:
+            reason = _NO_LOOK if found is None else found.reason
+            return GuardrailResult(
+                metric=g.metric,
+                status="unmeasurable",
+                reason=reason,
+                measure=measure,
+            )
+        recorded = guardrail_result(
+            g, found.look, 0, self.guardrail_confidence
+        )
+        return recorded.model_copy(update={"measure": measure})
 
     def _statistics(
         self, ended: _Ended
@@ -1780,11 +1997,14 @@ def _gate_flag(
 def keep_blocked(spec: BenchmarkSpec) -> bool:
     """Whether the spec rules out a KEEP, whatever the interval shows.
 
-    True when a guardrail can't be shown compliant yet (applicable and
-    unmeasured, or a default one left undeclared), or when the
-    look schedule is outside the calibrated ones (more than one look at
-    120 observations or more, see `late_looks`). Rule 2 then continues,
-    or is INCONCLUSIVE at the last look; REJECTs are unaffected.
+    True when a guardrail can never be shown compliant here (applicable
+    with no value to measure: anything but ``peak_memory`` in bytes; or
+    a default one left undeclared), or when the look schedule is
+    outside the calibrated ones (more than one look at 120
+    observations or more, see `late_looks`). A ``peak_memory``
+    guardrail does not block here: whether it passes is decided at each
+    look from its measurements. Rule 2 then ends INCONCLUSIVE at that
+    look; REJECTs are unaffected.
 
     Parameters
     ----------
@@ -1797,7 +2017,10 @@ def keep_blocked(spec: BenchmarkSpec) -> bool:
         Whether rule 2 must not keep.
     """
     return (
-        any(g.applicable for g in spec.guardrails)
+        any(
+            g.applicable and _no_source(g.metric, g.unit) is not None
+            for g in spec.guardrails
+        )
         or bool(undeclared_guardrails(spec))
         or late_looks(spec) > 1
     )

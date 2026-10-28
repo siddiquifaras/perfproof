@@ -4,6 +4,7 @@ import re
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from fractions import Fraction
+from functools import partial
 from typing import Any, cast, get_args
 
 import numpy as np
@@ -34,8 +35,10 @@ from perfproof.stats.decision import (
     GATE_PRECEDENCE,
     Decision,
     completed_session_pairs,
-    decide,
     interval_rules,
+)
+from perfproof.stats.decision import (
+    decide as decide_with,
 )
 
 T0 = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
@@ -50,6 +53,9 @@ EVERY_GATE: tuple[GateName, ...] = (
     "side_effects",
     "coverage",
 )
+
+decide = partial(decide_with, guardrails={})
+"""`decide` with no guardrails in the comparison (an empty mapping)."""
 CORRECTNESS_GATES = frozenset({"correctness", "coverage"})
 # The decision tests exercise gates and the bar, not guardrails, so the
 # one default guardrail is declared not applicable, with a reason.

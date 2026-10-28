@@ -46,6 +46,7 @@ from perfproof.schema import (
     ImplementationEvent,
     Interval,
     Invalidation,
+    LimitStanding,
     LinkedLibrary,
     LockedFile,
     LockManifest,
@@ -473,7 +474,39 @@ def memory_result(
             "candidate": None
             if candidate is None
             else as_json(iv(*candidate)),
+            "standing": []
+            if candidate is None
+            else [
+                as_json(
+                    standing(
+                        "container memory limit",
+                        MEMORY_LIMIT,
+                        candidate[1],
+                        typical=candidate[0],
+                    )
+                )
+            ],
         }
+    )
+
+
+def standing(
+    label: str,
+    limit: float,
+    reliable: float | None,
+    *,
+    typical: float,
+    rounds_over: int = 0,
+) -> LimitStanding:
+    return LimitStanding(
+        label=label,
+        limit=limit,
+        quantile=0.5,
+        typical=typical,
+        reliable_value=reliable,
+        gap=None if reliable is None else reliable - limit,
+        rounds_over=rounds_over,
+        rounds=40,
     )
 
 
@@ -2461,6 +2494,16 @@ def test_guardrail_floor_for_a_higher_is_better_metric() -> None:
                 "metric": "throughput",
                 "status": status,
                 "candidate": as_json(iv(lower, upper)),
+                "standing": [
+                    as_json(
+                        standing(
+                            "throughput floor",
+                            floor,
+                            lower,
+                            typical=upper,
+                        )
+                    )
+                ],
             }
         )
         return safety_record(

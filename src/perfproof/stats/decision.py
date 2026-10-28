@@ -42,11 +42,20 @@ only withhold a KEEP, never REJECT ("Unknown is not wrong" in
 built yet, or nothing to check it with) never counts as passed: when
 rule 2 would give KEEP, the comparison is INCONCLUSIVE under rule 2
 instead, at the same look, naming the gates in ``blocked_by``, so it
-can only remove a KEEP. It changes no other rule. The guardrail step
-of rule 2 is not decided here yet; per ``docs/method.md`` a guardrail
-breach under rule 2 gives REJECT even with a gate ``not_available``,
-and `perfproof.schema.RunRecord` already refuses that case recorded
-as INCONCLUSIVE.
+can only remove a KEEP. It changes no other rule.
+
+The guardrail step acts on rule 2 only ("Guardrails" in
+``docs/method.md``), through `guardrail_actions`, the one place its
+precedence is written. Given each guardrail's status at the look
+(`perfproof.stats.guardrails` computes them): a ``breached`` guardrail
+is REJECT with reason ``guardrail``, even with a gate ``not_available``
+(a REJECT keeps nothing); otherwise a gate ``not_available`` or a
+guardrail ``unmeasurable`` or ``not_declared``, which no further round
+lifts, is INCONCLUSIVE at that look; otherwise a ``not_established``
+guardrail continues while budget remains, since more rounds can narrow
+its interval, and is INCONCLUSIVE when none does; otherwise KEEP. A
+primary REJECT or INCONCLUSIVE (rules 1, 3, 4, 5) stands as it is, with
+the guardrails reported alongside, so a breach never changes it.
 
 Cross host, fewer than ``n0`` completed session pairs never give KEEP
 or a performance REJECT: the comparison continues while another pair
@@ -68,16 +77,26 @@ from typing import Final, Literal, cast, get_args
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from perfproof.schema import GATE_REASON, Arm, GateName, GateResult, Reason
+from perfproof.schema import (
+    GATE_REASON,
+    Arm,
+    GateName,
+    GateResult,
+    GuardrailStatus,
+    Reason,
+)
 
 __all__ = [
     "GATE_PRECEDENCE",
+    "UNCHECKED",
     "Action",
     "Decision",
     "DecisionRule",
+    "GuardrailActions",
     "IntervalRules",
     "completed_session_pairs",
     "decide",
+    "guardrail_actions",
     "interval_rules",
 ]
 
@@ -121,6 +140,14 @@ _BY_RULE: Final[dict[int, tuple[DecisionRule, Action, Reason | None]]] = {
     4: (4, "CONTINUE", None),
     5: (5, "INCONCLUSIVE", "insufficient_evidence"),
 }
+UNCHECKED: Final = "<guardrails not given>"
+"""What a rule 2 `Decision.guardrails_blocked` names when `decide` was
+not given the guardrails: unchecked is never passed."""
+_GUARDRAIL_STATUSES: Final = frozenset(get_args(GuardrailStatus))
+# Indexed by rule: 1 is the resolution stop, 2 to 5 the decision rule.
+_ACTION_BY_RULE: Final = np.array(
+    ["", "INCONCLUSIVE", "KEEP", "REJECT", "CONTINUE", "INCONCLUSIVE"]
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,13 +158,14 @@ class Decision:
     ----------
     outcome : {"KEEP", "REJECT", "INCONCLUSIVE", "CONTINUE"}
         The verdict, or ``CONTINUE`` when rule 4 says to keep running.
-    reason : {"performance", "correctness", "integrity", \
+    reason : {"performance", "correctness", "integrity", "guardrail", \
 "insufficient_evidence"} or None
-        Why; ``None`` only for ``CONTINUE``. Never ``"guardrail"`` yet,
-        since guardrails are not decided here.
+        Why; ``None`` only for ``CONTINUE``. ``"guardrail"`` for a rule
+        2 REJECT because a guardrail is ``breached``.
     rule : {1, 2, 3, 4, 5}
-        The rule that decided. Rule 2 with ``INCONCLUSIVE`` means the
-        interval cleared the bar but a gate was ``not_available``.
+        The rule that decided. Rule 2 with ``INCONCLUSIVE`` or
+        ``CONTINUE`` means the interval cleared the bar but a gate was
+        ``not_available`` or a guardrail did not pass.
     gate : str or None
         The failed gate that decided, for rule 1; ``None`` otherwise.
     regression : bool
@@ -157,6 +185,15 @@ class Decision:
         For a rule 2 INCONCLUSIVE, the ``not_available`` gates that
         blocked the KEEP, in `GATE_PRECEDENCE` order; empty otherwise.
         The record names them through their gate status.
+    breached : tuple of str
+        For a rule 2 REJECT, the metrics of the ``breached``
+        guardrails, in the order given; empty otherwise.
+    guardrails_blocked : tuple of str
+        For a rule 2 look that does not keep and is not a breach, the
+        metrics that withheld the KEEP: ``unmeasurable`` and
+        ``not_declared`` guardrails (INCONCLUSIVE now) and
+        ``not_established`` ones (continue, or INCONCLUSIVE with no
+        budget), in the order given; empty otherwise.
     """
 
     outcome: Action
@@ -169,6 +206,31 @@ class Decision:
     session_pairs: int | None
     procedure_uncalibrated: bool
     blocked_by: tuple[GateName, ...]
+    breached: tuple[str, ...] = ()
+    guardrails_blocked: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class GuardrailActions:
+    """What the guardrail step makes of a batch of looks.
+
+    Attributes
+    ----------
+    action : numpy.ndarray of str
+        One of ``KEEP``, ``REJECT``, ``INCONCLUSIVE`` or ``CONTINUE``
+        per element, in the broadcast shape of the inputs.
+    guardrail_reject : numpy.ndarray of bool
+        True where ``action`` is REJECT because a guardrail is
+        breached (rule 2); a performance REJECT is False.
+    held : numpy.ndarray of bool
+        True where rule 2 fired and something other than a breach held
+        back the KEEP, so the look continues or is INCONCLUSIVE under
+        rule 2.
+    """
+
+    action: NDArray[np.str_]
+    guardrail_reject: NDArray[np.bool_]
+    held: NDArray[np.bool_]
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,16 +258,18 @@ def decide(
     calibrated: bool,
     session_pairs: int | None = None,
     n0: int | None = None,
+    guardrails: Mapping[str, GuardrailStatus] | None = None,
 ) -> Decision:
     """Decide one comparison at one look, as in ``docs/method.md``.
 
     The first rule that matches decides: (1) REJECT if a gate failed,
-    (2) KEEP if ``L > bar``, or INCONCLUSIVE there if a gate is
-    ``not_available``, (3) REJECT if ``U <= bar``, (4) continue if
-    budget remains, (5) INCONCLUSIVE. Rules 2 and 3 apply only when the
-    procedure is calibrated. See the module docstring for how ``L``,
-    ``U`` and the bar are computed and compared. Rules 2 to 5 are
-    evaluated by `interval_rules`, so the bar comparison exists once.
+    (2) KEEP if ``L > bar``, unless the guardrail step or a gate
+    ``not_available`` says otherwise (`guardrail_actions`), (3) REJECT
+    if ``U <= bar``, (4) continue if budget remains, (5) INCONCLUSIVE.
+    Rules 2 and 3 apply only when the procedure is calibrated. See the
+    module docstring for how ``L``, ``U`` and the bar are computed and
+    compared. Rules 2 to 5 are evaluated by `interval_rules`, so the
+    bar comparison exists once.
 
     Parameters
     ----------
@@ -237,13 +301,25 @@ def decide(
         only then; ``None`` means one host.
     n0 : int, optional
         Cross host only: the look schedule's ``n0``, at least 10.
+    guardrails : mapping of str to str, optional
+        Each guardrail's status at this look, by metric: ``passed``,
+        ``breached``, ``not_established``, ``unmeasurable``,
+        ``not_declared`` or ``not_applicable``, as
+        `perfproof.stats.guardrails` and the spec give them. Every
+        guardrail of the comparison must be listed, since one left out
+        is one nobody checked; the caller lists the undeclared defaults
+        as ``not_declared``. Only rule 2 reads it. ``None`` means the
+        caller did not give them, which fails closed: a rule 2 look is
+        then INCONCLUSIVE, naming ``UNCHECKED``, never a KEEP. A caller
+        that really has none passes an empty mapping.
 
     Returns
     -------
     Decision
         Outcome, reason, rule, deciding gate, regression flag, the
-        bounds and session pairs passed in, and whether the procedure
-        was uncalibrated.
+        bounds and session pairs passed in, whether the procedure
+        was uncalibrated, and the gates and guardrails that decided or
+        held a rule 2 look.
 
     Raises
     ------
@@ -252,11 +328,13 @@ def decide(
         ``session_pairs`` and ``n0`` are not given together; a gate is
         listed twice, is not a `GateResult`, or is one the schema
         refuses (an unknown name or status, or a waiver of a gate that
-        cannot be waived); no gate failed and one is missing; or the
+        cannot be waived); no gate failed and one is missing; the
         ``same_host`` gate contradicts the host mode (waived on one
-        host; anything but waived or failed cross host).
+        host; anything but waived or failed cross host); or a
+        guardrail status is not one of the six.
     """
     _check_min_effect(min_effect)
+    named = _checked_guardrails(guardrails)
     _check_host_mode(session_pairs, n0)
     if session_pairs is not None:
         _check_count("session_pairs", session_pairs, 0)
@@ -309,6 +387,8 @@ def decide(
     )
     rule, outcome, reason = _BY_RULE[int(rules.rule)]
     blocked_by: tuple[GateName, ...] = ()
+    breached: tuple[str, ...] = ()
+    blocked_guardrails: tuple[str, ...] = ()
     if rule == 2:
         blocked_by = tuple(
             name
@@ -316,8 +396,32 @@ def decide(
             if (gate := seen.get(name)) is not None
             and gate.status == "not_available"
         )
-        if blocked_by:
-            outcome, reason = "INCONCLUSIVE", "insufficient_evidence"
+        breached = tuple(m for m, st in named.items() if st == "breached")
+        fixed = tuple(
+            m for m, st in named.items() if st in _FIXED_GUARDRAIL_STATUSES
+        )
+        pending = tuple(
+            m for m, st in named.items() if st == "not_established"
+        )
+        step = guardrail_actions(
+            np.int8(2),
+            breached=bool(breached),
+            fixed=bool(blocked_by or fixed or guardrails is None),
+            pending=bool(pending),
+            budget_remains=budget,
+        )
+        outcome = cast("Action", str(step.action))
+        if bool(step.guardrail_reject):
+            reason = "guardrail"
+        elif outcome == "CONTINUE":
+            reason = None
+        elif outcome == "INCONCLUSIVE":
+            reason = "insufficient_evidence"
+        if bool(step.held):
+            held = {*fixed, *pending}
+            blocked_guardrails = tuple(m for m in named if m in held)
+            if guardrails is None:
+                blocked_guardrails = (UNCHECKED,)
     return Decision(
         outcome=outcome,
         reason=reason,
@@ -329,6 +433,96 @@ def decide(
         session_pairs=session_pairs,
         procedure_uncalibrated=uncalibrated,
         blocked_by=blocked_by,
+        breached=breached,
+        guardrails_blocked=blocked_guardrails,
+    )
+
+
+def guardrail_actions(
+    rule: ArrayLike,
+    *,
+    breached: ArrayLike,
+    fixed: ArrayLike,
+    pending: ArrayLike,
+    budget_remains: ArrayLike,
+) -> GuardrailActions:
+    """Apply the guardrail step of rule 2 to a batch of looks.
+
+    The one place the precedence of "Guardrails" in ``docs/method.md``
+    is written; `decide` calls it for one look, and the sequential
+    drivers and the calibration suite call it for batches. Guardrails
+    matter only where the primary interval gave rule 2 (KEEP); every
+    other rule keeps its own action (1 INCONCLUSIVE, 3 REJECT, 4
+    CONTINUE, 5 INCONCLUSIVE), whatever the guardrails say. At rule 2,
+    in order: ``breached`` is REJECT (a REJECT keeps nothing, so it
+    holds even when something else would withhold a KEEP); else
+    ``fixed``, a blocker no further round lifts (a gate
+    ``not_available``, a guardrail ``unmeasurable`` or
+    ``not_declared``), is INCONCLUSIVE now; else ``pending``, a
+    guardrail ``not_established``, is CONTINUE while budget remains and
+    INCONCLUSIVE when none does; else KEEP.
+
+    Parameters
+    ----------
+    rule : array_like of int
+        The look's rule, 1 to 5, as `interval_rules` and the
+        resolution stop give it, after any diagnostic gate.
+    breached, fixed, pending : array_like of bool
+        Whether any guardrail is breached, whether something that no
+        round can lift withholds the KEEP, and whether a guardrail is
+        not established. Broadcast with ``rule``.
+    budget_remains : array_like of bool
+        Whether another observation can still be collected.
+
+    Returns
+    -------
+    GuardrailActions
+        Action, whether it is a guardrail REJECT, and whether rule 2
+        was held, in the broadcast shape.
+
+    Raises
+    ------
+    ValueError
+        If a rule is not an integer from 1 to 5 or a flag is not
+        boolean, or the shapes do not broadcast.
+    """
+    code = np.asarray(rule)
+    if not np.issubdtype(code.dtype, np.integer) or np.any(
+        (code < 1) | (code > 5)
+    ):
+        msg = f"rule must be integers from 1 to 5, got {code!r}"
+        raise ValueError(msg)
+    flags = {
+        "breached": breached,
+        "fixed": fixed,
+        "pending": pending,
+        "budget_remains": budget_remains,
+    }
+    arrays = {k: np.asarray(v) for k, v in flags.items()}
+    for name, flag in arrays.items():
+        if flag.dtype != np.bool_:
+            msg = f"{name} must be boolean, got dtype {flag.dtype}"
+            raise ValueError(msg)
+    try:
+        code, *rest = np.broadcast_arrays(code, *arrays.values())
+    except ValueError:
+        msg = "rule, breached, fixed, pending, budget_remains do not broadcast"
+        raise ValueError(msg) from None
+    is_breached, is_fixed, is_pending, budget = rest
+    kept = code == 2
+    reject = kept & is_breached
+    held = kept & ~is_breached & (is_fixed | is_pending)
+    action = np.where(
+        reject,
+        "REJECT",
+        np.where(
+            held & (is_fixed | ~budget),
+            "INCONCLUSIVE",
+            np.where(held, "CONTINUE", _ACTION_BY_RULE[code]),
+        ),
+    )
+    return GuardrailActions(
+        action=action.astype(np.str_), guardrail_reject=reject, held=held
     )
 
 
@@ -491,6 +685,25 @@ def _check_min_effect(min_effect: object) -> float:
         msg = f"min_effect must be a finite float >= 0, got {min_effect!r}"
         raise ValueError(msg)
     return min_effect
+
+
+_FIXED_GUARDRAIL_STATUSES: Final = frozenset({"unmeasurable", "not_declared"})
+
+
+def _checked_guardrails(
+    guardrails: Mapping[str, GuardrailStatus] | None,
+) -> dict[str, GuardrailStatus]:
+    """Return the guardrail statuses by metric, each one of the six."""
+    if guardrails is None:
+        return {}
+    out: dict[str, GuardrailStatus] = {}
+    for metric, status in cast("Mapping[object, object]", guardrails).items():
+        if not isinstance(metric, str) or status not in _GUARDRAIL_STATUSES:
+            msg = f"guardrail {metric!r} has status {status!r}, not one of "
+            msg += f"{sorted(_GUARDRAIL_STATUSES)}"
+            raise ValueError(msg)
+        out[metric] = cast("GuardrailStatus", status)
+    return out
 
 
 def _check_bool(name: str, value: object) -> bool:

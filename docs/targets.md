@@ -19,7 +19,7 @@ calibration don't apply, and the report says so.
 | Workload | An existing benchmark, a slow test, or an entry point; `wall`, `cpu` or `reported` |
 | Oracle | The project's tests, output comparison, replay of captured real calls |
 | Coverage | coverage.py on changed lines |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Profiling | py-spy on Linux; on macOS an in-process sampler (pyinstrument), since py-spy needs root there; Scalene and memray through the playbook |
 | Supported | CPython 3.10 and later on macOS arm64 and Linux x86_64 |
 | Outside | Free-threaded builds, PyPy, notebooks as workloads |
@@ -31,7 +31,7 @@ calibration don't apply, and the report says so.
 | Workload | An existing benchmark, a slow test, or an entry point run with `node` (`node bench.js`, `node --import tsx bench.ts`, `node_modules/.bin/tsx bench.ts`, `npx --no-install tsx bench.ts`, `npm exec --no -- tsx bench.ts`); `reported` for in-process work, `wall` only when start-up is the work |
 | Oracle | The project's tests (`vitest`, `jest`, `node --test`), output comparison |
 | Coverage | `c8` (lcov) on changed lines: designed, not wired until the coverage gate takes a command that writes lcov (T2.24); until then reported as not checked |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Profiling | `python -m perfproof.profilers.node run` as a `--profiler-command`: V8's CPU profiler through a preload, source maps applied, so `tsx` and bundled TypeScript show TypeScript `file:line` |
 | Warm-up | In the process, a fixed count of iterations discarded and a fixed window reported ("Warm-up (Node)" in [method.md](method.md#warm-up-node)) |
 | Supported | Node 18.20.8, 20.20.2 and 24.13.0 (`tests/fixtures/node/versions` holds the profiler's output on each) on macOS arm64; TypeScript through `tsx` and Node's own type stripping (both with committed tests), or compiled with `esbuild` and a source map. `ts-node`, `esbuild-register` and `@swc-node/register` gave correct lines once on Node 20, with no committed fixture |
@@ -76,7 +76,7 @@ from one launch form used for both versions.
 | Workload | A JMH benchmark run through a runner that prints its primary score (`reported`), or a program that warms up in process and prints its post-warm-up time (`reported`), or the whole command for a short-lived tool (`wall`); see "Warm-up (Java)" in [method.md](method.md) |
 | Oracle | The project's tests (`./mvnw test -Dtest=...`, `./gradlew test --tests ...`) and the program's output compared between versions |
 | Coverage | JaCoCo on changed lines; not wired into the coverage gate until T2.24 lands, so reported as not checked |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | The command must start `java` itself, so that the runtime gate can identify it (version banner and a hash of the launcher). `./mvnw`, `mvn`, `./gradlew` and `gradle` are shell scripts, so they are `not_available`; the build runs in `setup` |
 | Profiling | Java Flight Recorder or async-profiler, turned into folded stacks with class, method, file and line by `perfproof.profilers.java` |
 | Supported | JDK 21 (Temurin) on macOS arm64 and on Linux arm64 in Docker, with the profiler wrapper's fixtures captured on both, as run for T5.11; other JDKs and x86_64 are expected to work and have not been run |
@@ -89,7 +89,7 @@ from one launch form used for both versions.
 | Workload | The built release binary (`target/release/<name>`, built in `setup`), or a benchmark program in `.perfproof/harness/` that loops in process and prints its time (`reported`); see "Warm-up (Rust)" in [method.md](method.md) |
 | Oracle | The project's tests (`cargo test --release --locked`) and the binary's output compared between versions |
 | Coverage | `-C instrument-coverage` and the toolchain's `llvm-profdata` and `llvm-cov`, written as lcov by `perfproof.bench.rust_coverage`; not read by the coverage gate until T2.24 lands, so reported as not checked |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | The command must be the built binary, so that the runtime gate can read the compiler that built it (commit of `rustc`, from the binary). `cargo run`, `cargo bench` and `rustc` are `not_available`, because rustup picks the toolchain and cargo builds inside the timed run |
 | Profiling | `sample` on macOS and `perf` (CPU-clock event) on Linux, turned into folded stacks with demangled symbols by `perfproof.profilers.rust`; symbols only, no source lines |
 | Supported | rustc 1.94.1 on macOS arm64 (profiled with `sample`) and on Linux arm64 in Docker (profiled with perf 6.12), as run for T5.13; x86_64 Linux, other toolchains and `cargo-llvm-cov` were not run |
@@ -101,7 +101,7 @@ from one launch form used for both versions.
 | Workload | A Go benchmark or program built in `setup` and timed as the built executable (`go test -c` and the test binary, or `go build -o`), by `wall` or by a `reported` median of in-process blocks; see "Warm-up (Go)" in [method.md](method.md) |
 | Oracle | The project's tests (`go test -run ... ./pkg`) and the program's output compared between versions |
 | Coverage | `go test -coverprofile` (or `go build -cover` with `go tool covdata textfmt`), turned into lcov by `perfproof.bench.go_coverage`; it plugs into the coverage gate when T2.24 lands and is reported as not checked until then |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | A native `go` with `run`, `test`, `build` or `vet` is identified by the toolchain `go.mod` selects (version, platform, settings and a hash of its `go`); a built executable is compared by the toolchain named in its header. A `go` that is a script (a version manager's shim, a container launcher) is a shell, so `not_available` |
 | Profiling | pprof (CPU, memory, mutex, block) turned into folded stacks by `perfproof.profilers.go`, which reads the profile itself and needs no Go on the machine that converts it |
 | Supported | Go 1.25 on Linux arm64 in Docker (the official `golang:1.25` image), with the fixtures captured there and the profiler's integration tests run there, as run for T5.12; macOS and x86_64 are expected to work for the converters and have not been run with a Go toolchain |
@@ -114,7 +114,7 @@ from one launch form used for both versions.
 | Workload | A Ruby program or a gem's test or benchmark code run with a native `ruby`, timed as a whole (`wall`) or by a `reported` median of in-process iterations after a fixed warm-up (YJIT); see "Warm-up (Ruby)" in [method.md](method.md) |
 | Oracle | The project's tests (Minitest, RSpec) and the program's output compared between versions |
 | Coverage | SimpleCov's `.resultset.json`, turned into lcov by `perfproof.bench.ruby_coverage` (checked line by line against simplecov-lcov's own report); declared as `correctness.coverage_command` |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | A `ruby` (a version manager's shim included) is identified by `RUBY_DESCRIPTION` and a hash of the executable it reports; `bundle exec COMMAND` and binstubs are followed. `rbenv exec`, `rvm`, `asdf`, `mise`, other `bundle` subcommands and a `ruby` inside a container launcher are `not_available` |
 | Profiling | stackprof (CPU or wall) turned into folded stacks with method, file and line by `perfproof.profilers.ruby`, which starts it in every Ruby the command runs |
 | Supported | CRuby 4.0.7 with YJIT, stackprof 0.2.28 and SimpleCov 1.3.2 on Linux arm64 in Docker (the official `ruby:4.0` image), with the fixtures captured there and the wrapper's integration tests run there; the gate's probe also ran against this Mac's system Ruby 2.6.10. A Rails task runs only in Docker here (Rails needs a newer Ruby than the Mac's), so its runtime is `not_available` and a KEEP is withheld there until a native Ruby is installed |
@@ -127,7 +127,7 @@ from one launch form used for both versions.
 | Workload | A .NET application built in `setup` and timed as `dotnet bin/App.dll` by `wall`, or by a `reported` median of in-process iterations after a fixed warm-up (tiered JIT); see "Warm-up (.NET)" in [method.md](method.md) |
 | Oracle | The project's tests (`dotnet test`, xunit, NUnit, MSTest) and the program's output compared between versions |
 | Coverage | coverlet's Cobertura report (`dotnet test --collect:"XPlat Code Coverage"`), which the coverage check reads directly; declared as `correctness.coverage_command` |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | A native `dotnet` with `build`, `run`, `test` or `exec`, or a `.dll`, is identified by the SDK `global.json` selects, the installed runtimes and a hash of the host. A `dotnet` that is a script or a container launcher, and every other subcommand, is `not_available` |
 | Profiling | dotnet-trace (`--format Speedscope`) turned into folded stacks by `perfproof.profilers.dotnet`, with file and line found by reading the project's `.cs` files; the application is profiled as `dotnet bin/App.dll`, never `dotnet run` |
 | Supported | .NET SDK 10.0.402 and runtime 10.0.13 on Linux arm64 in Docker (the official `mcr.microsoft.com/dotnet/sdk:10.0` image), with the fixtures captured there and the integration tests run there, as run for T5.14. This Mac has no .NET, so the eval tasks run in Docker, where `runtime` is `not_available` and a KEEP is withheld until a native .NET is installed |
@@ -140,7 +140,7 @@ from one launch form used for both versions.
 | Workload | A C or C++ program or test binary built in `setup` and timed as the built executable, by `wall` or by a `reported` rate printed by the program; fixed work, not a fixed time; see "Warm-up (C and C++)" in [method.md](method.md) |
 | Oracle | The project's tests (its fuzzer or test executable) and the program's output compared between versions |
 | Coverage | gcc `--coverage` read with `gcov --json-format`, or clang `-fprofile-instr-generate -fcoverage-mapping` read with `llvm-cov export`, turned into lcov by `perfproof.bench.native_coverage`; it plugs into the coverage gate when T2.24 lands and is reported as not checked until then |
-| Guardrails | Peak memory of the process tree, 10% |
+| Guardrails | Peak memory (largest single process), 10% |
 | Runtime | A built executable is compared by the toolchain it names: an ELF file's `.comment` (compiler lines), a Mach-O file's SDK and linker version (it names no compiler). A native `cc`, `gcc`, `g++`, `c++`, `clang` or `clang++` as the command is identified by its `--version`, target and a hash of its file. `make`, `cmake`, `ninja` and scripts (including a `gcc` that is a script) are `not_available` |
 | Profiling | macOS `sample` and Linux `perf`, turned into folded stacks with `file:line` by `perfproof.profilers.native` |
 | Supported | Apple clang 17.0.0 on macOS arm64 (`sample`, llvm-cov, the runtime gate) and gcc 14.4.0, clang 19.1.7 and perf 6.12.113 on Linux arm64 in the official `gcc` image on Docker Desktop (`tests/fixtures/native/SOURCE.md`, `studies/native/`); x86_64 and other compilers are expected to work and have not been run |
