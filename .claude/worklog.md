@@ -138,6 +138,11 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Real-trace acceptance unit (Faras, 2026-10-28, Option 1, decided after seeing results).**
+  - Each target class's real traces under its own schedule count for acceptance. Off-class cells are reported, and their failures published as named limits: the 6 from the #101 audit, the shipped procedures on linux-llm and loaded-steady-web under other classes' schedules, at one-sided-noise skew, false KEEP 0.00-0.07% at S up to 1.025.
+  - `gpu_kernels` ships without KEEP until real GPU traces exist. Faras will rent a GPU for at most 6 hours before launch to record them.
+  - Flip PR: `task/calibrated-flip`. GPU recording prep: `task/gpu-traces-prep`. Cost and GPU type are stated for approval before any paid run.
+
 - **CALIBRATED flip blocked (#101 stats audit, 2026-10-28).**
   - The picolm cell's R=40000 rerun (2.075%) is not acceptance evidence: `method.md:3167` bars reruns of a failing cell. The cell of record is the 1000-pair trace in a whole real-trace run.
   - The auditor's whole real-trace run on the committed traces (seed 3018888685074391575, R=4000, 648 cells) fails 6 off-class cells:
