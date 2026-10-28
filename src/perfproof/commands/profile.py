@@ -24,6 +24,9 @@ saved there as ``result.json`` (written to a temporary file and
 renamed, so a reader never sees half of it), to read a profile again
 without profiling again. A failed write is ``state_write_failed``.
 
+``profile show NAME [RUN_ID] --function PATTERN`` looks functions up in
+such a saved run; see `perfproof.commands._profile_show`.
+
 ``--json`` result
 -----------------
 ``name``, ``spec_hash``
@@ -52,6 +55,16 @@ without profiling again. A failed write is ``state_write_failed``.
     in another stack, and the frames on every stack above the point
     where stacks first differ (``main``, ``runpy`` wrappers).
     Added after ``hotspots``; ``hotspots`` is unchanged.
+``project_frames_above_bar``
+    List of `perfproof.schema.Hotspot` JSON model dumps: the project's
+    own frames (``is_library`` false) whose total share is at least
+    ``min_effect``, by total share. Not cut to ``--top``, only to
+    `perfproof.profilers.query.PROJECT_FRAMES_LIMIT`, so every project
+    function worth a cap is here. Frames ``frames_by_total`` leaves out
+    are left out.
+``min_effect``, ``own_modules``
+    The spec's bar, and the ``--own-module`` values; ``profile show``
+    reads them from the saved result.
 ``unprofiled``
     ``{"wall_seconds", "cpu_seconds", "cpu_fraction"}`` of the
     unprofiled run. CPU time is user plus system time summed over
@@ -124,6 +137,7 @@ from perfproof.bench.spec import (
     spec_record_path,
 )
 from perfproof.commands import CommandError, JsonValue, Output
+from perfproof.commands._profile_show import RESULT_FILE, show
 from perfproof.profilers.folded import DEFAULT_TOP_N
 from perfproof.profilers.run import (
     Profile,
@@ -137,7 +151,6 @@ from perfproof.schema import BenchmarkSpec, Hotspot
 
 __all__ = ["RESULT_FILE", "add_arguments", "run"]
 
-RESULT_FILE: Final = "result.json"
 _HASH_FILE: Final = re.compile(r"^[0-9a-f]{64}\.json$")
 _HEX: Final = re.compile(r"^[0-9a-f]+$")
 _ZERO_HASH: Final = "0" * 64
@@ -160,7 +173,24 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         "Run a profiler on a benchmark and summarise the top frames with "
         "file:line and share of time."
     )
-    parser.add_argument("name", help="benchmark name")
+    parser.add_argument(
+        "name",
+        help='benchmark name; or "show" to look up a function in a saved '
+        "profile: profile show NAME [RUN_ID] --function PATTERN",
+    )
+    parser.add_argument(
+        "show_args",
+        nargs="*",
+        metavar="NAME [RUN_ID]",
+        help="with show: the benchmark and, optionally, the run",
+    )
+    parser.add_argument(
+        "--function",
+        metavar="PATTERN",
+        help="with show: function to find, such as createChildLogger or "
+        "Echo.ServeHTTP; its self and total share come from the run's "
+        "folded stacks",
+    )
     parser.add_argument(
         "--spec-hash",
         metavar="HASH",
@@ -232,6 +262,24 @@ def run(args: argparse.Namespace) -> Output:
         With one of the codes in this module's docstring.
     """
     name = cast("str", args.name)
+    extra = cast("list[str]", args.show_args)
+    function = cast("str | None", args.function)
+    if name == "show" and (extra or function is not None):
+        if not 1 <= len(extra) <= 2:
+            msg = "usage: profile show NAME [RUN_ID] --function PATTERN"
+            raise CommandError("invalid_argument", msg)
+        return show(
+            _repo_root(cast("Path", args.repo)),
+            extra[0],
+            extra[1] if len(extra) > 1 else None,
+            function,
+        )
+    if extra or function is not None:
+        msg = (
+            "profile takes one benchmark name; NAME [RUN_ID] and "
+            "--function belong to `profile show`"
+        )
+        raise CommandError("invalid_argument", msg)
     template = _template(cast("str | None", args.profiler_command))
     root = _repo_root(cast("Path", args.repo))
     spec = _spec(root, name, cast("str | None", args.spec_hash))
@@ -299,6 +347,8 @@ def run(args: argparse.Namespace) -> Output:
     result["summary"] = summary
     result["evidence"] = {"path": str(ref.path), "sha256": ref.sha256}
     result["hypothesis"] = hypothesis
+    result["min_effect"] = spec.min_effect
+    result["own_modules"] = list(cast("list[str]", args.own_module))
     result["run_id"] = out_dir.name
     result["finished_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     _save(out_dir, result)
@@ -503,6 +553,9 @@ def _result(
     by_total: list[JsonValue] = [
         h.model_dump(mode="json") for h in profile.frames_by_total
     ]
+    above: list[JsonValue] = [
+        h.model_dump(mode="json") for h in profile.project_frames_above_bar
+    ]
     return {
         "name": spec.name,
         "spec_hash": spec.spec_hash,
@@ -512,6 +565,7 @@ def _result(
         "weight_unit": profile.weight_unit,
         "hotspots": hotspots,
         "frames_by_total": by_total,
+        "project_frames_above_bar": above,
         "unprofiled": {
             "wall_seconds": plain.wall_seconds,
             "cpu_seconds": plain.cpu_seconds,

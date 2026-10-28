@@ -76,6 +76,75 @@ that name the run: `run_id` (the directory's name) and `finished_at`
 Keys are only ever added. A write that fails is `state_write_failed`,
 as for the run's directory.
 
+The result also carries, added after the keys above:
+
+- `project_frames_above_bar`: the project's own frames
+  (`is_library` false) whose total share is at least `min_effect`,
+  ranked by total, as `Hotspot` objects. It is not cut to `--top`, only
+  to 50, so every project function worth a cap is listed even when
+  the printed lists don't reach it. Frames the total ranking leaves
+  out (synthetic and entry frames, and the frames on every stack above
+  the point where stacks first differ) are not in it either.
+- `min_effect`: the spec's bar as a fraction, which the list above was
+  cut at.
+- `own_modules`: the `--own-module` values the run was given, which
+  `profile show` needs to classify frames the same way.
+
+### Looking a function up: `profile show`
+
+```
+perfproof profile show <name> [<run-id>] --function <pattern> [--json]
+```
+
+Reads the saved run `.perfproof/profiles/<name>/<run-id>/` (a run id is
+a directory name or a unique prefix of one; the latest run when
+omitted) and answers for the functions that match `<pattern>` from the
+run's folded stacks, which are streamed once: nothing is profiled again.
+It exists for the function the agent suspects from reading the code and
+that the printed lists don't show. `--function` goes after the names.
+A benchmark named `show` is profiled as usual unless `--function` or a
+second name follows.
+
+A pattern is matched as the skill evaluation matches its hotspot names
+(`perfproof.profilers.names`): the last component of the printed name
+must equal the pattern's, and an owner in the pattern (`Echo.ServeHTTP`,
+`Foo::bar`) must end the printed owner. Arguments, generics, import
+paths and Rust hashes in the printed name are ignored, and a name that
+only shares a suffix (`sum` for `slow_sum`) never matches. Every
+function is searched, including the entry and synthetic frames the
+printed lists leave out.
+
+`--json` result: `name`, `run_id`, `directory`, `folded`, `profiler`,
+`basis`, `weight_unit` (as saved), `pattern`, `samples` (all samples of
+the profile, the denominator), `found`, `functions`, `functions_omitted`,
+`reason`, `match`, `note`, `min_effect` (the run's bar, `null` if it
+did not save one) and `labels`. `functions` lists the matches by total share then self
+share, at most 50, each with `function`, `file`, `line`, `frame_kind`,
+`is_library`, `self_fraction`, `total_fraction`, `self_samples`,
+`total_samples`, `cap` (`1 / (1 - total_fraction)`, a bound and never a
+measured effect; `null` when the function is the whole profile), `seen`
+and, when the bar is known, `cap_above_bar` (`true` for a `null` cap).
+Two functions of the same name in different files are two entries.
+
+`match` says how the matches were found: `exact`, or, for a pattern with
+an owner that no printed frame carries (`kernels.fib`, where the frame
+prints as `fib (app/kernels.py:12)`), `file` (the owner is the file's
+stem) and then `bare_name` (the name alone). `note` says which when it
+is not `exact`. A function present under its bare name is never
+reported as absent. Eval scoring keeps the strict rule.
+
+A function with no sample is not an error: `found` is `false`,
+`functions` holds one entry for the pattern with zero shares and
+counts, `cap` 1.0 and `seen` false, and `reason` and that entry's
+`reason` say `not seen in this profile`, with the two causes that can
+hide a function the workload runs (inlined, or unsymbolised).
+
+Error codes: `not_a_repository`, `invalid_name`, `invalid_argument`
+(no `--function`, a wrong number of names, a run id that is not a
+directory name), `invalid_pattern`, `not_found` (no saved run, or none
+with that id), `ambiguous_run`, `invalid_record` (`result.json` is not
+a profile result), `state_read_failed` and `invalid_profile`.
+
 ## Long runs
 
 `compare` runs in the foreground by default. When a comparison may

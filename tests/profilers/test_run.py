@@ -846,6 +846,7 @@ def test_cli_profiles_with_a_command_profiler(
         "weight_unit",
         "hotspots",
         "frames_by_total",
+        "project_frames_above_bar",
         "unprofiled",
         "profiled_wall_seconds",
         "load_average",
@@ -855,6 +856,8 @@ def test_cli_profiles_with_a_command_profiler(
         "evidence",
         "hypothesis",
         "argv",
+        "min_effect",
+        "own_modules",
         "run_id",
         "finished_at",
         "directory",
@@ -920,6 +923,231 @@ def test_cli_profiles_with_a_command_profiler(
     again = json.loads((runs[1] / "result.json").read_text())
     assert again["run_id"] == runs[1].name
     assert again["hotspots"]
+
+
+def rooted_template(tree: Path) -> tuple[str, ...]:
+    """A copy profiler whose capture is the rolling fixture with its
+    paths moved from where py-spy saw the project to ``tree``."""
+    moved = tree.parent / "rolling-moved.txt"
+    text = (PYSPY / "rolling.txt").read_text(encoding="utf-8")
+    moved.write_text(
+        text.replace(str(PYSPY_ROOT["rolling"]), str(tree)), encoding="utf-8"
+    )
+    return (
+        sys.executable,
+        str(tree / "copy_profiler.py"),
+        str(moved),
+        "{output}",
+        "{command}",
+    )
+
+
+def test_project_frames_above_the_bar_are_not_cut_to_top(
+    tree: Path,
+) -> None:
+    spec = make_spec([sys.executable, "work.py"], min_effect=0.1)
+    out = tree.parent / "out"
+    out.mkdir()
+    profile = profile_benchmark(
+        spec,
+        tree,
+        out,
+        profiler="command",
+        process_env=process_env(),
+        template=rooted_template(tree),
+        top_n=1,
+    )
+    assert len(profile.frames_by_total) == 1
+    assert len(profile.hotspots) == 1
+    names = [h.function for h in profile.project_frames_above_bar]
+    assert names == ["main", "rolling_sum"]
+    assert all(not h.is_library for h in profile.project_frames_above_bar)
+    assert profile.hotspots == summarise_file(
+        out / "command.folded.txt", project_root=tree, top_n=1
+    )
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_cli_show_finds_a_function_the_profile_did_not_print(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    where = ["--repo", str(repo)]
+    status, ran = cli_json(
+        capsys,
+        "profile",
+        "rolling-sum",
+        "--profiler-command",
+        template,
+        "--top",
+        "1",
+        *where,
+    )
+    assert status == 0, ran
+    printed = {h["function"] for h in ran["result"]["frames_by_total"]}
+    assert "_find_and_load" not in printed
+    status, document = cli_json(
+        capsys,
+        "profile",
+        "show",
+        "rolling-sum",
+        "--function",
+        "_find_and_load",
+        *where,
+    )
+    assert status == 0, document
+    result = document["result"]
+    assert result["run_id"] == ran["result"]["run_id"]
+    assert result["found"] is True
+    assert result["reason"] is None
+    assert result["samples"] == 88
+    (entry,) = result["functions"]
+    assert entry["function"] == "_find_and_load"
+    assert entry["seen"] is True
+    assert entry["total_fraction"] == pytest.approx(24 / 88)
+    assert entry["total_samples"] == 24
+    assert entry["cap"] == pytest.approx(1 / (1 - 24 / 88))
+    assert entry["cap_above_bar"] is True
+    assert result["min_effect"] == ran["result"]["min_effect"]
+    status = main(
+        ["profile", "show", "rolling-sum", "--function", "_find", *where]
+    )
+    text, _ = capsys.readouterr()
+    assert status == 0
+    assert "not seen in this profile" in text
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_cli_show_reports_an_absent_function_as_share_zero(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    where = ["--repo", str(repo)]
+    status, _ = cli_json(
+        capsys,
+        "profile",
+        "rolling-sum",
+        "--profiler-command",
+        template,
+        *where,
+    )
+    assert status == 0
+    status, document = cli_json(
+        capsys,
+        "profile",
+        "show",
+        "rolling-sum",
+        "--function",
+        "createChildLogger",
+        *where,
+    )
+    assert status == 0, document
+    result = document["result"]
+    assert result["found"] is False
+    assert result["reason"].startswith("not seen in this profile")
+    (entry,) = result["functions"]
+    assert entry["seen"] is False
+    assert (entry["self_fraction"], entry["total_fraction"]) == (0.0, 0.0)
+    assert (entry["self_samples"], entry["total_samples"]) == (0, 0)
+    assert entry["reason"] == result["reason"]
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_cli_show_reads_the_latest_run_or_the_one_named(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    where = ["--repo", str(repo)]
+    for _ in range(2):
+        status, _ = cli_json(
+            capsys,
+            "profile",
+            "rolling-sum",
+            "--profiler-command",
+            template,
+            *where,
+        )
+        assert status == 0
+    first, second = sorted(
+        p.name
+        for p in (repo / ".perfproof" / "profiles" / "rolling-sum").iterdir()
+    )
+    ask = ["profile", "show", "rolling-sum"]
+    function = ["--function", "rolling_sum"]
+    _, latest = cli_json(capsys, *ask, *function, *where)
+    assert latest["result"]["run_id"] == second
+    _, named = cli_json(capsys, *ask, first, *function, *where)
+    assert named["result"]["run_id"] == first
+    _, prefix = cli_json(capsys, *ask, first[:20], *function, *where)
+    assert prefix["result"]["run_id"] == first
+    _, shared = cli_json(capsys, *ask, first[:8], *function, *where)
+    assert shared["error"]["code"] == "ambiguous_run"
+
+
+@pytest.mark.usefixtures("benchmark_path")
+def test_a_benchmark_named_show_is_still_profiled(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    spec = (repo / "spec.json").read_text(encoding="utf-8")
+    write(
+        repo / "spec-show.json",
+        spec.replace('"name": "rolling-sum"', '"name": "show"'),
+    )
+    where = ["--repo", str(repo)]
+    status, defined = cli_json(
+        capsys,
+        "bench",
+        "define",
+        "show",
+        "--spec",
+        str(repo / "spec-show.json"),
+        *where,
+    )
+    assert status == 0, defined
+    write(repo / "copy_profiler.py", COPY_PROFILER)
+    template = json.dumps(copy_template(repo))
+    status, document = cli_json(
+        capsys, "profile", "show", "--profiler-command", template, *where
+    )
+    assert status == 0, document
+    assert document["result"]["name"] == "show"
+    assert document["result"]["hotspots"]
+
+
+@pytest.mark.parametrize(
+    ("argv", "code"),
+    [
+        (["profile", "show", "rolling-sum"], "invalid_argument"),
+        (["profile", "show", "--function", "f"], "invalid_argument"),
+        (
+            ["profile", "show", "a", "b", "c", "--function", "f"],
+            "invalid_argument",
+        ),
+        (["profile", "show", "../x", "--function", "f"], "invalid_name"),
+        (
+            ["profile", "show", "rolling-sum", "--function", "  "],
+            "invalid_pattern",
+        ),
+        (["profile", "show", "rolling-sum", "--function", "f"], "not_found"),
+        (
+            ["profile", "show", "rolling-sum", "a/b", "--function", "f"],
+            "invalid_argument",
+        ),
+        (["profile", "rolling-sum", "--function", "f"], "invalid_argument"),
+    ],
+)
+def test_cli_show_errors(
+    repo: Path,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+    code: str,
+) -> None:
+    status, document = cli_json(capsys, *argv, "--repo", str(repo))
+    assert status == 1
+    assert document["error"]["code"] == code
 
 
 @pytest.mark.usefixtures("benchmark_path")

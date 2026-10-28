@@ -106,6 +106,7 @@ from perfproof.profilers.folded import (
     FoldedStackError,
     rank_file,
 )
+from perfproof.profilers.query import PROJECT_FRAMES_LIMIT
 from perfproof.schema import BenchmarkSpec, GateResult, Hotspot
 
 __all__ = [
@@ -267,6 +268,11 @@ class Profile:
         output was converted.
     log_paths : tuple of pathlib.Path
         Stdout and stderr of both runs.
+    project_frames_above_bar : tuple of perfproof.schema.Hotspot
+        The project's own frames (``is_library`` false) whose total
+        share is at least the spec's ``min_effect``, by total share,
+        at most `perfproof.profilers.query.PROJECT_FRAMES_LIMIT`. Not
+        cut to ``top_n``.
     """
 
     profiler: ProfilerName
@@ -284,6 +290,7 @@ class Profile:
     raw_path: Path
     folded_path: Path
     log_paths: tuple[Path, ...]
+    project_frames_above_bar: tuple[Hotspot, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -461,6 +468,8 @@ def profile_benchmark(
             project_root=tree_root,
             top_n=top_n,
             own_modules=own_modules,
+            bar=spec.min_effect,
+            bar_limit=PROJECT_FRAMES_LIMIT,
         )
     except FoldedStackError as exc:
         msg = f"{folded} is not folded stacks: {exc}"
@@ -490,6 +499,7 @@ def profile_benchmark(
         raw_path=plan.raw_path,
         folded_path=folded,
         log_paths=tuple(logs),
+        project_frames_above_bar=ranking.above_bar,
     )
 
 

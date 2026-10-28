@@ -48,7 +48,7 @@ import heapq
 import os
 import posixpath
 import re
-from collections.abc import Collection, Iterable
+from collections.abc import Callable, Collection, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal
@@ -395,10 +395,24 @@ class Ranking:
     by_total : tuple of perfproof.schema.Hotspot
         Functions by total (inclusive) share, as `rank` describes them.
         ``is_library`` is false for the project's own frames.
+    samples : int
+        Total sample count of the input, the denominator of every
+        fraction. A frame's own count is ``round(fraction * samples)``.
+    above_bar : tuple of perfproof.schema.Hotspot
+        The project's own functions whose total fraction is at least
+        the ``bar`` given to `rank`, by total then self count, at most
+        ``bar_limit``; empty when no bar was given. Chosen from the
+        same functions as ``by_total``, whatever ``top_n`` is.
+    matched : int
+        Functions eligible for ``by_total`` (those matching
+        ``name_filter`` when one was given), before ``top_n`` cut them.
     """
 
     by_self: tuple[Hotspot, ...]
     by_total: tuple[Hotspot, ...]
+    samples: int
+    above_bar: tuple[Hotspot, ...] = ()
+    matched: int = 0
 
 
 _PSEUDO_NAME: Final = re.compile(r"<[^<>\s]+>")
@@ -502,6 +516,10 @@ def rank(
     project_root: Path,
     top_n: int = DEFAULT_TOP_N,
     own_modules: Collection[str] = (),
+    keep_all: bool = False,
+    name_filter: Callable[[str], bool] | None = None,
+    bar: float | None = None,
+    bar_limit: int = DEFAULT_TOP_N,
 ) -> Ranking:
     """Rank the frames of folded stacks by self time and by total time.
 
@@ -515,6 +533,19 @@ def rank(
         Most frames in each ranking; at least 1.
     own_modules : collection of str, optional
         As for `summarise`.
+    keep_all : bool, optional
+        Leave out no function from ``by_total``: not the synthetic,
+        entry, trampoline or common-prefix frames described below. For
+        looking up one function by name, where a frame the ranking
+        would hide must still be found. Default false.
+    name_filter : callable, optional
+        Takes a function's printed name; only functions it accepts are
+        eligible for ``by_total``.
+    bar : float, optional
+        A fraction of the samples. When given, ``above_bar`` lists the
+        project's own functions with at least that total fraction.
+    bar_limit : int, optional
+        Most functions in ``above_bar``; at least 1.
 
     Returns
     -------
@@ -574,6 +605,9 @@ def rank(
     """
     if top_n < 1:
         msg = f"top_n must be at least 1, got {top_n}"
+        raise ValueError(msg)
+    if bar_limit < 1:
+        msg = f"bar_limit must be at least 1, got {bar_limit}"
         raise ValueError(msg)
     normaliser = _Normaliser(project_root, own_modules)
     ids: dict[str, int] = {}
@@ -675,26 +709,49 @@ def rank(
             if group_total[g] == samples and group_self[g] == 0
         }
         - {prefix[-1]}
-        if prefix
+        if prefix and not keep_all
         else set[int]()
     )
-    by_group = heapq.nlargest(
-        top_n,
-        (
-            g
-            for g in range(len(members))
-            if group_total[g] > 0
-            and g not in wrappers
-            and (not has_project or in_work[g] or group_self[g] > 0)
-            and (
-                not has_project
-                or group_self[g] > 0
-                or no_project_below[g]
-                or not frames[members[g][0]].is_library
+    eligible = [
+        g
+        for g in range(len(members))
+        if group_total[g] > 0
+        and (
+            keep_all
+            or (
+                g not in wrappers
+                and (not has_project or in_work[g] or group_self[g] > 0)
+                and (
+                    not has_project
+                    or group_self[g] > 0
+                    or no_project_below[g]
+                    or not frames[members[g][0]].is_library
+                )
+                and not _synthetic(frames[members[g][0]])
             )
-            and not _synthetic(frames[members[g][0]])
-        ),
-        key=lambda g: (group_total[g], group_self[g]),
+        )
+        and (
+            name_filter is None or name_filter(frames[members[g][0]].function)
+        )
+    ]
+
+    def by_total_then_self(g: int) -> tuple[int, int]:
+        return group_total[g], group_self[g]
+
+    by_group = heapq.nlargest(top_n, eligible, key=by_total_then_self)
+    above = (
+        heapq.nlargest(
+            bar_limit,
+            (
+                g
+                for g in eligible
+                if not frames[members[g][0]].is_library
+                and group_total[g] / samples >= bar
+            ),
+            key=by_total_then_self,
+        )
+        if bar is not None
+        else []
     )
 
     def hotspots(ids: list[int]) -> tuple[Hotspot, ...]:
@@ -728,7 +785,13 @@ def rank(
             )
         return tuple(out)
 
-    return Ranking(hotspots(by_self), function_hotspots(by_group))
+    return Ranking(
+        hotspots(by_self),
+        function_hotspots(by_group),
+        samples,
+        function_hotspots(above),
+        len(eligible),
+    )
 
 
 def summarise_file(
@@ -783,6 +846,10 @@ def rank_file(
     project_root: Path,
     top_n: int = DEFAULT_TOP_N,
     own_modules: Collection[str] = (),
+    keep_all: bool = False,
+    name_filter: Callable[[str], bool] | None = None,
+    bar: float | None = None,
+    bar_limit: int = DEFAULT_TOP_N,
 ) -> Ranking:
     """Rank the frames of a folded-stack file, as `rank` does.
 
@@ -797,6 +864,8 @@ def rank_file(
     top_n : int, optional
         As for `rank`.
     own_modules : collection of str, optional
+        As for `rank`.
+    keep_all, name_filter, bar, bar_limit
         As for `rank`.
 
     Returns
@@ -819,4 +888,8 @@ def rank_file(
             project_root=project_root,
             top_n=top_n,
             own_modules=own_modules,
+            keep_all=keep_all,
+            name_filter=name_filter,
+            bar=bar,
+            bar_limit=bar_limit,
         )
