@@ -323,6 +323,10 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- **Eval edit detector is strict on purpose** (PR #97 closed, 2026-10-28). An agent that writes scratch files after `cd .perfproof/...` (rust-fd in d1), or edits a scratch copy (dotnet), is scored as editing code before profiling, so the hotspot check fails though the profile came first. Four review rounds of a cd-tracking fix each leaked real edits (subshells, a cd in loop bodies, `builtin cd`). Read hidden-fix hotspot results by hand when the detail says "first successful profile came after the first edit".
+- **`reset_tmp` and read-only dirs** (PR #96 review, non-blocking): `rmtree(ignore_errors=True)` leaves a 0555 subdir, and the next `mkdir` raises `FileExistsError`, which aborts the re-run until it's removed by hand.
+- **Eval-only tool faults** (d1 diagnosis): `ps` can't exec under seatbelt, so `compare --detach` fails with `spawn_failed`, and `_kill.descendants` returns None inside the eval sandbox. The native setup env drops `SDKROOT` (`side_effects.py:184`); the cause is the sandbox closing xcrun's cache dir. A real user doesn't hit either.
+
 - **macOS `sample` cannot attach to the python.org Python** (hardened runtime, 2026-10-28). PR #91's worktree venv was built on `/Library/Frameworks/Python.framework`. There, `test_perfproof_native_recorder_works_under_the_profile` failed every time ("sample cannot examine process ... for unknown reasons"). It passed after the venv was rebuilt on uv's managed Python. Product impact: a user whose project runs on the python.org Python gets no native profile on macOS. The skill or `doctor` should name the cause and suggest a uv or Homebrew Python. Not yet fixed.
 
 - PR #93 review nits (2026-10-28, non-blocking):
