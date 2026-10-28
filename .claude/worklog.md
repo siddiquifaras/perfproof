@@ -262,6 +262,9 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
     - query a suspect function's share instead of stopping.
 
     Iterate on the hidden-fix tasks only, then a full round.
+  - (4) Real prompts (Faras, 10-28): users usually give no workload, or ramble or overstate.
+    - The skill infers workloads from the repo (README usage, entry points, examples, project benchmarks and tests), tries more than one, extracts the slow area, goal and limits from a long prompt, checks claims instead of trusting them, and asks at most one question.
+    - Add messy-prompt variants to the eval set: no workload, vague, rambling, a wrong claim.
 
 ### In progress
 
