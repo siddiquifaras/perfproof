@@ -112,6 +112,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 | `0efbd4b` | T2.9 folded-stack summariser merged (PR #8), squash, at `f317b70` after three reviews (two blocked on frame normalisation, fixed); CI 4/4 on that head |
 | `0eb8160` | T1.3 decision rule merged (PR #3), squash, at reviewed head `bd14548`: reviewer and stats-auditor both PASS on that commit, CI 4/4 green on it |
 | `aa6ef93` | Plan rebuilt as a small exact CLI plus skills; failure modes, CLI spec, evaluation design, target contracts |
+| `bee378c` | T3.16 install merged (PR #91), squash, at `05ea6c3` (reviewed `d8a7b64` plus a worklog-only main merge): Claude Code plugin (`.claude-plugin/`, `bin/perfproof` via `uvx`), doctor reads plugin records, `docs/install.md`. Reviewer PASS. Mac 6083 passed with 1 failure from that worktree's venv (python.org Python, `sample` can't attach); it passed after a rebuild on uv's Python. Linux 5986 passed. PR's own tests after the main merge: 657 passed. T3.16 stays open: no first run has reached a verdict yet (Done-when). Not verified: Codex with a model, GitHub/PyPI install lines (not public) |
 
 ### Tests
 
