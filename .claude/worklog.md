@@ -137,6 +137,13 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Discovery scores are tuned, not held out (PR #100 review, 2026-10-28).**
+  - The skill text added in round 9 and d1 to d3 mirrored the hidden-fix tasks' features: CLI colour (the fd tasks), parse and serialize or encode and decode (jackson, simdjson), decorators and middleware (django, fastify), most-called helpers (xarray). It was reworded to general method in 00ed1b1.
+  - So the d1 to d3 results and the r10 real-repo discovery numbers (4/12 and 5/11) are scores on the tuning set. Never quote them as evidence that discovery generalises.
+  - The fd results may partly reflect the general terminal-versus-pipe sentence.
+  - Proving, the language-family results and wrong-KEEP counts are not affected.
+  - An honest discovery number needs held-out hidden-fix tasks; awaiting Faras's call.
+
 - **Discovery iterations (2026-10-28):** 18 tasks each (6 find examples, 12 real hidden-fix and `-msg-` tasks), as ppeval.
   - **d1** (skill 9124c21, about $9.60): examples 3/6 (all three failures were the pytest 9.2 marker bug, fixed by #94), real 1/12, wrong KEEP 0.
   - **d2** (skill 8af2de7: forced colour, second-workload triggers, coverage check, claims; about $9.24): examples 6/6, real 0/12, wrong KEEP 0.
