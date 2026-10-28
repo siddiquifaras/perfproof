@@ -305,6 +305,57 @@ def test_the_command_reaches_the_tool_after_the_double_dash(
     assert argv[argv.index("--") + 1 :] == ["dotnet", "bin/App.dll", "3"]
 
 
+def env_seen_by_tool(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, path: str, **env: str
+) -> str | None:
+    seen = tmp_path / "env.txt"
+    tool = stand_in_tool(tmp_path, f'echo "${{DOTNET_ROOT-unset}}" > "{seen}"')
+    monkeypatch.delenv("DOTNET_ROOT", raising=False)
+    monkeypatch.setenv("PATH", path)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    dotnet.record(["x"], tmp_path / "o", dotnet_trace=tool)
+    return seen.read_text().strip()
+
+
+def fake_dotnet(tmp_path: Path) -> tuple[Path, Path]:
+    real = tmp_path / "real"
+    real.mkdir()
+    host = real / "dotnet"
+    host.write_text("#!/bin/sh\n")
+    host.chmod(0o755)
+    links = tmp_path / "links"
+    links.mkdir()
+    (links / "dotnet").symlink_to(host)
+    return links, real
+
+
+def test_dotnet_root_is_the_directory_the_dotnet_symlink_points_to(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    links, real = fake_dotnet(tmp_path)
+    seen = env_seen_by_tool(tmp_path, monkeypatch, str(links))
+    assert seen == str(real.resolve())
+
+
+def test_an_explicit_dotnet_root_is_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    links, _ = fake_dotnet(tmp_path)
+    seen = env_seen_by_tool(
+        tmp_path, monkeypatch, str(links), DOTNET_ROOT="/chosen/root"
+    )
+    assert seen == "/chosen/root"
+
+
+def test_no_dotnet_on_the_path_adds_no_dotnet_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert env_seen_by_tool(tmp_path, monkeypatch, str(empty)) == "unset"
+
+
 def test_a_trace_with_no_samples_is_an_error(tmp_path: Path) -> None:
     empty = layout("")
     tool = stand_in_tool(

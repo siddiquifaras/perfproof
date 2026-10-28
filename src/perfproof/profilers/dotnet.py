@@ -33,6 +33,16 @@ frames, no frame of the program). Build in ``setup`` and profile
 about every millisecond); time in the runtime's start-up and in the
 SDK is in it.
 
+dotnet-trace is an apphost: it finds the runtime only through
+``DOTNET_ROOT`` or ``/usr/local/share/dotnet``. ``perfproof profile``
+passes a trimmed environment that drops ``DOTNET_ROOT``, so a .NET
+installed elsewhere (``~/.dotnet``, any user-local directory) made it
+exit 131 ("You must install .NET"). When the environment has no
+``DOTNET_ROOT``, the tool gets one for that process only: the directory
+of the ``dotnet`` first on its ``PATH``, symlinks resolved. An explicit
+``DOTNET_ROOT`` is kept, and with no ``dotnet`` on the ``PATH`` the
+environment is left alone so dotnet-trace's own error stands.
+
 The JSON is read in chunks with a pattern for the fixed layout the tool
 writes, so memory does not grow with the length of the trace: it holds
 the frame names, one stack per thread, and the distinct stacks since
@@ -49,7 +59,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Final, TextIO
 
@@ -355,8 +365,37 @@ def _say(message: str) -> None:
     sys.stderr.write(f"perfproof.profilers.dotnet: {message}\n")
 
 
+def tool_environment(env: Mapping[str, str]) -> dict[str, str]:
+    """Return ``env`` with ``DOTNET_ROOT`` set when it can be found.
+
+    dotnet-trace cannot find a runtime outside its default location
+    without ``DOTNET_ROOT``, and the profiling environment drops it.
+
+    Parameters
+    ----------
+    env : mapping of str to str
+        The environment the tool would get.
+
+    Returns
+    -------
+    dict of str to str
+        A copy of ``env``. When it has no ``DOTNET_ROOT`` and a
+        ``dotnet`` is on its ``PATH``, ``DOTNET_ROOT`` is the directory
+        of that host with symlinks resolved; otherwise it is unchanged.
+    """
+    result = dict(env)
+    if "DOTNET_ROOT" in result:
+        return result
+    host = shutil.which("dotnet", path=result.get("PATH", ""))
+    if host is not None:
+        result["DOTNET_ROOT"] = str(Path(host).resolve().parent)
+    return result
+
+
 def run_command(
-    command: Sequence[str], timeout_seconds: float
+    command: Sequence[str],
+    timeout_seconds: float,
+    env: Mapping[str, str] | None = None,
 ) -> tuple[int, bool]:
     """Run a command; return ``(status, timed_out)``.
 
@@ -370,8 +409,10 @@ def run_command(
         The argv; stdout and stderr are inherited.
     timeout_seconds : float
         Time limit in seconds.
+    env : mapping of str to str, optional
+        The child's environment; the current one when omitted.
     """
-    process = subprocess.Popen(list(command))
+    process = subprocess.Popen(list(command), env=env)
     try:
         return process.wait(timeout=timeout_seconds), False
     except subprocess.TimeoutExpired:
@@ -473,7 +514,9 @@ def record(
         "--",
         *command,
     ]
-    status, timed_out = run_command(argv, timeout_seconds)
+    status, timed_out = run_command(
+        argv, timeout_seconds, tool_environment(os.environ)
+    )
     if timed_out:
         return _EXIT_TIMEOUT
     speedscope = directory / "trace.speedscope.json"
