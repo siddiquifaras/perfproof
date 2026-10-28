@@ -72,6 +72,7 @@ install there would import its source in both versions.
 {
   "schema_version": 4,
   "name": "<name>",
+  "target_class": "<the project's target class>",
   "command": ["python", "bench.py", "--output", "out/result.npy"],
   "cwd": ".",
   "env": {},
@@ -92,8 +93,8 @@ install there would import its source in both versions.
     "outputs": [{"path": "out/result.npy", "compare": "numbers"}]
   },
   "warmup": 1,
-  "budget": {"max_rounds": 60, "max_seconds": 1800},
-  "looks": {"n0": 10, "k": 10, "max_looks": 6},
+  "budget": {"max_rounds": "<the class's rounds>", "max_seconds": 1800},
+  "looks": "<the class's own schedule, from the list below>",
   "min_effect": 0.03,
   "alpha": 0.05,
   "timeout_seconds": 120,
@@ -125,10 +126,19 @@ install there would import its source in both versions.
   (a local database, a cache directory), add
   `"reset": {"command": [...], "timeout_seconds": 60}` to put it back
   before every run.
-- `budget` and `looks`: use the template's values (60 rounds, `n0` 10,
-  `k` 10, `max_looks` 6), the provisional defaults the decision rule is
-  calibrated under. Depth changes how many ideas you try, not these.
-  `n0` and `k` must be even.
+- `target_class` and `looks`: set `target_class` from the `target_class`
+  of the `init` target the workload belongs to, and `looks` and
+  `budget.max_rounds` to that class's own schedule (`n0`, `k`,
+  `max_looks`, rounds): `python_cpu` and `native` 10, 10, 6, 60;
+  `web_service` and `agentic` 10, 10, 3, 30; `llm_serving` 10, 6, 3, 22;
+  `gpu_kernel` 20, 20, 6, 120. Only with that class and its own
+  schedule can a KEEP be confirmed. `target_class` is one of the
+  `init` project model's target entries, never anything else, and
+  perfproof checks it against that model. If exactly one target fits
+  the workload, use it. If none or several fit, ask the user once,
+  naming the candidates. If they don't know, leave the class out: the
+  run still measures and KEEP is withheld with `target_class_unknown`.
+  Depth changes how many ideas you try, not these. `n0` and `k` must be even.
 - `min_effect`: the bar. A change is kept only if even the low end of
   its range beats `1 + min_effect` (3% by default). Change it only if
   the user states a different bar.

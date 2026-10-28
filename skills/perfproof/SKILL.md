@@ -52,10 +52,14 @@ the user.
   - **Verdicts**: only from `compare`, only when
     `verdict.calibration == "calibrated"`. Only then say "kept" or
     "faster".
-- Until perfproof is calibrated, every compare ends INCONCLUSIVE with
-  `verdict.diagnostics.procedure_uncalibrated: true`. Say: "perfproof can't keep
-  changes yet. The estimate is X (range A to B), not yet a verdict." Do
-  not offer to rerun it: a rerun cannot change that.
+- When `verdict.calibration` is not `calibrated`, KEEP is withheld, and
+  `not_verified` or `warnings` names why (`target_class_unknown`,
+  `schedule_not_class_own`, `schedule_uncalibrated`). Say it plainly:
+  "this setup isn't one perfproof has been checked on, so it can't
+  confirm a keep", then the estimate (X, range A to B) as "not a
+  verdict". For `gpu_kernel`: "measured, but perfproof can't yet confirm
+  a keep for GPU kernels". If the spec lacks the class or its schedule,
+  fix the spec and rerun; otherwise a rerun cannot change it.
 - Every stop short of the user's goal (INCONCLUSIVE, an estimate whose
   range does not clear the bar, a speedup short of the target, a cap
   missed) ends with four things, never a dead end: where the user
@@ -88,7 +92,7 @@ the user.
   gate (correctness, lock, side_effects, runtime, procedure, same_host)
   is a verdict: copy it. Use `Result: NO VERDICT (<plain
   reason>)` only when `compare` returned no verdict at all (you stopped
-  before it, or it answered `ok: false`). An uncalibrated INCONCLUSIVE
+  before it, or it answered `ok: false`). An INCONCLUSIVE with KEEP withheld
   is "not yet a verdict" to the user, but `compare` did return one:
   its line is `Result: INCONCLUSIVE (<verdict.reason>)`, never NO
   VERDICT. The line reports the last `compare` verdict even when you
