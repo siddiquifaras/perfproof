@@ -138,6 +138,16 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **CALIBRATED flip blocked (#101 stats audit, 2026-10-28).**
+  - The picolm cell's R=40000 rerun (2.075%) is not acceptance evidence: `method.md:3167` bars reruns of a failing cell. The cell of record is the 1000-pair trace in a whole real-trace run.
+  - The auditor's whole real-trace run on the committed traces (seed 3018888685074391575, R=4000, 648 cells) fails 6 off-class cells:
+    - linux-llm with gpu_kernels: 190, 349 and 484 of 4000;
+    - linux-llm with python_native: 153 and 94;
+    - linux-loaded-steady-web with gpu_kernels: 104.
+  - 8 of the 27 committed traces were in no earlier result.
+  - Every cell must pass (`method.md:2236`, `3167`), so the flip waits for a diagnosis: replay artifact (a warm-up discard missing from the harness), procedure fault, or a broken trace. Then the fix, and a whole calibration at a new seed.
+  - Launch risk: if the procedure must change, the flip slips past 10-30.
+
 - **Discovery scores are tuned, not held out (PR #100 review, 2026-10-28).**
   - The skill text added in round 9 and d1 to d3 mirrored the hidden-fix tasks' features: CLI colour (the fd tasks), parse and serialize or encode and decode (jackson, simdjson), decorators and middleware (django, fastify), most-called helpers (xarray). It was reworded to general method in 00ed1b1.
   - So the d1 to d3 results and the r10 real-repo discovery numbers (4/12 and 5/11) are scores on the tuning set. Never quote them as evidence that discovery generalises.
