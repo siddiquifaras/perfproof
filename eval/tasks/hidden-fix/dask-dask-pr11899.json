@@ -23,14 +23,14 @@
   "change_kind": "improvement",
   "target_class": "python",
   "workload": {
-    "command": "%timeit arr.dask.cull(arr.__dask_keys__())",
-    "source": "quoted in the description of https://github.com/dask/dask/pull/11899",
-    "verified": false
+    "command": "python -c \"import timeit, dask.array as da; arr = da.arange(2000, chunks=(1,)); f = lambda *a, **k: a[0]; exec('for _ in range(5): arr = da.blockwise(f, \\\"i\\\", arr, \\\"i\\\")'); keys = arr.__dask_keys__(); t = min(timeit.repeat(lambda: arr.dask.cull(keys), number=1, repeat=5)); print(t)\"",
+    "source": "adapted from the culling benchmark in the description of https://github.com/dask/dask/pull/11899 (a chain of blockwise layers over arange, then HighLevelGraph.cull on all keys), with timeit in place of IPython's %timeit and 2000 partitions and 5 layers",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "python -m pytest -q -o addopts= dask/tests/test_highgraph.py dask/tests/test_task_spec.py",
+    "source": "the dask test modules for highlevelgraph.py and _task_spec.py, two of the files https://github.com/dask/dask/pull/11899 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -39,10 +39,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies are the newest releases before the pull request's merge date",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:07:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2025-05-04 -e .[array] pytest",
+      "exit_code": 0,
+      "duration_s": 4.54,
+      "date": "2026-10-28T14:07:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Prepared 13 packages in 925ms\nInstalled 13 packages in 12ms\n + click==8.1.8\n + cloudpickle==3.1.1\n + dask==0+untagged.349.g762cebb.dirty (from file://eval/mine/work/dask-dask-pr11899/task)\n + fsspec==2025.3.2\n + iniconfig==2.1.0\n + locket==1.0.0\n + numpy==2.2.5\n + packaging==25.0\n + partd==1.4.2\n + pluggy==1.5.0\n + pytest==8.3.5\n + pyyaml==6.0.2\n + toolz==1.0.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m pytest -q -o addopts= dask/tests/test_highgraph.py dask/tests/test_task_spec.py",
+      "exit_code": 0,
+      "duration_s": 13.01,
+      "date": "2026-10-28T14:07:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "s......s.........s...............s..s................................... [ 79%]\n...................                                                      [100%]\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441\n  eval/mine/work/dask-dask-pr11899/task/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441: PytestConfigWarning: Unknown config option: timeout\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441\n  eval/mine/work/dask-dask-pr11899/task/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441: PytestConfigWarning: Unknown config option: timeout_method\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n86 passed, 5 skipped, 2 warnings in 0.16s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"import timeit, dask.array as da; arr = da.arange(2000, chunks=(1,)); f = lambda *a, **k: a[0]; exec('for _ in range(5): arr = da.blockwise(f, \\\"i\\\", arr, \\\"i\\\")'); keys = arr.__dask_keys__(); t = min(timeit.repeat(lambda: arr.dask.cull(keys), number=1, repeat=5)); print(t)\"",
+      "exit_code": 0,
+      "duration_s": 0.31,
+      "date": "2026-10-28T14:08:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.023453832996892743"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:08:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2025-05-04 -e .[array] pytest",
+      "exit_code": 0,
+      "duration_s": 0.99,
+      "date": "2026-10-28T14:08:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Prepared 1 package in 361ms\nInstalled 13 packages in 16ms\n + click==8.1.8\n + cloudpickle==3.1.1\n + dask==0+untagged.349.g762cebb.dirty (from file://eval/mine/work/dask-dask-pr11899/reference)\n + fsspec==2025.3.2\n + iniconfig==2.1.0\n + locket==1.0.0\n + numpy==2.2.5\n + packaging==25.0\n + partd==1.4.2\n + pluggy==1.5.0\n + pytest==8.3.5\n + pyyaml==6.0.2\n + toolz==1.0.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m pytest -q -o addopts= dask/tests/test_highgraph.py dask/tests/test_task_spec.py",
+      "exit_code": 0,
+      "duration_s": 7.46,
+      "date": "2026-10-28T14:08:10+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "s......s.........s...............s..s................................... [ 79%]\n...................                                                      [100%]\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441\n  eval/mine/work/dask-dask-pr11899/reference/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441: PytestConfigWarning: Unknown config option: timeout\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441\n  eval/mine/work/dask-dask-pr11899/reference/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1441: PytestConfigWarning: Unknown config option: timeout_method\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n86 passed, 5 skipped, 2 warnings in 0.17s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"import timeit, dask.array as da; arr = da.arange(2000, chunks=(1,)); f = lambda *a, **k: a[0]; exec('for _ in range(5): arr = da.blockwise(f, \\\"i\\\", arr, \\\"i\\\")'); keys = arr.__dask_keys__(); t = min(timeit.repeat(lambda: arr.dask.cull(keys), number=1, repeat=5)); print(t)\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:08:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

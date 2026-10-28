@@ -382,7 +382,13 @@ def _run_locked(args: argparse.Namespace, user: eval_user.EvalUser) -> int:
         eval_user.remove(user, user.archives / run_id)
         eval_user.verify_bundle(user, staged)
         done = eval_user.run_guest(
-            user, eval_user.guest_argv(user, label=run_id, only=[task.id])
+            user,
+            eval_user.guest_argv(
+                user,
+                label=run_id,
+                only=[task.id],
+                held_out=args.held_out,
+            ),
         )
         codes.append(done.returncode)
         eval_user.verify_bundle(user, staged)
@@ -464,6 +470,7 @@ def _run_here(args: argparse.Namespace) -> int:
                 path_dir,
                 cache,
                 work_root,
+                held_out=args.held_out,
             )
         except sandbox.SandboxUnavailableError as exc:
             # The sign-in ran out between tasks: keep what finished.
@@ -686,6 +693,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="run the agents as yourself behind the sandbox profile only, "
         "instead of as the macOS user ppeval (never chosen automatically)",
+    )
+    run.add_argument(
+        "--held-out",
+        action="store_true",
+        help="the task file holds held-out tasks (the discovery set): "
+        "load them, and only them; without this flag a held-out task "
+        "is refused like any task that is not a built development one",
     )
     run.add_argument(
         "--sign-in-checked",

@@ -1,0 +1,107 @@
+{
+  "id": "apache-arrow-rs-pr11143",
+  "repository": "apache/arrow-rs",
+  "stars": 3648,
+  "pushed_at": "2026-10-28T12:39:57Z",
+  "task_commit": "cbb18415d61e01905fd56ceea4fbc811372d3b98",
+  "task_commit_basis": "first parent of https://github.com/apache/arrow-rs/commit/6aa1dd2c0c141c9ce390f52a78cf9844c0184686 (squash merge); gh api compare cbb18415d61e...6aa1dd2c0c14 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/arrow-rs/pull/11143",
+    "title": "Speed up DELTA_BINARY_PACKED skip",
+    "commit": "6aa1dd2c0c141c9ce390f52a78cf9844c0184686",
+    "merged_at": "2026-10-15T07:30:58Z",
+    "files": [
+      "parquet/src/encodings/decoding.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader -- \"binary packed skip\" --measurement-time 3 --warm-up-time 1 --sample-size 20",
+    "source": "the command in the description of https://github.com/apache/arrow-rs/pull/11143 with the filter narrowed to the binary packed skip cases and without --baseline main, which needs a saved baseline",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test -p parquet --lib encodings::decoding",
+    "source": "the decoding unit tests of the parquet crate, for the file https://github.com/apache/arrow-rs/pull/11143 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/arrow-rs/pull/11143",
+      "note": "description, as matched by the miner: timings: 35.381 µs; 35.417 µs; 35.454 µs; 17.208 µs; 17.229 µs; 17.259 µs; 31.327 µs; 31.509 µs"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader --no-run",
+      "exit_code": 0,
+      "duration_s": 83.53,
+      "date": "2026-10-28T14:33:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling oorandom v11.1.5\n   Compiling criterion v0.8.2\n   Compiling proptest v1.12.0\n   Compiling insta v1.49.0\n   Compiling parquet v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/task/parquet)\n   Compiling opendal v0.59.4\n   Compiling sysinfo v0.39.6\n   Compiling rustls-webpki v0.103.15\n   Compiling tokio-rustls v0.26.4\n   Compiling rustls-platform-verifier v0.7.0\n   Compiling hyper-rustls v0.27.9\n   Compiling reqwest v0.13.4\n   Compiling object_store v0.14.2\n    Finished `bench` profile [optimized] target(s) in 1m 23s\n  Executable benches/arrow_reader.rs (target/release/deps/arrow_reader-790b5766b8dd74c2)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test -p parquet --lib encodings::decoding",
+      "exit_code": 0,
+      "duration_s": 47.68,
+      "date": "2026-10-28T14:34:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling arrow v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/task/arrow)\n   Compiling opendal v0.59.4\n   Compiling brotli v9.0.0\n   Compiling sysinfo v0.39.6\n   Compiling seq-macro v0.3.6\n   Compiling flate2 v1.1.10\n   Compiling rustls-webpki v0.103.15\n   Compiling tokio-rustls v0.26.4\n   Compiling rustls-platform-verifier v0.7.0\n   Compiling hyper-rustls v0.27.9\n   Compiling reqwest v0.13.4\n   Compiling object_store v0.14.2\n   Compiling parquet v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/task/parquet)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 47.03s\n     Running unittests src/lib.rs (target/debug/deps/parquet-4eae3767538d6ad4)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader -- \"binary packed skip\" --measurement-time 3 --warm-up-time 1 --sample-size 20",
+      "exit_code": 0,
+      "duration_s": 271.03,
+      "date": "2026-10-28T14:35:31+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Benchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip, optional, half NULLs: Warming up for 1.0000 s\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip, optional, half NULLs: Collecting 20 samples in estimated 3.0088 s (42k iterations)\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip, optional, half NULLs: Analyzing\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip single value\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip single value: Warming up for 1.0000 s\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip single value: Collecting 20 samples in estimated 3.0041 s (54k iterations)\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip single value: Analyzing\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip increasing value\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip increasing value: Warming up for 1.0000 s\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip increasing value: Collecting 20 samples in estimated 3.0089 s (64k iterations)\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip increasing value: Analyzing\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip stepped increasing value\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip stepped increasing value: Warming up for 1.0000 s\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip stepped increasing value: Collecting 20 samples in estimated 3.0151 s (24k iterations)\nBenchmarking arrow_array_reader/INT64/Decimal128Array/binary packed skip stepped increasing value: Analyzing"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader --no-run",
+      "exit_code": 0,
+      "duration_s": 98.74,
+      "date": "2026-10-28T14:40:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling humantime v2.4.0\n   Compiling proptest v1.12.0\n   Compiling parquet v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/reference/parquet)\n   Compiling insta v1.49.0\n   Compiling criterion v0.8.2\n   Compiling opendal v0.59.4\n   Compiling sysinfo v0.39.6\n   Compiling rustls-webpki v0.103.15\n   Compiling tokio-rustls v0.26.4\n   Compiling rustls-platform-verifier v0.7.0\n   Compiling hyper-rustls v0.27.9\n   Compiling reqwest v0.13.4\n   Compiling object_store v0.14.2\n    Finished `bench` profile [optimized] target(s) in 1m 38s\n  Executable benches/arrow_reader.rs (target/release/deps/arrow_reader-790b5766b8dd74c2)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test -p parquet --lib encodings::decoding",
+      "exit_code": 0,
+      "duration_s": 63.57,
+      "date": "2026-10-28T14:41:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling opendal v0.59.4\n   Compiling brotli v9.0.0\n   Compiling sysinfo v0.39.6\n   Compiling seq-macro v0.3.6\n   Compiling arrow-json v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/reference/arrow-json)\n   Compiling arrow v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/reference/arrow)\n   Compiling rustls-webpki v0.103.15\n   Compiling tokio-rustls v0.26.4\n   Compiling rustls-platform-verifier v0.7.0\n   Compiling hyper-rustls v0.27.9\n   Compiling reqwest v0.13.4\n   Compiling object_store v0.14.2\n   Compiling parquet v60.0.0 (eval/mine/work/apache-arrow-rs-pr11143/reference/parquet)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 02s\n     Running unittests src/lib.rs (target/debug/deps/parquet-4eae3767538d6ad4)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader -- \"binary packed skip\" --measurement-time 3 --warm-up-time 1 --sample-size 20",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:42:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:03:07+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

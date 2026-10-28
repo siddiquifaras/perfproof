@@ -65,6 +65,10 @@ from task import (
 SELECTION = TASKS_DIR / "selection.json"
 SKILL_DIR = TASKS_DIR.parent / "skill"
 REPORT = TASKS_DIR / "SPLITS.md"
+HELD_OUT_TASK_FILES = "tasks-heldout"
+"""Task files named with this prefix hold held-out tasks, not
+development ones, so the held-out draw's skip does not read them."""
+DISCOVERY = Path(__file__).resolve().parent / "heldout-discovery-draw.json"
 CLASSES: tuple[TargetClass, ...] = (
     "python",
     "native",
@@ -203,6 +207,29 @@ def load_selection(path: Path = SELECTION) -> Selection:
     return Selection.model_validate_json(path.read_text())
 
 
+def discovery_record(path: Path = DISCOVERY) -> dict[str, Any]:
+    """Read the held-out discovery draw's record, if there is one.
+
+    The discovery supplement (``draw_discovery.py``) mines candidates
+    after this draw was fixed and picks its own tasks. This draw must
+    not see the mined ones, and its ``--write`` must keep the picks
+    held-out.
+
+    Parameters
+    ----------
+    path : Path
+        The record.
+
+    Returns
+    -------
+    dict
+        The record, or one with no mined ids and no picks.
+    """
+    if not path.exists():
+        return {"mined": {"ids": []}, "picks": []}
+    return cast(dict[str, Any], json.loads(path.read_text()))
+
+
 def development_named(skill_dir: Path = SKILL_DIR) -> dict[str, str]:
     """Return the tasks the skill eval's development task files name.
 
@@ -222,6 +249,8 @@ def development_named(skill_dir: Path = SKILL_DIR) -> dict[str, str]:
     """
     named: dict[str, str] = {}
     for path in sorted(skill_dir.glob("tasks*.json")):
+        if path.name.startswith(HELD_OUT_TASK_FILES):
+            continue
         data = json.loads(path.read_text())
         for entry in data.get("tasks", []):
             repo = entry.get("repo")
@@ -335,6 +364,8 @@ def draw_splits(
     """
     if named is None:
         named = development_named()
+    mined = set(discovery_record()["mined"]["ids"])
+    tasks = [t for t in tasks if t.id not in mined]
     out: dict[DrawnSplit, dict[TargetClass, ClassDraw]] = {}
     taken: set[str] = set()
     for split in SPLITS:
@@ -376,6 +407,31 @@ def assigned_splits(
         for draw in by_class.values()
         for v in draw.picks
     }
+
+
+def final_splits(
+    draws: dict[DrawnSplit, dict[TargetClass, ClassDraw]],
+) -> dict[str, Split]:
+    """Return the split every picked task is written with.
+
+    The per-class picks (`assigned_splits`) plus the held-out discovery
+    set, which its own draw picked and this one must not move back to
+    ``development-candidate``.
+
+    Parameters
+    ----------
+    draws : dict
+        Output of `draw_splits`.
+
+    Returns
+    -------
+    dict of str to Split
+        Task id to split; tasks not picked by either draw are absent.
+    """
+    splits = assigned_splits(draws)
+    for task_id in discovery_record()["picks"]:
+        splits[task_id] = "held-out"
+    return splits
 
 
 def report(
@@ -464,7 +520,7 @@ def main(argv: list[str] | None = None) -> int:
     text = report(draws, sel)
     sys.stdout.write(text)
     if args.write:
-        splits = assigned_splits(draws)
+        splits = final_splits(draws)
         for task in tasks:
             split = splits.get(task.id, "development-candidate")
             if task.split != split:

@@ -1,0 +1,127 @@
+{
+  "id": "rolldown-rolldown-pr10678",
+  "repository": "rolldown/rolldown",
+  "stars": 13988,
+  "pushed_at": "2026-10-28T12:01:18Z",
+  "task_commit": "264051da5e23c38c1443e0e0c208185a50d236c7",
+  "task_commit_basis": "first parent of https://github.com/rolldown/rolldown/commit/4f810961e7af3877737bdb041b032e1dec288082 (squash merge); gh api compare 264051da5e23...4f810961e7af touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rolldown/rolldown/pull/10678",
+    "title": "perf: enable compiler cache via `module.enableCompileCache()`",
+    "commit": "4f810961e7af3877737bdb041b032e1dec288082",
+    "merged_at": "2026-08-21T13:36:31Z",
+    "files": [
+      "packages/rolldown/bin/cli.mjs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "node -e \"const {execFileSync} = require('child_process'); const t = Date.now(); for (let i = 0; i < 30; i++) execFileSync('node', ['packages/rolldown/bin/cli.mjs', '--version'], {stdio: 'ignore'}); console.log(Date.now() - t, 'ms for 30 starts')\"",
+    "source": "adapted from the hyperfine command in the description of https://github.com/rolldown/rolldown/pull/10678 (node bin/cli.mjs --version), run 30 times by node itself because hyperfine is not installed",
+    "verified": true
+  },
+  "oracle": {
+    "command": "node packages/rolldown/bin/cli.mjs --help",
+    "source": "the CLI entry point https://github.com/rolldown/rolldown/pull/10678 changes must still start and print its help; the project's own CLI tests need its full workspace test setup and were not tried",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rolldown/rolldown/pull/10678",
+      "note": "description, as matched by the miner: timings: 50.4 ms; 2.1 ms; 48.4 ms; 7.6 ms; 47.4 ms; 58.3 ms; 47.6 ms; 1.0 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. pnpm is the version the tree's packageManager field names, run through npx. The tree's rust-toolchain.toml names the Rust release rustup fetches for the native binding",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npx --yes pnpm@11.17.0 install --frozen-lockfile --ignore-scripts",
+      "exit_code": 0,
+      "duration_s": 105.83,
+      "date": "2026-10-28T14:49:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\ndevDependencies:\n+ @oxc-node/core 0.1.0\n+ @oxc-project/runtime 0.146.0\n+ @types/node 24.10.3\n+ cjs-module-lexer 2.2.1\n+ knip 6.32.2\n+ playwright-chromium 1.62.1\n+ publint 0.3.23\n+ remove-unused-vars 0.0.14\n+ rolldown 1.2.5 <- packages/rolldown\n+ typescript 6.0.3\n+ vite-plus 0.2.9\n\nDone in 1m 44.4s using pnpm v11.17.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npx --yes pnpm@11.17.0 --filter rolldown run build-native:release",
+      "exit_code": 0,
+      "duration_s": 405.83,
+      "date": "2026-10-28T14:51:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling rolldown_plugin_replace v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_replace)\n   Compiling rolldown_plugin_isolated_declaration v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_isolated_declaration)\n   Compiling rolldown_plugin_vite_manifest v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_manifest)\n   Compiling rolldown_plugin_vite_alias v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_alias)\n   Compiling rolldown_plugin_vite_build_import_analysis v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_build_import_analysis)\n   Compiling rolldown_plugin_vite_module_preload_polyfill v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_module_preload_polyfill)\n   Compiling rolldown_plugin_vite_web_worker_post v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_web_worker_post)\n   Compiling rolldown_plugin_vite_load_fallback v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_plugin_vite_load_fallback)\n   Compiling num_cpus v1.17.0\n   Compiling rolldown_dev v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_dev)\n   Compiling rolldown_watcher v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/task/crates/rolldown_watcher)\n    Finished `release` profile [optimized] target(s) in 2m 01s\n$ pnpm run --sequential '/^build-(node|types-check)$/'\n$ node --enable-source-maps --import @oxc-node/core/register -C dev ./build.ts\n$ tsc -p ./tsconfig.check.json"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "node packages/rolldown/bin/cli.mjs --help",
+      "exit_code": 0,
+      "duration_s": 0.26,
+      "date": "2026-10-28T14:58:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    rolldown src/main.ts -d dist -f cjs\n\n  3. Bundle the src/main.ts and handle the .png assets to Data URL:\n    rolldown src/main.ts -d dist --moduleTypes .png=dataurl\n\n  4. Bundle the src/main.tsx and minify the output with sourcemap:\n    rolldown src/main.tsx -d dist -m -s\n\n  5. Create self-executing IIFE using external jQuery as $ and :\n    rolldown src/main.ts -d dist -n bundle -f iife -e jQuery,window. -g jQuery=$\n\nNOTES\n\n  * CLI options will override the configuration file.\n  * For more information, please visit https://rolldown.rs/."
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "node -e \"const {execFileSync} = require('child_process'); const t = Date.now(); for (let i = 0; i < 30; i++) execFileSync('node', ['packages/rolldown/bin/cli.mjs', '--version'], {stdio: 'ignore'}); console.log(Date.now() - t, 'ms for 30 starts')\"",
+      "exit_code": 0,
+      "duration_s": 1.43,
+      "date": "2026-10-28T14:58:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "1400 ms for 30 starts"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npx --yes pnpm@11.17.0 install --frozen-lockfile --ignore-scripts",
+      "exit_code": 0,
+      "duration_s": 4.73,
+      "date": "2026-10-28T14:58:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\ndevDependencies:\n+ @oxc-node/core 0.1.0\n+ @oxc-project/runtime 0.146.0\n+ @types/node 24.10.3\n+ cjs-module-lexer 2.2.1\n+ knip 6.32.2\n+ playwright-chromium 1.62.1\n+ publint 0.3.23\n+ remove-unused-vars 0.0.14\n+ rolldown 1.2.5 <- packages/rolldown\n+ typescript 6.0.3\n+ vite-plus 0.2.9\n\nDone in 3.5s using pnpm v11.17.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npx --yes pnpm@11.17.0 --filter rolldown run build-native:release",
+      "exit_code": 0,
+      "duration_s": 136.95,
+      "date": "2026-10-28T14:58:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling rolldown_plugin_vite_build_import_analysis v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_vite_build_import_analysis)\n   Compiling mimalloc-safe v0.1.64\n   Compiling rolldown_plugin_vite_web_worker_post v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_vite_web_worker_post)\n   Compiling rolldown_plugin_vite_transform v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_vite_transform)\n   Compiling rolldown_plugin_vite_alias v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_vite_alias)\n   Compiling rolldown_plugin_esm_external_require v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_esm_external_require)\n   Compiling rolldown_plugin_vite_manifest v0.1.0 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_vite_manifest)\n   Compiling rolldown_plugin_bundle_analyzer v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_plugin_bundle_analyzer)\n   Compiling num_cpus v1.17.0\n   Compiling rolldown_dev v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_dev)\n   Compiling rolldown_watcher v1.2.5 (eval/mine/work/rolldown-rolldown-pr10678/reference/crates/rolldown_watcher)\n    Finished `release` profile [optimized] target(s) in 2m 10s\n$ pnpm run --sequential '/^build-(node|types-check)$/'\n$ node --enable-source-maps --import @oxc-node/core/register -C dev ./build.ts\n$ tsc -p ./tsconfig.check.json"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "node packages/rolldown/bin/cli.mjs --help",
+      "exit_code": 0,
+      "duration_s": 0.26,
+      "date": "2026-10-28T15:00:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    rolldown src/main.ts -d dist -f cjs\n\n  3. Bundle the src/main.ts and handle the .png assets to Data URL:\n    rolldown src/main.ts -d dist --moduleTypes .png=dataurl\n\n  4. Bundle the src/main.tsx and minify the output with sourcemap:\n    rolldown src/main.tsx -d dist -m -s\n\n  5. Create self-executing IIFE using external jQuery as $ and :\n    rolldown src/main.ts -d dist -n bundle -f iife -e jQuery,window. -g jQuery=$\n\nNOTES\n\n  * CLI options will override the configuration file.\n  * For more information, please visit https://rolldown.rs/."
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "node -e \"const {execFileSync} = require('child_process'); const t = Date.now(); for (let i = 0; i < 30; i++) execFileSync('node', ['packages/rolldown/bin/cli.mjs', '--version'], {stdio: 'ignore'}); console.log(Date.now() - t, 'ms for 30 starts')\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T15:00:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:02:51+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

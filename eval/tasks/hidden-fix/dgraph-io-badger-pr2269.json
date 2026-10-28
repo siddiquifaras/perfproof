@@ -1,0 +1,129 @@
+{
+  "id": "dgraph-io-badger-pr2269",
+  "repository": "dgraph-io/badger",
+  "stars": 15792,
+  "pushed_at": "2026-10-20T22:33:50Z",
+  "task_commit": "773a8356d9074cd0d56f5f80d773236c88aca494",
+  "task_commit_basis": "first parent of https://github.com/dgraph-io/badger/commit/7427d56925199bf23827e6f08d1c1ad119b1b4fc (squash merge); gh api compare 773a8356d907...7427d5692519 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dgraph-io/badger/pull/2269",
+    "title": "perf: skip lsm lookup for expired entries during value log rewrite",
+    "commit": "7427d56925199bf23827e6f08d1c1ad119b1b4fc",
+    "merged_at": "2026-05-07T17:25:30Z",
+    "files": [
+      "value.go",
+      "value_gc_rewrite_bench_test.go",
+      "value_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalRewriteExpired$ -benchtime 5x .",
+    "source": "written here from the description of https://github.com/dgraph-io/badger/pull/2269 (value log GC rewrite of a file of expired entries; its BenchmarkValueGCRewriteExpiredOnlyFile is not in the tree): a Go benchmark that fills one value log file with 8000 entries that expire at once and times one vlog.rewrite, eval/tasks/workloads/dgraph-io-badger-pr2269/eval_rewrite_bench_test.go, copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "go test -count 1 -run \"^TestValueGC$|^TestValueGC2$|^TestValueGC3$\" .",
+    "source": "badger's value log GC tests (TestValueGC, TestValueGC2, TestValueGC3) in value_test.go, for value.go which https://github.com/dgraph-io/badger/pull/2269 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dgraph-io/badger/pull/2269",
+      "note": "description, as matched by the miner: speedup claims: 5x; 2x | timings: 10938658 ns; 21713735 ns | benchmark files changed: value_gc_rewrite_bench_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/dgraph-io-badger-pr2269/eval_rewrite_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:32:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 2.57,
+      "date": "2026-10-28T14:32:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/dgraph-io/badger/v4\t0.933s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"^TestValueGC$|^TestValueGC2$|^TestValueGC3$\" .",
+      "exit_code": 0,
+      "duration_s": 0.72,
+      "date": "2026-10-28T14:32:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/dgraph-io/badger/v4\t0.411s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalRewriteExpired$ -benchtime 5x .",
+      "exit_code": 0,
+      "duration_s": 1.41,
+      "date": "2026-10-28T14:32:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/dgraph-io/badger/v4\ncpu: Apple M4\nBenchmarkEvalRewriteExpired-10    \t       5\t   2925684 ns/op\nPASS\nok  \tgithub.com/dgraph-io/badger/v4\t1.113s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/dgraph-io-badger-pr2269/eval_rewrite_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-28T14:32:11+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 1.44,
+      "date": "2026-10-28T14:32:11+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/dgraph-io/badger/v4\t0.332s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"^TestValueGC$|^TestValueGC2$|^TestValueGC3$\" .",
+      "exit_code": 0,
+      "duration_s": 0.86,
+      "date": "2026-10-28T14:32:12+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/dgraph-io/badger/v4\t0.456s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalRewriteExpired$ -benchtime 5x .",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:32:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:02:38+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

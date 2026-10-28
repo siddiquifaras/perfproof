@@ -463,7 +463,9 @@ def _dirty(state: State) -> list[str]:
     ]
 
 
-def fix_check(task: Task, state: State) -> tuple[bool | None, str]:
+def fix_check(
+    task: Task, state: State, held_out: bool = False
+) -> tuple[bool | None, str]:
     """Check the code the run left behind.
 
     Parameters
@@ -472,6 +474,8 @@ def fix_check(task: Task, state: State) -> tuple[bool | None, str]:
         The task, with its expected fix and locked files.
     state : State
         The repo after the run.
+    held_out : bool, optional
+        The task is a held-out one (the run's ``Meta.held_out``).
 
     Returns
     -------
@@ -494,7 +498,7 @@ def fix_check(task: Task, state: State) -> tuple[bool | None, str]:
             return False, "code changed: " + "; ".join(stray)
         return True, "no code changed"
     if task.expect.fix == "optional_branch":
-        return _optional_branch_check(task, state, new, working)
+        return _optional_branch_check(task, state, new, working, held_out)
     if hotspot is None:
         return None, "no hotspot to fix"
     if working is not None:
@@ -539,18 +543,26 @@ def _is_test_path(path: str) -> bool:
     return _TEST_PATH.search(path) is not None
 
 
-def _oracle_paths(task: Task) -> set[str]:
-    """Files named by the manifest's test command."""
+def _oracle_paths(task: Task, held_out: bool = False) -> set[str]:
+    """Files named by the manifest's test command.
+
+    A manifest the run could not have used raises (``ValueError``):
+    a held-out task scored without ``held_out`` must not pass with
+    its oracle files unlocked.
+    """
     if task.repo is None:
         return set()
     try:
-        command = realrepo.load_spec(task.repo.manifest).oracle
-    except (FileNotFoundError, KeyError, ValueError):
+        spec = realrepo.load_spec(task.repo.manifest, held_out=held_out)
+    except (FileNotFoundError, KeyError):
         return set()
+    command = spec.oracle
     return {t for t in shlex.split(command or "") if _CODE_FILE.match(t)}
 
 
-def locked_edits(task: Task, changed: list[str]) -> list[str]:
+def locked_edits(
+    task: Task, changed: list[str], held_out: bool = False
+) -> list[str]:
     """List changed paths a run must not touch.
 
     Parameters
@@ -560,6 +572,8 @@ def locked_edits(task: Task, changed: list[str]) -> list[str]:
         files, test configuration and the files its oracle names.
     changed : list of str
         Paths that differ from the baseline.
+    held_out : bool, optional
+        The task is a held-out one (the run's ``Meta.held_out``).
 
     Returns
     -------
@@ -568,7 +582,7 @@ def locked_edits(task: Task, changed: list[str]) -> list[str]:
     """
     barred = set(task.locked)
     if task.repo is not None:
-        barred |= _oracle_paths(task)
+        barred |= _oracle_paths(task, held_out)
     return sorted(
         p
         for p in changed
@@ -581,10 +595,11 @@ def _optional_branch_check(
     state: State,
     new: list[TreeState],
     working: TreeState | None,
+    held_out: bool = False,
 ) -> tuple[bool, str]:
     """Judge a run that may or may not have kept a change."""
     if working is not None:
-        locked = locked_edits(task, working.changed)
+        locked = locked_edits(task, working.changed, held_out)
         if locked:
             return False, f"working tree edits locked files {locked}"
     dirty = _dirty(state)
@@ -592,7 +607,7 @@ def _optional_branch_check(
         return False, f"uncommitted changes in the tree: {dirty}"
     kept = [t for t in new if t.ref.startswith("perfproof/")]
     for tree in kept:
-        touched = locked_edits(task, tree.changed)
+        touched = locked_edits(task, tree.changed, held_out)
         if touched:
             return False, f"{tree.ref} edits locked files {touched}"
         if not tree.tests_ok:
@@ -1051,14 +1066,18 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
     if task.repo is not None:
         wording += harness_violations(calls)
         edited = sorted(
-            {p for t in state.trees for p in locked_edits(task, t.changed)}
+            {
+                p
+                for t in state.trees
+                for p in locked_edits(task, t.changed, meta.held_out)
+            }
         )
         if edited:
             wording.append(
                 Violation(rule="locked_file_edited", text=str(edited))
             )
     if task.repo is not None and task.repo.branch is None:
-        spec = realrepo.load_spec(task.repo.manifest)
+        spec = realrepo.load_spec(task.repo.manifest, held_out=meta.held_out)
         # A landed task starts at the reference commit itself.
         if spec.reference_commit != spec.task_commit:
             wording += leak_violations(
@@ -1085,7 +1104,7 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
         wrong_keep=wrong_keep,
         result=(line, line_ok),
         hotspot=hotspot_check(task, turns, load_saved_profiles(task_dir)),
-        fix=fix_check(task, state),
+        fix=fix_check(task, state, meta.held_out),
         tree=tree_check(state),
         wording=wording,
     )

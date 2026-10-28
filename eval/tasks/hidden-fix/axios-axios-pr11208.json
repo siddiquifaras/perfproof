@@ -1,0 +1,51 @@
+{
+  "id": "axios-axios-pr11208",
+  "repository": "axios/axios",
+  "stars": 109310,
+  "pushed_at": "2026-10-28T11:43:41Z",
+  "task_commit": "b0842e8d40362b1d31decb6c1728b15fff6d3a5f",
+  "task_commit_basis": "first parent of https://github.com/axios/axios/commit/2a9489df3eb07e7d2cba2046efd30df8a6d0b954 (squash merge); gh api compare b0842e8d4036...2a9489df3eb0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/axios/axios/pull/11208",
+    "title": "perf(core): reduce request configuration merge overhead",
+    "commit": "2a9489df3eb07e7d2cba2046efd30df8a6d0b954",
+    "merged_at": "2026-10-13T18:41:07Z",
+    "files": [
+      "PRE_RELEASE_CHANGELOG.md",
+      "lib/core/mergeConfig.js",
+      "lib/utils.js",
+      "scripts/benchmark-merge-config.js",
+      "tests/unit/utils/isX.test.js",
+      "tests/unit/utils/merge.test.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "node scripts/benchmark-merge-config.js /path/to/baseline/index.js",
+    "source": "quoted in the description of https://github.com/axios/axios/pull/11208",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/axios/axios/pull/11208",
+      "note": "description, as matched by the miner: timings: 10.24 µs; 8.09 µs; 14.50 µs; 11.87 µs; 85.32 µs; 65.29 µs | benchmark files changed: scripts/benchmark-merge-config.js"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:03:07+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

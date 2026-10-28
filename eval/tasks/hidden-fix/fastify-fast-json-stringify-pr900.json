@@ -1,0 +1,135 @@
+{
+  "id": "fastify-fast-json-stringify-pr900",
+  "repository": "fastify/fast-json-stringify",
+  "stars": 3708,
+  "pushed_at": "2026-10-24T21:54:14Z",
+  "task_commit": "3ad19d797ba26d3d48844d3ad283cb677660dd8f",
+  "task_commit_basis": "first parent of https://github.com/fastify/fast-json-stringify/commit/78e8abefa9ba8b9cc69a3388ef1387af497892e1 (squash merge); gh api compare 3ad19d797ba2...78e8abefa9ba touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fastify/fast-json-stringify/pull/900",
+    "title": "perf: speed up build() and large arrays of numbers, integers, and strings",
+    "commit": "78e8abefa9ba8b9cc69a3388ef1387af497892e1",
+    "merged_at": "2026-10-19T15:17:29Z",
+    "files": [
+      "README.md",
+      "benchmark/bench-fixtures.js",
+      "benchmark/bench-large-array.js",
+      "benchmark/bench-utils.js",
+      "index.js",
+      "lib/location.js",
+      "lib/serializer.js",
+      "test/array.test.js",
+      "test/schema-depth.test.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "node eval_bench.js",
+    "source": "written here from the description of https://github.com/fastify/fast-json-stringify/pull/900 (compiling small schemas and serialising large arrays of numbers, integers and strings; its benchmark files are not in the tree): eval/tasks/workloads/fastify-fast-json-stringify-pr900/bench.js, copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "node --test test/array.test.js",
+    "source": "the array tests, a test module of the file area https://github.com/fastify/fast-json-stringify/pull/900 changes, run by node's own test runner; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fastify/fast-json-stringify/pull/900",
+      "note": "description, as matched by the miner: speedup claims: 10× faster; 4×; 100% faster; 23% faster; 4.7× faster | benchmark files changed: benchmark/bench-fixtures.js, benchmark/bench-large-array.js, benchmark/bench-utils.js"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies installed with npm install --ignore-scripts and --before the merge date (no lockfile in use). Node is v24 from nvm",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-10-18",
+      "exit_code": 0,
+      "duration_s": 86.32,
+      "date": "2026-10-28T14:25:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 364 packages in 1m\nnpm warn Unknown project config \"min-release-age\". This will stop working in the next major version of npm.\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/fastify-fast-json-stringify-pr900/bench.js eval_bench.js",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-28T14:27:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "node --test test/array.test.js",
+      "exit_code": 0,
+      "duration_s": 0.31,
+      "date": "2026-10-28T14:27:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "✔ render a large array of booleans with default mechanism as JSON (10.320625ms)\n✔ render a large array of null values with default mechanism as JSON (9.551291ms)\n✔ error on invalid value for largeArraySize /1 (0.141792ms)\n✔ error on invalid value for largeArraySize /2 (0.0745ms)\n✔ error on invalid value for largeArraySize /3 (0.062958ms)\n✔ render a large array of integers with largeArraySize is bigint as JSON (9.012375ms)\n✔ render a large array of integers with largeArraySize is valid string as JSON (9.680541ms)\nℹ tests 32\nℹ suites 0\nℹ pass 32\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 269.550125"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "node eval_bench.js",
+      "exit_code": 0,
+      "duration_s": 0.4,
+      "date": "2026-10-28T14:27:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "serialise 38.43 ms, build 9.25 ms"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-10-18",
+      "exit_code": 0,
+      "duration_s": 5.72,
+      "date": "2026-10-28T14:27:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 364 packages in 6s\nnpm warn Unknown project config \"min-release-age\". This will stop working in the next major version of npm.\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/fastify-fast-json-stringify-pr900/bench.js eval_bench.js",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:27:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "node --test test/array.test.js",
+      "exit_code": 0,
+      "duration_s": 1.73,
+      "date": "2026-10-28T14:27:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "✔ large number array falls back to the loop on true at the end (41.450833ms)\n✔ large integer array applies the rounding option after the fallback (32.066083ms)\n✔ large number array still throws on a non-numeric string after the fallback (26.51575ms)\n✔ large number array still throws on NaN at the start after the fallback (15.593083ms)\n✔ large number array still throws on NaN at the middle after the fallback (24.89375ms)\n✔ large number array still throws on NaN at the end after the fallback (25.233959ms)\n✔ large number array reads each element once across the fallback (51.364834ms)\nℹ tests 62\nℹ suites 0\nℹ pass 62\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1695.497958"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "node eval_bench.js",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:27:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:03:07+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,251 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "heldout-dask-dask-pr11899-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "dask-dask-pr11899",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "dask/highlevelgraph.py",
+          "function": "HighLevelGraph.cull",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-apache-datafusion-pr26790-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "apache-datafusion-pr26790",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "datafusion/physical-plan/src/union.rs",
+          "function": "union_schema",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-numpy-numpy-pr30810-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "numpy-numpy-pr30810",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "numpy/_core/numeric.py",
+          "function": "array_equal",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-apache-arrow-rs-pr11143-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "apache-arrow-rs-pr11143",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "parquet/src/encodings/decoding.rs",
+          "function": "DeltaBitPackDecoder::skip",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-dgraph-io-badger-pr2269-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "dgraph-io-badger-pr2269",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "value.go",
+          "function": "valueLog.rewrite",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-rolldown-rolldown-pr10678-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "rolldown-rolldown-pr10678",
+        "requires": [
+          "node",
+          "npm",
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "bar_exclusion": {
+        "reason": "Judged, not measured here: the change switches on Node's compile cache at module load in the CLI entry file, so no function holds the cost and the hotspot names only the changed module.",
+        "evidence": "The change itself (a four-line edit of packages/rolldown/bin/cli.mjs). Nothing was run or measured to confirm what a profile shows for it."
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "packages/rolldown/bin/cli.mjs",
+          "function": "cli",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-fastify-fast-json-stringify-pr900-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "fastify-fast-json-stringify-pr900",
+        "requires": [
+          "node",
+          "npm"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "index.js",
+          "function": "build",
+          "top_n": "skill",
+          "accept": [
+            {
+              "file": "index.js",
+              "function": "buildArray",
+              "why": "The large-array part of the change is in the array serializer that build() calls per array schema."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "heldout-valyala-fasthttp-pr1945-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "valyala-fasthttp-pr1945",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "args.go",
+          "function": "delAllArgs",
+          "top_n": "skill"
+        }
+      }
+    }
+  ]
+}

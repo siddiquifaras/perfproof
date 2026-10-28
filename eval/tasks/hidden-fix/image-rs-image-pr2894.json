@@ -1,0 +1,46 @@
+{
+  "id": "image-rs-image-pr2894",
+  "repository": "image-rs/image",
+  "stars": 5899,
+  "pushed_at": "2026-09-15T18:09:16Z",
+  "task_commit": "ed23c18089252b23d0f5a2e22768e129a2101a2f",
+  "task_commit_basis": "first parent of https://github.com/image-rs/image/commit/f2a0cbd9ae7e02481928c7d9d04d338578bad4e9; gh api compare ed23c1808925...f2a0cbd9ae7e touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/image-rs/image/pull/2894",
+    "title": "Optimize `horizontal_sample` performance",
+    "commit": "f2a0cbd9ae7e02481928c7d9d04d338578bad4e9",
+    "merged_at": "2026-04-11T09:51:12Z",
+    "files": [
+      "src/imageops/sample.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench resize",
+    "source": "quoted in the description of https://github.com/image-rs/image/pull/2894",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/image-rs/image/pull/2894",
+      "note": "description, as matched by the miner: timings: 0.49s; 3.7787 ms; 3.7950 ms; 3.8111 ms; 11.153 ms; 11.194 ms; 11.240 ms; 18.376 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:02:45+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -575,6 +575,24 @@ workload lines (`cd dev/cuda && nvcc ... && ./<kernel> <N>`) are shell
 lines. `mine/check.py` runs commands without a shell, so it can't run
 them as written.
 
+## Held-out discovery set
+
+The discovery supplement of docs/evaluation.md is drawn by
+`mine/draw_discovery.py` into `mine/heldout-discovery-draw.json` (pool,
+removals, order, build results, picks; the script re-derives it and
+exits 1 on a difference). The pool was too small for eight picks under
+the two-per-language cap, so the miner was run on the repositories in
+`mine/seeds-heldout-discovery.json` (hidden-fix rule only). That list
+was fixed before the candidates were mined and before any build; the
+first part of it was searched before the second part was added.
+Those manifests are listed in the record's
+`mined` and kept out of the per-class draw, which was fixed earlier.
+The picks are `held-out` and named in
+`skill/tasks-heldout-discovery.json`, which `draw.development_named`
+does not read. The harness refuses held-out tasks unless
+`skill_eval.py run --held-out` is given, and with that flag it takes
+only held-out tasks that built.
+
 ## Published benchmarks
 
 | | GSO | SWE-Perf | SWE-fficiency |

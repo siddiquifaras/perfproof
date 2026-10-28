@@ -1,0 +1,607 @@
+{
+ "rule": "docs/evaluation.md, Discovery supplement",
+ "salt": "perfproof-heldout-discovery-2026-10-28",
+ "mined": {
+  "ids": [
+   "apache-arrow-rs-pr11143",
+   "apache-datafusion-pr26790",
+   "axios-axios-pr11208",
+   "dgraph-io-badger-pr2269",
+   "fastify-fast-json-stringify-pr900",
+   "grafana-loki-pr23949",
+   "image-rs-image-pr2894",
+   "pinojs-pino-pr420",
+   "rolldown-rolldown-pr10678",
+   "rubocop-rubocop-pr13248",
+   "uuidjs-uuid-pr677",
+   "uutils-coreutils-pr9171",
+   "valyala-fasthttp-pr1945"
+  ]
+ },
+ "reviews": {
+  "scikit-learn-scikit-learn-pr34386": {
+   "keep": true,
+   "reason": "Runtime optimization: _get_counts uses Counter's default logic and is_scalar_nan is cheaper; the description times both",
+   "read": [
+    "https://github.com/scikit-learn/scikit-learn/pull/34386"
+   ]
+  },
+  "astral-sh-ruff-pr26565": {
+   "keep": true,
+   "reason": "Runtime optimization: rendering an edit in preview mode diffs a small window instead of the whole file; hyperfine shows 355.7 ms to 205.0 ms",
+   "read": [
+    "https://github.com/astral-sh/ruff/pull/26565"
+   ]
+  },
+  "more-itertools-more-itertools-pr773": {
+   "keep": true,
+   "reason": "Runtime optimization: combination_with_replacement_index keeps a running sum instead of re-summing; %timeit 1.96 us to 1.56 us",
+   "read": [
+    "https://github.com/more-itertools/more-itertools/pull/773"
+   ]
+  },
+  "karpathy-llm-c-gelu-forward-45252d434c": {
+   "keep": true,
+   "reason": "Kernel version, as classified: a new gelu kernel version (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/45252d434c"
+   ]
+  },
+  "karpathy-llm-c-layernorm-forward-466723bb06": {
+   "keep": true,
+   "reason": "Kernel version, as classified: a fully fused layer-norm kernel version (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/466723bb06"
+   ]
+  },
+  "karpathy-llm-c-adamw-97e61e2258": {
+   "keep": true,
+   "reason": "Kernel version, as classified: a more optimized adamw kernel (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/97e61e2258"
+   ]
+  },
+  "karpathy-llm-c-matmul-forward-8822e7803e": {
+   "keep": true,
+   "reason": "Kernel version, as classified: cublasLt with fused bias and tf32; the message gives 59 ms/iter (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/8822e7803e"
+   ]
+  },
+  "karpathy-llm-c-encoder-forward-cfccd821e6": {
+   "keep": true,
+   "reason": "Kernel version, as classified: a float4 encoder kernel (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/cfccd821e6"
+   ]
+  },
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": {
+   "keep": true,
+   "reason": "Kernel version, as classified: a warp-wide reduction in layernorm backward (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/c1bfe4a639"
+   ]
+  },
+  "karpathy-llm-c-global-norm-0f6853d399": {
+   "keep": true,
+   "reason": "Kernel version, as classified: global norm kernel versions added to dev/cuda (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/0f6853d399"
+   ]
+  },
+  "karpathy-llm-c-softmax-forward-8386e5393c": {
+   "keep": true,
+   "reason": "Kernel version, as classified: intra-warp and shared-memory reductions in softmax (read from the commit message and file list only)",
+   "read": [
+    "https://github.com/karpathy/llm.c/commit/8386e5393c"
+   ]
+  },
+  "apache-arrow-rs-pr11143": {
+   "keep": true,
+   "reason": "Runtime optimization: DeltaBitPackDecoder::skip computes the skipped sum directly; the description's criterion table shows about 15% faster",
+   "read": [
+    "https://github.com/apache/arrow-rs/pull/11143"
+   ]
+  },
+  "apache-datafusion-pr26790": {
+   "keep": true,
+   "reason": "Runtime optimization: union schema merging is linear instead of quadratic in the number of children",
+   "read": [
+    "https://github.com/apache/datafusion/pull/26790"
+   ]
+  },
+  "axios-axios-pr11208": {
+   "keep": true,
+   "reason": "Runtime optimization: request config merging avoids repeated prototype walks and key scans",
+   "read": [
+    "https://github.com/axios/axios/pull/11208"
+   ]
+  },
+  "dgraph-io-badger-pr2269": {
+   "keep": true,
+   "reason": "Runtime optimization: value log rewrite skips the LSM lookup for expired entries; the description has a benchmark",
+   "read": [
+    "https://github.com/dgraph-io/badger/pull/2269"
+   ]
+  },
+  "fastify-fast-json-stringify-pr900": {
+   "keep": true,
+   "reason": "Runtime optimization: build() skips unneeded Ajv setup and large arrays of scalars are written in one call; the description gives percentages",
+   "read": [
+    "https://github.com/fastify/fast-json-stringify/pull/900"
+   ]
+  },
+  "grafana-loki-pr23949": {
+   "keep": false,
+   "reason": "Not a speed optimization: replaces Drain prefix-tree maps with slices to cut retained heap; the description says train cost is unchanged in practice, and its benchmarks are tests the change adds",
+   "read": [
+    "https://github.com/grafana/loki/pull/23949"
+   ]
+  },
+  "image-rs-image-pr2894": {
+   "keep": true,
+   "reason": "Runtime optimization: horizontal_sample precomputes column weights and writes rows sequentially",
+   "read": [
+    "https://github.com/image-rs/image/pull/2894"
+   ]
+  },
+  "pinojs-pino-pr420": {
+   "keep": false,
+   "reason": "Not an optimization: adds a redact option and API to pino by integrating a new module; the speed claim compares against a different module, so there is no slow code in the task tree to speed up",
+   "read": [
+    "https://github.com/pinojs/pino/pull/420"
+   ]
+  },
+  "rolldown-rolldown-pr10678": {
+   "keep": true,
+   "reason": "Runtime optimization: the CLI enables Node's compile cache; hyperfine in the description shows 50.4 ms to 47.6 ms",
+   "read": [
+    "https://github.com/rolldown/rolldown/pull/10678"
+   ]
+  },
+  "rubocop-rubocop-pr13248": {
+   "keep": true,
+   "reason": "Runtime optimization: Base.callbacks_needed checks method_defined? first; hyperfine shows about 1.3% faster",
+   "read": [
+    "https://github.com/rubocop/rubocop/pull/13248"
+   ]
+  },
+  "uuidjs-uuid-pr677": {
+   "keep": true,
+   "reason": "Runtime optimization: stringify no longer lower-cases every generated id; the description times it with hyperfine",
+   "read": [
+    "https://github.com/uuidjs/uuid/pull/677"
+   ]
+  },
+  "uutils-coreutils-pr9171": {
+   "keep": true,
+   "reason": "Runtime optimization: factor uses num_prime's u64 and u128 factorization; hyperfine shows 16.9 s to 11.8 s",
+   "read": [
+    "https://github.com/uutils/coreutils/pull/9171"
+   ]
+  },
+  "valyala-fasthttp-pr1945": {
+   "keep": true,
+   "reason": "Runtime optimization: delAllArgs no longer preserves order, avoiding copies; the description has a benchmark",
+   "read": [
+    "https://github.com/valyala/fasthttp/pull/1945"
+   ]
+  }
+ },
+ "notes": {
+  "rubocop-rubocop-pr13248": "Reported by the lead, not run in this change: rechecked as the eval user with Ruby 4.0.9 and Bundler 4.0.20, `bundle install` exited 6 because the Gemfile requires bundler < 3.0, so it stays passed over. The first check here, with this account's system Ruby 2.6, also exited 6 (a gem needs Ruby >= 2.7). The walk's outcome for it is unchanged."
+ },
+ "pool": [
+  "apache-arrow-rs-pr11143",
+  "apache-datafusion-pr26790",
+  "astral-sh-ruff-pr26565",
+  "astropy-astropy-pr20107",
+  "axios-axios-pr11208",
+  "dask-dask-pr11899",
+  "dgraph-io-badger-pr2269",
+  "django-django-pr21460",
+  "fasterxml-jackson-core-pr1674",
+  "fastify-fast-json-stringify-pr900",
+  "gin-gonic-gin-pr2365",
+  "grafana-loki-pr23949",
+  "image-rs-image-pr2894",
+  "karpathy-llm-c-adamw-97e61e2258",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8",
+  "karpathy-llm-c-classifier-fused-dcff5613c6",
+  "karpathy-llm-c-encoder-forward-cfccd821e6",
+  "karpathy-llm-c-gelu-forward-45252d434c",
+  "karpathy-llm-c-global-norm-0f6853d399",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639",
+  "karpathy-llm-c-layernorm-forward-466723bb06",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad",
+  "karpathy-llm-c-matmul-forward-8822e7803e",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a",
+  "karpathy-llm-c-softmax-forward-8386e5393c",
+  "labstack-echo-pr1799",
+  "more-itertools-more-itertools-pr773",
+  "networkx-networkx-pr7810",
+  "numpy-numpy-pr30810",
+  "pandas-dev-pandas-pr70972",
+  "pinojs-pino-pr420",
+  "pydata-xarray-pr6107",
+  "rolldown-rolldown-pr10678",
+  "rubocop-rubocop-pr13248",
+  "scikit-learn-scikit-learn-pr34386",
+  "scipy-scipy-pr26368",
+  "sgl-project-sglang-pr41223",
+  "sharkdp-fd-pr853",
+  "simdjson-simdjson-pr2805",
+  "tokio-rs-tokio-pr5829",
+  "uuidjs-uuid-pr677",
+  "uutils-coreutils-pr9171",
+  "valyala-fasthttp-pr1945",
+  "vllm-project-vllm-pr60753",
+  "xoofx-markdig-pr922"
+ ],
+ "removed": {
+  "grafana-loki-pr23949": "Not a speed optimization: replaces Drain prefix-tree maps with slices to cut retained heap; the description says train cost is unchanged in practice, and its benchmarks are tests the change adds",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "Not an optimization: the version this commit adds is a naive flash attention, and the file's own header at this commit says it \"seems about 3X slower than the naive version\"",
+  "pinojs-pino-pr420": "Not an optimization: adds a redact option and API to pino by integrating a new module; the speed claim compares against a different module, so there is no slow code in the task tree to speed up",
+  "vllm-project-vllm-pr60753": "Class wrong: switches GLM-5.3-Flash's prefill indexer top-k to an AITER kernel that \"only runs on gfx950\" (AMD). docs/targets.md puts AMD GPUs outside the serving class"
+ },
+ "skipped": {
+  "django-django-pr21460": "named in eval/skill/tasks-real.json (development)",
+  "fasterxml-jackson-core-pr1674": "named in eval/skill/tasks-java.json (development)",
+  "gin-gonic-gin-pr2365": "taken by the per-class held-out draw",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "taken by the per-class held-out draw",
+  "labstack-echo-pr1799": "named in eval/skill/tasks-go.json (development)",
+  "networkx-networkx-pr7810": "taken by the per-class held-out draw",
+  "pydata-xarray-pr6107": "named in eval/skill/tasks-real.json (development)",
+  "sgl-project-sglang-pr41223": "taken by the per-class held-out draw",
+  "sharkdp-fd-pr853": "named in eval/skill/tasks-real.json (development)",
+  "simdjson-simdjson-pr2805": "named in eval/skill/tasks-native.json (development)",
+  "tokio-rs-tokio-pr5829": "taken by the per-class held-out draw",
+  "xoofx-markdig-pr922": "named in eval/skill/tasks-dotnet.json (development)"
+ },
+ "languages": {
+  "apache-arrow-rs-pr11143": "Rust",
+  "apache-datafusion-pr26790": "Rust",
+  "astral-sh-ruff-pr26565": "Rust",
+  "astropy-astropy-pr20107": "Python",
+  "axios-axios-pr11208": "JavaScript/TypeScript",
+  "dask-dask-pr11899": "Python",
+  "dgraph-io-badger-pr2269": "Go",
+  "django-django-pr21460": "Python",
+  "fasterxml-jackson-core-pr1674": "Java",
+  "fastify-fast-json-stringify-pr900": "JavaScript/TypeScript",
+  "gin-gonic-gin-pr2365": "Go",
+  "grafana-loki-pr23949": "Go",
+  "image-rs-image-pr2894": "Rust",
+  "karpathy-llm-c-adamw-97e61e2258": "CUDA",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "CUDA",
+  "karpathy-llm-c-classifier-fused-dcff5613c6": "CUDA",
+  "karpathy-llm-c-encoder-forward-cfccd821e6": "CUDA",
+  "karpathy-llm-c-gelu-forward-45252d434c": "CUDA",
+  "karpathy-llm-c-global-norm-0f6853d399": "C/C++",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": "CUDA",
+  "karpathy-llm-c-layernorm-forward-466723bb06": "CUDA",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "CUDA",
+  "karpathy-llm-c-matmul-forward-8822e7803e": "CUDA",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": "CUDA",
+  "karpathy-llm-c-softmax-forward-8386e5393c": "CUDA",
+  "labstack-echo-pr1799": "Go",
+  "more-itertools-more-itertools-pr773": "Python",
+  "networkx-networkx-pr7810": "Python",
+  "numpy-numpy-pr30810": "Python",
+  "pandas-dev-pandas-pr70972": "Python",
+  "pinojs-pino-pr420": "JavaScript/TypeScript",
+  "pydata-xarray-pr6107": "Python",
+  "rolldown-rolldown-pr10678": "JavaScript/TypeScript",
+  "rubocop-rubocop-pr13248": "Ruby",
+  "scikit-learn-scikit-learn-pr34386": "Python",
+  "scipy-scipy-pr26368": "Python",
+  "sgl-project-sglang-pr41223": "Python",
+  "sharkdp-fd-pr853": "Rust",
+  "simdjson-simdjson-pr2805": "C/C++",
+  "tokio-rs-tokio-pr5829": "Rust",
+  "uuidjs-uuid-pr677": "JavaScript/TypeScript",
+  "uutils-coreutils-pr9171": "Rust",
+  "valyala-fasthttp-pr1945": "Go",
+  "vllm-project-vllm-pr60753": "Python",
+  "xoofx-markdig-pr922": "C#"
+ },
+ "order": [
+  {
+   "id": "dask-dask-pr11899",
+   "key": "049f281ea635d79152faf1dd26ff4ef7d9907a6ba6f3b93c41f5051193f7a0ee"
+  },
+  {
+   "id": "apache-datafusion-pr26790",
+   "key": "08f6eb3533a0c770a8e305c06ccfcd1ff9fd5fe4c62cfaa20cecee2d852f6568"
+  },
+  {
+   "id": "numpy-numpy-pr30810",
+   "key": "0e34cf783020d763c6850d6eda0da7ccb4e5d1fb6fba4db6a2fea71e0e765a3d"
+  },
+  {
+   "id": "apache-arrow-rs-pr11143",
+   "key": "1e50bde5df9b7703945fee7af40e0d7c1e0959a775e5391acdb976bc065603cc"
+  },
+  {
+   "id": "scikit-learn-scikit-learn-pr34386",
+   "key": "1ed02a75a21d3c569c6c466db9de578a5d5b406975dfe88e03455db13523fb19"
+  },
+  {
+   "id": "pandas-dev-pandas-pr70972",
+   "key": "26106453eda94714d651c68206d1b2479fcb2cfc4f2c89732a6a0f531bca1e7d"
+  },
+  {
+   "id": "karpathy-llm-c-gelu-forward-45252d434c",
+   "key": "2df212f8d7ecc6aafe3e6d5a5cd8b397ffe20f2bacedc18f7e899a861739a6b9"
+  },
+  {
+   "id": "astral-sh-ruff-pr26565",
+   "key": "330f8c6d0094d87fd7f6df7494dde520314e48ee9da9de326f1b3d934ee99c71"
+  },
+  {
+   "id": "karpathy-llm-c-classifier-fused-dcff5613c6",
+   "key": "3e74e24d4a7221d57e3e903bebaec66a64bbb76c328416acfecdc26d9c9553ea"
+  },
+  {
+   "id": "image-rs-image-pr2894",
+   "key": "4b99af24d12621c613f597d7855674110a0c82386fc84baf940a99468192901d"
+  },
+  {
+   "id": "more-itertools-more-itertools-pr773",
+   "key": "4e5b065d65deaf746a593f5c9dda1c7c40be78850bfdf922aeb8ab76f80cf731"
+  },
+  {
+   "id": "karpathy-llm-c-layernorm-forward-466723bb06",
+   "key": "61bf7adb0336d9d8c5a01d3218c0e82c585fe71d9048e51de7b2dc321dc44433"
+  },
+  {
+   "id": "dgraph-io-badger-pr2269",
+   "key": "65705811d49a5dc14cfc89e0280dd508126b908128be1005df764f72d0148948"
+  },
+  {
+   "id": "astropy-astropy-pr20107",
+   "key": "7c9afc3d7e197b2571e8c42e671c76a68bf967c6343d36858e25533404c156ff"
+  },
+  {
+   "id": "karpathy-llm-c-adamw-97e61e2258",
+   "key": "848508ead88c09846747d03faf077f835adf56c3ce9dc1e7e8de9f14c30b0881"
+  },
+  {
+   "id": "rolldown-rolldown-pr10678",
+   "key": "95e970de4ae4532df87b6077a7a659bd2150d1ca4c57e4f4dcc383640433ed83"
+  },
+  {
+   "id": "fastify-fast-json-stringify-pr900",
+   "key": "95f3796e889456cf4b45f04db334f7c6a34cb747ee24615312c1556b1c23fd32"
+  },
+  {
+   "id": "uuidjs-uuid-pr677",
+   "key": "96ec66f799e977bfba5d6f3c53a26b9efe836058cc8f5c13c11a7a3fd5362698"
+  },
+  {
+   "id": "karpathy-llm-c-matmul-forward-8822e7803e",
+   "key": "a2fb4ed30da0415e9760366762f6492411f369fe36e8be99cfb947546cf4ad59"
+  },
+  {
+   "id": "uutils-coreutils-pr9171",
+   "key": "aa3f20fc9fbfaf1360ecca8857cb40ef08d5eef2f87f5849711b83fbf6ecea61"
+  },
+  {
+   "id": "karpathy-llm-c-encoder-forward-cfccd821e6",
+   "key": "b4a41a6de804d51f89eb32d97062485bf7b7654a1e4fe708f300b8a437ad192e"
+  },
+  {
+   "id": "karpathy-llm-c-layernorm-backward-c1bfe4a639",
+   "key": "b8e798e1d04215aea909fafe1c19e9519b3e9f1c6b9caf23a39c11d190b17cbd"
+  },
+  {
+   "id": "karpathy-llm-c-residual-forward-4ffcf5b90a",
+   "key": "bb0338000c6f3ad034b8ae6a9bcaf64d49959b744f8c903ad46e8ec079a63e81"
+  },
+  {
+   "id": "karpathy-llm-c-global-norm-0f6853d399",
+   "key": "c0f03d93f40b0f1b827ac94276b0b2cb170abd062c932d2250f6bec46facb001"
+  },
+  {
+   "id": "rubocop-rubocop-pr13248",
+   "key": "c9bda619b6345be22ec91e1471c469c7717a6c75a1e56b355fe884fb38742460"
+  },
+  {
+   "id": "axios-axios-pr11208",
+   "key": "cd06b20d12c3241f9b5663d33e5f9e177030b242143668f03200f78ed67c2565"
+  },
+  {
+   "id": "karpathy-llm-c-softmax-forward-8386e5393c",
+   "key": "e8d931edf791e9d35c6022a50b0560a3ca20f9e5f29b7628d83c41496818ee8b"
+  },
+  {
+   "id": "valyala-fasthttp-pr1945",
+   "key": "f214ab7f2d342f2dc7f58d36d3cc992fcb289ca6af25dce68b738153d5172224"
+  },
+  {
+   "id": "scipy-scipy-pr26368",
+   "key": "fa19b84d4965eb58963bfad28884696e45217efd59251d52d70acf2528669278"
+  }
+ ],
+ "walk": [
+  {
+   "id": "dask-dask-pr11899",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "apache-datafusion-pr26790",
+   "language": "Rust",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "numpy-numpy-pr30810",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "apache-arrow-rs-pr11143",
+   "language": "Rust",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "scikit-learn-scikit-learn-pr34386",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "language cap: 2 Python tasks already taken; not built"
+  },
+  {
+   "id": "pandas-dev-pandas-pr70972",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "language cap: 2 Python tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-gelu-forward-45252d434c",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/gelu_forward.cu -o gelu_forward` exited 127"
+  },
+  {
+   "id": "astral-sh-ruff-pr26565",
+   "language": "Rust",
+   "outcome": "passed",
+   "reason": "language cap: 2 Rust tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-classifier-fused-dcff5613c6",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/classifier_fused.cu -o classifier_fused` exited 127"
+  },
+  {
+   "id": "image-rs-image-pr2894",
+   "language": "Rust",
+   "outcome": "passed",
+   "reason": "language cap: 2 Rust tasks already taken; not built"
+  },
+  {
+   "id": "more-itertools-more-itertools-pr773",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "language cap: 2 Python tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-layernorm-forward-466723bb06",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/layernorm_forward.cu -o layernorm_forward` exited 127"
+  },
+  {
+   "id": "dgraph-io-badger-pr2269",
+   "language": "Go",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "astropy-astropy-pr20107",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "language cap: 2 Python tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-adamw-97e61e2258",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/adamw.cu -o adamw` exited 127"
+  },
+  {
+   "id": "rolldown-rolldown-pr10678",
+   "language": "JavaScript/TypeScript",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "fastify-fast-json-stringify-pr900",
+   "language": "JavaScript/TypeScript",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "uuidjs-uuid-pr677",
+   "language": "JavaScript/TypeScript",
+   "outcome": "passed",
+   "reason": "language cap: 2 JavaScript/TypeScript tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-matmul-forward-8822e7803e",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/matmul_forward.cu -o matmul_forward` exited 127"
+  },
+  {
+   "id": "uutils-coreutils-pr9171",
+   "language": "Rust",
+   "outcome": "passed",
+   "reason": "language cap: 2 Rust tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-encoder-forward-cfccd821e6",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/encoder_forward.cu -o encoder_forward` exited 127"
+  },
+  {
+   "id": "karpathy-llm-c-layernorm-backward-c1bfe4a639",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/layernorm_backward.cu -o layernorm_backward` exited 127"
+  },
+  {
+   "id": "karpathy-llm-c-residual-forward-4ffcf5b90a",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/residual_forward.cu -o residual_forward` exited 127"
+  },
+  {
+   "id": "karpathy-llm-c-global-norm-0f6853d399",
+   "language": "C/C++",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/global_norm.cu -o global_norm` exited 127"
+  },
+  {
+   "id": "rubocop-rubocop-pr13248",
+   "language": "Ruby",
+   "outcome": "passed",
+   "reason": "did not build: setup `bundle install` exited 6"
+  },
+  {
+   "id": "axios-axios-pr11208",
+   "language": "JavaScript/TypeScript",
+   "outcome": "passed",
+   "reason": "language cap: 2 JavaScript/TypeScript tasks already taken; not built"
+  },
+  {
+   "id": "karpathy-llm-c-softmax-forward-8386e5393c",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: setup `nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/softmax_forward.cu -o softmax_forward` exited 127"
+  },
+  {
+   "id": "valyala-fasthttp-pr1945",
+   "language": "Go",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  }
+ ],
+ "picks": [
+  "dask-dask-pr11899",
+  "apache-datafusion-pr26790",
+  "numpy-numpy-pr30810",
+  "apache-arrow-rs-pr11143",
+  "dgraph-io-badger-pr2269",
+  "rolldown-rolldown-pr10678",
+  "fastify-fast-json-stringify-pr900",
+  "valyala-fasthttp-pr1945"
+ ],
+ "stopped": null
+}

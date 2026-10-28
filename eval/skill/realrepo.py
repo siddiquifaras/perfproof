@@ -17,6 +17,7 @@ import functools
 import importlib
 import json
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -199,13 +200,20 @@ def unusable_reason(manifest_id: str, manifest: dict[str, Any]) -> str | None:
     return None
 
 
-def load_spec(manifest_id: str) -> RepoSpec:
+def load_spec(manifest_id: str, *, held_out: bool = False) -> RepoSpec:
     """Read a task's manifest and build recipe.
 
     Parameters
     ----------
     manifest_id : str
         Manifest id, for example ``sharkdp-fd-pr853``.
+    held_out : bool, optional
+        Load a held-out task instead of a development one (the harness's
+        ``--held-out``). Then only a manifest whose split is
+        ``held-out`` and that built here is accepted, and a development
+        task is refused; without it the refusal below holds for every
+        held-out task, so one is never loaded as a development task by
+        accident.
 
     Returns
     -------
@@ -228,9 +236,18 @@ def load_spec(manifest_id: str) -> RepoSpec:
         msg = f"no manifest for {manifest_id}"
         raise FileNotFoundError(msg)
     manifest: dict[str, Any] = json.loads(found[0].read_text(encoding="utf-8"))
-    problem = unusable_reason(manifest_id, manifest)
-    if problem is not None:
-        raise ValueError(problem)
+    if held_out:
+        split, status = manifest.get("split"), manifest.get("status")
+        if split != "held-out" or status not in ("runs", "reference-fails"):
+            msg = (
+                f"{manifest_id} is {split!r}/{status!r}: --held-out takes "
+                "only held-out tasks that built here"
+            )
+            raise ValueError(msg)
+    else:
+        problem = unusable_reason(manifest_id, manifest)
+        if problem is not None:
+            raise ValueError(problem)
     checks: dict[str, Any] = json.loads(
         CHECKS_FILE.read_text(encoding="utf-8")
     )[manifest_id]
@@ -574,8 +591,83 @@ def run_setup(
         sink.write("".join(f"/{name}\n" for name in created))
 
 
+_BUILD_DIRS = frozenset(
+    {"target", "obj", "bin", "build", "dist", "out", "__pycache__"}
+)
+"""Directories whose contents a build made. Names are matched only
+there, so a tracked file sharing a stem is never touched."""
+_TEXT_LIMIT = 1_000_000
+"""Largest file, in bytes, scanned for a planted name."""
+
+
+def _planted_stems(spec: RepoSpec) -> list[re.Pattern[str]]:
+    """Patterns that find what a build derived from a planted path."""
+    stems = {Path(name).name.split(".")[0] for name in spec.planted}
+    return [
+        re.compile(rf"(?<![A-Za-z0-9]){re.escape(stem)}(?![A-Za-z0-9_])")
+        for stem in sorted(stems)
+        if stem
+    ]
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        path.unlink(missing_ok=True)
+
+
+def _remove_derived(spec: RepoSpec, repo: Path) -> None:
+    """Delete build output that carries a planted file's name.
+
+    A compiled planted source leaves more than the source: Cargo's
+    example binary, its ``.d`` files, hashed copies under ``deps/`` and
+    ``.fingerprint/`` entries are named after it. Anything under the
+    repo's build directories (`_BUILD_DIRS`) whose name holds a planted
+    file's stem as a whole word is removed, and so is a small text file
+    inside a ``target`` directory that names it (a fingerprint or
+    dep-info file). Names are matched on the stem, so ``eval_x.rs``
+    covers ``eval_x``, ``eval_x-<hash>.d`` and
+    ``example-eval_x-<hash>``.
+    """
+    patterns = _planted_stems(spec)
+    if not patterns:
+        return
+    for top, dirs, files in os.walk(repo):
+        dirs[:] = [d for d in dirs if d != ".git"]
+        here = Path(top)
+        parts = here.relative_to(repo).parts
+        if not _BUILD_DIRS.intersection(parts):
+            continue
+        in_target = "target" in parts
+        for name in [*dirs, *files]:
+            path = here / name
+            hit = any(p.search(name) for p in patterns)
+            if (
+                not hit
+                and in_target
+                and name in files
+                and path.is_file()
+                and not path.is_symlink()
+                and path.stat().st_size <= _TEXT_LIMIT
+            ):
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    continue
+                hit = any(p.search(text) for p in patterns)
+            if hit:
+                _remove_path(path)
+                if name in dirs:
+                    dirs.remove(name)
+
+
 def remove_planted(spec: RepoSpec, repo: Path) -> None:
     """Delete the task-made workload files from a task tree.
+
+    The files named in ``planted`` go, and so does any build output
+    derived from them (see `_remove_derived`), so neither the files nor
+    their names are left in the tree.
 
     Parameters
     ----------
@@ -603,6 +695,7 @@ def remove_planted(spec: RepoSpec, repo: Path) -> None:
         if target.exists():
             msg = f"planted path {name!r} could not be removed"
             raise SetupError(msg)
+    _remove_derived(spec, root)
 
 
 def run_oracle(

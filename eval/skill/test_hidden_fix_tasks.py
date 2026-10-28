@@ -149,12 +149,41 @@ def test_the_naming_check_still_applies_in_the_wide_window() -> None:
 # Planted workloads
 
 
+HELD_OUT_FILE = HERE / "tasks-heldout-discovery.json"
+"""Held-out tasks: ``load_spec`` refuses them by design."""
+
+
+def _development_hidden_fix() -> list[Task]:
+    return [
+        t
+        for f in TASK_FILES
+        if f != HELD_OUT_FILE
+        for t in taskset.load(f).tasks
+        if t.is_hidden_fix
+    ]
+
+
 def _hidden_specs() -> list[tuple[Task, realrepo.RepoSpec]]:
     return [
         (t, realrepo.load_spec(t.repo.manifest))
-        for t in _hidden_fix()
+        for t in _development_hidden_fix()
         if t.repo is not None
     ]
+
+
+def test_held_out_discovery_tasks_list_what_their_setup_plants() -> None:
+    checks = realrepo.json.loads(realrepo.CHECKS_FILE.read_text())
+    tasks = taskset.load(HELD_OUT_FILE).tasks
+    assert tasks
+    for task in tasks:
+        assert task.is_hidden_fix, task.id
+        assert task.repo is not None
+        entry = checks[task.repo.manifest]
+        touches = [c for c in entry["setup"] if "tasks/workloads" in c]
+        if touches:
+            assert entry.get("planted"), task.id
+        for name in entry.get("planted", []):
+            assert any(name in c for c in entry["setup"]), (task.id, name)
 
 
 def test_each_workload_step_of_a_hidden_fix_task_names_what_it_plants() -> (
@@ -182,7 +211,7 @@ def test_each_workload_step_of_a_hidden_fix_task_names_what_it_plants() -> (
 def test_the_known_planted_files_are_listed() -> None:
     planted = {
         t.repo.manifest: realrepo.load_spec(t.repo.manifest).planted
-        for t in _hidden_fix()
+        for t in _development_hidden_fix()
         if t.repo is not None
     }
     assert "eval_bench.js" in planted["fastify-fastify-pr7056"]
@@ -261,7 +290,13 @@ def test_only_hidden_fix_tasks_hide_what_they_plant() -> None:
 
 
 def test_two_micro_win_tasks_are_excluded_with_reason_and_evidence() -> None:
-    excluded = {t.id: t.bar_exclusion for t in _all_tasks() if t.bar_exclusion}
+    development = [
+        t
+        for f in TASK_FILES
+        if f != HELD_OUT_FILE
+        for t in taskset.load(f).tasks
+    ]
+    excluded = {t.id: t.bar_exclusion for t in development if t.bar_exclusion}
     assert set(excluded) == {"real-django-hidden-fix", "ruby-rails-find"}
     for ex in excluded.values():
         assert ex is not None
@@ -463,3 +498,201 @@ def test_dotnet_tools_are_on_the_path_and_readable_for_the_eval_user_only(
     assert realrepo.toolchain_dirs(net) == [dotnet.parent, tools]
     text = sandbox.profile(home, tmp_path / "root", allow_docker=False)
     assert str(tools) in text
+
+
+# Build output derived from a planted file
+
+
+def _names_under(repo: Path) -> list[str]:
+    return [
+        p.relative_to(repo).as_posix()
+        for p in repo.rglob("*")
+        if ".git" not in p.relative_to(repo).parts
+    ]
+
+
+def test_a_planted_examples_build_output_and_names_are_removed(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    (repo / "examples").mkdir()
+    (repo / "examples" / "eval_probe.rs").write_text("fn main() {}\n")
+    (repo / "src").mkdir()
+    (repo / "src" / "eval_probe_helper.rs").write_text("")
+    for rel in (
+        "target/release/examples/eval_probe",
+        "target/release/examples/eval_probe-0123abcd.d",
+        "target/release/examples/other",
+        "target/release/deps/eval_probe-0123abcd",
+        "target/release/deps/eval_probe-0123abcd.d",
+        "target/release/.fingerprint/c-1/example-eval_probe-9f/x.json",
+        "target/release/.fingerprint/c-1/invoked.timestamp",
+    ):
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}")
+    note = repo / "target/release/.fingerprint/c-1/dep-info"
+    note.write_text("examples/eval_probe.rs\n")
+    spec = _spec_planting("x").model_copy(
+        update={"planted": ["examples/eval_probe.rs"], "setup": []}
+    )
+    realrepo.remove_planted(spec, repo)
+    left = _names_under(repo)
+    assert not [n for n in left if "eval_probe.rs" in n or "eval_probe-" in n]
+    assert "target/release/examples/eval_probe" not in left
+    assert "target/release/.fingerprint/c-1/dep-info" not in left
+    # What does not carry the name stays, look-alikes outside build
+    # directories included.
+    assert "target/release/examples/other" in left
+    assert "target/release/.fingerprint/c-1/invoked.timestamp" in left
+    assert "src/eval_probe_helper.rs" in left
+
+
+@pytest.mark.skipif(shutil.which("cargo") is None, reason="needs cargo")
+def test_a_real_cargo_example_leaves_nothing_after_hide_planted(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    (repo / "src").mkdir()
+    (repo / "src" / "lib.rs").write_text("pub fn f() {}\n")
+    (repo / "Cargo.toml").write_text(
+        '[package]\nname = "probe"\nversion = "0.1.0"\nedition = "2021"\n'
+    )
+    (repo / "examples").mkdir()
+    (repo / "examples" / "eval_probe.rs").write_text(
+        "fn main() { probe::f(); }\n"
+    )
+    spec = realrepo.RepoSpec(
+        repository="o/r",
+        task_commit="a",
+        reference_commit="b",
+        reference_number="1",
+        reference_title="t",
+        setup=["cargo build --release --example eval_probe --offline"],
+        env={},
+        oracle=None,
+        planted=["examples/eval_probe.rs"],
+    )
+    realrepo.run_setup(spec, repo, [], hide_planted=True)
+    assert (repo / "target" / "release").is_dir()
+    assert not [n for n in _names_under(repo) if "eval_probe" in n]
+    exclude = (repo / ".git" / "info" / "exclude").read_text()
+    assert "eval_probe" not in exclude
+    named = [
+        p
+        for p in (repo / "target").rglob("*")
+        if p.is_file()
+        and p.stat().st_size < 1_000_000
+        and b"eval_probe" in p.read_bytes()
+        and p.suffix in {".d", ".json", ""}
+    ]
+    assert not named
+
+
+# Running held-out tasks
+
+
+def test_a_held_out_task_loads_only_with_the_flag() -> None:
+    repo = taskset.load(HELD_OUT_FILE).tasks[0].repo
+    assert repo is not None
+    with pytest.raises(ValueError, match="development"):
+        realrepo.load_spec(repo.manifest)
+    assert realrepo.load_spec(repo.manifest, held_out=True).repository
+
+
+def test_the_flag_refuses_a_development_task() -> None:
+    with pytest.raises(ValueError, match="--held-out"):
+        realrepo.load_spec("sharkdp-fd-pr853", held_out=True)
+
+
+def test_the_held_out_tasks_name_what_their_setup_plants() -> None:
+    planting = 0
+    for task in taskset.load(HELD_OUT_FILE).tasks:
+        assert task.repo is not None
+        spec = realrepo.load_spec(task.repo.manifest, held_out=True)
+        assert task.is_hidden_fix
+        planting += bool(spec.planted)
+        for name in spec.planted:
+            assert any(name in c for c in spec.setup), (task.id, name)
+    assert planting >= 4
+
+
+# Scoring held-out tasks
+
+_ARCHIVE = HERE / "runs" / "r7-1-real" / "real-xarray-hidden-fix"
+
+
+def _held_out_task(manifest: str) -> Task:
+    return next(
+        t
+        for t in taskset.load(HELD_OUT_FILE).tasks
+        if t.repo is not None and t.repo.manifest == manifest
+    )
+
+
+def test_oracle_files_are_locked_for_a_held_out_task_with_the_flag() -> None:
+    task = _held_out_task("dask-dask-pr11899")
+    test_file = "dask/tests/test_highgraph.py"
+    spec = realrepo.load_spec(task.repo.manifest, held_out=True)  # type: ignore[union-attr]
+    assert test_file in (spec.oracle or "")
+    assert scoring.locked_edits(task, [test_file, "dask/a.py"], True) == [
+        test_file
+    ]
+
+
+def test_scoring_a_held_out_task_without_the_flag_raises() -> None:
+    task = _held_out_task("dask-dask-pr11899")
+    with pytest.raises(ValueError, match="development"):
+        scoring.locked_edits(task, ["dask/a.py"])
+
+
+def _archive(tmp_path: Path, held_out: bool) -> Path:
+    kept = tmp_path / "task"
+    shutil.copytree(_ARCHIVE, kept)
+    state = runner.State.model_validate_json(
+        (kept / "state.json").read_text(encoding="utf-8")
+    )
+    trees = [
+        t.model_copy(update={"changed": ["dask/tests/test_highgraph.py"]})
+        if t.ref == "working"
+        else t
+        for t in state.trees
+    ]
+    (kept / "state.json").write_text(
+        state.model_copy(update={"trees": trees}).model_dump_json(),
+        encoding="utf-8",
+    )
+    meta = runner.Meta.model_validate_json(
+        (kept / "meta.json").read_text(encoding="utf-8")
+    )
+    (kept / "meta.json").write_text(
+        meta.model_copy(update={"held_out": held_out}).model_dump_json(),
+        encoding="utf-8",
+    )
+    return kept
+
+
+def test_a_held_out_archive_scores_with_its_oracle_files_locked(
+    tmp_path: Path,
+) -> None:
+    task = _held_out_task("dask-dask-pr11899")
+    score = scoring.score_task(task, _archive(tmp_path, held_out=True))
+    assert any(v.rule == "locked_file_edited" for v in score.wording)
+
+
+def test_a_held_out_archive_not_marked_held_out_does_not_score_silently(
+    tmp_path: Path,
+) -> None:
+    task = _held_out_task("dask-dask-pr11899")
+    with pytest.raises(ValueError, match="development"):
+        scoring.score_task(task, _archive(tmp_path, held_out=False))
+
+
+def test_the_run_meta_records_held_out_and_defaults_to_false() -> None:
+    meta = runner.Meta.model_validate_json(
+        (_ARCHIVE / "meta.json").read_text(encoding="utf-8")
+    )
+    assert meta.held_out is False
+    assert (
+        "held_out" in meta.model_copy(update={"held_out": True}).model_dump()
+    )

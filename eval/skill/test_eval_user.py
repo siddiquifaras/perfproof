@@ -97,6 +97,16 @@ def test_no_secret_reaches_the_command_line(
     )
 
 
+def test_the_held_out_flag_reaches_the_guest_only_when_given() -> None:
+    plain = [str(a) for a in eval_user.guest_argv(USER, label="r", only=[])]
+    held = [
+        str(a)
+        for a in eval_user.guest_argv(USER, label="r", only=[], held_out=True)
+    ]
+    assert "--held-out" not in plain
+    assert "--held-out" in held
+
+
 def test_the_guest_runs_from_the_users_home_only() -> None:
     argv = eval_user.guest_argv(USER, label="r1", only=["a", "b"])
     paths = [a for a in argv if isinstance(a, Path)]
@@ -115,6 +125,7 @@ def test_the_bundle_holds_the_harness_without_its_tests() -> None:
     assert "eval/skill/skill_eval.py" in files
     assert "eval/skill/tasks-real.json" in files
     assert "eval/mine/checks.json" in files
+    assert "eval/mine/heldout-discovery-draw.json" in files
     assert "examples/materialize.py" in files
     assert "skills/perfproof/SKILL.md" in files
     # Workloads and the examples' own tests are task content; the

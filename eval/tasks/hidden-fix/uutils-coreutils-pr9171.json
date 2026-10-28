@@ -1,0 +1,46 @@
+{
+  "id": "uutils-coreutils-pr9171",
+  "repository": "uutils/coreutils",
+  "stars": 24300,
+  "pushed_at": "2026-10-28T11:15:24Z",
+  "task_commit": "92bb655b0ce6f3a5ebc452c2d51cb12fbbf91b80",
+  "task_commit_basis": "first parent of https://github.com/uutils/coreutils/commit/293e9d2b00c4e58508e7baf9f42a706c49f26425; gh api compare 92bb655b0ce6...293e9d2b00c4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/uutils/coreutils/pull/9171",
+    "title": "factor: use num_prime crate's u64 and u128 factorization methods to speed up the performance of calculating prime numbers for u64 and u128",
+    "commit": "293e9d2b00c4e58508e7baf9f42a706c49f26425",
+    "merged_at": "2025-11-08T22:26:19Z",
+    "files": [
+      "src/uu/factor/src/factor.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "hyperfine '~/coding-project/coreutils/target/release/seq 2 10000000 | ~/coding-project/coreutils/target/release/factor'",
+    "source": "quoted in the description of https://github.com/uutils/coreutils/pull/9171",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/uutils/coreutils/pull/9171",
+      "note": "description, as matched by the miner: timings: 16.946 s; 0.147 s; 14.600 s; 2.385 s; 16.816 s; 17.175 s; 11.778 s; 0.087 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:02:48+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

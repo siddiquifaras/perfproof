@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "asv continuous main HEAD -b \"bench_array_equal.ArrayEqual\"",
-    "source": "quoted in the description of https://github.com/numpy/numpy/pull/30810",
-    "verified": false
+    "command": "python -I -c \"import timeit, numpy as np; a = np.random.default_rng(0).standard_normal(1_000_000); a[::7] = np.nan; b = a.copy(); print(min(timeit.repeat(lambda: np.array_equal(a, b, equal_nan=True), number=20, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/numpy/numpy/pull/30810 (array_equal with equal_nan=True): two equal one-million-element float arrays with every seventh value NaN",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": ".venv/bin/pytest -q -p no:cacheprovider --pyargs numpy._core.tests.test_numeric -k array_equal",
+    "source": "the array_equal tests in numpy's test_numeric module, run against the installed package (numpy refuses to import from its source tree); targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,111 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built from source with the tree's build requirements; the install is not editable, so the tests run against the built package",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:08:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-02-11 pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 2.72,
+      "date": "2026-10-28T14:08:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 1.64s\nDownloading pygments (1.2MiB)\n Downloaded pygments\nPrepared 5 packages in 1.02s\nInstalled 7 packages in 8ms\n + hypothesis==6.151.6\n + iniconfig==2.3.0\n + packaging==26.0\n + pluggy==1.6.0\n + pygments==2.19.2\n + pytest==9.0.2\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-02-11 .",
+      "exit_code": 0,
+      "duration_s": 50.03,
+      "date": "2026-10-28T14:08:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 0.62ms\n   Building numpy @ file://eval/mine/work/numpy-numpy-pr30810/task\n      Built numpy @ file://eval/mine/work/numpy-numpy-pr30810/task\nPrepared 1 package in 49.95s\nInstalled 1 package in 7ms\n + numpy==2.5.0.dev0 (from file://eval/mine/work/numpy-numpy-pr30810/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider --pyargs numpy._core.tests.test_numeric -k array_equal",
+      "exit_code": 0,
+      "duration_s": 14.46,
+      "date": "2026-10-28T14:09:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..............................................................           [100%]\n62 passed, 1572 deselected in 13.72s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit, numpy as np; a = np.random.default_rng(0).standard_normal(1_000_000); a[::7] = np.nan; b = a.copy(); print(min(timeit.repeat(lambda: np.array_equal(a, b, equal_nan=True), number=20, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": 0.37,
+      "date": "2026-10-28T14:09:41+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.06110458400507923"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:09:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-02-11 pytest hypothesis",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-28T14:09:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 2ms\nInstalled 7 packages in 6ms\n + hypothesis==6.151.6\n + iniconfig==2.3.0\n + packaging==26.0\n + pluggy==1.6.0\n + pygments==2.19.2\n + pytest==9.0.2\n + sortedcontainers==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-02-11 .",
+      "exit_code": 0,
+      "duration_s": 63.38,
+      "date": "2026-10-28T14:09:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 0.57ms\n   Building numpy @ file://eval/mine/work/numpy-numpy-pr30810/reference\n      Built numpy @ file://eval/mine/work/numpy-numpy-pr30810/reference\nPrepared 1 package in 1m 03s\nInstalled 1 package in 10ms\n + numpy==2.5.0.dev0 (from file://eval/mine/work/numpy-numpy-pr30810/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider --pyargs numpy._core.tests.test_numeric -k array_equal",
+      "exit_code": 0,
+      "duration_s": 15.05,
+      "date": "2026-10-28T14:10:45+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..............................................................           [100%]\n62 passed, 1572 deselected in 13.42s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -I -c \"import timeit, numpy as np; a = np.random.default_rng(0).standard_normal(1_000_000); a[::7] = np.nan; b = a.copy(); print(min(timeit.repeat(lambda: np.array_equal(a, b, equal_nan=True), number=20, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:11:00+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:54+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

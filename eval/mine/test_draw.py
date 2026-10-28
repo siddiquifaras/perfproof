@@ -14,7 +14,8 @@ import pytest
 
 import check
 import draw
-from draw import Review, Selection, assigned_splits, draw_splits, order_key
+import draw_discovery
+from draw import Review, Selection, draw_splits, order_key
 from task import Run, Status, Task, load_tasks
 
 
@@ -223,6 +224,7 @@ def test_salts_are_the_documented_ones() -> None:
     assert documented == [
         sel.salts["held-out"],
         sel.salts["development"],
+        draw_discovery.SALT,
     ]
     readme = (root / "eval" / "README.md").read_text()
     assert f"`{sel.salts['development']}`" in readme
@@ -269,7 +271,7 @@ def test_committed_splits_match_the_draw() -> None:
     tasks = load_tasks()
     sel = draw.load_selection()
     draws = draw_splits(tasks, sel)
-    splits = assigned_splits(draws)
+    splits = draw.final_splits(draws)
     for task in tasks:
         assert task.split == splits.get(task.id, "development-candidate"), (
             task.id
@@ -336,3 +338,36 @@ def test_no_committed_held_out_task_is_named_in_a_task_file() -> None:
     named = draw.development_named()
     held = {t.id for t in load_tasks() if t.split == "held-out"}
     assert not held & set(named)
+
+
+def test_final_splits_keep_the_discovery_picks_held_out(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tasks = _pool(6)
+    sel = _selection(tasks)
+    draws = draw_splits(tasks, sel)
+    other = next(
+        t.id for t in tasks if t.id not in draw.assigned_splits(draws)
+    )
+
+    def record() -> dict[str, Any]:
+        return {"mined": {"ids": []}, "picks": [other]}
+
+    monkeypatch.setattr(draw, "discovery_record", record)
+    assert draw.final_splits(draws)[other] == "held-out"
+
+
+def test_discovery_mined_candidates_stay_out_of_the_per_class_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tasks = _pool(4)
+    sel = _selection(tasks)
+    base = draw_splits(tasks, sel)["held-out"]["python"]
+    first = base.picks[0].task_id
+
+    def record() -> dict[str, Any]:
+        return {"mined": {"ids": [first]}, "picks": []}
+
+    monkeypatch.setattr(draw, "discovery_record", record)
+    out = draw_splits(tasks, sel)["held-out"]["python"]
+    assert first not in {v.task_id for v in out.visits}

@@ -1,0 +1,46 @@
+{
+  "id": "uuidjs-uuid-pr677",
+  "repository": "uuidjs/uuid",
+  "stars": 15346,
+  "pushed_at": "2026-10-23T03:48:04Z",
+  "task_commit": "62ef29eefeed93b0858ca0b89f5fd77ad9614105",
+  "task_commit_basis": "first parent of https://github.com/uuidjs/uuid/commit/e53793f5be93413cad68b05b3a339ca23e993342; gh api compare 62ef29eefeed...e53793f5be93 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/uuidjs/uuid/pull/677",
+    "title": "perf: remove superfluous call to toLowerCase",
+    "commit": "e53793f5be93413cad68b05b3a339ca23e993342",
+    "merged_at": "2023-01-13T00:39:13Z",
+    "files": [
+      "src/stringify.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "hyperfine 'node lc-1a.js' 'node lc-2a.js'",
+    "source": "quoted in the description of https://github.com/uuidjs/uuid/pull/677",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/uuidjs/uuid/pull/677",
+      "note": "description, as matched by the miner: timings: 2.714 s; 0.002 s; 2.703 s; 0.009 s; 2.712 s; 2.716 s; 2.718 s; 0.006 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:03:13+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

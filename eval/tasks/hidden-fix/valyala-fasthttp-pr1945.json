@@ -1,0 +1,128 @@
+{
+  "id": "valyala-fasthttp-pr1945",
+  "repository": "valyala/fasthttp",
+  "stars": 23494,
+  "pushed_at": "2026-10-28T06:30:37Z",
+  "task_commit": "bb94b26bceea29681f393eac0c5d48228be27fdd",
+  "task_commit_basis": "first parent of https://github.com/valyala/fasthttp/commit/b59f47e3ee0ba73984d17c16c5122515bc1d8273; gh api compare bb94b26bceea...b59f47e3ee0b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/valyala/fasthttp/pull/1945",
+    "title": "perf: split delAllArgs into delAllArgs and delAllArgsStable",
+    "commit": "b59f47e3ee0ba73984d17c16c5122515bc1d8273",
+    "merged_at": "2025-02-19T10:48:10Z",
+    "files": [
+      "args.go",
+      "header.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalHeaderDel$ -benchtime 200000x .",
+    "source": "written here from the description of https://github.com/valyala/fasthttp/pull/1945 (deleting repeated headers through delAllArgs; its BenchmarkArgsDel is not in the tree): a Go benchmark that adds four values under each of ten custom header names and deletes the names, eval/tasks/workloads/valyala-fasthttp-pr1945/eval_header_del_bench_test.go, copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "go test -count 1 -run \"TestRequestHeader|TestResponseHeader|TestArgs\" .",
+    "source": "fasthttp's header and args tests in the root package, the package https://github.com/valyala/fasthttp/pull/1945 changes (args.go and header.go); targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/valyala/fasthttp/pull/1945",
+      "note": "description, as matched by the miner: speedup claims: 100000x | timings: 2072 ns; 2370 ns; 8.312s"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/valyala-fasthttp-pr1945/eval_header_del_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-28T14:32:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 20.53,
+      "date": "2026-10-28T14:32:32+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/valyala/fasthttp\t0.331s [no tests to run]\ngo: downloading github.com/andybalholm/brotli v1.1.1\ngo: downloading github.com/klauspost/compress v1.17.11"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"TestRequestHeader|TestResponseHeader|TestArgs\" .",
+      "exit_code": 0,
+      "duration_s": 0.5,
+      "date": "2026-10-28T14:32:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/valyala/fasthttp\t0.227s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalHeaderDel$ -benchtime 200000x .",
+      "exit_code": 0,
+      "duration_s": 1.01,
+      "date": "2026-10-28T14:32:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/valyala/fasthttp\ncpu: Apple M4\nBenchmarkEvalHeaderDel-10    \t  200000\t      2689 ns/op\t    8664 B/op\t      88 allocs/op\nPASS\nok  \tgithub.com/valyala/fasthttp\t0.746s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/valyala-fasthttp-pr1945/eval_header_del_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-28T14:32:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 1.48,
+      "date": "2026-10-28T14:32:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/valyala/fasthttp\t0.319s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"TestRequestHeader|TestResponseHeader|TestArgs\" .",
+      "exit_code": 0,
+      "duration_s": 0.48,
+      "date": "2026-10-28T14:32:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/valyala/fasthttp\t0.223s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalHeaderDel$ -benchtime 200000x .",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:32:56+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:02:38+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

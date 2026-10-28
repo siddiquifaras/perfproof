@@ -510,7 +510,14 @@ def bundle_files(checkout: Path, skill_dir: Path) -> dict[str, Path]:
     # ``realrepo.draw_state`` imports the selection rule (``draw`` and
     # the ``task`` schema it reads the manifests with); without them
     # every task that is a development candidate dies in the guest.
-    for name in ("checks.json", "draw.py", "task.py"):
+    # The draw also reads the discovery supplement's record, to leave
+    # the candidates mined after it was fixed out of its pool.
+    for name in (
+        "checks.json",
+        "draw.py",
+        "heldout-discovery-draw.json",
+        "task.py",
+    ):
         extra = checkout / "eval" / "mine" / name
         files[extra.relative_to(checkout).as_posix()] = extra
     for path in _tracked(checkout / "examples", ["**/*"]):
@@ -753,6 +760,7 @@ def guest_argv(
     *,
     label: str,
     only: Sequence[str],
+    held_out: bool = False,
 ) -> list[str | Path]:
     """Build the command line of one guest ``run``.
 
@@ -765,6 +773,8 @@ def guest_argv(
     only : sequence of str
         Task ids the guest runs (one per call, so the host can honour
         the pause marker between tasks).
+    held_out : bool, optional
+        Pass ``--held-out`` to the guest.
 
     Returns
     -------
@@ -783,6 +793,7 @@ def guest_argv(
         user.bundle / "tasks-file.json",
         "run",
         "--no-eval-user",
+        *(["--held-out"] if held_out else []),
         "--label",
         label,
         "--resume",

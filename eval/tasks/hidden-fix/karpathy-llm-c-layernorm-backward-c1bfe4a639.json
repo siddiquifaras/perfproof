@@ -22,13 +22,13 @@
   "change_kind": "kernel-version",
   "target_class": "gpu",
   "workload": {
-    "command": "cd dev/cuda && nvcc -O3 --use_fast_math layernorm_backward.cu -o layernorm_backward && ./layernorm_backward 2",
-    "source": "compile line in the header of dev/cuda/layernorm_backward.cu at c1bfe4a63906; the kernel number is the version this commit adds, so a fixed baseline-vs-candidate command still has to be set up",
+    "command": "./layernorm_backward 1",
+    "source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
     "verified": false
   },
   "oracle": {
-    "command": "cd dev/cuda && nvcc -O3 --use_fast_math layernorm_backward.cu -o layernorm_backward && ./layernorm_backward 2",
-    "source": "dev/cuda/layernorm_backward.cu compares the GPU result against its CPU reference with validate_result when run",
+    "command": "./layernorm_backward 1",
+    "source": "the program checks each kernel against its CPU reference before it times it",
     "verified": false
   },
   "evidence": [
@@ -38,9 +38,20 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here: needs an NVIDIA GPU. Repository kept despite the activity threshold (last push 2025-06-26T17:03:40Z) because the plan names its dev/cuda kernels for GPU tasks",
-  "runs": [],
+  "status": "failed",
+  "status_reason": "setup failed on the task tree; see runs. needs nvcc and an NVIDIA GPU",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/layernorm_backward.cu -o layernorm_backward",
+      "exit_code": 127,
+      "duration_s": 0.0,
+      "date": "2026-10-28T14:53:53+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[Errno 2] No such file or directory: 'nvcc'"
+    }
+  ],
   "split": "development-candidate",
   "mined_at": "2026-10-16T07:04:03+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"

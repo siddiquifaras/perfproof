@@ -1,0 +1,54 @@
+{
+  "id": "pinojs-pino-pr420",
+  "repository": "pinojs/pino",
+  "stars": 18272,
+  "pushed_at": "2026-10-06T15:34:15Z",
+  "task_commit": "e50d3c9022376a15f25f0cf5216501c0a0ddb681",
+  "task_commit_basis": "first parent of https://github.com/pinojs/pino/commit/dd2590d3750a379c517647273f17cc8bc12492ce; gh api compare e50d3c902237...dd2590d3750a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pinojs/pino/pull/420",
+    "title": "Add redact API as first class citizen + faster redaction than pino-noir",
+    "commit": "dd2590d3750a379c517647273f17cc8bc12492ce",
+    "merged_at": "2018-06-02T12:42:27Z",
+    "files": [
+      "README.md",
+      "benchmarks/redact.bench.js",
+      "docs/API.md",
+      "docs/howtos.md",
+      "docs/redaction.md",
+      "lib/redact.js",
+      "package.json",
+      "pino.js",
+      "test/redact.test.js"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "node benchmarks/redact.bench",
+    "source": "quoted in the description of https://github.com/pinojs/pino/pull/420",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pinojs/pino/pull/420",
+      "note": "description, as matched by the miner: timings: 349.224ms; 350.569ms; 327.524ms; 330.655ms; 205.040ms; 215.273ms; 193.195ms; 193.174ms | benchmark files changed: benchmarks/redact.bench.js"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:03:07+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

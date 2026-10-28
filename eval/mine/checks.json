@@ -895,5 +895,282 @@
     "oracle": "tests/fuzzer -s1 -i60",
     "oracle_source": "zstd's own fuzzer (tests/fuzzer.c, built by make -C tests fuzzer), 60 tests from seed 1; the fuzzer covers the compression paths the pull request changes",
     "notes": "Needs a C compiler named cc on the PATH and make (tested with Apple clang 17.0.0 on arm64 macOS)"
+  },
+  "dask-dask-pr11899": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2025-05-04 -e .[array] pytest"
+    ],
+    "workload": "python -c \"import timeit, dask.array as da; arr = da.arange(2000, chunks=(1,)); f = lambda *a, **k: a[0]; exec('for _ in range(5): arr = da.blockwise(f, \\\"i\\\", arr, \\\"i\\\")'); keys = arr.__dask_keys__(); t = min(timeit.repeat(lambda: arr.dask.cull(keys), number=1, repeat=5)); print(t)\"",
+    "workload_source": "adapted from the culling benchmark in the description of https://github.com/dask/dask/pull/11899 (a chain of blockwise layers over arange, then HighLevelGraph.cull on all keys), with timeit in place of IPython's %timeit and 2000 partitions and 5 layers",
+    "oracle": "python -m pytest -q -o addopts= dask/tests/test_highgraph.py dask/tests/test_task_spec.py",
+    "oracle_source": "the dask test modules for highlevelgraph.py and _task_spec.py, two of the files https://github.com/dask/dask/pull/11899 changes; targeted tests only",
+    "notes": "Dependencies are the newest releases before the pull request's merge date"
+  },
+  "numpy-numpy-pr30810": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-02-11 pytest hypothesis",
+      "uv pip install --exclude-newer 2026-02-11 ."
+    ],
+    "workload": "python -I -c \"import timeit, numpy as np; a = np.random.default_rng(0).standard_normal(1_000_000); a[::7] = np.nan; b = a.copy(); print(min(timeit.repeat(lambda: np.array_equal(a, b, equal_nan=True), number=20, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/numpy/numpy/pull/30810 (array_equal with equal_nan=True): two equal one-million-element float arrays with every seventh value NaN",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider --pyargs numpy._core.tests.test_numeric -k array_equal",
+    "oracle_source": "the array_equal tests in numpy's test_numeric module, run against the installed package (numpy refuses to import from its source tree); targeted tests only",
+    "notes": "Built from source with the tree's build requirements; the install is not editable, so the tests run against the built package"
+  },
+  "apache-arrow-rs-pr11143": {
+    "setup": [
+      "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader --no-run"
+    ],
+    "workload": "cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_reader -- \"binary packed skip\" --measurement-time 3 --warm-up-time 1 --sample-size 20",
+    "workload_source": "the command in the description of https://github.com/apache/arrow-rs/pull/11143 with the filter narrowed to the binary packed skip cases and without --baseline main, which needs a saved baseline",
+    "oracle": "cargo test -p parquet --lib encodings::decoding",
+    "oracle_source": "the decoding unit tests of the parquet crate, for the file https://github.com/apache/arrow-rs/pull/11143 changes; targeted tests only"
+  },
+  "apache-datafusion-pr26790": {
+    "setup": [
+      "mkdir -p datafusion/physical-plan/examples",
+      "cp ../../../../tasks/workloads/apache-datafusion-pr26790/eval_union.rs datafusion/physical-plan/examples/eval_union.rs",
+      "cargo build --profile release-nonlto -p datafusion-physical-plan --example eval_union"
+    ],
+    "planted": [
+      "datafusion/physical-plan/examples/eval_union.rs"
+    ],
+    "workload": "cargo run --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+    "workload_source": "written here from the description of https://github.com/apache/datafusion/pull/26790 (UnionExec::try_new over inputs with unequal non-nullable schemas, the benchmark cases in its description are not in the tree): 1000 children of 10 fields with two metadata entries each and the last child's metadata differing, eval/tasks/workloads/apache-datafusion-pr26790/eval_union.rs, copied into the tree as an example of the physical-plan crate",
+    "oracle": "cargo test --profile release-nonlto -p datafusion-physical-plan --lib union",
+    "oracle_source": "the union unit tests of the physical-plan crate, for the file https://github.com/apache/datafusion/pull/26790 changes; targeted tests only"
+  },
+  "image-rs-image-pr2894": {
+    "setup": [
+      "cargo bench --no-run"
+    ],
+    "workload": "cargo bench resize -- --warm-up-time 1 --measurement-time 3 --sample-size 20",
+    "workload_source": "the command in the description of https://github.com/image-rs/image/pull/2894 (cargo bench resize) with shorter Criterion times",
+    "oracle": "cargo test --lib imageops",
+    "oracle_source": "the imageops unit tests, the command in the description of https://github.com/image-rs/image/pull/2894 (cargo test imageops) restricted to the library"
+  },
+  "astral-sh-ruff-pr26565": {
+    "setup": [
+      "cargo build --release --locked -p ruff"
+    ],
+    "workload": "target/release/ruff check --preview --select=ALL --no-cache --exit-zero python scripts crates/ruff_python_formatter/resources",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/astral-sh/ruff/pull/26565 (ruff check --preview --select=ALL on the repository's Python code), without hyperfine and with --no-cache and --exit-zero so every run does the same work and exits 0",
+    "oracle": "cargo test --locked -p ruff_db diagnostic",
+    "oracle_source": "the diagnostic tests of the ruff_db crate, for the file https://github.com/astral-sh/ruff/pull/26565 changes; targeted tests only"
+  },
+  "scikit-learn-scikit-learn-pr34386": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-07-02 pytest",
+      "uv pip install --exclude-newer 2026-07-02 ."
+    ],
+    "workload": "python -I -c \"import timeit, numpy as np; from sklearn.preprocessing import OrdinalEncoder; rng = np.random.default_rng(0); X = rng.integers(0, 50000, size=(300000, 1)).astype(str).astype(object); enc = OrdinalEncoder(); print(min(timeit.repeat(lambda: enc.fit(X), number=1, repeat=3)))\"",
+    "workload_source": "written here from the description of https://github.com/scikit-learn/scikit-learn/pull/34386 (unique counts of string categories behind encoding): OrdinalEncoder.fit on 300000 string values with about 50000 distinct values",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider --pyargs sklearn.utils.tests.test_encode sklearn.utils.tests.test_missing",
+    "oracle_source": "the encode and missing-value tests of sklearn.utils, for the two modules https://github.com/scikit-learn/scikit-learn/pull/34386 changes, run against the installed package; targeted tests only"
+  },
+  "pandas-dev-pandas-pr70972": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-10-13 pytest hypothesis",
+      "uv pip install --exclude-newer 2026-10-13 ."
+    ],
+    "workload": "python -I -c \"import timeit, numpy as np, pandas as pd; rng = np.random.default_rng(0); df = pd.DataFrame({'key': rng.integers(0, 1000, 1_000_000), 'val': rng.standard_normal(1_000_000)}); g = df.groupby('key')['val']; print(min(timeit.repeat(lambda: g.pct_change(), number=1, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/pandas-dev/pandas/pull/70972 (groupby.pct_change on a million rows)",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider --pyargs pandas.tests.groupby.methods.test_pct_change",
+    "oracle_source": "pandas' groupby pct_change tests, for the file https://github.com/pandas-dev/pandas/pull/70972 changes, run against the installed package; targeted tests only"
+  },
+  "karpathy-llm-c-adamw-97e61e2258": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/adamw.cu -o adamw"
+    ],
+    "workload": "./adamw 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./adamw 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/attention_forward.cu -o attention_forward"
+    ],
+    "workload": "./attention_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./attention_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-classifier-fused-dcff5613c6": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/classifier_fused.cu -o classifier_fused"
+    ],
+    "workload": "./classifier_fused 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./classifier_fused 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-encoder-forward-cfccd821e6": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/encoder_forward.cu -o encoder_forward"
+    ],
+    "workload": "./encoder_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./encoder_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-gelu-forward-45252d434c": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/gelu_forward.cu -o gelu_forward"
+    ],
+    "workload": "./gelu_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./gelu_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-global-norm-0f6853d399": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/global_norm.cu -o global_norm"
+    ],
+    "workload": "./global_norm 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./global_norm 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/layernorm_backward.cu -o layernorm_backward"
+    ],
+    "workload": "./layernorm_backward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./layernorm_backward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-layernorm-forward-466723bb06": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/layernorm_forward.cu -o layernorm_forward"
+    ],
+    "workload": "./layernorm_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./layernorm_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/matmul_backward_bias.cu -o matmul_backward_bias"
+    ],
+    "workload": "./matmul_backward_bias 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./matmul_backward_bias 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-matmul-forward-8822e7803e": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/matmul_forward.cu -o matmul_forward"
+    ],
+    "workload": "./matmul_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./matmul_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/residual_forward.cu -o residual_forward"
+    ],
+    "workload": "./residual_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./residual_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "karpathy-llm-c-softmax-forward-8386e5393c": {
+    "setup": [
+      "nvcc -O3 --use_fast_math -lcublas -lcublasLt dev/cuda/softmax_forward.cu -o softmax_forward"
+    ],
+    "workload": "./softmax_forward 1",
+    "workload_source": "the kernel's own dev/cuda program run on its first kernel version, as the header of the file says to run it",
+    "oracle": "./softmax_forward 1",
+    "oracle_source": "the program checks each kernel against its CPU reference before it times it",
+    "notes": "needs nvcc and an NVIDIA GPU"
+  },
+  "fastify-fast-json-stringify-pr900": {
+    "setup": [
+      "npm install --ignore-scripts --no-audit --no-fund --before 2026-10-18",
+      "cp ../../../../tasks/workloads/fastify-fast-json-stringify-pr900/bench.js eval_bench.js"
+    ],
+    "planted": [
+      "eval_bench.js"
+    ],
+    "workload": "node eval_bench.js",
+    "workload_source": "written here from the description of https://github.com/fastify/fast-json-stringify/pull/900 (compiling small schemas and serialising large arrays of numbers, integers and strings; its benchmark files are not in the tree): eval/tasks/workloads/fastify-fast-json-stringify-pr900/bench.js, copied into the tree",
+    "oracle": "node --test test/array.test.js",
+    "oracle_source": "the array tests, a test module of the file area https://github.com/fastify/fast-json-stringify/pull/900 changes, run by node's own test runner; targeted tests only",
+    "notes": "Dependencies installed with npm install --ignore-scripts and --before the merge date (no lockfile in use). Node is v24 from nvm"
+  },
+  "valyala-fasthttp-pr1945": {
+    "setup": [
+      "cp ../../../../tasks/workloads/valyala-fasthttp-pr1945/eval_header_del_bench_test.go .",
+      "go test -count 1 -run ^$ ."
+    ],
+    "planted": [
+      "eval_header_del_bench_test.go"
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalHeaderDel$ -benchtime 200000x .",
+    "workload_source": "written here from the description of https://github.com/valyala/fasthttp/pull/1945 (deleting repeated headers through delAllArgs; its BenchmarkArgsDel is not in the tree): a Go benchmark that adds four values under each of ten custom header names and deletes the names, eval/tasks/workloads/valyala-fasthttp-pr1945/eval_header_del_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 -run \"TestRequestHeader|TestResponseHeader|TestArgs\" .",
+    "oracle_source": "fasthttp's header and args tests in the root package, the package https://github.com/valyala/fasthttp/pull/1945 changes (args.go and header.go); targeted tests only",
+    "notes": "Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
+  },
+  "dgraph-io-badger-pr2269": {
+    "setup": [
+      "cp ../../../../tasks/workloads/dgraph-io-badger-pr2269/eval_rewrite_bench_test.go .",
+      "go test -count 1 -run ^$ ."
+    ],
+    "planted": [
+      "eval_rewrite_bench_test.go"
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalRewriteExpired$ -benchtime 5x .",
+    "workload_source": "written here from the description of https://github.com/dgraph-io/badger/pull/2269 (value log GC rewrite of a file of expired entries; its BenchmarkValueGCRewriteExpiredOnlyFile is not in the tree): a Go benchmark that fills value log files with 8000 entries that expire at once and times one vlog.rewrite of the oldest, eval/tasks/workloads/dgraph-io-badger-pr2269/eval_rewrite_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 -run \"^TestValueGC$|^TestValueGC2$|^TestValueGC3$\" .",
+    "oracle_source": "badger's value log GC tests (TestValueGC, TestValueGC2, TestValueGC3) in value_test.go, for value.go which https://github.com/dgraph-io/badger/pull/2269 changes; targeted tests only",
+    "notes": "Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
+  },
+  "rolldown-rolldown-pr10678": {
+    "setup": [
+      "npx --yes pnpm@11.17.0 install --frozen-lockfile --ignore-scripts",
+      "npx --yes pnpm@11.17.0 --filter rolldown run build-native:release"
+    ],
+    "workload": "node -e \"const {execFileSync} = require('child_process'); const t = Date.now(); for (let i = 0; i < 30; i++) execFileSync('node', ['packages/rolldown/bin/cli.mjs', '--version'], {stdio: 'ignore'}); console.log(Date.now() - t, 'ms for 30 starts')\"",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/rolldown/rolldown/pull/10678 (node bin/cli.mjs --version), run 30 times by node itself because hyperfine is not installed",
+    "oracle": "node packages/rolldown/bin/cli.mjs --help",
+    "oracle_source": "the CLI entry point https://github.com/rolldown/rolldown/pull/10678 changes must still start and print its help; the project's own CLI tests need its full workspace test setup and were not tried",
+    "notes": "pnpm is the version the tree's packageManager field names, run through npx. The tree's rust-toolchain.toml names the Rust release rustup fetches for the native binding"
+  },
+  "rubocop-rubocop-pr13248": {
+    "setup": [
+      "sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
+      "bundle install"
+    ],
+    "workload": "bundle exec ruby -e \"t = Time.now; 5.times { system('bundle', 'exec', 'rubocop', 'Rakefile', '--cache=false', out: File::NULL) or exit 1 }; puts Time.now - t\"",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/rubocop/rubocop/pull/13248 (bundle exec rubocop Rakefile --cache=false), run five times by Ruby itself because hyperfine is not installed",
+    "oracle": "bundle exec rspec spec/rubocop/cop/base_spec.rb",
+    "oracle_source": "the spec of RuboCop::Cop::Base, the class whose callbacks_needed https://github.com/rubocop/rubocop/pull/13248 changes; targeted tests only",
+    "notes": "Written like the Rails task's recipe, which runs on the eval user's own CRuby 4.0 in ~/.local/ruby. check.py runs these with a private HOME (private_home) because the setup writes bundler's global config",
+    "private_home": true
   }
 }

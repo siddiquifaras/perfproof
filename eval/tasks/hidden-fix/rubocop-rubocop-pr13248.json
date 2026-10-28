@@ -1,0 +1,67 @@
+{
+  "id": "rubocop-rubocop-pr13248",
+  "repository": "rubocop/rubocop",
+  "stars": 12918,
+  "pushed_at": "2026-10-28T12:13:46Z",
+  "task_commit": "9f2ffa2270bbc174b2a622350d120b05672a1ce5",
+  "task_commit_basis": "first parent of https://github.com/rubocop/rubocop/commit/eb56d39e7782594443cb00fadeac201e52d00fa7; gh api compare 9f2ffa2270bb...eb56d39e7782 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rubocop/rubocop/pull/13248",
+    "title": "Optimize `Base.callbacks_needed` by reordering checks",
+    "commit": "eb56d39e7782594443cb00fadeac201e52d00fa7",
+    "merged_at": "2024-09-18T16:27:36Z",
+    "files": [
+      "lib/rubocop/cop/base.rb"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "bundle exec ruby -e \"t = Time.now; 5.times { system('bundle', 'exec', 'rubocop', 'Rakefile', '--cache=false', out: File::NULL) or exit 1 }; puts Time.now - t\"",
+    "source": "adapted from the hyperfine command in the description of https://github.com/rubocop/rubocop/pull/13248 (bundle exec rubocop Rakefile --cache=false), run five times by Ruby itself because hyperfine is not installed",
+    "verified": false
+  },
+  "oracle": {
+    "command": "bundle exec rspec spec/rubocop/cop/base_spec.rb",
+    "source": "the spec of RuboCop::Cop::Base, the class whose callbacks_needed https://github.com/rubocop/rubocop/pull/13248 changes; targeted tests only",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rubocop/rubocop/pull/13248",
+      "note": "description, as matched by the miner: speedup claims: 1.3% faster | timings: 932.8 ms; 7.6 ms; 828.0 ms; 104.0 ms; 919.5 ms; 952.2 ms; 924.1 ms; 7.8 ms"
+    }
+  ],
+  "audit": null,
+  "status": "failed",
+  "status_reason": "setup failed on the task tree; see runs. Written like the Rails task's recipe, which runs on the eval user's own CRuby 4.0 in ~/.local/ruby. check.py runs these with a private HOME (private_home) because the setup writes bundler's global config",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "sh -c 'bundle config set --global path \"$HOME/.bundle-gems\"'",
+      "exit_code": 0,
+      "duration_s": 0.14,
+      "date": "2026-10-28T14:54:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "bundle install",
+      "exit_code": 6,
+      "duration_s": 78.26,
+      "date": "2026-10-28T14:54:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Fetching gem metadata from https://rubygems.org/..........\nFetching gem metadata from https://rubygems.org/.\nResolving dependencies...\nBundler could not find compatible versions for gem \"ruby\u0000\":\n  In Gemfile:\n    ruby\u0000\n\n    rubocop was resolved to 1.66.1, which depends on\n      ruby\u0000 (>= 2.7.0)\n\nCould not find gem 'ruby\u0000 (>= 2.7.0)', which is required by gem 'rubocop', in\nany of the relevant sources:\n  the local ruby installation"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:03:07+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

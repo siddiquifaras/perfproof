@@ -1,0 +1,51 @@
+{
+  "id": "grafana-loki-pr23949",
+  "repository": "grafana/loki",
+  "stars": 29085,
+  "pushed_at": "2026-10-28T12:50:03Z",
+  "task_commit": "d0774f03c5031574e6ad4d688b5cd5cd4326e39d",
+  "task_commit_basis": "first parent of https://github.com/grafana/loki/commit/d13b0b285eda0ad12a9995b40d8103970731c6d6; gh api compare d0774f03c503...d13b0b285eda touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/grafana/loki/pull/23949",
+    "title": "perf: Replace drain prefix tree map with a slice",
+    "commit": "d13b0b285eda0ad12a9995b40d8103970731c6d6",
+    "merged_at": "2026-08-14T22:04:49Z",
+    "files": [
+      "pkg/pattern/drain/drain.go",
+      "pkg/pattern/drain/drain_golden_test.go",
+      "pkg/pattern/drain/drain_memory_benchmark_test.go",
+      "pkg/pattern/drain/drain_test.go",
+      "pkg/pattern/drain/prefix_tree_memory_test.go",
+      "pkg/pattern/drain/prefix_tree_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test ./pkg/pattern/drain/ -run '^$' -bench 'BenchmarkPrefixTreeChildren_MapVsSlice|BenchmarkNodeChildLookup' -benchtime 20x",
+    "source": "quoted in the description of https://github.com/grafana/loki/pull/23949",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/grafana/loki/pull/23949",
+      "note": "description, as matched by the miner: speedup claims: 55% less; 20x | benchmark files changed: pkg/pattern/drain/drain_memory_benchmark_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-28T14:02:45+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

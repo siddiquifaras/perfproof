@@ -211,6 +211,9 @@ class Meta(_Model):
         The calls, in order.
     setup_seconds : float
         Time spent seeding and building the repo before the first call.
+    held_out : bool
+        The task ran under ``--held-out``; scoring and reports load its
+        spec the same way.
     """
 
     task_id: str
@@ -222,6 +225,7 @@ class Meta(_Model):
     skill_sha: str
     turns: list[TurnMeta]
     setup_seconds: float = 0.0
+    held_out: bool = False
 
 
 def confined(
@@ -1175,6 +1179,7 @@ def run_task(
     path_dir: Path,
     cache_dir: Path | None = None,
     work_root: Path | None = None,
+    held_out: bool = False,
 ) -> Meta:
     """Run one task end to end and write its record.
 
@@ -1198,6 +1203,9 @@ def run_task(
         ``<work_root>/<run id>/``. Put it outside the perfproof
         checkout so the agent's working directory has no ``eval/`` near
         it; ``run_dir`` itself when omitted.
+    held_out : bool, optional
+        The task is a held-out one (``skill_eval.py run --held-out``);
+        its manifest must be held-out and built. Refused otherwise.
 
     Returns
     -------
@@ -1240,7 +1248,7 @@ def run_task(
             shims = work / "shims" / task.repo.shim
             realrepo.write_shims(shims, task.repo.shim)
             extra_path.append(shims)
-        spec = realrepo.load_spec(task.repo.manifest)
+        spec = realrepo.load_spec(task.repo.manifest, held_out=held_out)
         branch = task.repo.branch
         fetch_go_modules = "go" in task.repo.requires and bool(toolchains)
 
@@ -1375,6 +1383,7 @@ def run_task(
         skill_sha=skill_hash(skill_dir),
         turns=turns,
         setup_seconds=setup_seconds,
+        held_out=held_out,
     )
     (out / "meta.json").write_text(
         meta_all.model_dump_json(indent=2), encoding="utf-8"

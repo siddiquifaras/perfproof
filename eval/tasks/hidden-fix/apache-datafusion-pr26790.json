@@ -1,0 +1,148 @@
+{
+  "id": "apache-datafusion-pr26790",
+  "repository": "apache/datafusion",
+  "stars": 9542,
+  "pushed_at": "2026-10-28T12:50:37Z",
+  "task_commit": "8f77b417a9b4fe0f143f50519db499b9de3f7a97",
+  "task_commit_basis": "first parent of https://github.com/apache/datafusion/commit/7ca68cf356803d07a635b342ad9b5041c9f5818b (squash merge); gh api compare 8f77b417a9b4...7ca68cf35680 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/datafusion/pull/26790",
+    "title": "perf: avoid quadratic metadata merging in union schemas",
+    "commit": "7ca68cf356803d07a635b342ad9b5041c9f5818b",
+    "merged_at": "2026-10-28T08:33:07Z",
+    "files": [
+      "datafusion/physical-plan/benches/union_schema.rs",
+      "datafusion/physical-plan/src/union.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo run --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+    "source": "written here from the description of https://github.com/apache/datafusion/pull/26790 (UnionExec::try_new over inputs with unequal non-nullable schemas, the benchmark cases in its description are not in the tree): 1000 children of 10 fields with two metadata entries each and the last child's metadata differing, eval/tasks/workloads/apache-datafusion-pr26790/eval_union.rs, copied into the tree as an example of the physical-plan crate",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test --profile release-nonlto -p datafusion-physical-plan --lib union",
+    "source": "the union unit tests of the physical-plan crate, for the file https://github.com/apache/datafusion/pull/26790 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/datafusion/pull/26790",
+      "note": "description, as matched by the miner: speedup claims: 2.3×; 14.1×; 118.6×; 14.3×; 117.6× | timings: 141 µs; 62 µs; 9.24 ms; 0.66 ms; 877 ms; 7.40 ms; 140 µs; 60 µs | benchmark files changed: datafusion/physical-plan/benches/union_schema.rs"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "mkdir -p datafusion/physical-plan/examples",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:13:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/apache-datafusion-pr26790/eval_union.rs datafusion/physical-plan/examples/eval_union.rs",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:13:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+      "exit_code": 0,
+      "duration_s": 175.58,
+      "date": "2026-10-28T14:13:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling tinytemplate v1.2.1\n   Compiling page_size v0.6.0\n   Compiling console v0.16.4\n   Compiling anes v0.1.6\n   Compiling oorandom v11.1.5\n   Compiling futures-timer v3.0.3\n   Compiling similar v2.7.0\n   Compiling insta v1.49.0\n   Compiling rstest v0.28.0\n   Compiling datafusion-physical-plan v55.1.0 (eval/mine/work/apache-datafusion-pr26790/task/datafusion/physical-plan)\n   Compiling criterion v0.8.2\n   Compiling rstest_reuse v0.7.1\n   Compiling datafusion-functions-aggregate v55.1.0 (eval/mine/work/apache-datafusion-pr26790/task/datafusion/functions-aggregate)\n   Compiling datafusion-functions-window v55.1.0 (eval/mine/work/apache-datafusion-pr26790/task/datafusion/functions-window)\n    Finished `release-nonlto` profile [optimized] target(s) in 2m 09s"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --profile release-nonlto -p datafusion-physical-plan --lib union",
+      "exit_code": 0,
+      "duration_s": 175.31,
+      "date": "2026-10-28T14:16:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test union::tests::test_union_schema_multiple_inputs ... ok\ntest union::tests::test_union_equivalence_properties ... ok\ntest union::tests::test_union_single_input ... ok\ntest filter::tests::test_equivalence_properties_union_type ... ok\ntest union::tests::test_union_partitions ... ok\ntest union::tests::test_interleave_conforms_batch_schema ... ok\n\ntest result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 2854 filtered out; finished in 0.01s\n\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n   Compiling datafusion-physical-plan v55.1.0 (eval/mine/work/apache-datafusion-pr26790/task/datafusion/physical-plan)\n    Finished `release-nonlto` profile [optimized] target(s) in 2m 54s\n     Running unittests src/lib.rs (target/release-nonlto/deps/datafusion_physical_plan-70d6067ed7feaad5)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo run --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+      "exit_code": 0,
+      "duration_s": 15.24,
+      "date": "2026-10-28T14:19:50+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "best of 5: 1.960710 s for 1000 children\n    Finished `release-nonlto` profile [optimized] target(s) in 0.30s\n     Running `target/release-nonlto/examples/eval_union`"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "mkdir -p datafusion/physical-plan/examples",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:20:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/apache-datafusion-pr26790/eval_union.rs datafusion/physical-plan/examples/eval_union.rs",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-28T14:20:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+      "exit_code": 0,
+      "duration_s": 127.85,
+      "date": "2026-10-28T14:20:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling anes v0.1.6\n   Compiling oorandom v11.1.5\n   Compiling futures-timer v3.0.3\n   Compiling similar v2.7.0\n   Compiling insta v1.49.0\n   Compiling rstest v0.28.0\n   Compiling criterion v0.8.2\n   Compiling datafusion-execution v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/execution)\n   Compiling datafusion-physical-expr v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/physical-expr)\n   Compiling datafusion-functions v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/functions)\n   Compiling rstest_reuse v0.7.1\n   Compiling datafusion-physical-plan v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/physical-plan)\n   Compiling datafusion-functions-aggregate v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/functions-aggregate)\n   Compiling datafusion-functions-window v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/functions-window)\n    Finished `release-nonlto` profile [optimized] target(s) in 2m 07s"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --profile release-nonlto -p datafusion-physical-plan --lib union",
+      "exit_code": 0,
+      "duration_s": 49.06,
+      "date": "2026-10-28T14:22:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test union::tests::test_union_schema_mismatch ... ok\ntest union::tests::test_union_equivalence_properties ... ok\ntest union::tests::test_union_schema_multiple_inputs ... ok\ntest union::tests::test_union_single_input ... ok\ntest filter::tests::test_equivalence_properties_union_type ... ok\ntest union::tests::test_coerce_schema_casts_only_nullability ... ok\ntest union::tests::test_union_partitions ... ok\ntest union::tests::test_interleave_conforms_batch_schema ... ok\ntest union::tests::test_union_schema_metadata_and_nullability ... ok\n\ntest result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 2854 filtered out; finished in 0.01s\n\n   Compiling datafusion-physical-plan v55.1.0 (eval/mine/work/apache-datafusion-pr26790/reference/datafusion/physical-plan)\n    Finished `release-nonlto` profile [optimized] target(s) in 48.53s\n     Running unittests src/lib.rs (target/release-nonlto/deps/datafusion_physical_plan-70d6067ed7feaad5)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo run --profile release-nonlto -p datafusion-physical-plan --example eval_union",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-28T14:23:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-28T14:03:03+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}
