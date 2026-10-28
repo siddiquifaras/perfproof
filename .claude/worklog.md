@@ -376,6 +376,11 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- **Main red since 762cebb (2026-10-28, lead's mistake).**
+  - `eval/mine/test_draw.py::test_salts_are_the_documented_ones` fails because `docs/evaluation.md` now documents the discovery salt that only #102's draw code uses. I pushed that docs change without running the tests.
+  - Fixed by merging #102: 31 passed on its head. The rule text stays as committed, since it is the pre-registration.
+  - Also on 10-28: Docker Desktop hung after the disk filled. It was restarted with Faras's OK, and his four containers came back healthy. The macOS shell has no `timeout` command, so an earlier "docker timeout" reading was wrong.
+
 - **Disk filled to ENOSPC on 2026-10-28** (about 19:00 PKT), which stopped the flip worker, the GPU prep and PR #101's checks. Freed with Faras's OK, from 5.5 GB to 158 GB free:
   - the T4.2 worktree (51 GB of mining clones in `eval/mine`);
   - 54 archived ppeval run folders (`eval-work/work`, 91 GB);
