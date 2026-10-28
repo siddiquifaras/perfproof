@@ -151,6 +151,14 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
     - go-echo: `Echo.ServeHTTP` is now in the profile but not named as the cost.
     - Still not reached: xarray (3 tasks), java base64, simdjson to_chars, fastify routeHandler. dotnet: "profile after edit" (strict detector).
     - Discovery spend so far: about $26.40.
+  - **r10 full round** (skill 51d408b plus main, 57 tasks, all 9 files, as ppeval, $24.38): wrong KEEP 0, every reached verdict accepted.
+    - Examples 23/24 (was 20/20 before the 4 `-msg-` variants). Real 5/11, plus django excluded (was 1/8).
+    - .NET 2/3 (was 0/3), Rust 3/3 (2/3), Java 2/3 (1/3), Ruby 2/2 plus rails-find excluded, Go 2/3, native 2/3, Node 1/3 (all unchanged).
+    - Failures:
+      - "in profile but never named as the cost": .NET, go-echo, real-fd-hidden-fix, real-fd-msg-bare;
+      - workload never reached the slow code: xarray (3), jackson, simdjson, fastify;
+      - harness: nest's vitest config, already logged;
+      - find-rolling-msg-rambling made no profile.
 
 - **#90 B1 (lead, 2026-10-28):** the stats audit at 824ea35 found that the rank-based cap bound holds only under AR(1)-like dependence.
   - Loaded real A/A traces missed the median 7.3% and 18.4% of the time, against a 0.21% tail.
