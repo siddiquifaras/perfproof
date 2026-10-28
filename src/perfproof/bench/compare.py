@@ -129,14 +129,21 @@ Guardrails
 ----------
 Per "Guardrails" in ``docs/method.md``. ``peak_memory`` is measured: the
 largest single process's peak resident set size of each execution
-(`perfproof.bench.runner`), as bytes. At each look every applicable
+(`perfproof.bench.runner`), as bytes. Every other applicable guardrail
+(``p99_latency``, ``throughput``, a project's own metric) is reported:
+the benchmark prints it as a key of the same ``PERFPROOF`` line as its
+primary value, once per execution, in the guardrail's unit
+(`perfproof.bench.runner.reported_guardrails`), and perfproof takes the
+number as given; its resolution is the place of its last printed digit,
+as the primary's is. At each look every applicable
 guardrail with a value is evaluated by
 `perfproof.stats.guardrails.evaluate_guardrail` on the rounds so far, at
 confidence ``1 - alpha / (2 K G)`` and with the procedure the primary's
 (`perfproof.stats.guardrails.guardrail_procedure`), with the resolution
 widening at the page size. A round with no value (Linux, where a
 benchmark peaking below the launch helper's own few megabytes can't be
-told from it) makes the guardrail ``unmeasurable`` with that reason:
+told from it), or a round whose line left a reported guardrail out in
+either arm, makes the guardrail ``unmeasurable`` with that reason:
 perfproof never measures it on the rounds that are left. The statuses
 decide a rule 2 look as `perfproof.stats.decision.guardrail_actions`
 says: a breach is a REJECT (``guardrail``) and ends the comparison, an
@@ -160,9 +167,6 @@ before it, as a budget end, with the warning ``time_limit_reached``.
 
 What the thin path does not do yet
 ----------------------------------
-- Guardrails other than ``peak_memory``: the runner records no
-  per-execution value for them, so an applicable one is ``unmeasurable``
-  with that reason, and a KEEP is withheld.
 - Cross-host comparisons (``allow_cross_host``) are refused.
 """
 
@@ -178,7 +182,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Final, cast
+from typing import Any, Final, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -273,6 +277,7 @@ from perfproof.stats.sequential import (
     LAG1_MIN_BLOCKS,
     Look,
     Resolution,
+    continuity_fails,
     decide_look,
     lag1_autocorrelation,
     look_confidence,
@@ -283,6 +288,7 @@ from perfproof.stats.sequential import (
 __all__ = [
     "CALIBRATED",
     "PEAK_MEMORY_MEASURE",
+    "REPORTED_MEASURE",
     "SAMPLES_NAME",
     "CompareResult",
     "CompareStoppedError",
@@ -316,11 +322,11 @@ PEAK_MEMORY_MEASURE: Final = (
     "descendants it waited for, never a sum over a process tree"
 )
 """What ``peak_memory`` is measured as, written into the record."""
-_NO_VALUE: Final = (
-    "perfproof records no per-execution value for {metric}, only wall "
-    "and CPU time and peak resident size, so it was not measured and a "
-    "KEEP is withheld"
+REPORTED_MEASURE: Final = (
+    "the {metric} value the benchmark itself printed in the PERFPROOF "
+    "line of each execution, taken as given: perfproof does not compute it"
 )
+"""What a reported guardrail is measured as, written into the record."""
 _NO_LOOK: Final = (
     "the comparison ended before its first look, so no interval was computed"
 )
@@ -396,6 +402,15 @@ class _Ended:
     confidence: float
 
 
+_Columns = tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]
+"""A guardrail's baseline and candidate values, then their steps."""
+
+
 @dataclass(frozen=True, slots=True)
 class _GuardrailEvaluation:
     """One guardrail at the last look: its statistics, or why none."""
@@ -407,12 +422,12 @@ class _GuardrailEvaluation:
 def _no_source(metric: str, unit: str) -> str | None:
     """Say why ``metric`` has no value to measure, or ``None``.
 
-    Only ``peak_memory``, in bytes, has one: the runner's peak resident
-    size.
+    ``peak_memory`` is the runner's peak resident size, in bytes only.
+    Any other guardrail is reported by the benchmark, in whatever unit
+    it declares, and has a source here; whether a round has its value
+    is checked at each look.
     """
-    if metric != "peak_memory":
-        return _NO_VALUE.format(metric=metric)
-    if unit != "bytes":
+    if metric == "peak_memory" and unit != "bytes":
         return (
             "peak_memory is measured in bytes, but the spec's unit is "
             f"{unit!r}, so it was not measured and a KEEP is withheld"
@@ -1155,7 +1170,11 @@ class _Run:
                 made = steps.of(done)
                 now = time.monotonic()
                 entry = RoundEntry(
-                    done.samples, made, now - begun, now - start
+                    done.samples,
+                    made,
+                    now - begun,
+                    now - start,
+                    {ex.arm: _guardrail_steps(ex) for ex in done.executions},
                 )
                 if self.journal is not None:
                     self.journal.round_done(index, entry)
@@ -1322,17 +1341,11 @@ class _Run:
         for g in self.spec.guardrails:
             if not g.applicable:
                 continue
-            reason = _no_source(g.metric, g.unit)
-            data = None if reason is not None else self._rss_values(used)
+            data = self._guardrail_data(g, used)
             if isinstance(data, str):
-                reason = data
-            if reason is not None or not isinstance(data, tuple):
-                evaluated[g.metric] = _GuardrailEvaluation(
-                    None, reason or _NO_LOOK
-                )
+                evaluated[g.metric] = _GuardrailEvaluation(None, data)
                 continue
-            b, c = data
-            page = float(resource.getpagesize())
+            b, c, qb, qc = data
             evaluated[g.metric] = _GuardrailEvaluation(
                 evaluate_guardrail(
                     b[np.newaxis, :],
@@ -1344,8 +1357,8 @@ class _Run:
                     procedure=self.guardrail_procedure,
                     final=np.array([final]),
                     candidate_first=self._candidate_first(used)[np.newaxis, :],
-                    baseline_step=np.full((1, used), page),
-                    candidate_step=np.full((1, used), page),
+                    baseline_step=qb[np.newaxis, :],
+                    candidate_step=qc[np.newaxis, :],
                     quantile=(
                         0.5 if g.limit_quantile is None else g.limit_quantile
                     ),
@@ -1353,6 +1366,23 @@ class _Run:
                 "",
             )
         return evaluated
+
+    def _guardrail_data(self, g: GuardrailSpec, used: int) -> "_Columns | str":
+        """Return a guardrail's values and steps per arm, or why not.
+
+        ``(baseline, candidate, baseline steps, candidate steps)`` over
+        the first ``used`` rounds, or the reason it is unmeasurable.
+        """
+        reason = _no_source(g.metric, g.unit)
+        if reason is not None:
+            return reason
+        if g.metric == "peak_memory":
+            rss = self._rss_values(used)
+            if isinstance(rss, str):
+                return rss
+            page = np.full(used, float(resource.getpagesize()))
+            return (rss[0], rss[1], page, page)
+        return self._reported_values(g.metric, used)
 
     def _rss_values(
         self, used: int
@@ -1371,6 +1401,56 @@ class _Run:
         b, c = self._values(used, lambda s: float(s.max_rss_bytes or 0))
         return b, c
 
+    def _reported_values(self, metric: str, used: int) -> "_Columns | str":
+        """Return both arms' reported values and steps, or why not.
+
+        A round whose line left ``metric`` out in either arm makes the
+        guardrail unmeasurable, as an unknown peak size does: the
+        rounds that remain would be a selection.
+        """
+        found: dict[Arm, list[tuple[float, float]]] = {
+            arm: [] for arm in _ARMS
+        }
+        unknown = 0
+        for m in self.measured[:used]:
+            for arm in _ARMS:
+                pair = m.reported.get(arm, {}).get(metric)
+                if pair is None:
+                    unknown += 1
+                else:
+                    found[arm].append(pair)
+        if unknown:
+            return (
+                f"{metric} is missing from the PERFPROOF line of "
+                f"{unknown} of {2 * used} executions, so it is unknown "
+                "there and is not measured on the rounds that have it"
+            )
+
+        def column(arm: Arm, i: int) -> NDArray[np.float64]:
+            return np.array([p[i] for p in found[arm]], dtype=np.float64)
+
+        columns = (
+            column("baseline", 0),
+            column("candidate", 0),
+            column("baseline", 1),
+            column("candidate", 1),
+        )
+        coarse = [bool(continuity_fails(v)) for v in columns[:2]]
+        if any(coarse):
+            distinct = [len(set(v.tolist())) for v in columns[:2]]
+            arms = " and ".join(
+                f"the {arm} ({d} distinct)"
+                for arm, d, bad in zip(_ARMS, distinct, coarse, strict=True)
+                if bad
+            )
+            return (
+                f"{metric} looks discrete in {arms} over {used} rounds, "
+                "fewer distinct values than half the rounds, so its "
+                "resolution can't be trusted and it is not judged on "
+                "them; print more digits"
+            )
+        return columns
+
     def _metric_kind(self) -> MetricKind:
         """Return the kind of value produced: wall on a fallback."""
         if self.fallback_reason is not None:
@@ -1382,9 +1462,19 @@ class _Run:
 
         A printed step is always positive, so a recorded step of 0 for
         a metric whose steps are read back marks one that could not be.
+        That holds for the primary metric and for each reported
+        guardrail value.
         """
-        return self.spec.metric.kind == "reported" and any(
-            step == 0.0 for m in self.measured for step in m.steps.values()
+        return (
+            self.spec.metric.kind == "reported"
+            and any(
+                step == 0.0 for m in self.measured for step in m.steps.values()
+            )
+        ) or any(
+            step == 0.0
+            for m in self.measured
+            for found in m.reported.values()
+            for _, step in found.values()
         )
 
     def _note_resolution_unknown(self) -> None:
@@ -1535,7 +1625,11 @@ class _Run:
             return GuardrailResult(
                 metric=g.metric, status="not_applicable", reason=g.reason
             )
-        measure = PEAK_MEMORY_MEASURE if g.metric == "peak_memory" else ""
+        measure = (
+            PEAK_MEMORY_MEASURE
+            if g.metric == "peak_memory"
+            else REPORTED_MEASURE.format(metric=g.metric)
+        )
         found = self.guardrail_looks.get(g.metric)
         if found is None or found.look is None:
             reason = _NO_LOOK if found is None else found.reason
@@ -1998,13 +2092,14 @@ def keep_blocked(spec: BenchmarkSpec) -> bool:
     """Whether the spec rules out a KEEP, whatever the interval shows.
 
     True when a guardrail can never be shown compliant here (applicable
-    with no value to measure: anything but ``peak_memory`` in bytes; or
-    a default one left undeclared), or when the look schedule is
-    outside the calibrated ones (more than one look at 120
-    observations or more, see `late_looks`). A ``peak_memory``
+    with no value to measure: ``peak_memory`` in a unit other than
+    bytes; or a default one left undeclared), or when the look schedule
+    is outside the calibrated ones (more than one look at 120
+    observations or more, see `late_looks`). A measured or reported
     guardrail does not block here: whether it passes is decided at each
-    look from its measurements. Rule 2 then ends INCONCLUSIVE at that
-    look; REJECTs are unaffected.
+    look from its values, and a reported one missing from a round is
+    ``unmeasurable`` then. Rule 2 then ends INCONCLUSIVE at that look;
+    REJECTs are unaffected.
 
     Parameters
     ----------
@@ -2112,11 +2207,41 @@ def _printed_step(ex: Execution) -> float | None:
     Returns ``None`` if the line or its number can't be read back, or
     the number is not the value the runner recorded.
     """
-    token = _reported_token(ex.stdout)
+    return _step_of(_reported_literals(ex.stdout), "value", ex.value)
+
+
+def _guardrail_steps(ex: Execution) -> dict[str, tuple[float, float]]:
+    """Return each reported guardrail value with its resolution step.
+
+    The step is the place of the value's last printed digit, read back
+    from the same ``PERFPROOF`` line as the primary's. One whose digits
+    can't be read back gets step 0, which no readable value has: it is
+    measured, not widened, and `_Run` records ``resolution_unknown``
+    and withholds a KEEP, as for the primary.
+    """
+    if not ex.reported:
+        return {}
+    literals = _reported_literals(ex.stdout)
+    out: dict[str, tuple[float, float]] = {}
+    for name, value in ex.reported.items():
+        step = _step_of(literals, name, value)
+        out[name] = (value, 0.0 if step is None else step)
+    return out
+
+
+def _step_of(
+    literals: Mapping[str, str] | None, key: str, value: float
+) -> float | None:
+    """Return the step of ``key``'s printed literal, or ``None``.
+
+    ``None`` when the line is gone, the key is missing, or the literal
+    is not the number the runner recorded.
+    """
+    token = None if literals is None else literals.get(key)
     if token is None:
         return None
     match = _NUMBER.fullmatch(token)
-    if match is None or float(token) != ex.value:
+    if match is None or float(token) != value:
         return None
     digits = len(match.group(1) or "")
     exponent = int(match.group(2) or "0")
@@ -2127,8 +2252,8 @@ def _printed_step(ex: Execution) -> float | None:
     return step
 
 
-def _reported_token(path: Path) -> str | None:
-    """Return the literal ``value`` of the first ``PERFPROOF`` line."""
+def _reported_literals(path: Path) -> dict[str, str] | None:
+    """Return each key's literal number from the ``PERFPROOF`` line."""
     try:
         with path.open("rb") as f:
             while True:
@@ -2140,13 +2265,13 @@ def _reported_token(path: Path) -> str | None:
                         head = f.readline(_SKIP_CHUNK)
                     continue
                 body = head.removeprefix(_PREFIX).strip()
-                return _literal_value(body.decode("utf-8"))
+                return _literal_values(body.decode("utf-8"))
     except (OSError, UnicodeDecodeError):
         return None
 
 
-def _literal_value(text: str) -> str | None:
-    """Return a JSON object's ``value`` as the literal text it was."""
+def _literal_values(text: str) -> dict[str, str] | None:
+    """Return a JSON object's numbers as the literal text they were."""
 
     def keep(literal: str) -> str:
         return literal
@@ -2157,8 +2282,11 @@ def _literal_value(text: str) -> str | None:
         return None
     if not isinstance(parsed, dict):
         return None
-    value = cast("dict[str, object]", parsed).get("value")
-    return value if isinstance(value, str) else None
+    return {
+        k: v
+        for k, v in cast("dict[str, object]", parsed).items()
+        if isinstance(v, str)
+    }
 
 
 def _save_samples(path: Path, measured: Sequence[RoundEntry]) -> None:
@@ -2167,17 +2295,31 @@ def _save_samples(path: Path, measured: Sequence[RoundEntry]) -> None:
     One entry per sample, in the order run: ``round``, ``position``,
     ``candidate`` (1 for the candidate), ``session``, ``value``,
     ``step`` (its resolution), ``wall_seconds``, ``cpu_seconds`` and
-    ``max_rss_bytes`` (NaN where unknown), and ``command_hash``.
-    Numeric and fixed-width text arrays only, so it loads with
-    ``allow_pickle=False``.
+    ``max_rss_bytes`` (NaN where unknown), ``command_hash``, and one
+    ``reported_<metric>`` column per reported guardrail (NaN where the
+    execution's line left it out). Numeric and fixed-width text arrays
+    only, so it loads with ``allow_pickle=False``.
     """
     rows = [(m, s) for m in measured for s in m.samples]
 
     def column(values: list[float]) -> NDArray[np.float64]:
         return np.array(values, dtype=np.float64)
 
+    names = sorted(
+        {k for m in measured for r in m.reported.values() for k in r}
+    )
+    reported = {
+        f"reported_{name}": column(
+            [
+                m.reported.get(s.version, {}).get(name, (math.nan, 0.0))[0]
+                for m, s in rows
+            ]
+        )
+        for name in names
+    }
     np.savez(
         path,
+        **cast("dict[str, Any]", reported),
         round=np.array([s.round for _, s in rows], dtype=np.int64),
         position=np.array([s.position for _, s in rows], dtype=np.int64),
         candidate=np.array(

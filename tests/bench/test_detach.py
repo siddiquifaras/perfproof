@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -718,6 +718,59 @@ def test_journal_round_trips_a_round(tmp_path: Path) -> None:
     journal.round_done(0, entry(0))
     journal.close()
     assert load_journal(tmp_path) == [entry(0)]
+
+
+def test_journal_round_trips_reported_guardrail_values(
+    tmp_path: Path,
+) -> None:
+    journal = Journal(tmp_path, ROUNDS)
+    reported = {
+        "baseline": {"p99_latency": (0.0412, 1e-4)},
+        "candidate": {},
+    }
+    journal.round_done(0, replace(entry(0), reported=reported))
+    journal.close()
+    (got,) = load_journal(tmp_path)
+    assert got.reported == reported
+
+
+def test_a_journal_without_reported_values_reads_them_as_unknown(
+    tmp_path: Path,
+) -> None:
+    journal = Journal(tmp_path, ROUNDS)
+    journal.round_done(0, entry(0))
+    journal.close()
+    path = tmp_path / JOURNAL_NAME
+    doc = json.loads(path.read_text())
+    del doc["reported"]
+    path.write_text(json.dumps(doc) + "\n")
+    assert load_journal(tmp_path)[0].reported == {}
+
+
+@pytest.mark.parametrize(
+    "reported",
+    [
+        None,
+        {"baseline": [1]},
+        {"baseline": {"p99": [1.0]}},
+        {"baseline": {"p99": [-1, 0]}},
+        {"baseline": {"p99": [1, -1]}},
+        {"baseline": {"p99": ["1", 0]}},
+        {"bogus": {"p99": [1, 0]}},
+    ],
+)
+def test_a_damaged_reported_field_is_a_journal_error(
+    tmp_path: Path, reported: object
+) -> None:
+    journal = Journal(tmp_path, ROUNDS)
+    journal.round_done(0, entry(0))
+    journal.close()
+    path = tmp_path / JOURNAL_NAME
+    doc = json.loads(path.read_text())
+    doc["reported"] = reported
+    path.write_text(json.dumps(doc) + "\n")
+    with pytest.raises(JournalError):
+        load_journal(tmp_path)
 
 
 def test_journal_repair_cuts_only_a_torn_tail(tmp_path: Path) -> None:

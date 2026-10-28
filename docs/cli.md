@@ -385,6 +385,96 @@ rounds already taken would mix units.
 
 A run that is killed before it finishes never yields a verdict.
 
+## What a benchmark prints
+
+A `reported` metric, and every guardrail the runner cannot measure
+itself, comes from one line the benchmark prints on stdout, once per
+execution:
+
+```
+PERFPROOF {"value": 12.500000, "p99_latency": 41.250000}
+```
+
+The line is `PERFPROOF`, a space and one JSON object. perfproof reads
+this line and no other output, with one parser, for the objective and
+for the guardrails.
+
+| Key | When | Meaning |
+|---|---|---|
+| `value` | The spec's metric is `reported` (required then; with no `reported` metric it is not allowed) | The primary metric, in the metric's unit |
+| a guardrail's `metric` name, such as `p99_latency`, `throughput` or a project's own | Every applicable guardrail except `peak_memory`, which perfproof measures from `wait4` | That guardrail's value for this execution, in the guardrail's unit |
+
+- When the spec reports at least one value (a `reported` metric or an
+  applicable reported guardrail), perfproof reads the line; otherwise it
+  reads no output. Values are positive, finite JSON numbers;
+  0 is refused for a guardrail as for `value`. A string, `null`, `NaN`,
+  `0`, a negative number, a repeated key, a key the spec does not ask
+  for (including a guardrail marked not applicable), or two
+  `PERFPROOF` lines in one execution fails that execution with
+  `cause: output`, as a bad `value` does today.
+- A guardrail's value is whatever the benchmark computes for that
+  execution, such as the 99th percentile of that execution's own
+  request latencies. perfproof takes it as given and does not compute
+  or check it. It pairs the baseline's and the candidate's values by
+  round, the way it pairs peak memory, and records them per round in
+  `samples.npz` (column `reported_<metric>`, NaN where unknown) and, for
+  a detached run, in `samples.jsonl`.
+- Print a fixed number of decimals (`%.6f`). The resolution of each
+  value, which widens its interval, is the place of its last printed
+  digit, as for `value` (`docs/method.md`, "Resolution").
+- **A guardrail the line leaves out is unknown for that execution**,
+  never a default. A missing line is the same when the metric is not
+  `reported`. A round with the value unknown in either arm makes the
+  guardrail `unmeasurable`, with the count of executions in its reason
+  (`docs/method.md`, "Guardrails", "Missing values"), so the comparison
+  can't KEEP. perfproof does not measure it on the rounds that have it.
+- A cap on a quantile near 1 has no rank bound at the default budgets
+  (`docs/method.md`, "The owner's decision on limits"); that rule is
+  unchanged by where the values come from.
+
+A worked example. A web benchmark times the work and reports its 99th
+percentile latency in seconds, with throughput as the primary:
+
+```python
+import time
+
+latencies = []
+start = time.perf_counter()
+for request in requests:
+    t = time.perf_counter()
+    handle(request)
+    latencies.append(time.perf_counter() - t)
+elapsed = time.perf_counter() - start
+
+latencies.sort()
+p99 = latencies[int(0.99 * (len(latencies) - 1))]
+print(
+    'PERFPROOF {"value": %.3f, "p99_latency": %.6f}'
+    % (len(requests) / elapsed, p99)
+)
+```
+
+with these in its spec (`direction` and `unit` as declared there):
+
+```json
+{"metric": {"kind": "reported", "direction": "higher_is_better",
+            "unit": "requests/s"},
+ "objective": "throughput",
+ "guardrails": [{"metric": "p99_latency", "direction": "lower_is_better",
+                 "unit": "s", "allowance": 0.05,
+                 "allowance_source": "default"}]}
+```
+
+Each execution prints a line like `PERFPROOF {"value": 812.400, "p99_latency":
+0.041250}`. The comparison then checks, round by round, that the
+candidate's p99 is not worse than the baseline's by more than 5%: a
+breach of that allowance is a `guardrail` REJECT when the primary shows
+the change faster (`docs/method.md`, "Decision"; otherwise the primary's
+own outcome stands, with the breach recorded), a p99 shown within it
+no longer blocks a KEEP, and a p99 the benchmark did not print, or
+printed too coarsely (fewer distinct values than half the rounds in
+either arm), makes the guardrail `unmeasurable`, which does.
+
 ## A session
 
 A developer has maintained `tilekit`, a Python image-tiling library,

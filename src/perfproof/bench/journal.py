@@ -22,9 +22,10 @@ torn last line is dropped when the journal is read back.
 
 import contextlib
 import json
+import math
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, cast
@@ -76,12 +77,21 @@ class RoundEntry:
         every process that worked on the run.
     duration : float
         Seconds this round took, wall clock.
+    reported : Mapping of {"baseline", "candidate"} to a mapping
+        Each arm's reported guardrail values, by metric name, as
+        ``(value, resolution step)`` in the guardrail's unit. A
+        guardrail the execution's ``PERFPROOF`` line left out is absent
+        from its arm's mapping: that value is unknown. Empty for a
+        journal written before reported guardrails were read.
     """
 
     samples: tuple[Sample, Sample]
     steps: Mapping[Arm, float]
     elapsed: float
     duration: float
+    reported: Mapping[Arm, Mapping[str, tuple[float, float]]] = field(
+        default_factory=dict[Arm, Mapping[str, tuple[float, float]]]
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -252,6 +262,10 @@ class Journal:
                 "round": index,
                 "samples": [s.model_dump(mode="json") for s in entry.samples],
                 "steps": dict(entry.steps),
+                "reported": {
+                    arm: {k: list(v) for k, v in found.items()}
+                    for arm, found in entry.reported.items()
+                },
                 "elapsed": entry.elapsed,
                 "duration": entry.duration,
             },
@@ -351,9 +365,55 @@ def _parse(raw: bytes, number: int) -> RoundEntry:
         msg = "its samples are not one round of both versions"
         raise ValueError(msg)
     steps = cast("dict[str, float]", line["steps"])
+    reported = _parse_reported(line.get("reported", {}))
     return RoundEntry(
         samples=(a, b),
         steps={arm: float(steps[arm]) for arm in _ARMS},
         elapsed=float(cast("float", line["elapsed"])),
         duration=float(cast("float", line["duration"])),
+        reported=reported,
     )
+
+
+def _parse_reported(
+    raw: object,
+) -> dict[Arm, dict[str, tuple[float, float]]]:
+    """Validate a journal line's reported guardrail values.
+
+    Each arm maps metric names to ``[value, step]``: a finite positive
+    value and a finite step of at least 0. Anything else is a damaged
+    line, never a value to feed the statistics.
+    """
+    if not isinstance(raw, dict):
+        msg = "reported is not an object"
+        raise TypeError(msg)
+    out: dict[Arm, dict[str, tuple[float, float]]] = {}
+    for arm, found in cast("dict[str, object]", raw).items():
+        if arm not in _ARMS or not isinstance(found, dict):
+            msg = f"reported has {arm!r}, which is not an arm's values"
+            raise ValueError(msg)
+        values: dict[str, tuple[float, float]] = {}
+        for name, pair in cast("dict[str, object]", found).items():
+            ok = (
+                isinstance(pair, list)
+                and len(cast("list[object]", pair)) == 2
+                and all(
+                    isinstance(x, int | float) and not isinstance(x, bool)
+                    for x in cast("list[object]", pair)
+                )
+            )
+            if not ok:
+                msg = f"reported {name!r} is not [value, step]"
+                raise ValueError(msg)
+            value, step = (float(x) for x in cast("list[float]", pair))
+            if not (
+                math.isfinite(value)
+                and value > 0
+                and math.isfinite(step)
+                and step >= 0
+            ):
+                msg = f"reported {name!r} has an impossible value or step"
+                raise ValueError(msg)
+            values[name] = (value, step)
+        out[arm] = values
+    return out

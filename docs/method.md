@@ -707,6 +707,8 @@ ordering.
 - `cpu`: user plus system CPU time of the command, from `wait4`.
 - `reported`: the benchmark prints `PERFPROOF {"value": <number>}` on
   stdout. Any language can do this, and it excludes process startup.
+  The same line also carries every guardrail the runner can't measure
+  itself, one key each (`docs/cli.md`, "What a benchmark prints").
 - `counter`: hardware instruction or cycle counts from `perf stat`
   (Linux). Far less noisy than time, so small changes need fewer rounds.
   Where `perf` can't count the event (another operating system, no
@@ -3027,6 +3029,22 @@ resolution and the one comparison with the bar are the primary's.
   `unmeasurable`, because the rounds that lack a resident size are the
   small ones, and an interval on those that remain would lean toward
   large.
+- **Reported guardrails.** A guardrail the runner does not measure
+  (p99 latency, throughput, a project's own metric) is a `reported`
+  value: its value for an execution is the number the benchmark prints
+  for that execution, as a key of the same `PERFPROOF` line as the
+  primary, and perfproof takes it as given. A value left out of the
+  line is unknown, so a round missing it in either arm makes the
+  guardrail `unmeasurable` (above). The resolution and the widening
+  are those of a `reported` primary: the place of the last printed
+  digit, with a value whose digits can't be read back taking step 0,
+  the warning `resolution_unknown` and no KEEP. So is the continuity
+  check, per arm and with the same threshold: when either arm has
+  fewer distinct values than half its rounds, the guardrail is
+  `unmeasurable` (its reason gives the distinct counts and asks for
+  more digits), never `breached` or `passed`, and it only withholds a
+  KEEP. It is checked in `compare` before the values reach
+  `perfproof.stats.guardrails`.
 - **One host.** Guardrails are decided on one host. A cross-host
   guardrail has no calibration, and `compare` refuses cross-host runs.
 

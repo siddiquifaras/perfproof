@@ -36,7 +36,12 @@ What is measured
     The value of the one ``PERFPROOF {"value": <number>}`` line the
     child prints on stdout, read back from the stdout file after the
     child exits, one bounded line at a time. Wall time is recorded
-    alongside it, as ``docs/method.md`` requires.
+    alongside it, as ``docs/method.md`` requires. The same line carries
+    every other value the spec asks the benchmark to report, one key
+    per applicable guardrail the runner does not measure itself
+    (``{"value": 2.5, "p99_latency": 41.2}``; see `reported_guardrails`
+    and "What a benchmark prints" in ``docs/cli.md``). One line, one
+    parser: a guardrail value is read where the objective is.
 ``counter``
     The event count from ``perf stat -x, -e <event>``, Linux only. On
     any other system, or when ``perf`` is missing or cannot count the
@@ -163,7 +168,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager, suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import FrameType
 from typing import BinaryIO, Final, Literal, NoReturn, cast
@@ -191,6 +196,7 @@ __all__ = [
     "Runner",
     "RunnerError",
     "counter_unavailable_reason",
+    "reported_guardrails",
     "round_orders",
 ]
 
@@ -446,6 +452,11 @@ class Execution:
     metric_output : Path or None
         ``perf stat`` output file for a ``counter`` metric; ``None``
         otherwise.
+    reported : Mapping of str to float
+        The guardrail values the execution's ``PERFPROOF`` line carries,
+        by metric name, in the guardrail's unit; positive. A guardrail
+        the line leaves out is absent: its value for this execution is
+        unknown, never defaulted.
     """
 
     arm: Arm
@@ -459,6 +470,7 @@ class Execution:
     stdout: Path
     stderr: Path
     metric_output: Path | None
+    reported: Mapping[str, float] = field(default_factory=dict[str, float])
 
 
 @dataclass(frozen=True, slots=True)
@@ -1037,7 +1049,8 @@ class Runner:
         if exit_code != 0:
             fail(f"exited with status {exit_code}", "exit", exit_code, wall)
         try:
-            value = self._value(wall, cpu, stdout, metric_output)
+            reported = self._reported(stdout)
+            value = self._value(wall, cpu, reported, metric_output)
         except _BadOutputError as exc:
             fail(str(exc), "output", exit_code, wall)
         return Execution(
@@ -1052,6 +1065,7 @@ class Runner:
             stdout=stdout,
             stderr=stderr,
             metric_output=metric_output,
+            reported={k: v for k, v in reported.items() if k != "value"},
         )
 
     def _reset(self, arm: Arm, label: str, round_index: int | None) -> None:
@@ -1126,11 +1140,24 @@ class Runner:
             ),
         )
 
+    def _reported(self, stdout: Path) -> dict[str, float]:
+        """Read the ``PERFPROOF`` line, when the spec asks for one.
+
+        It asks for one when the metric is ``reported`` (the line is
+        then required) or a guardrail is reported (the line may be
+        absent, and its values are then unknown).
+        """
+        has_value = self._spec.metric.kind == "reported"
+        names = reported_guardrails(self._spec)
+        if not has_value and not names:
+            return {}
+        return _reported_values(stdout, names, has_value=has_value)
+
     def _value(
         self,
         wall: float,
         cpu: float,
-        stdout: Path,
+        reported: Mapping[str, float],
         metric_output: Path | None,
     ) -> float:
         """Pick or parse the metric of one finished execution."""
@@ -1141,7 +1168,7 @@ class Runner:
             case "cpu":
                 value = cpu
             case "reported":
-                return _reported_value(stdout)
+                return reported["value"]
             case "counter":
                 if metric_output is None or metric.event is None:
                     msg = "counter metric run without perf stat"
@@ -1651,8 +1678,54 @@ def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return record
 
 
-def _reported_value(path: Path) -> float:
-    """Read the one ``PERFPROOF {"value": ...}`` line from stdout."""
+def reported_guardrails(spec: BenchmarkSpec) -> tuple[str, ...]:
+    """Name the guardrails the benchmark must report itself.
+
+    Every applicable guardrail except ``peak_memory``, which the runner
+    measures from ``wait4``: ``p99_latency``, ``throughput``,
+    ``peak_gpu_memory`` or a project's own metric. Each is one key of
+    the ``PERFPROOF`` line, in the guardrail's unit, once per execution.
+
+    Parameters
+    ----------
+    spec : perfproof.schema.BenchmarkSpec
+        The spec being run.
+
+    Returns
+    -------
+    tuple of str
+        Metric names, in the spec's guardrail order.
+    """
+    return tuple(
+        g.metric
+        for g in spec.guardrails
+        if g.applicable and g.metric != "peak_memory"
+    )
+
+
+def _key_rule(names: Sequence[str], *, has_value: bool) -> str:
+    """Say which keys a ``PERFPROOF`` object may have, for an error."""
+    if has_value and not names:
+        return 'an object with exactly one key, "value"'
+    keys = ", ".join(f'"{n}"' for n in names)
+    if has_value:
+        return f'an object with the key "value" and, optionally, {keys}'
+    return f"an object whose keys are among {keys}"
+
+
+def _reported_values(
+    path: Path, names: Sequence[str], *, has_value: bool
+) -> dict[str, float]:
+    """Read the ``PERFPROOF`` line of one execution from stdout.
+
+    The line is ``PERFPROOF`` and a JSON object. With ``has_value`` it
+    must have the key ``"value"``, the primary metric; every other key
+    must be one of ``names`` and appears at most once. A name the
+    object leaves out is not in the result: that value is unknown. With
+    no ``value`` required, a missing line is the same, every value
+    unknown. Two lines are refused either way: an execution reports
+    once.
+    """
     found = 0
     line = b""
     with path.open("rb") as f:
@@ -1665,6 +1738,8 @@ def _reported_value(path: Path) -> float:
             found += 1
             if found == 1:
                 line = head
+    if found == 0 and not has_value:
+        return {}
     if found != 1:
         msg = (
             "no PERFPROOF line on stdout"
@@ -1693,14 +1768,22 @@ def _reported_value(path: Path) -> float:
         raise _BadOutputError(msg) from None
     if not isinstance(parsed, dict):
         parsed = None
-    record = cast("dict[object, object] | None", parsed)
-    if record is None or set(record) != {"value"}:
+    record = cast("dict[str, object] | None", parsed)
+    allowed = {*names, *(("value",) if has_value else ())}
+    if (
+        record is None
+        or not set(record) <= allowed
+        or (has_value and "value" not in record)
+    ):
         msg = (
-            'PERFPROOF needs an object with exactly one key, "value": '
+            f"PERFPROOF needs {_key_rule(names, has_value=has_value)}: "
             f"{text[:80]!r}"
         )
         raise _BadOutputError(msg)
-    return _positive(record["value"], "PERFPROOF value")
+    return {
+        key: _positive(item, f"PERFPROOF {key}")
+        for key, item in record.items()
+    }
 
 
 def _counter_value(lines: Iterator[str] | Sequence[str], event: str) -> float:

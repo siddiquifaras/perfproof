@@ -29,6 +29,7 @@ from perfproof.bench.runner import (
     Runner,
     RunnerError,
     counter_unavailable_reason,
+    reported_guardrails,
     round_orders,
 )
 from perfproof.bench.spec import normalize_launch_path
@@ -38,6 +39,7 @@ from perfproof.schema import (
     Budget,
     CorrectnessSpec,
     GateResult,
+    GuardrailSpec,
     LookSchedule,
     MetricKind,
     MetricSpec,
@@ -60,6 +62,7 @@ def make_spec(
     cwd: str = ".",
     warmup: int = 0,
     timeout: float = 30.0,
+    guardrails: tuple[GuardrailSpec, ...] = (),
 ) -> BenchmarkSpec:
     unit = {"wall": "s", "cpu": "s", "reported": "ms", "counter": "count"}
     return BenchmarkSpec(
@@ -79,6 +82,29 @@ def make_spec(
         looks=LookSchedule(n0=10, k=10, max_looks=3),
         timeout_seconds=timeout,
         harness=("bench.py",),
+        objective="wall_time" if guardrails else None,
+        guardrails=guardrails,
+    )
+
+
+def reported_guardrail(
+    metric: str = "p99_latency", *, applicable: bool = True
+) -> GuardrailSpec:
+    """A guardrail the benchmark reports, in milliseconds."""
+    if not applicable:
+        return GuardrailSpec(
+            metric=metric,
+            direction="lower_is_better",
+            unit="ms",
+            applicable=False,
+            reason="serves no requests",
+        )
+    return GuardrailSpec(
+        metric=metric,
+        direction="lower_is_better",
+        unit="ms",
+        allowance=0.05,
+        allowance_source="default",
     )
 
 
@@ -340,6 +366,136 @@ def test_reported_refuses_bad_output(
     with pytest.raises(ExecutionError, match=match) as info:
         make_runner(spec, trees, tmp_path).run_round(0)
     assert info.value.stdout.read_text() == stdout
+
+
+def test_reported_guardrails_are_the_applicable_ones_the_runner_lacks() -> (
+    None
+):
+    spec = make_spec(
+        kind="reported",
+        guardrails=(
+            GuardrailSpec(
+                metric="peak_memory",
+                direction="lower_is_better",
+                unit="bytes",
+                allowance=0.1,
+                allowance_source="default",
+            ),
+            reported_guardrail("p99_latency"),
+            reported_guardrail("peak_gpu_memory", applicable=False),
+            GuardrailSpec(
+                metric="throughput",
+                direction="higher_is_better",
+                unit="req/s",
+                allowance=0.05,
+                allowance_source="project",
+            ),
+        ),
+    )
+    assert reported_guardrails(spec) == ("p99_latency", "throughput")
+
+
+def test_a_reported_guardrail_is_read_from_the_objectives_line(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = (
+        "print('warming up')\n"
+        'print(\'PERFPROOF {"value": 2.5, "p99_latency": 41.25}\')\n'
+        "print('done')"
+    )
+    spec = make_spec(code, kind="reported", guardrails=(reported_guardrail(),))
+    rnd = make_runner(spec, trees, tmp_path).run_round(0)
+    for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
+        assert sample.value == 2.5
+        assert ex.reported == {"p99_latency": 41.25}
+
+
+def test_a_reported_guardrail_needs_no_reported_objective(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = "print('PERFPROOF {\"p99_latency\": 12}')"
+    spec = make_spec(code, guardrails=(reported_guardrail(),))
+    rnd = make_runner(spec, trees, tmp_path).run_round(0)
+    for ex, sample in zip(rnd.executions, rnd.samples, strict=True):
+        assert sample.value == sample.wall_seconds
+        assert ex.reported == {"p99_latency": 12.0}
+        assert type(ex.reported["p99_latency"]) is float
+
+
+@pytest.mark.parametrize(
+    ("kind", "code"),
+    [
+        ("reported", "print('PERFPROOF {\"value\": 2.5}')"),
+        ("wall", "print('PERFPROOF {}')"),
+        ("wall", "print('no report at all')"),
+    ],
+    ids=["line-without-it", "empty-object", "no-line"],
+)
+def test_a_reported_guardrail_the_line_leaves_out_is_unknown(
+    trees: dict[Arm, Path], tmp_path: Path, kind: MetricKind, code: str
+) -> None:
+    spec = make_spec(code, kind=kind, guardrails=(reported_guardrail(),))
+    rnd = make_runner(spec, trees, tmp_path).run_round(0)
+    for ex in rnd.executions:
+        assert ex.reported == {}
+
+
+@pytest.mark.parametrize(
+    ("kind", "body", "match"),
+    [
+        ("reported", '{"value": 1, "p99_latency": 0}', "positive"),
+        ("reported", '{"value": 1, "p99_latency": -3}', "positive"),
+        ("reported", '{"value": 1, "p99_latency": "9"}', "a number"),
+        ("reported", '{"value": 1, "p99_latency": null}', "a number"),
+        ("reported", '{"value": 1, "p99_latency": true}', "a number"),
+        ("reported", '{"value": 1, "p99_latency": 1e400}', "finite"),
+        ("reported", '{"value": 1, "p99_latency": NaN}', "not valid JSON"),
+        (
+            "reported",
+            '{"value": 1, "p99_latency": 2, "p99_latency": 3}',
+            "repeats",
+        ),
+        ("reported", '{"value": 1, "p50_latency": 2}', "optionally"),
+        ("reported", '{"p99_latency": 2}', "optionally"),
+        ("wall", '{"value": 1, "p99_latency": 2}', "among"),
+        ("wall", '{"p50_latency": 2}', "among"),
+        ("wall", "[1]", "among"),
+    ],
+)
+def test_a_malformed_reported_guardrail_is_refused(
+    trees: dict[Arm, Path],
+    tmp_path: Path,
+    kind: MetricKind,
+    body: str,
+    match: str,
+) -> None:
+    stdout = f"PERFPROOF {body}\n"
+    code = f"import sys; sys.stdout.write({stdout!r})"
+    spec = make_spec(code, kind=kind, guardrails=(reported_guardrail(),))
+    with pytest.raises(ExecutionError, match=match) as info:
+        make_runner(spec, trees, tmp_path).run_round(0)
+    assert info.value.cause == "output"
+
+
+def test_two_lines_are_refused_when_only_a_guardrail_is_reported(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = (
+        "print('PERFPROOF {\"p99_latency\": 1}')\n"
+        "print('PERFPROOF {\"p99_latency\": 2}')"
+    )
+    spec = make_spec(code, guardrails=(reported_guardrail(),))
+    with pytest.raises(ExecutionError, match="2 PERFPROOF"):
+        make_runner(spec, trees, tmp_path).run_round(0)
+
+
+def test_a_line_is_not_read_when_nothing_is_reported(
+    trees: dict[Arm, Path], tmp_path: Path
+) -> None:
+    code = "print('PERFPROOF not even json')"
+    spec = make_spec(code, guardrails=(reported_guardrail(applicable=False),))
+    for ex in make_runner(spec, trees, tmp_path).run_round(0).executions:
+        assert ex.reported == {}
 
 
 def test_reported_streams_past_huge_lines(

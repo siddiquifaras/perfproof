@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,7 @@ from pydantic import ValidationError
 from perfproof.bench import compare as compare_module
 from perfproof.bench.compare import (
     PEAK_MEMORY_MEASURE,
+    REPORTED_MEASURE,
     SAMPLES_NAME,
     CompareResult,
     CompareStoppedError,
@@ -1306,36 +1308,49 @@ def test_a_schedule_outside_the_calibrated_ones_runs_to_a_verdict(
 
 
 @pytest.mark.parametrize(
-    ("looks", "max_rounds", "guardrail", "blocked"),
+    ("looks", "max_rounds", "guardrail", "unit", "blocked"),
     [
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "none", False),
-        ({"n0": 20, "k": 20, "max_looks": 6}, 120, "none", False),
-        ({"n0": 20, "k": 20, "max_looks": 10}, 200, "none", True),
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "peak_memory", False),
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "p99_latency", True),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "none", "", False),
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, "none", "", False),
+        ({"n0": 20, "k": 20, "max_looks": 10}, 200, "none", "", True),
+        (
+            {"n0": 10, "k": 10, "max_looks": 6},
+            60,
+            "peak_memory",
+            "bytes",
+            False,
+        ),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "p99_latency", "s", False),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, "peak_memory", "MB", True),
     ],
     ids=[
         "python-default",
         "gpu-default",
         "late-looks",
         "measured-guardrail",
-        "unmeasured-guardrail",
+        "reported-guardrail",
+        "unmeasurable-guardrail",
     ],
 )
 def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
-    looks: dict[str, int], max_rounds: int, guardrail: str, blocked: bool
+    looks: dict[str, int],
+    max_rounds: int,
+    guardrail: str,
+    unit: str,
+    blocked: bool,
 ) -> None:
     """A guardrail with a value to measure does not block by itself.
 
-    ``peak_memory`` is decided at each look from its measurements; one
-    the runner records no value for, such as ``p99_latency``, can never
-    be shown compliant, so the spec rules out a KEEP.
+    ``peak_memory`` is decided at each look from its measurements, and
+    a reported one such as ``p99_latency`` from the values the benchmark
+    prints; ``peak_memory`` in a unit other than bytes can never be
+    shown compliant, so the spec rules out a KEEP.
     """
     guardrails: list[dict[str, Any]] = [
         {
             "metric": g["metric"],
             "direction": "lower_is_better",
-            "unit": g["unit"],
+            "unit": unit,
             "allowance": 0.1,
             "allowance_source": "default",
         }
@@ -2888,7 +2903,10 @@ def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
     )
     assert items[("guardrail", "peak_gpu_memory")]["status"] == "not_declared"
     assert items[("guardrail", "p99_latency")]["status"] == "unmeasurable"
-    assert "record" in items[("guardrail", "p99_latency")]["reason"]
+    assert (
+        "missing from the PERFPROOF line"
+        in items[("guardrail", "p99_latency")]["reason"]
+    )
     for code in (*withholding, "schedule_uncalibrated"):
         entry = items[("warning", code)]
         assert entry["status"] == "withholds_keep"
@@ -2898,6 +2916,315 @@ def test_not_verified_lists_gates_guardrails_and_withholding_warnings(
         w["code"] for w in cast("list[dict[str, Any]]", warnings_json(shown))
     }
     assert codes >= {"high_load", "schedule_uncalibrated"}
+
+
+# A guardrail the benchmark reports itself, on the line of its objective
+
+P99_BENCH = """\
+import os
+
+from work import OMIT, P99, SCALE, run
+
+n = int(open("n.txt").read()) if os.path.exists("n.txt") else 0
+open("n.txt", "w").write(str(n + 1))
+wobble = 1 + 0.004 * ((n * 37) % 31 - 15)
+with open("out.txt", "w") as f:
+    f.write(f"{run()}\\n")
+fields = ['"value": %.6f' % (SCALE * wobble)]
+if not OMIT or n % OMIT != 3:
+    fields.append('"p99_latency": %.6f' % (P99 * wobble))
+print("PERFPROOF {" + ", ".join(fields) + "}")
+"""
+
+
+def p99_work(scale: float, p99: float, omit: int = 0) -> str:
+    """A work module whose benchmark reports ``scale`` and ``p99``.
+
+    Each is times the same zigzag; every ``omit``-th execution leaves
+    p99 out.
+    """
+    return (
+        f"SCALE = {scale}\nP99 = {p99}\nOMIT = {omit}\n\n\n"
+        "def run():\n    return 42\n"
+    )
+
+
+P99_GUARDRAILS: list[dict[str, Any]] = [
+    NOT_APPLICABLE[0],
+    NOT_APPLICABLE[1],
+    {
+        "metric": "p99_latency",
+        "direction": "lower_is_better",
+        "unit": "s",
+        "allowance": 0.05,
+        "allowance_source": "default",
+    },
+]
+
+
+def p99_project(tmp_path: Path, omit: int = 0) -> Project:
+    return make_project(
+        tmp_path, bench=P99_BENCH, baseline=p99_work(1.0, 1.0, omit)
+    )
+
+
+def p99_column(result: CompareResult, name: str, *, candidate: bool) -> Any:
+    with np.load(result.run_dir / SAMPLES_NAME, allow_pickle=False) as data:
+        which = data["candidate"] == int(candidate)
+        return data[name][which]
+
+
+def test_a_p99_breach_is_a_guardrail_reject_on_reported_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = p99_project(tmp_path)
+    worse = project.candidate("worse", {"work.py": p99_work(0.5, 2.0)})
+    result = project.run(worse, web_spec(guardrails=P99_GUARDRAILS))
+    record = result.record
+    verdict = record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "REJECT",
+        "guardrail",
+        2,
+    )
+    assert seen.rules == [4, 2]
+    by_metric = {g.metric: g for g in record.guardrails}
+    p99 = by_metric["p99_latency"]
+    assert p99.status == "breached"
+    assert p99.measure == REPORTED_MEASURE.format(metric="p99_latency")
+    assert p99.estimate is not None
+    assert p99.estimate == pytest.approx(2.0, rel=1e-4)
+    assert p99.worsening is not None
+    assert p99.worsening.lower > 1.05
+    # The per-round values are the benchmark's, paired by round.
+    base = p99_column(result, "reported_p99_latency", candidate=False)
+    cand = p99_column(result, "reported_p99_latency", candidate=True)
+    assert len(base) == len(cand) == verdict.rounds
+    assert np.allclose(cand / base, 2.0, rtol=1e-4)
+    assert "breached" in result.report_path.read_text()
+
+
+def test_a_reported_p99_within_its_allowance_lets_keep_through(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = p99_project(tmp_path)
+    same = project.candidate("same", {"work.py": p99_work(0.5, 1.0)})
+    with pytest.raises(CompareStoppedError) as stopped:
+        project.run(same, web_spec(guardrails=P99_GUARDRAILS))
+    # A KEEP is not built in the thin path: the look would have kept,
+    # which a p99 guardrail that could not be measured never allowed.
+    assert stopped.value.code == "internal_fault"
+    assert seen.rules == [4, 2]
+    assert seen.blocked == [True, False]
+
+
+def test_a_p99_missing_from_some_rounds_is_unmeasurable_not_defaulted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = p99_project(tmp_path, omit=7)
+    candidate = project.candidate("fast", {"work.py": p99_work(0.5, 1.0, 7)})
+    result = project.run(candidate, web_spec(guardrails=P99_GUARDRAILS))
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.rule) == ("INCONCLUSIVE", 2)
+    assert seen.held == [False, True]
+    p99 = {g.metric: g for g in result.record.guardrails}["p99_latency"]
+    assert p99.status == "unmeasurable"
+    assert re.search(
+        r"p99_latency is missing from the PERFPROOF line of \d+ of "
+        rf"{2 * verdict.rounds} executions",
+        p99.reason,
+    )
+    assert p99.worsening is None
+    # The gap is recorded as a gap, not as a number.
+    base = p99_column(result, "reported_p99_latency", candidate=False)
+    assert 0 < int(np.isnan(base).sum()) < len(base)
+
+
+def test_a_malformed_p99_stops_the_comparison_with_the_line(
+    tmp_path: Path,
+) -> None:
+    bad = P99_BENCH.replace(
+        "'\"p99_latency\": %.6f' % (P99 * wobble)",
+        '\'"p99_latency": "fast"\'',
+    )
+    assert bad != P99_BENCH
+    project = make_project(tmp_path, bench=bad, baseline=p99_work(1.0, 1.0))
+    with pytest.raises(CompareStoppedError) as stopped:
+        project.run(
+            project.candidate("same", {}),
+            web_spec(guardrails=P99_GUARDRAILS),
+        )
+    assert stopped.value.code == "broken_baseline"
+    assert "PERFPROOF p99_latency must be a number" in stopped.value.message
+
+
+def test_a_guardrail_value_that_cannot_be_read_back_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the guardrail is reported, so only its step is unknown."""
+    seen = calibrated(monkeypatch)
+
+    def unreadable(path: object) -> None:
+        return None
+
+    monkeypatch.setattr(compare_module, "_reported_literals", unreadable)
+    only_p99 = P99_BENCH.replace(
+        "fields = ['\"value\": %.6f' % (SCALE * wobble)]", "fields = []"
+    )
+    assert only_p99 != P99_BENCH
+    slow = "import time\n" + p99_work(1.0, 1.0).replace(
+        "return 42", "time.sleep(0.05)\n    return 42"
+    )
+    project = make_project(tmp_path, bench=only_p99, baseline=slow)
+    spec = web_spec(
+        metric={
+            "kind": "wall",
+            "direction": "lower_is_better",
+            "unit": "s",
+        },
+        guardrails=P99_GUARDRAILS,
+    )
+    fast = project.candidate("fast", {"work.py": p99_work(1.0, 1.0)})
+    result = project.run(fast, spec)
+    assert "resolution_unknown" in {w.code for w in result.record.warnings}
+    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    assert all(seen.blocked)
+
+
+QUANT_BENCH = """\
+import os
+
+from work import MODE, P99_MS, SCALE, run
+
+n = int(open("n.txt").read()) if os.path.exists("n.txt") else 0
+open("n.txt", "w").write(str(n + 1))
+wobble = 1 + 0.004 * ((n * 37) % 31 - 15)
+true_ms = P99_MS + ((n * 17) % 20) / 100.0
+with open("out.txt", "w") as f:
+    f.write(f"{run()}\\n")
+ms = int(true_ms) if MODE == "whole_ms" else true_ms
+print(
+    "PERFPROOF {"
+    + '"value": %.6f, "p99_latency": %.6f' % (SCALE * wobble, ms / 1000.0)
+    + "}"
+)
+"""
+
+
+def quant_work(scale: float, p99_ms: float, mode: str) -> str:
+    return (
+        f"SCALE = {scale}\nP99_MS = {p99_ms}\nMODE = {mode!r}\n\n\n"
+        "def run():\n    return 42\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("mode", "base_ms", "cand_ms", "status"),
+    [
+        # Truly +7.4%, past the 5% allowance, every pair reads 10 ms.
+        ("whole_ms", 10.0, 10.74, "unmeasurable"),
+        # Truly +4.8%, inside it, every pair reads 10 ms against 11 ms.
+        ("whole_ms", 10.5, 11.0, "unmeasurable"),
+        # The control: a true +10% printed continuously is a breach.
+        ("exact", 10.0, 11.0, "breached"),
+    ],
+    ids=["hidden-breach", "false-breach", "continuous-control"],
+)
+def test_a_discrete_reported_p99_is_never_judged(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+    base_ms: float,
+    cand_ms: float,
+    status: str,
+) -> None:
+    calibrated(monkeypatch)
+    project = make_project(
+        tmp_path, bench=QUANT_BENCH, baseline=quant_work(1.0, base_ms, mode)
+    )
+    candidate = project.candidate(
+        "c", {"work.py": quant_work(0.5, cand_ms, mode)}
+    )
+    result = project.run(candidate, web_spec(guardrails=P99_GUARDRAILS))
+    p99 = {g.metric: g for g in result.record.guardrails}["p99_latency"]
+    assert p99.status == status
+    verdict = result.record.verdict
+    if status == "unmeasurable":
+        assert "looks discrete" in p99.reason
+        assert "print more digits" in p99.reason
+        assert p99.worsening is None
+        assert (verdict.outcome, verdict.rule) == ("INCONCLUSIVE", 2)
+    else:
+        assert (verdict.outcome, verdict.reason) == ("REJECT", "guardrail")
+
+
+@pytest.mark.parametrize(
+    ("base_mode", "cand_mode", "named"),
+    [
+        ("exact", "whole_ms", "the candidate (1 distinct)"),
+        ("whole_ms", "exact", "the baseline (1 distinct)"),
+    ],
+    ids=["candidate-coarse", "baseline-coarse"],
+)
+def test_one_coarse_arm_is_enough_to_stop_judging_a_reported_p99(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    base_mode: str,
+    cand_mode: str,
+    named: str,
+) -> None:
+    """Truly +7.4%, one arm whole ms and the other continuous."""
+    calibrated(monkeypatch)
+    project = make_project(
+        tmp_path,
+        bench=QUANT_BENCH,
+        baseline=quant_work(1.0, 10.0, base_mode),
+    )
+    candidate = project.candidate(
+        "c", {"work.py": quant_work(0.5, 10.74, cand_mode)}
+    )
+    result = project.run(candidate, web_spec(guardrails=P99_GUARDRAILS))
+    p99 = {g.metric: g for g in result.record.guardrails}["p99_latency"]
+    assert p99.status == "unmeasurable"
+    assert named in p99.reason
+    assert "print more digits" in p99.reason
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.rule) == ("INCONCLUSIVE", 2)
+
+
+@pytest.mark.integration
+def test_a_real_benchmark_reports_p99_through_compare(
+    tmp_path: Path,
+) -> None:
+    """The whole path with nothing patched.
+
+    The child prints one line, the runner reads it, the samples keep it
+    and the record judges it.
+    """
+    project = p99_project(tmp_path)
+    worse = project.candidate("worse", {"work.py": p99_work(0.5, 2.0)})
+    result = project.run(worse, web_spec(guardrails=P99_GUARDRAILS))
+    p99 = {g.metric: g for g in result.record.guardrails}["p99_latency"]
+    assert p99.status == "breached"
+    assert p99.worsening is not None
+    assert p99.worsening.lower > 1.05
+    base = p99_column(result, "reported_p99_latency", candidate=False)
+    cand = p99_column(result, "reported_p99_latency", candidate=True)
+    assert np.allclose(cand / base, 2.0, rtol=1e-4)
+    # The run directory holds the very line the benchmark printed.
+    logs = sorted((result.run_dir / "logs").rglob("round-0.*.stdout"))
+    assert len(logs) == 2
+    for log in logs:
+        line = next(
+            ln for ln in log.read_text().splitlines() if ln.startswith("PERF")
+        )
+        assert set(json.loads(line.removeprefix("PERFPROOF "))) == {
+            "value",
+            "p99_latency",
+        }
 
 
 # The coverage gate on a real baseline checkout and a candidate that is
