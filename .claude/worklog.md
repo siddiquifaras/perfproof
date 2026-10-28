@@ -376,6 +376,13 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- **Disk filled to ENOSPC on 2026-10-28** (about 19:00 PKT), which stopped the flip worker, the GPU prep and PR #101's checks. Freed with Faras's OK, from 5.5 GB to 158 GB free:
+  - the T4.2 worktree (51 GB of mining clones in `eval/mine`);
+  - 54 archived ppeval run folders (`eval-work/work`, 91 GB);
+  - 77 clean worktrees of merged PRs.
+  - Kept: the closed-PR worktrees (t1.11-phase2, t3.19-score-skill-3, edit-detector), the unarchived r9-2-ex and r9-2-real, the live worktrees, and Docker. The #91 worktree is locked by an old session, so it was skipped.
+  - From now on, remove a PR's worktree after its merge, and a run's ppeval work folder once its archive exists.
+
 - `tests/bench/test_compare.py::test_the_interval_is_the_batch_means_interval` failed once in the Mac full suite on #90 at `96c598a`, 2026-10-28: rule-5 INCONCLUSIVE with `interval=None` at 12 rounds. The discovery eval was running at the same time, on battery. Not reproduced in 373 runs on #90 and main, including under 8 busy loops. The pytest repr cut off the verdict's rounds, so the cause is unknown. If it recurs, rerun with `-vv` to see the rounds.
 
 - **#90 audit nits for the CALIBRATED doc pass** (stats-auditor PASS at f3533f2, non-blocking):
