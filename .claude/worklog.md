@@ -141,6 +141,19 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Discovery and depth (Faras, 2026-10-29).**
+  - Discovery must find the real bottleneck on an unknown repo, not the first plausible function. The eval answer keys only grade.
+  - Plan:
+    - the CLI profiles at several sizes and fits each function's growth (`task/discovery-rank`);
+    - one ranking by ceiling across workloads, with sampled coverage ("never sampled" files);
+    - then the skill maps entry points and chooses workloads per depth.
+  - Depth (T3.14), each with real value:
+    - light: 2 workloads × 2 sizes, a ranked list, try the top;
+    - medium: 3-4 workloads × 3 sizes, coverage, top 2-3 ideas;
+    - deep: every entry point plus confirm.
+    - A bare `/perfproof` is medium-to-deep.
+  - Graded once on the held-out set.
+
 - **Calibrated verdicts need the spec's class (lead, 2026-10-28, applying Faras's own-class rule).**
   - `BenchmarkSpec.target_class` (optional) plus a class-to-schedule map.
   - A verdict is `calibrated` only when the class is known, the schedule is that class's own, and the schedule is in the calibrated domain. Otherwise it is `uncalibrated`, with KEEP withheld and a named reason: `target_class_unknown`, `schedule_not_class_own`, or `schedule_uncalibrated` for gpu_kernels and alpha ≠ 0.05.
