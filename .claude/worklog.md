@@ -133,6 +133,17 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Discovery iterations (2026-10-28):** 18 tasks each (6 find examples, 12 real hidden-fix and `-msg-` tasks), as ppeval.
+  - **d1** (skill 9124c21, about $9.60): examples 3/6 (all three failures were the pytest 9.2 marker bug, fixed by #94), real 1/12, wrong KEEP 0.
+  - **d2** (skill 8af2de7: forced colour, second-workload triggers, coverage check, claims; about $9.24): examples 6/6, real 0/12, wrong KEEP 0.
+  - In d2, fd and rust-fd now have the hidden function in the profile, but the agent didn't name it as the cost.
+  - Most tasks still ran one workload; simdjson and fastify reran the same workload. The go agent took the project's router micro-benchmark, which skips the public entry point, because step 1 listed "benchmarks" as a source.
+  - Next:
+    - skill: end-to-end through the public entry point first, and a rerun isn't a second workload;
+    - CLI: `profile` prints a next-step hint when `project_frames_above_bar` is empty;
+    - then d3 on the 12 real tasks only.
+  - The strict edit detector scores dotnet and fd-bare as "profile after edit".
+
 - **#90 B1 (lead, 2026-10-28):** the stats audit at 824ea35 found that the rank-based cap bound holds only under AR(1)-like dependence.
   - Loaded real A/A traces missed the median 7.3% and 18.4% of the time, against a 0.21% tail.
   - A local-level series gave 5 to 9% false passes at a ratio of 1.01.
