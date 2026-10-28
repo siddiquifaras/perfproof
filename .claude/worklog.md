@@ -138,6 +138,12 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Calibrated verdicts need the spec's class (lead, 2026-10-28, applying Faras's own-class rule).**
+  - `BenchmarkSpec.target_class` (optional) plus a class-to-schedule map.
+  - A verdict is `calibrated` only when the class is known, the schedule is that class's own, and the schedule is in the calibrated domain. Otherwise it is `uncalibrated`, with KEEP withheld and a named reason: `target_class_unknown`, `schedule_not_class_own`, or `schedule_uncalibrated` for gpu_kernels and alpha ≠ 0.05.
+  - Found by the #104 worker: without the class every verdict stayed `uncalibrated`, so the skill never reports KEEP. Also, the skill's `spec.md` gave every workload the python_native schedule, which is the off-class case.
+  - The skill must set `target_class` and use the class's own schedule. **The skill freeze for the held-out discovery run moves to the post-flip skill commit.** No held-out run has happened, and the rule only requires a commit recorded before the first run.
+
 - **Real-trace acceptance unit (Faras, 2026-10-28, Option 1, decided after seeing results).**
   - Each target class's real traces under its own schedule count for acceptance. Off-class cells are reported, and their failures published as named limits: the 6 from the #101 audit, the shipped procedures on linux-llm and loaded-steady-web under other classes' schedules, at one-sided-noise skew, false KEEP 0.00-0.07% at S up to 1.025.
   - `gpu_kernels` ships without KEEP until real GPU traces exist. Faras will rent a GPU for at most 6 hours before launch to record them.
