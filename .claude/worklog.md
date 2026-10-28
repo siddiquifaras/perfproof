@@ -135,6 +135,9 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   - Decision: fix it in #90 before the merge, with a bound that widens under persistent dependence. Acceptance: the held-out persistent scenarios and every real trace stay within the tail, the 1448 cells keep 0 failing, and the power cost is reported.
   - Reason: on a busy machine, load may widen or slow a result but must never make a claim wrong.
   - B5 (a p99 cap through `compare`) is fixed in #90 too. Nits N1 to N10 are follow-ups.
+  - **Outcome, same day:** no bound met acceptance at n of 120 or less. Batch-t and a Bartlett-widened rank bound both failed. With rho at 0.97 there are about 4 effective rounds, so covering them would withhold answers on ordinary data (the rejected rule).
+  - Revised decision: keep the rank bound and scope the claim to the session ("in these runs ... on a busier or quieter machine this number can move"). An existing drift diagnostic, if any, adds a note but never changes the verdict. `docs/method.md` states the measured limits.
+  - B5 is done: a declared-quantile test through `compare`. p99 has no calibration cell.
 
 - **Per-look confidence `1 - alpha / (2K)` (PR #13 revision; for Faras
   to confirm).** The PR #13 audit showed an exact interval split as
