@@ -1,0 +1,11 @@
+#!/bin/sh
+# Claude Code puts a plugin's bin/ on PATH, so the skill's plain
+# `perfproof` runs the version this plugin ships, through uvx: nothing
+# is installed into the user's project or environment.
+# Release (T6.3): replace the path with "perfproof==<plugin version>".
+if ! command -v uvx >/dev/null 2>&1; then
+    echo "perfproof needs uv: https://docs.astral.sh/uv/getting-started/installation/" >&2
+    exit 1
+fi
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd) || exit 1
+exec uvx --python 3.12 --from "$root" perfproof "$@"

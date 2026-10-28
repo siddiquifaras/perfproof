@@ -32,10 +32,12 @@ __all__ = [
     "CLIENTS",
     "MARKER",
     "SKILL_NAME",
+    "PluginState",
     "SkillState",
     "check",
     "client_dir",
     "install",
+    "plugin_install",
     "skill_source",
     "uninstall",
 ]
@@ -110,6 +112,75 @@ def client_dir(client: str) -> Path:
         current user (``HOME``).
     """
     return Path.home().joinpath(*_ROOTS[client], SKILL_NAME)
+
+
+@dataclass(frozen=True)
+class PluginState:
+    """A perfproof install through Claude Code's plugin system.
+
+    Attributes
+    ----------
+    key : str
+        The plugin id Claude Code records, ``perfproof@<marketplace>``.
+    version : str or None
+        The installed version, ``None`` when the record has none.
+    enabled : bool
+        ``False`` only when the user settings say so; a plugin the
+        settings do not mention counts as enabled.
+    """
+
+    key: str
+    version: str | None
+    enabled: bool
+
+
+def _json_object(path: Path) -> dict[str, object]:
+    """Read a JSON object, or an empty one when absent or unreadable."""
+    try:
+        data: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if isinstance(data, dict):
+        return {str(k): v for k, v in data.items()}  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+    return {}
+
+
+def plugin_install() -> PluginState | None:
+    """Find a perfproof installed as a Claude Code plugin.
+
+    Reads Claude Code's own records (checked 2026-10-28, Claude Code
+    2.1.291): ``~/.claude/plugins/installed_plugins.json``, whose
+    ``plugins`` object maps ``<plugin>@<marketplace>`` to a list of
+    installs with ``scope``, ``version`` and ``installPath``, and
+    ``enabledPlugins`` in ``~/.claude/settings.json``. Project and local
+    scope settings are not read.
+
+    Returns
+    -------
+    PluginState or None
+        ``None`` when no perfproof plugin is recorded. With several
+        records the first is reported.
+    """
+    base = Path.home() / ".claude"
+    plugins = _json_object(base / "plugins" / "installed_plugins.json").get(
+        "plugins"
+    )
+    if not isinstance(plugins, dict):
+        return None
+    enabled = _json_object(base / "settings.json").get("enabledPlugins")
+    for key, installs in plugins.items():  # pyright: ignore[reportUnknownVariableType]
+        if not str(key).startswith(f"{SKILL_NAME}@"):  # pyright: ignore[reportUnknownArgumentType]
+            continue
+        version: str | None = None
+        if isinstance(installs, list) and installs:
+            first: object = installs[0]  # pyright: ignore[reportUnknownVariableType]
+            if isinstance(first, dict):
+                v: object = first.get("version")  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+                version = v if isinstance(v, str) else None
+        name = str(key)  # pyright: ignore[reportUnknownArgumentType]
+        on = not (isinstance(enabled, dict) and enabled.get(name) is False)  # pyright: ignore[reportUnknownMemberType]
+        return PluginState(name, version, on)
+    return None
 
 
 def _digest(root: Path) -> str:

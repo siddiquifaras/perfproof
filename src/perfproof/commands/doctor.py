@@ -166,7 +166,9 @@ def _install() -> dict[str, JsonValue]:
     source = skills.skill_source()
     problems: list[JsonValue] = []
     on_path = shutil.which("perfproof") is not None
-    if not on_path:
+    plugin = skills.plugin_install()
+    via_plugin = plugin is not None and plugin.enabled
+    if not on_path and not via_plugin:
         problems.append(
             {
                 "what": "perfproof is not on PATH (ignore this if you "
@@ -199,12 +201,53 @@ def _install() -> dict[str, JsonValue]:
     for client in skills.CLIENTS:
         state = skills.check(client, source)
         exe = shutil.which(client)
-        clients[client] = {
+        info: dict[str, JsonValue] = {
             "found": exe is not None,
             "version": _client_version(exe),
             "skill": state.state,
             "skill_path": state.path,
         }
+        clients[client] = info
+        if client == "claude" and plugin is not None:
+            info["plugin"] = {
+                "id": plugin.key,
+                "version": plugin.version,
+                "enabled": plugin.enabled,
+            }
+            if not plugin.enabled:
+                problems.append(
+                    {
+                        "what": f"the perfproof plugin ({plugin.key}) is "
+                        "installed but disabled",
+                        "fix": f"claude plugin enable {plugin.key}",
+                    }
+                )
+            if state.state == "foreign":
+                problems.append(
+                    {
+                        "what": f"{state.path} exists and perfproof did "
+                        "not create it; it may shadow the plugin's skill",
+                        "fix": "move it away",
+                    }
+                )
+                continue
+            if not plugin.enabled:
+                continue
+            if state.state == "missing":
+                info["skill"] = "plugin"
+                continue
+            if state.state in ("current", "stale"):
+                problems.append(
+                    {
+                        "what": "the /perfproof skill is installed twice "
+                        f"for claude: the plugin {plugin.key} and "
+                        f"{state.path}; which one Claude Code uses was "
+                        "not determined",
+                        "fix": f"{_FIX_SKILL} --client claude --uninstall "
+                        "(keeps the plugin)",
+                    }
+                )
+                continue
         if state.state in ("missing", "stale") and source is not None:
             problems.append(
                 {
@@ -241,9 +284,17 @@ def _install_text(install: dict[str, JsonValue]) -> list[str]:
             if not isinstance(info, dict):
                 continue
             found = "found" if info["found"] else "not on PATH"
+            plug = info.get("plugin")
+            if info["skill"] == "plugin" and isinstance(plug, dict):
+                skill = (
+                    f"skill installed through the plugin {plug['id']} "
+                    f"{plug['version'] or '(version unknown)'}"
+                )
+            else:
+                skill = f"skill {info['skill']}: {info['skill_path']}"
             lines.append(
                 f"  {name:<6} {found} ({info['version'] or 'no version'})"
-                f"; skill {info['skill']}: {info['skill_path']}"
+                f"; {skill}"
             )
     if isinstance(problems, list) and problems:
         for problem in problems:

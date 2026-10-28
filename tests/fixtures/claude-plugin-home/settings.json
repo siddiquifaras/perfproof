@@ -1,0 +1,13 @@
+{
+  "enabledPlugins": {
+    "perfproof@perfproof": true
+  },
+  "extraKnownMarketplaces": {
+    "perfproof": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/ppeval/t316/src"
+      }
+    }
+  }
+}

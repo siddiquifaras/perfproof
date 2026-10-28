@@ -1,0 +1,9 @@
+{
+  "name": "perfproof",
+  "version": "0.1.0",
+  "description": "Find where your code can get faster and prove which changes really are, keeping only those.",
+  "author": { "name": "Faras Siddiqui" },
+  "homepage": "https://github.com/siddiquifaras/perfproof",
+  "repository": "https://github.com/siddiquifaras/perfproof",
+  "license": "Apache-2.0"
+}

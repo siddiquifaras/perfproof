@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "plugins": {
+    "perfproof@perfproof": [
+      {
+        "scope": "user",
+        "installPath": "/Users/ppeval/t316/home/.claude/plugins/cache/perfproof/perfproof/0.1.0",
+        "version": "0.1.0",
+        "installedAt": "2026-10-28T00:30:11.061Z",
+        "lastUpdated": "2026-10-28T00:30:11.061Z"
+      }
+    ]
+  }
+}

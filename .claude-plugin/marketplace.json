@@ -1,0 +1,14 @@
+{
+  "name": "perfproof",
+  "owner": { "name": "Faras Siddiqui" },
+  "metadata": {
+    "description": "perfproof: find where code can get faster and prove which changes are real."
+  },
+  "plugins": [
+    {
+      "name": "perfproof",
+      "source": "./",
+      "description": "The /perfproof skill: find where code can get faster and prove which changes are real, through the perfproof CLI run with uvx."
+    }
+  ]
+}
