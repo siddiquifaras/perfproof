@@ -129,6 +129,13 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **#90 B1 (lead, 2026-10-28):** the stats audit at 824ea35 found that the rank-based cap bound holds only under AR(1)-like dependence.
+  - Loaded real A/A traces missed the median 7.3% and 18.4% of the time, against a 0.21% tail.
+  - A local-level series gave 5 to 9% false passes at a ratio of 1.01.
+  - Decision: fix it in #90 before the merge, with a bound that widens under persistent dependence. Acceptance: the held-out persistent scenarios and every real trace stay within the tail, the 1448 cells keep 0 failing, and the power cost is reported.
+  - Reason: on a busy machine, load may widen or slow a result but must never make a claim wrong.
+  - B5 (a p99 cap through `compare`) is fixed in #90 too. Nits N1 to N10 are follow-ups.
+
 - **Per-look confidence `1 - alpha / (2K)` (PR #13 revision; for Faras
   to confirm).** The PR #13 audit showed an exact interval split as
   `alpha / K` sits at 2.0-2.5% false KEEP on the bar for K <= 3, which
