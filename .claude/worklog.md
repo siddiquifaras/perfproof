@@ -310,6 +310,16 @@ Skill-eval and real-repo runs since resuming: $20.22 summed from each run's repo
 
 ### Known gaps
 
+- **macOS `sample` cannot attach to the python.org Python** (hardened runtime, 2026-10-28). PR #91's worktree venv was built on `/Library/Frameworks/Python.framework`. There, `test_perfproof_native_recorder_works_under_the_profile` failed every time ("sample cannot examine process ... for unknown reasons"). It passed after the venv was rebuilt on uv's managed Python. Product impact: a user whose project runs on the python.org Python gets no native profile on macOS. The skill or `doctor` should name the cause and suggest a uv or Homebrew Python. Not yet fixed.
+
+- PR #93 review nits (2026-10-28, non-blocking):
+  - `realrepo.remove_planted` resolves before its `is_symlink` test, so a planted symlink would delete its target (none today).
+  - The django `bar_exclusion` cites an untracked archive; commit the numbers.
+  - The rails exclusion is judged, not measured.
+  - simdjson's oracle `./eval_builder_tests` is not rebuilt on the agent's branch (`runner.py:1043`), so it can't catch a broken change.
+  - `sandbox.agent_env` sets `DOTNET_ROOT` to the PATH dir without resolving a symlinked `dotnet`.
+  - Two `-msg-` prompts sit close to the cause (xarray "no dask", rolling "slower the longer the history").
+
 - `tests/bench/test_compare.py::test_looks_follow_the_schedule_and_budget[kth-look]` failed once in a full Mac run at load about 7 (`(1, 10) == (2, 14)`, a time stop at look 1), 2026-10-23; 72 isolated reruns passed. Load-sensitive budget test; not yet fixed.
 
 - `tests/profilers/test_{java,node}.py::test_a_command_that_keeps_forking_leaves_nothing_behind` failed together once in the Mac full suite on PR #81 (load about 3.5; a `sleep` from the forking loop outlived the kill) and passed alone. Load-sensitive; not yet fixed.
