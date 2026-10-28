@@ -69,6 +69,9 @@ from pydantic import (
 from pydantic.json_schema import models_json_schema
 
 __all__ = [
+    "CALIBRATED_ALPHA",
+    "CALIBRATION_PENDING",
+    "CLASS_SCHEDULES",
     "DEFAULT_GUARDRAILS",
     "GATE_REASON",
     "HYPOTHESIS_EVENT",
@@ -322,13 +325,22 @@ _UNSHOWN: Final = frozenset(
 )
 _MEASURED: Final = frozenset({"passed", "breached", "not_established"})
 KEEP_BLOCKING_WARNINGS: Final = frozenset(
-    {"counter_unavailable", "resolution_unknown", "schedule_uncalibrated"}
+    {
+        "counter_unavailable",
+        "resolution_unknown",
+        "schedule_uncalibrated",
+        "schedule_not_class_own",
+        "target_class_unknown",
+        "target_class_unverified",
+    }
 )
 """`RunWarning` codes naming a reason a KEEP is withheld that is
 neither a gate nor a guardrail: a counter metric measured as wall time,
 a value of unknown resolution, a look schedule outside the calibrated
-ones. A KEEP cannot carry one, and a rule 2 INCONCLUSIVE may rest on
-one."""
+ones, a look schedule that is not the declared target class's own, a
+spec that declares no target class or one the project model does
+not confirm. A KEEP cannot carry one, and a
+rule 2 INCONCLUSIVE may rest on one."""
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
 _OBJECTIVE_KINDS: Final[Mapping[str, frozenset[MetricKind]]] = (
     MappingProxyType(
@@ -371,6 +383,31 @@ def _check_direction(name: str, direction: Direction, role: str) -> None:
         msg = f"{role} {name} is {expected}, not {direction}"
         raise ValueError(msg)
 
+
+CLASS_SCHEDULES: Final[Mapping[TargetClass, tuple[int, int, int, int]]] = (
+    MappingProxyType(
+        {
+            "python_cpu": (10, 10, 6, 60),
+            "native": (10, 10, 6, 60),
+            "web_service": (10, 10, 3, 30),
+            "agentic": (10, 10, 3, 30),
+            "llm_serving": (10, 6, 3, 22),
+            "gpu_kernel": (20, 20, 6, 120),
+        }
+    )
+)
+"""Each target class's own default schedule, ``(n0, k, K,
+max_rounds)``: "Defaults per target class" in ``docs/method.md``
+(Python, CPU-bound and Native `(10, 10, 6, 60)`; Web services and
+Agentic apps `(10, 10, 3, 30)`; LLM serving `(10, 6, 3, 22)`; GPU
+kernels `(20, 20, 6, 120)`), and the class lists of the three hac_lf
+schedules under "The T1.11 decision". A verdict is calibrated for a
+class only on its own schedule."""
+CALIBRATION_PENDING: Final[frozenset[TargetClass]] = frozenset({"gpu_kernel"})
+"""Classes with no real traces yet, so no verdict is calibrated for
+them ("The calibrated domain" in ``docs/method.md``)."""
+CALIBRATED_ALPHA: Final = 0.05
+"""The only ``alpha`` the acceptance rule was run at."""
 
 DEFAULT_GUARDRAILS: Final[Mapping[TargetClass | None, tuple[str, ...]]] = (
     MappingProxyType(
@@ -1035,6 +1072,13 @@ class BenchmarkSpec(_Model):
     """Per-tree preparation run before warmup; ``None`` when the trees
     need none. Left out of ``spec_hash`` while ``None``, so a spec
     written before this field existed keeps its hash."""
+    target_class: TargetClass | None = None
+    """The release class the benchmark belongs to, from the project
+    model; ``None`` when not declared. It decides which guardrails are
+    defaults and whether a verdict is calibrated: "The calibrated
+    domain" in ``docs/method.md``. Left out of ``spec_hash`` while
+    ``None``, so a spec written before this field existed keeps its
+    hash."""
 
     @computed_field
     @property
@@ -1049,6 +1093,8 @@ class BenchmarkSpec(_Model):
         payload = self.model_dump(mode="json", exclude_computed_fields=True)
         if self.setup is None:
             del payload["setup"]
+        if self.target_class is None:
+            del payload["target_class"]
         for guard in payload["guardrails"]:
             if guard["limit_quantile"] is None:
                 del guard["limit_quantile"]
@@ -2738,10 +2784,50 @@ class RunRecord(_Model):
             msg = f"environments name sessions with no machine: {unknown}"
             raise ValueError(msg)
 
+    def _check_calibrated_domain(self) -> None:
+        """Refuse a ``calibrated`` verdict outside the domain.
+
+        "The calibrated domain" in ``docs/method.md``: the spec's own
+        target class, not one pending traces, on that class's own
+        schedule, at the calibrated ``alpha``. `compare` decides this
+        too; the record refuses to claim it where it does not hold.
+        """
+        v, spec = self.verdict, self.spec
+        cls = spec.target_class
+        if cls is None or v.target_class != cls:
+            msg = (
+                "a calibrated verdict is for the spec's own target class "
+                f"{cls}, not {v.target_class}"
+            )
+            raise ValueError(msg)
+        key = (
+            spec.looks.n0,
+            spec.looks.k,
+            spec.looks.max_looks,
+            spec.budget.max_rounds,
+        )
+        if cls in CALIBRATION_PENDING:
+            msg = f"no verdict is calibrated for {cls}: no real traces yet"
+        elif key != CLASS_SCHEDULES[cls]:
+            msg = (
+                f"a calibrated verdict is on {cls}'s own schedule "
+                f"{CLASS_SCHEDULES[cls]}, not (n0, k, K, max_rounds) {key}"
+            )
+        elif spec.alpha != CALIBRATED_ALPHA:
+            msg = (
+                f"a calibrated verdict is at alpha {CALIBRATED_ALPHA}, "
+                f"not {spec.alpha}"
+            )
+        else:
+            return
+        raise ValueError(msg)
+
     def _check_against_spec(self) -> None:
         """Check the verdict fits the spec's budget, metric and bar."""
         v, spec = self.verdict, self.spec
         self._check_bar()
+        if v.calibration == "calibrated":
+            self._check_calibrated_domain()
         measured = self.measured_metric
         if measured is not None and not (
             spec.metric.kind == "counter"

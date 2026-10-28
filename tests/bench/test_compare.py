@@ -1,3 +1,4 @@
+import hashlib
 import json
 import math
 import os
@@ -8,11 +9,11 @@ import sys
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import pytest
@@ -34,13 +35,23 @@ from perfproof.bench.runner import Round, Runner, RunnerError
 from perfproof.bench.snapshot import add_baseline_worktree
 from perfproof.commands._runs import not_verified
 from perfproof.machine import fingerprint
+from perfproof.project.store import model_path
 from perfproof.report import read_record
 from perfproof.schema import (
+    KEEP_BLOCKING_WARNINGS,
     BenchmarkSpec,
+    Confirmation,
+    EntryStatus,
+    FileHash,
     GateResult,
     Interval,
+    Invalidation,
     MachineFingerprint,
+    ProjectModel,
+    Provenance,
     RunRecord,
+    TargetClass,
+    TargetEntry,
 )
 from perfproof.stats.intervals import hac_lf_interval, t_interval
 from perfproof.stats.sequential import BATCH_BLOCK, Look, look_confidence
@@ -208,12 +219,82 @@ def commit_all(repo: Path) -> str:
     return git(repo, "rev-parse", "HEAD")
 
 
+type Targets = (
+    Literal["spec", "none", "keep"]
+    | tuple[tuple[TargetClass, EntryStatus], ...]
+)
+"""The project model a run sees: ``"spec"`` confirms the spec's own
+``target_class`` (none if it declares none), ``"none"`` writes no model,
+``"keep"`` leaves the model the test wrote, a tuple lists the targets
+and their states."""
+
+
+def write_model(
+    root: Path,
+    targets: tuple[tuple[TargetClass, str], ...],
+    evidence: Mapping[str, str] | None = None,
+) -> None:
+    """Write a project model holding ``targets`` under ``root``.
+
+    ``evidence`` maps file paths to contents: each is written under
+    ``root`` and recorded in every target's provenance with its hash, as
+    the files the target was derived from.
+    """
+    when = datetime(2026, 10, 28, 12, 0, tzinfo=UTC)
+    files = tuple(
+        FileHash(
+            path=name,
+            sha256=hashlib.sha256(text.encode()).hexdigest(),
+        )
+        for name, text in (evidence or {}).items()
+    )
+    for name, text in (evidence or {}).items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+    provenance = Provenance(
+        files=files, commands=(), perfproof_version="0.1.0", derived_at=when
+    )
+    entries = tuple(
+        TargetEntry(
+            id=f"target-{cls}-{i}",
+            status=cast("EntryStatus", status),
+            provenance=provenance,
+            confirmation=(
+                Confirmation(session="test", confirmed_at=when)
+                if status in ("confirmed", "stale")
+                else None
+            ),
+            previous_status="confirmed" if status == "stale" else None,
+            invalidation=(
+                Invalidation(
+                    trigger="file_changed", detail="x", detected_at=when
+                )
+                if status == "stale"
+                else None
+            ),
+            retired_reason="gone" if status == "retired" else None,
+            target_class=cls,
+            evidence=("a test target",),
+        )
+        for i, (cls, status) in enumerate(targets)
+    )
+    model = ProjectModel(updated_at=when, targets=entries)
+    path = model_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(model.model_dump_json(), encoding="utf-8")
+
+
 @dataclass
 class Project:
     root: Path
     commit: str
     tmp: Path
     runs: int = 0
+
+    @property
+    def model_root(self) -> Path:
+        """Where the project model lives, apart from the trees."""
+        return self.tmp / "model-root"
 
     def candidate(self, name: str, files: Mapping[str, str]) -> Path:
         tree = self.tmp / f"candidate-{name}"
@@ -223,10 +304,22 @@ class Project:
         return tree
 
     def run(
-        self, candidate: Path, spec: BenchmarkSpec | None = None
+        self,
+        candidate: Path,
+        spec: BenchmarkSpec | None = None,
+        *,
+        targets: Targets = "spec",
+        project_root: Literal["model", "none"] = "model",
     ) -> CompareResult:
         spec = spec or BenchmarkSpec.model_validate(spec_fields())
         self.runs += 1
+        if targets == "spec":
+            if spec.target_class is not None:
+                write_model(
+                    self.model_root, ((spec.target_class, "confirmed"),)
+                )
+        elif targets not in ("none", "keep"):
+            write_model(self.model_root, targets)
         return compare(
             spec,
             build_manifest(spec, self.root),
@@ -236,6 +329,7 @@ class Project:
             run_dir=self.run_dir(),
             process_env=os.environ,
             order_seed=7,
+            project_root=self.model_root if project_root == "model" else None,
         )
 
     def run_dir(self) -> Path:
@@ -301,13 +395,17 @@ def test_passing_gates_end_inconclusive_with_the_interval(
     result = project.run(faster, twelve_rounds())
     record = result.record
     v = record.verdict
-    assert (v.outcome, v.reason, v.rule, v.gate) == (
+    assert (v.outcome, v.reason, v.gate) == (
         "INCONCLUSIVE",
         "insufficient_evidence",
-        5,
         None,
     )
-    assert v.diagnostics.procedure_uncalibrated
+    # CALIBRATED is True since 2026-10-28. This spec (12 rounds, one
+    # look, no class) is outside the calibrated domain and the coverage
+    # gate is not_available, so the KEEP is withheld: INCONCLUSIVE under
+    # rule 2 or rule 5, which the machine's load decides, so the rule is
+    # not pinned. `calibration` stays "uncalibrated".
+    assert not v.diagnostics.procedure_uncalibrated
     assert v.calibration == "uncalibrated"
     assert (v.rounds, v.looks) == (12, 1)
     assert v.procedure == "t_log_ratio_batch_means"
@@ -560,7 +658,13 @@ def test_looks_follow_the_schedule_and_budget(
     looks: int,
     rounds: int,
 ) -> None:
-    project = make_project(tmp_path, baseline=work(0.005))
+    # Deterministic values with a large fixed spread (`NOISY_BENCH`), so
+    # every look's interval straddles the bar on every run and the run
+    # goes to the budget; real timings of an identical candidate can
+    # chance-REJECT now that rule 3 decides.
+    project = make_project(
+        tmp_path, bench=NOISY_BENCH, baseline=noisy_work(37)
+    )
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             budget={"max_rounds": max_rounds, "max_seconds": 600.0},
@@ -568,7 +672,9 @@ def test_looks_follow_the_schedule_and_budget(
         )
     )
     decided = spy_on_looks(monkeypatch)
-    result = project.run(project.candidate("same", {}), spec)
+    result = project.run(
+        project.candidate("other-order", {"work.py": noisy_work(53)}), spec
+    )
     v = result.record.verdict
     assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
     assert (v.looks, v.rounds) == (looks, rounds)
@@ -611,7 +717,9 @@ def assert_decided_at(
 def test_time_budget_after_n0_re_decides_the_last_look_as_final(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    project = make_project(tmp_path, baseline=work(0.005))
+    project = make_project(
+        tmp_path, bench=NOISY_BENCH, baseline=noisy_work(37)
+    )
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             budget={"max_rounds": 20, "max_seconds": 600.0},
@@ -635,7 +743,9 @@ def test_time_budget_after_n0_re_decides_the_last_look_as_final(
 
     monkeypatch.setattr(Runner, "run_round", slow_after_n0)
     decided = spy_on_looks(monkeypatch)
-    result = project.run(project.candidate("same", {}), spec)
+    result = project.run(
+        project.candidate("other-order", {"work.py": noisy_work(53)}), spec
+    )
     v = result.record.verdict
     assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
     assert (v.looks, v.rounds) == (1, 13)
@@ -676,7 +786,9 @@ def test_reset_runs_before_every_execution_end_to_end(
     )
     result = project.run(candidate, spec)
     v = result.record.verdict
-    assert (v.outcome, v.rule, v.rounds) == ("INCONCLUSIVE", 5, 12)
+    # The KEEP is withheld (spec outside the domain): INCONCLUSIVE under
+    # rule 2 or 5, which load decides, so the rule is not pinned.
+    assert (v.outcome, v.rounds) == ("INCONCLUSIVE", 12)
     assert v.interval is not None
     assert set(gates(result.record).values()) <= {"passed", "not_available"}
     # Per tree: the output-producing execution, one warmup, 12 rounds.
@@ -929,19 +1041,20 @@ def compare_cli(root: Path, spec_hash: str, candidate: Path) -> dict[str, Any]:
     )
 
 
-def test_cli_rolling_fix_is_inconclusive_before_calibration(
+def test_cli_rolling_fix_is_inconclusive_with_its_blockers(
     tmp_path: Path, rolling: tuple[Path, str, str]
 ) -> None:
     root, thin, _ = rolling
     fix = example_candidate(tmp_path, ROLLING, "fix")
     result = compare_cli(root, thin, fix)["result"]
     v = result["verdict"]
-    assert (v["outcome"], v["reason"], v["rule"]) == (
+    # The KEEP is withheld (schedule outside the domain, coverage
+    # not_available): rule 2 or rule 5 by load; the rule is not pinned.
+    assert (v["outcome"], v["reason"]) == (
         "INCONCLUSIVE",
         "insufficient_evidence",
-        5,
     )
-    assert v["diagnostics"]["procedure_uncalibrated"] is True
+    assert v["diagnostics"]["procedure_uncalibrated"] is False
     # The fix is a real gain, but load on the machine running the suite
     # can widen the interval past the bar; the estimate shows the gain.
     assert v["estimate"] > 1.03
@@ -1231,8 +1344,9 @@ def test_a_withheld_look_names_its_reason_in_the_record_and_report(
     report = result.report_path.read_text()
     assert "autocorrelated_rounds: yes (decision withheld)" in report
     assert "The diagnostic gate withheld the decision" in report
-    assert "no number of rounds can change" in report
-    assert "More rounds, or less dependence" not in report
+    # The procedure is calibrated now, so more rounds can lift the gate.
+    assert "no number of rounds can change" not in report
+    assert "More rounds, or less dependence" in report
     assert read_record(result.record_path) == result.record
 
 
@@ -1297,7 +1411,9 @@ def test_a_schedule_outside_the_calibrated_ones_runs_to_a_verdict(
     )
     result = project.run(project.candidate("same", {}), spec)
     v = result.record.verdict
-    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
+    # An identical candidate on real timings can chance-REJECT; what is
+    # guaranteed is no KEEP. The test is about the warning below.
+    assert v.outcome != "KEEP"
     assert v.rounds >= 120
     warned = [
         w for w in result.record.warnings if w.code == "schedule_uncalibrated"
@@ -1311,7 +1427,8 @@ def test_a_schedule_outside_the_calibrated_ones_runs_to_a_verdict(
     ("looks", "max_rounds", "guardrail", "unit", "blocked"),
     [
         ({"n0": 10, "k": 10, "max_looks": 6}, 60, "none", "", False),
-        ({"n0": 20, "k": 20, "max_looks": 6}, 120, "none", "", False),
+        # gpu_kernels has no real traces: withheld since 2026-10-28.
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, "none", "", True),
         ({"n0": 20, "k": 20, "max_looks": 10}, 200, "none", "", True),
         (
             {"n0": 10, "k": 10, "max_looks": 6},
@@ -1369,30 +1486,63 @@ def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
             looks=looks,
             budget={"max_rounds": max_rounds, "max_seconds": 600.0},
             guardrails=guardrails,
+            # The class whose own schedule the in-domain cases use, so
+            # only the guardrail or the schedule can block here.
+            target_class="python_cpu",
         )
     )
     assert keep_blocked(spec) is blocked
 
 
+PYTHON_SCHEDULE = ({"n0": 10, "k": 10, "max_looks": 6}, 60)
+WEB_SCHEDULE = ({"n0": 10, "k": 10, "max_looks": 3}, 30)
+LLM_SCHEDULE_CASE = ({"n0": 10, "k": 6, "max_looks": 3}, 22)
+GPU_SCHEDULE = ({"n0": 20, "k": 20, "max_looks": 6}, 120)
+
+
 @pytest.mark.parametrize(
-    ("looks", "max_rounds", "alpha", "blocked"),
+    ("schedule", "alpha", "target_class", "blocked"),
     [
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, 0.05, False),
-        ({"n0": 10, "k": 10, "max_looks": 3}, 30, 0.05, False),
-        ({"n0": 10, "k": 6, "max_looks": 3}, 22, 0.05, False),
-        ({"n0": 20, "k": 20, "max_looks": 6}, 120, 0.05, False),
-        ({"n0": 10, "k": 10, "max_looks": 6}, 60, 0.1, True),
-        ({"n0": 10, "k": 10, "max_looks": 3}, 30, 0.2, True),
-        ({"n0": 10, "k": 6, "max_looks": 3}, 22, 0.01, True),
-        ({"n0": 20, "k": 20, "max_looks": 6}, 120, 0.1, True),
-        ({"n0": 10, "k": 10, "max_looks": 3}, 40, 0.05, True),
-        ({"n0": 12, "k": 2, "max_looks": 1}, 12, 0.05, True),
+        # Each class on its own schedule, at the default alpha.
+        (PYTHON_SCHEDULE, 0.05, "python_cpu", False),
+        (PYTHON_SCHEDULE, 0.05, "native", False),
+        (WEB_SCHEDULE, 0.05, "web_service", False),
+        (WEB_SCHEDULE, 0.05, "agentic", False),
+        (LLM_SCHEDULE_CASE, 0.05, "llm_serving", False),
+        # gpu_kernels has no real traces: withheld since 2026-10-28.
+        (GPU_SCHEDULE, 0.05, "gpu_kernel", True),
+        (GPU_SCHEDULE, 0.05, None, True),
+        # No class declared: no class's calibration can be claimed.
+        (PYTHON_SCHEDULE, 0.05, None, True),
+        (WEB_SCHEDULE, 0.05, None, True),
+        # A class on another class's schedule.
+        (PYTHON_SCHEDULE, 0.05, "web_service", True),
+        (WEB_SCHEDULE, 0.05, "python_cpu", True),
+        (LLM_SCHEDULE_CASE, 0.05, "agentic", True),
+        (WEB_SCHEDULE, 0.05, "gpu_kernel", True),
+        # alpha off the default.
+        (PYTHON_SCHEDULE, 0.1, "python_cpu", True),
+        (WEB_SCHEDULE, 0.2, "web_service", True),
+        (LLM_SCHEDULE_CASE, 0.01, "llm_serving", True),
+        (GPU_SCHEDULE, 0.1, "gpu_kernel", True),
+        # A custom schedule.
+        (({"n0": 10, "k": 10, "max_looks": 3}, 40), 0.05, "web_service", True),
+        (({"n0": 12, "k": 2, "max_looks": 1}, 12), 0.05, "python_cpu", True),
     ],
     ids=[
         "python",
+        "native",
         "web",
+        "agentic",
         "llm",
         "gpu",
+        "gpu-no-class",
+        "python-no-class",
+        "web-no-class",
+        "python-schedule-web-class",
+        "web-schedule-python-class",
+        "llm-schedule-agentic-class",
+        "web-schedule-gpu-class",
         "python-alpha-0.1",
         "web-alpha-0.2",
         "llm-alpha-0.01",
@@ -1402,14 +1552,19 @@ def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
     ],
 )
 def test_a_kept_decision_is_withheld_outside_the_calibrated_domain(
-    looks: dict[str, int], max_rounds: int, alpha: float, blocked: bool
+    schedule: tuple[dict[str, int], int],
+    alpha: float,
+    target_class: str | None,
+    blocked: bool,
 ) -> None:
+    looks, max_rounds = schedule
     spec = BenchmarkSpec.model_validate(
         spec_fields(
             looks=looks,
             budget={"max_rounds": max_rounds, "max_seconds": 600.0},
             alpha=alpha,
             guardrails=NOT_APPLICABLE,
+            target_class=target_class,
         )
     )
     assert keep_blocked(spec) is blocked
@@ -1418,7 +1573,7 @@ def test_a_kept_decision_is_withheld_outside_the_calibrated_domain(
 def test_a_custom_schedule_ends_inconclusive_with_the_reason_once_calibrated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = slow_baseline(tmp_path)
     result = project.run(faster_candidate(project), keepworthy_spec())
     blocked_everywhere(seen)
@@ -1433,7 +1588,7 @@ def test_a_custom_schedule_ends_inconclusive_with_the_reason_once_calibrated(
 def test_alpha_other_than_the_default_ends_inconclusive_once_calibrated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
     result = project.run(faster_candidate(project), web_spec(alpha=0.1))
     assert all(seen.blocked), seen.blocked
@@ -1444,6 +1599,288 @@ def test_alpha_other_than_the_default_ends_inconclusive_once_calibrated(
     ]
     assert len(warned) == 1
     assert "alpha 0.1" in warned[0].message
+
+
+def test_a_keep_on_a_class_schedule_is_a_rule_2_keep_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec())
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == ("KEEP", "performance", 2)
+    assert v.procedure == "hac_lf"
+    assert v.diagnostics.procedure_uncalibrated is False
+    assert v.regression is False
+    assert v.estimate is not None
+    assert v.estimate == pytest.approx(2.0, rel=1e-3)
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    # web_service on its own schedule (web_agentic), at alpha 0.05.
+    assert v.target_class == "web_service"
+    assert v.calibration == "calibrated"
+    joined = "; ".join(v.calibration_conditions)
+    assert "hac_lf" in joined
+    assert "alpha 0.05" in joined
+    assert "661371947387106328" in joined
+    assert "2 real traces (web)" in joined
+    assert (
+        not {w.code for w in result.record.warnings} & KEEP_BLOCKING_WARNINGS
+    )
+    assert "KEEP" in result.report_path.read_text()
+    # RunRecord's bar check (schema `_check_bar`) accepted the record.
+    assert read_record(result.record_path) == result.record
+
+
+def test_the_same_spec_on_the_python_schedule_is_not_class_own(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = keepworthy_spec(
+        budget={"max_rounds": 60, "max_seconds": 300.0},
+        looks={"n0": 10, "k": 10, "max_looks": 6},
+        target_class="web_service",
+    )
+    result = project.run(faster_candidate(project), spec)
+    v = result.record.verdict
+    # The interval clears the bar (rule 2) but the KEEP is withheld.
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        2,
+    )
+    assert v.target_class == "web_service"
+    assert v.calibration == "uncalibrated"
+    assert v.calibration_conditions == ()
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    warned = [
+        w for w in result.record.warnings if w.code == "schedule_not_class_own"
+    ]
+    assert len(warned) == 1
+    assert "web_service" in warned[0].message
+    assert read_record(result.record_path) == result.record
+
+
+@pytest.mark.parametrize(
+    "targets",
+    [
+        (("python_cpu", "confirmed"),),
+        "none",
+        (("web_service", "proposed"),),
+        (("web_service", "stale"),),
+        (("web_service", "retired"),),
+        (),
+    ],
+    ids=[
+        "class-absent-from-targets",
+        "no-project-model",
+        "proposed-only",
+        "stale-only",
+        "retired-only",
+        "model-without-targets",
+    ],
+)
+def test_a_class_the_project_does_not_confirm_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, targets: Targets
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(
+        faster_candidate(project), web_spec(), targets=targets
+    )
+    v = result.record.verdict
+    # The interval clears the bar (rule 2) but the KEEP is withheld.
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        2,
+    )
+    assert v.calibration == "uncalibrated"
+    assert v.calibration_conditions == ()
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    warned = [
+        w
+        for w in result.record.warnings
+        if w.code == "target_class_unverified"
+    ]
+    assert len(warned) == 1
+    assert "web_service" in warned[0].message
+    assert read_record(result.record_path) == result.record
+
+
+def withheld_for(result: CompareResult, why: str) -> None:
+    """KEEP withheld as ``target_class_unverified``, naming ``why``."""
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 2)
+    assert v.calibration == "uncalibrated"
+    warned = [
+        w
+        for w in result.record.warnings
+        if w.code == "target_class_unverified"
+    ]
+    assert len(warned) == 1
+    assert why in warned[0].message
+    assert read_record(result.record_path) == result.record
+
+
+def test_a_confirmed_target_whose_evidence_changed_is_stale_and_withholds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        evidence={"pyproject.toml": "[project]\nname = 'a'\n"},
+    )
+    # Unchanged evidence: calibrated, so the check is not a blanket no.
+    kept = project.run(faster_candidate(project), web_spec(), targets="keep")
+    assert kept.record.verdict.calibration == "calibrated"
+    # The file the target was derived from changes; nothing reruns
+    # `project check`, and the model on disk is left as it is.
+    (project.model_root / "pyproject.toml").write_text(
+        "[project]\nname = 'b'\n"
+    )
+    before = model_path(project.model_root).read_bytes()
+    again = project.candidate("fast-again", {"work.py": det_work(0.5)})
+    result = project.run(again, web_spec(), targets="keep")
+    withheld_for(result, "stale: file_changed")
+    assert model_path(project.model_root).read_bytes() == before
+
+
+def test_an_unreadable_project_model_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    path = model_path(project.model_root)
+    path.parent.mkdir(parents=True)
+    path.write_text("{not a project model", encoding="utf-8")
+    result = project.run(faster_candidate(project), web_spec(), targets="keep")
+    withheld_for(result, "unreadable")
+
+
+def test_no_project_root_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(
+        faster_candidate(project), web_spec(), project_root="none"
+    )
+    withheld_for(result, "no project root was given")
+
+
+def test_a_reject_on_evidence_does_not_need_a_confirmed_class(
+    tmp_path: Path,
+) -> None:
+    project = web_project(tmp_path)
+    slower = project.candidate("slow", {"work.py": det_work(2.0)})
+    result = project.run(slower, web_spec(), targets="none")
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == ("REJECT", "performance", 3)
+    assert v.regression is True
+    assert v.calibration == "uncalibrated"
+    assert read_record(result.record_path) == result.record
+
+
+def test_a_confirmed_target_among_others_makes_the_verdict_calibrated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(
+        faster_candidate(project),
+        web_spec(),
+        targets=(("python_cpu", "proposed"), ("web_service", "confirmed")),
+    )
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("KEEP", 2)
+    assert (v.calibration, v.target_class) == ("calibrated", "web_service")
+
+
+def test_no_target_class_withholds_keep_and_is_uncalibrated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(
+        faster_candidate(project), web_spec(target_class=None)
+    )
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 2)
+    assert v.target_class is None
+    assert v.calibration == "uncalibrated"
+    warned = [
+        w for w in result.record.warnings if w.code == "target_class_unknown"
+    ]
+    assert len(warned) == 1
+    assert read_record(result.record_path) == result.record
+
+
+def test_a_straddling_interval_on_a_class_schedule_is_calibrated_rule_5(
+    tmp_path: Path,
+) -> None:
+    project = web_project(tmp_path)
+    # The benchmark's values are deterministic, so a candidate 1.03
+    # times faster sits on the bar: its interval straddles it.
+    on_the_bar = project.candidate("bar", {"work.py": det_work(1 / 1.03)})
+    result = project.run(on_the_bar, web_spec())
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        5,
+    )
+    assert v.calibration == "calibrated"
+    assert v.target_class == "web_service"
+
+
+def test_a_slower_candidate_on_a_class_schedule_is_a_performance_reject(
+    tmp_path: Path,
+) -> None:
+    project = web_project(tmp_path)
+    slower = project.candidate("slow", {"work.py": det_work(2.0)})
+    result = project.run(slower, web_spec())
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == ("REJECT", "performance", 3)
+    assert v.regression is True
+    assert v.interval is not None
+    assert v.interval.upper < 1
+    assert v.estimate == pytest.approx(0.5, rel=1e-3)
+    assert v.calibration == "calibrated"
+    assert v.target_class == "web_service"
+    assert read_record(result.record_path) == result.record
+
+
+def test_the_gpu_kernels_schedule_withholds_keep_and_says_why(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 127 values, so that 120 rounds pass the continuity check.
+    bench = DET_BENCH.replace("(n * 37) % 11 - 5", "(n * 37) % 127 - 63")
+    seen = watch_looks(monkeypatch)
+    project = make_project(tmp_path, bench=bench, baseline=det_work(1.0))
+    spec = keepworthy_spec(
+        budget={"max_rounds": 120, "max_seconds": 600.0},
+        looks={"n0": 20, "k": 20, "max_looks": 6},
+        target_class="gpu_kernel",
+    )
+    assert spec.alpha == 0.05
+    result = project.run(faster_candidate(project), spec)
+    assert seen.blocked
+    assert all(seen.blocked), seen.blocked
+    assert_withheld(result, blocker="schedule_uncalibrated")
+    v = result.record.verdict
+    assert v.procedure == "t_log_ratio_batch_means"
+    warned = [
+        w for w in result.record.warnings if w.code == "schedule_uncalibrated"
+    ]
+    assert len(warned) == 1
+    assert "gpu_kernels" in warned[0].message
+    assert "no real GPU traces" in warned[0].message
 
 
 def test_the_default_schedules_have_no_late_look_warning(
@@ -1624,11 +2061,14 @@ def unverified(result: CompareResult) -> dict[str, str]:
 
 
 def assert_measured_but_not_kept(result: CompareResult) -> None:
+    """The run measured and recorded, and its verdict is not a KEEP.
+
+    The candidates here are identical to the baseline and timed for
+    real, so a chance REJECT (performance, at about the calibrated
+    rate) is possible; a KEEP is withheld by what the test is about.
+    """
     verdict = result.record.verdict
-    assert (verdict.outcome, verdict.reason) == (
-        "INCONCLUSIVE",
-        "insufficient_evidence",
-    )
+    assert verdict.outcome != "KEEP"
     assert verdict.rounds >= 2
     assert result.record.samples_path is not None
     assert "coverage" in unverified(result)
@@ -1714,7 +2154,9 @@ def test_undeclared_default_guardrails_are_recorded_not_a_stop(
         "peak_gpu_memory": "not_declared",
         "p99_latency": "not_declared",
     }
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
     assert "not declared" in result.report_path.read_text()
 
 
@@ -1732,7 +2174,9 @@ def test_an_unreadable_host_identity_is_not_available_not_failed(
     result = project.run(project.candidate("same", {}), twelve_rounds())
     assert gates(result.record)["same_host"] == "not_available"
     assert "no machine id here" in unverified(result)["same_host"]
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
 
 
 def test_a_different_host_identity_still_fails(
@@ -1962,7 +2406,9 @@ def test_a_missing_perf_falls_back_to_wall_time_and_says_so(
     result = project.run(project.candidate("same", {}), spec)
     codes = {w.code for w in result.record.warnings}
     assert "counter_unavailable" in codes
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
     assert result.record.verdict.rounds >= 2
 
 
@@ -1976,7 +2422,9 @@ def test_a_reported_value_that_cannot_be_read_back_is_measured_anyway(
     result = project.run(project.candidate("same", {}), twelve_rounds())
     codes = {w.code for w in result.record.warnings}
     assert "resolution_unknown" in codes
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
     assert result.record.verdict.rounds >= 2
 
 
@@ -2002,7 +2450,8 @@ def test_the_deadline_ends_the_rounds_inconclusive(
         deadline=time.time() + 16.0,
     )
     verdict = result.record.verdict
-    assert verdict.outcome == "INCONCLUSIVE"
+    # Identical candidate, real timings: never a KEEP is the guarantee.
+    assert verdict.outcome != "KEEP"
     assert 1 <= verdict.rounds < 200
     assert "time_limit_reached" in {w.code for w in result.record.warnings}
 
@@ -2040,6 +2489,23 @@ print("PERFPROOF {\\"value\\": %.6f}" % value)
 """
 
 
+NOISY_BENCH = DET_BENCH.replace(
+    "from work import SCALE, run", "from work import SCALE, STEP, run"
+).replace(
+    "value = SCALE * (1 + 0.004 * ((n * 37) % 11 - 5))",
+    "value = SCALE * (1 + 0.04 * ((n * STEP) % 11 - 5))",
+)
+"""A deterministic benchmark whose value is a permutation of 11 levels
+(+-20%) chosen by the work module's ``STEP``. Two arms with different
+steps give log ratios of large, fixed spread, so an interval straddles
+the bar the same way on every machine and every run."""
+
+
+def noisy_work(step: int) -> str:
+    """A work module for `NOISY_BENCH` with permutation ``step``."""
+    return f"SCALE = 1.0\nSTEP = {step}\n\n\ndef run():\n    return 42\n"
+
+
 def det_work(scale: float) -> str:
     """A work module whose benchmark value is exactly ``scale`` times a
     fixed zigzag, so the ratio of two arms never varies."""
@@ -2066,11 +2532,15 @@ class Seen:
         self.held: list[bool] = []
 
 
-def calibrated(
+def watch_looks(
     monkeypatch: pytest.MonkeyPatch, *, coverage_passed: bool = True
 ) -> Seen:
-    """Force CALIBRATED and coverage passed, and spy on looks."""
-    monkeypatch.setattr(compare_module, "CALIBRATED", True)
+    """Force the coverage gate passed, and spy on every look.
+
+    Returns what `decide_look` was asked and answered at each look. It
+    forces nothing else: `CALIBRATED` is True in the code (it was set by
+    this helper until the flip of 2026-10-28).
+    """
     real_gate = compare_module.GateResult
     if coverage_passed:
 
@@ -2141,13 +2611,18 @@ def assert_withheld(result: CompareResult, *, blocker: str) -> None:
 def test_control_nothing_unverified_is_not_blocked(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
-    spec = web_spec()
-    with pytest.raises(CompareStoppedError) as stopped:
-        project.run(faster_candidate(project), spec)
-    # A KEEP is not built in the thin path: the look would have kept.
-    assert stopped.value.code == "internal_fault"
+    result = project.run(faster_candidate(project), web_spec())
+    # The look kept: with nothing unverified, rule 2 is a KEEP.
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "KEEP",
+        "performance",
+        2,
+    )
+    assert verdict.interval is not None
+    assert verdict.interval.lower > 1.03
     assert seen.blocked == [False, False]
     assert seen.rules == [4, 2]
     assert seen.held == [False, False]
@@ -2184,9 +2659,13 @@ def memory_guardrail(allowance: float) -> list[dict[str, Any]]:
 def web_spec(**changes: Any) -> BenchmarkSpec:
     """The web schedule, decided with ``hac_lf``: looks at 10, 20, 30.
 
+    It declares ``web_service``, whose own schedule this is, unless
+    ``target_class`` is given: a KEEP needs a class.
+
     The first look has too few observations for an interval, so the
     first that can decide is at 20 rounds.
     """
+    changes.setdefault("target_class", "web_service")
     return keepworthy_spec(
         budget={"max_rounds": 30, "max_seconds": 300.0},
         looks={"n0": 10, "k": 10, "max_looks": 3},
@@ -2208,7 +2687,7 @@ def memory_project(tmp_path: Path, mib: int) -> Project:
 def test_a_memory_breach_at_a_rule_2_look_is_a_guardrail_reject(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = memory_project(tmp_path, 20)
     fast_fat = project.candidate("fat", {"work.py": memory_work(0.5, 64)})
     result = project.run(fast_fat, web_spec(guardrails=memory_guardrail(0.1)))
@@ -2220,6 +2699,7 @@ def test_a_memory_breach_at_a_rule_2_look_is_a_guardrail_reject(
         2,
     )
     assert verdict.procedure == "hac_lf"
+    assert verdict.calibration == "calibrated"
     assert verdict.estimate is not None
     assert verdict.estimate > 1.03
     assert seen.rules == [4, 2]
@@ -2236,7 +2716,7 @@ def test_a_memory_breach_at_a_rule_2_look_is_a_guardrail_reject(
 def test_a_declared_limit_quantile_reaches_the_limit_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    calibrated(monkeypatch)
+    watch_looks(monkeypatch)
     quantiles: list[float] = []
     real = compare_module.evaluate_guardrail
 
@@ -2260,16 +2740,22 @@ def test_a_declared_limit_quantile_reaches_the_limit_check(
 def test_a_measured_memory_within_its_allowance_does_not_block_keep(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = memory_project(tmp_path, 20)
     same_memory = project.candidate("lean", {"work.py": memory_work(0.5, 20)})
     spec = web_spec(guardrails=memory_guardrail(0.5))
-    with pytest.raises(CompareStoppedError) as stopped:
-        project.run(same_memory, spec)
-    # A KEEP is not built in the thin path: the look would have kept,
-    # with the guardrail passed, so nothing withheld it. At the first
-    # look the guardrail had no interval yet, so it was not established.
-    assert stopped.value.code == "internal_fault"
+    result = project.run(same_memory, spec)
+    # The look kept, with the guardrail passed, so nothing withheld it.
+    # At the first look the guardrail had no interval yet, so it was not
+    # established.
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "KEEP",
+        "performance",
+        2,
+    )
+    assert verdict.interval is not None
+    assert verdict.interval.lower > 1.03
     assert seen.rules == [4, 2]
     assert seen.blocked == [True, False]
 
@@ -2298,21 +2784,26 @@ def scripted_guardrail(
 def test_a_guardrail_not_established_yet_lets_the_look_continue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     asked = scripted_guardrail(
         monkeypatch,
         {10: "not_established", 20: "not_established", 30: "passed"},
     )
     project = memory_project(tmp_path, 20)
     spec = web_spec(guardrails=memory_guardrail(0.5))
-    with pytest.raises(CompareStoppedError) as stopped:
-        project.run(
-            project.candidate("lean", {"work.py": memory_work(0.5, 20)}),
-            spec,
-        )
-    assert stopped.value.code == "internal_fault"
-    # Look 2 held the KEEP for the guardrail and went on; look 3 would
-    # have kept.
+    result = project.run(
+        project.candidate("lean", {"work.py": memory_work(0.5, 20)}),
+        spec,
+    )
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "KEEP",
+        "performance",
+        2,
+    )
+    assert verdict.interval is not None
+    assert verdict.interval.lower > 1.03
+    # Look 2 held the KEEP for the guardrail and went on; look 3 kept.
     assert asked == [10, 20, 30]
     assert seen.rules == [4, 2, 2]
     assert seen.blocked == [True, True, False]
@@ -2322,7 +2813,7 @@ def test_a_guardrail_not_established_yet_lets_the_look_continue(
 def test_an_unmeasurable_guardrail_ends_the_run_at_that_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = memory_project(tmp_path, 20)
     spec = web_spec(
         guardrails=[
@@ -2351,7 +2842,7 @@ def test_an_unmeasurable_guardrail_ends_the_run_at_that_look(
 def test_an_unknown_peak_memory_is_unmeasurable_not_measured_on_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     real = compare_module.Runner.run_round
 
     def blind(self: Runner, index: int) -> Round:
@@ -2380,7 +2871,7 @@ def test_an_unknown_peak_memory_is_unmeasurable_not_measured_on_the_rest(
 def test_an_unidentified_runtime_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = web_project(
         tmp_path, executables={"run.sh": "#!/bin/sh\nexec python bench.py\n"}
     )
@@ -2393,7 +2884,7 @@ def test_an_unidentified_runtime_blocks_keep_at_every_look(
 def test_an_unreadable_host_identity_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     real = fingerprint()
     blind = real.model_copy(
         update={"host_id": None, "missing": {**real.missing, "host_id": "x"}}
@@ -2408,7 +2899,7 @@ def test_an_unreadable_host_identity_blocks_keep_at_every_look(
 def test_a_host_identity_lost_after_the_last_look_withholds_keep(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     real = fingerprint()
     blind = real.model_copy(
         update={"host_id": None, "missing": {**real.missing, "host_id": "x"}}
@@ -2428,7 +2919,7 @@ def test_a_host_identity_lost_after_the_last_look_withholds_keep(
 def test_no_correctness_check_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = web_project(tmp_path)
     result = project.run(faster_candidate(project), web_spec(correctness={}))
     blocked_everywhere(seen)
@@ -2438,7 +2929,7 @@ def test_no_correctness_check_blocks_keep_at_every_look(
 def test_coverage_not_available_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch, coverage_passed=False)
+    seen = watch_looks(monkeypatch, coverage_passed=False)
     project = web_project(tmp_path)
     result = project.run(faster_candidate(project), web_spec())
     blocked_everywhere(seen)
@@ -2448,7 +2939,7 @@ def test_coverage_not_available_blocks_keep_at_every_look(
 def test_an_undeclared_guardrail_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = web_project(tmp_path)
     spec = web_spec(objective=None, guardrails=[])
     result = project.run(faster_candidate(project), spec)
@@ -2459,7 +2950,7 @@ def test_an_undeclared_guardrail_blocks_keep_at_every_look(
 def test_a_counter_fallback_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
 
     def no_perf(event: str, *, env: Mapping[str, str] | None = None) -> str:
         return "perf is not on PATH"
@@ -2498,7 +2989,7 @@ def test_a_counter_fallback_blocks_keep_at_every_look(
 def test_an_unknown_resolution_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
 
     def unreadable(ex: object) -> None:
         return None
@@ -2514,7 +3005,7 @@ def test_a_held_look_ends_the_run_at_that_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # More budget remains, and nothing in the run can lift the block.
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = slow_baseline(tmp_path)
     spec = keepworthy_spec(
         correctness={},
@@ -2626,7 +3117,9 @@ def test_a_benchmark_launcher_that_may_download_is_measured_not_stopped(
     result = project.run(project.candidate("same", {}), spec)
     assert gates(result.record)["runtime"] == "not_available"
     assert "may download code at run time" in unverified(result)["runtime"]
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
     assert result.record.verdict.rounds >= 2
 
 
@@ -2651,7 +3144,11 @@ def test_a_test_launcher_that_may_download_is_recorded_not_stopped(
     )
     result = project.run(project.candidate("same", {}), spec)
     assert "test command's launcher" in unverified(result)["runtime"]
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # Recorded, not stopped: no gate failed, and a KEEP is withheld. An
+    # identical candidate on real timings can chance-REJECT.
+    verdict = result.record.verdict
+    assert verdict.gate is None
+    assert verdict.outcome != "KEEP"
 
 
 # The metric kind is journaled, so a resume never mixes units
@@ -3054,7 +3551,7 @@ def p99_column(result: CompareResult, name: str, *, candidate: bool) -> Any:
 def test_a_p99_breach_is_a_guardrail_reject_on_reported_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = p99_project(tmp_path)
     worse = project.candidate("worse", {"work.py": p99_work(0.5, 2.0)})
     result = project.run(worse, web_spec(guardrails=P99_GUARDRAILS))
@@ -3085,14 +3582,20 @@ def test_a_p99_breach_is_a_guardrail_reject_on_reported_values(
 def test_a_reported_p99_within_its_allowance_lets_keep_through(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = p99_project(tmp_path)
     same = project.candidate("same", {"work.py": p99_work(0.5, 1.0)})
-    with pytest.raises(CompareStoppedError) as stopped:
-        project.run(same, web_spec(guardrails=P99_GUARDRAILS))
-    # A KEEP is not built in the thin path: the look would have kept,
-    # which a p99 guardrail that could not be measured never allowed.
-    assert stopped.value.code == "internal_fault"
+    result = project.run(same, web_spec(guardrails=P99_GUARDRAILS))
+    # The look kept: a p99 guardrail that could not be measured never
+    # allowed it, and this one is within its allowance.
+    verdict = result.record.verdict
+    assert (verdict.outcome, verdict.reason, verdict.rule) == (
+        "KEEP",
+        "performance",
+        2,
+    )
+    assert verdict.interval is not None
+    assert verdict.interval.lower > 1.03
     assert seen.rules == [4, 2]
     assert seen.blocked == [True, False]
 
@@ -3100,7 +3603,7 @@ def test_a_reported_p99_within_its_allowance_lets_keep_through(
 def test_a_p99_missing_from_some_rounds_is_unmeasurable_not_defaulted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
     project = p99_project(tmp_path, omit=7)
     candidate = project.candidate("fast", {"work.py": p99_work(0.5, 1.0, 7)})
     result = project.run(candidate, web_spec(guardrails=P99_GUARDRAILS))
@@ -3142,7 +3645,7 @@ def test_a_guardrail_value_that_cannot_be_read_back_withholds_keep(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Only the guardrail is reported, so only its step is unknown."""
-    seen = calibrated(monkeypatch)
+    seen = watch_looks(monkeypatch)
 
     def unreadable(path: object) -> None:
         return None
@@ -3218,7 +3721,7 @@ def test_a_discrete_reported_p99_is_never_judged(
     cand_ms: float,
     status: str,
 ) -> None:
-    calibrated(monkeypatch)
+    watch_looks(monkeypatch)
     project = make_project(
         tmp_path, bench=QUANT_BENCH, baseline=quant_work(1.0, base_ms, mode)
     )
@@ -3254,7 +3757,7 @@ def test_one_coarse_arm_is_enough_to_stop_judging_a_reported_p99(
     named: str,
 ) -> None:
     """Truly +7.4%, one arm whole ms and the other continuous."""
-    calibrated(monkeypatch)
+    watch_looks(monkeypatch)
     project = make_project(
         tmp_path,
         bench=QUANT_BENCH,
@@ -3357,8 +3860,8 @@ def test_python_lines_no_test_runs_make_coverage_not_available(
     ]
     assert "work.py lines 10 never ran" in found.detail
     verdict = result.record.verdict
-    assert verdict.outcome == "INCONCLUSIVE"
-    assert verdict.reason == "insufficient_evidence"
+    # Real timings: a KEEP is withheld, whatever else the look decides.
+    assert verdict.outcome != "KEEP"
     items = [cast(dict[str, str], i) for i in not_verified(result.record)]
     (reason,) = (i["reason"] for i in items if i["name"] == "coverage")
     assert "work.py lines 10 never ran" in reason
@@ -3408,7 +3911,9 @@ def test_a_malformed_coverage_report_is_inconclusive_not_a_crash(
     found = coverage_gate_of(result)
     assert found.status == "not_available"
     assert "the coverage report is unreadable" in found.detail
-    assert result.record.verdict.outcome == "INCONCLUSIVE"
+    # An identical candidate on real timings: only "never a KEEP" is
+    # guaranteed (a chance REJECT happens at the calibrated rate).
+    assert result.record.verdict.outcome != "KEEP"
 
 
 # The split: the spec's look schedule picks the interval procedure
@@ -3440,7 +3945,10 @@ def test_a_default_schedule_is_decided_by_hac_lf(
     result = project.run(faster, spec)
     v = result.record.verdict
     assert v.procedure == "hac_lf"
-    assert (v.rounds, v.looks) == (22, 3)
+    # The candidate is 6 times faster (0.005 s against 0.03 s), so the
+    # first look with an interval (16 rounds, the second look) clears
+    # the bar; no class is declared, so that KEEP is held and ends it.
+    assert (v.rounds, v.looks) == (16, 2)
     assert v.interval is not None
     assert v.estimate is not None
     assert v.interval.confidence == look_confidence(0.05, 3)
@@ -3532,8 +4040,10 @@ def test_hac_lf_does_not_withhold_the_autocorrelated_wave(
     _, result = wave_run(tmp_path, LLM_SCHEDULE)
     v = result.record.verdict
     assert v.procedure == "hac_lf"
-    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 5)
-    assert v.diagnostics.procedure_uncalibrated
+    # The interval clears the bar, so rule 2 fires; the coverage gate is
+    # not_available, so the KEEP is held (INCONCLUSIVE under rule 2).
+    assert (v.outcome, v.rule) == ("INCONCLUSIVE", 2)
+    assert not v.diagnostics.procedure_uncalibrated
     assert v.diagnostics.autocorrelated_rounds is None
     assert v.diagnostics.outlier_rounds is None
     assert v.interval is not None

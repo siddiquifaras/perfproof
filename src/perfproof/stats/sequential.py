@@ -111,15 +111,23 @@ so the exact interval of identical ratios stays exact.
 """
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
+from types import MappingProxyType
 from typing import Final, Literal
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from perfproof.schema import Direction, LookSchedule, Procedure
+from perfproof.schema import (
+    CALIBRATION_PENDING,
+    CLASS_SCHEDULES,
+    Direction,
+    LookSchedule,
+    Procedure,
+    TargetClass,
+)
 from perfproof.stats.decision import IntervalRules, interval_rules
 from perfproof.stats.intervals import (
     HAC_MIN_N,
@@ -136,6 +144,8 @@ from perfproof.stats.simulate import HostMode
 
 __all__ = [
     "BATCH_BLOCK",
+    "CALIBRATION_SEED",
+    "CLASS_SCHEDULES",
     "DEFAULT_ALPHA",
     "LAG1_LIMIT",
     "LAG1_MIN_BLOCKS",
@@ -143,6 +153,7 @@ __all__ = [
     "OUTLIER_MIN_BLOCKS",
     "OUTLIER_SHARE",
     "OUTLIER_Z",
+    "TRACE_BASIS",
     "Look",
     "LookPlan",
     "ObservationBounds",
@@ -151,6 +162,8 @@ __all__ = [
     "continuity_fails",
     "decide_look",
     "in_calibrated_domain",
+    "is_class_schedule",
+    "is_gpu_kernels_schedule",
     "lag1_autocorrelation",
     "look_confidence",
     "outlier_share",
@@ -202,14 +215,31 @@ _MIN_N0: Final = 10
 _MODES: Final = ("one_host", "cross_host")
 _DIRECTIONS: Final = ("lower_is_better", "higher_is_better")
 _PROCEDURES: Final = ("t_log_ratio", "t_log_ratio_batch_means", "hac_lf")
+# The class map and the classes still pending traces are in
+# `perfproof.schema` (`CLASS_SCHEDULES`, `CALIBRATION_PENDING`), which
+# `RunRecord` also reads, so there is one source for both.
 _HAC_SCHEDULES: Final = frozenset(
+    schedule
+    for target_class, schedule in CLASS_SCHEDULES.items()
+    if target_class not in CALIBRATION_PENDING
+)
+_GPU_KERNELS_SCHEDULE: Final = CLASS_SCHEDULES["gpu_kernel"]
+_CALIBRATED_SCHEDULES: Final = _HAC_SCHEDULES
+CALIBRATION_SEED: Final = 661371947387106328
+"""Seed of the real-trace run of record that accepted the class
+schedules ("Real noise" in ``docs/method.md``)."""
+TRACE_BASIS: Final[Mapping[TargetClass, str]] = MappingProxyType(
     {
-        (10, 10, 6, 60),
-        (10, 10, 3, 30),
-        (10, 6, 3, 22),
+        "python_cpu": "10 real traces (rolling, membership)",
+        "native": "2 real traces (picolm)",
+        "web_service": "2 real traces (web)",
+        "agentic": "4 real traces (agent)",
+        "llm_serving": "2 real traces, CPU Ollama only",
     }
 )
-_CALIBRATED_SCHEDULES: Final = _HAC_SCHEDULES | {(20, 20, 6, 120)}
+"""The real traces each calibrated class rests on ("Real noise" in
+``docs/method.md``), named in a calibrated verdict's conditions.
+``gpu_kernel`` has none."""
 _MAD_TO_SD: Final = 1.482602218505602
 _WITHHELD: Final = np.array(["", "autocorrelated_rounds", "outlier_rounds"])
 _EXACT_FLOATS: Final = frozenset(
@@ -469,10 +499,12 @@ def in_calibrated_domain(
     """Whether a spec is inside the calibrated domain.
 
     "The calibrated domain" in ``docs/method.md``: ``alpha`` equal to
-    `DEFAULT_ALPHA` and one of the four class schedules, ``(n0, k, K,
-    max_rounds)`` of ``(10, 10, 6, 60)``, ``(10, 10, 3, 30)``, ``(10,
-    6, 3, 22)`` and ``(20, 20, 6, 120)``. There is no acceptance
-    evidence outside it, so a KEEP there is withheld.
+    `DEFAULT_ALPHA` and one of the three class schedules with real
+    traces, ``(n0, k, K, max_rounds)`` of ``(10, 10, 6, 60)``
+    (python_native), ``(10, 10, 3, 30)`` (web_agentic) and ``(10, 6, 3,
+    22)`` (llm_serving). The gpu_kernels schedule ``(20, 20, 6, 120)``
+    is out until real GPU traces exist. There is no acceptance
+    evidence outside the domain, so a KEEP there is withheld.
 
     Parameters
     ----------
@@ -486,10 +518,56 @@ def in_calibrated_domain(
     Returns
     -------
     bool
-        True only for the four schedules at the default ``alpha``.
+        True only for the three schedules at the default ``alpha``.
     """
     key = (looks.n0, looks.k, looks.max_looks, max_rounds)
     return key in _CALIBRATED_SCHEDULES and alpha == DEFAULT_ALPHA
+
+
+def is_class_schedule(
+    target_class: TargetClass, looks: LookSchedule, max_rounds: int
+) -> bool:
+    """Whether a schedule is ``target_class``'s own default schedule.
+
+    Parameters
+    ----------
+    target_class : perfproof.schema.TargetClass
+        The class the benchmark is declared to belong to.
+    looks : perfproof.schema.LookSchedule
+        The spec's look schedule.
+    max_rounds : int
+        The spec's round budget.
+
+    Returns
+    -------
+    bool
+        True when ``(n0, k, K, max_rounds)`` equals
+        `CLASS_SCHEDULES` for the class.
+    """
+    key = (looks.n0, looks.k, looks.max_looks, max_rounds)
+    return key == CLASS_SCHEDULES[target_class]
+
+
+def is_gpu_kernels_schedule(looks: LookSchedule, max_rounds: int) -> bool:
+    """Whether a schedule is the gpu_kernels one, withheld for now.
+
+    Parameters
+    ----------
+    looks : perfproof.schema.LookSchedule
+        The spec's look schedule.
+    max_rounds : int
+        The spec's round budget.
+
+    Returns
+    -------
+    bool
+        True for ``(n0, k, K, max_rounds)`` of ``(20, 20, 6, 120)``,
+        the schedule with no real traces ("The calibrated domain" in
+        ``docs/method.md``), so a report can name that reason rather
+        than the general one.
+    """
+    key = (looks.n0, looks.k, looks.max_looks, max_rounds)
+    return key == _GPU_KERNELS_SCHEDULE
 
 
 def look_confidence(alpha: float, max_looks: int) -> float:

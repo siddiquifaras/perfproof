@@ -20,9 +20,11 @@ from this repository into both trees before anything runs, and the
 spec's ``setup`` commands run once in each tree (see "Integrity" in
 ``docs/method.md``).
 
-Until the interval procedure is calibrated, a comparison that passes
-its gates is INCONCLUSIVE with ``procedure_uncalibrated``; only a gate
-gives REJECT.
+The interval procedure is calibrated (``CALIBRATED`` is True), so a
+comparison that passes its gates can end KEEP, or REJECT for
+performance or a guardrail, as well as INCONCLUSIVE; a gate REJECT
+decides first. A KEEP is withheld outside "The calibrated domain" in
+``docs/method.md``.
 
 Long runs
 ---------
@@ -243,6 +245,7 @@ def run(args: argparse.Namespace) -> Output:
             process_env=os.environ,
             order_seed=secrets.randbits(63),
             harness_root=root,
+            project_root=root,
         )
     except CompareStoppedError as exc:
         raise CommandError(

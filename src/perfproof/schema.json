@@ -259,6 +259,27 @@
           "default": null,
           "description": "Per-tree preparation run before warmup; ``None`` when the trees\nneed none. Left out of ``spec_hash`` while ``None``, so a spec\nwritten before this field existed keeps its hash."
         },
+        "target_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "python_cpu",
+                "native",
+                "web_service",
+                "llm_serving",
+                "gpu_kernel",
+                "agentic"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The release class the benchmark belongs to, from the project\nmodel; ``None`` when not declared. It decides which guardrails are\ndefaults and whether a verdict is calibrated: \"The calibrated\ndomain\" in ``docs/method.md``. Left out of ``spec_hash`` while\n``None``, so a spec written before this field existed keeps its\nhash.",
+          "title": "Target Class"
+        },
         "spec_hash": {
           "description": "SHA-256 of the spec's canonical JSON, 64 hex digits.\n\nCovers every field above, nested ones included, independent of\nkey order. An unset ``setup`` and an unset coverage command\nare left out of the hashed JSON, so specs written before them\nkeep their hash.",
           "readOnly": true,

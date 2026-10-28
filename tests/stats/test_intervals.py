@@ -324,8 +324,9 @@ def record(
         procedure=res.procedure,
         regression=d.regression,
         target_class="python_cpu",
-        calibration="calibrated",
-        calibration_conditions=("the full-path cases of this test",),
+        # These cases exercise the decision rule on up to 200 rounds,
+        # not a class's calibrated domain: no calibration is claimed.
+        calibration="uncalibrated",
         diagnostics=Diagnostics(
             procedure_uncalibrated=d.procedure_uncalibrated
         ),

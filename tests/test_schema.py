@@ -386,6 +386,16 @@ def record(**update: Any) -> RunRecord:
         "profile_paths": ("profiles/baseline.speedscope.json",),
     }
     fields.update(update)
+    if "spec" not in update and fields["verdict"].calibration == "calibrated":
+        # A calibrated verdict is for the spec's own class, on that
+        # class's own schedule (python_cpu: 10, 10, 6, 60).
+        fields["spec"] = spec().model_copy(
+            update={
+                "target_class": fields["verdict"].target_class,
+                "looks": LookSchedule(n0=10, k=10, max_looks=6),
+                "budget": Budget(max_rounds=60, max_seconds=600.0),
+            }
+        )
     if "guardrails" not in update and fields["verdict"].gate is None:
         # spec() declares peak memory, not applicable, so every other
         # verdict carries its result; a gate verdict carries none.
@@ -3540,6 +3550,7 @@ CHANGED: dict[str, Any] = {
         "commands": [["uv", "sync", "--frozen"]],
         "timeout_seconds": 600.0,
     },
+    "target_class": "web_service",
 }
 
 
@@ -3570,6 +3581,18 @@ def test_unset_setup_keeps_the_hash_of_a_spec_written_without_it() -> None:
     data = as_json(spec())
     del data["setup"]
     assert BenchmarkSpec.model_validate(data).spec_hash == PINNED_SPEC_HASH
+
+
+def test_unset_target_class_keeps_the_hash_of_a_spec_written_without_it() -> (
+    None
+):
+    # Documents that predate `target_class` keep validating, with the
+    # hash they were stored under; a declared class is a new spec.
+    data = as_json(spec())
+    del data["target_class"]
+    assert BenchmarkSpec.model_validate(data).spec_hash == PINNED_SPEC_HASH
+    declared = BenchmarkSpec.model_validate({**data, "target_class": "native"})
+    assert declared.spec_hash != PINNED_SPEC_HASH
 
 
 BAD_SETUPS: list[dict[str, Any]] = [
@@ -4536,13 +4559,83 @@ def withheld_keep() -> Verdict:
 
 @pytest.mark.parametrize(
     "code",
-    ["counter_unavailable", "resolution_unknown", "schedule_uncalibrated"],
+    [
+        "counter_unavailable",
+        "resolution_unknown",
+        "schedule_uncalibrated",
+        "schedule_not_class_own",
+        "target_class_unknown",
+        "target_class_unverified",
+    ],
 )
 def test_a_keep_cannot_carry_a_warning_that_withholds_it(code: str) -> None:
     warned = (RunWarning(code=code, message="x"),)
     with pytest.raises(ValidationError, match="warnings that withhold it"):
         record(verdict=keep(), warnings=warned)
     record(verdict=withheld_keep(), warnings=warned)
+
+
+def calibrated_spec(**update: Any) -> BenchmarkSpec:
+    """A spec a python_cpu calibrated verdict may stand on."""
+    return spec().model_copy(
+        update={
+            "target_class": "python_cpu",
+            "looks": LookSchedule(n0=10, k=10, max_looks=6),
+            "budget": Budget(max_rounds=60, max_seconds=600.0),
+            **update,
+        }
+    )
+
+
+def test_a_record_may_claim_calibration_inside_the_domain() -> None:
+    assert record(spec=calibrated_spec(), verdict=calibrated_keep())
+
+
+@pytest.mark.parametrize(
+    ("update", "match"),
+    [
+        ({"alpha": 0.1}, "alpha 0.05"),
+        ({"alpha": 0.2}, "alpha 0.05"),
+        ({"looks": LookSchedule(n0=10, k=10, max_looks=3)}, "own schedule"),
+        ({"budget": Budget(max_rounds=61, max_seconds=600.0)}, "own schedule"),
+        ({"target_class": None}, "own target class"),
+        ({"target_class": "native"}, "own target class"),
+        (
+            {
+                "target_class": "gpu_kernel",
+                "looks": LookSchedule(n0=20, k=20, max_looks=6),
+                "budget": Budget(max_rounds=120, max_seconds=600.0),
+            },
+            "no verdict is calibrated for gpu_kernel",
+        ),
+    ],
+    ids=[
+        "alpha-0.1",
+        "alpha-0.2",
+        "other-looks",
+        "other-budget",
+        "no-class",
+        "other-class",
+        "gpu-kernel-pending",
+    ],
+)
+def test_a_record_cannot_claim_calibration_outside_the_domain(
+    update: dict[str, Any], match: str
+) -> None:
+    v = calibrated_keep()
+    if update.get("target_class") == "gpu_kernel":
+        v = v.model_copy(update={"target_class": "gpu_kernel"})
+    with pytest.raises(ValidationError, match=match):
+        record(spec=calibrated_spec(**update), verdict=v)
+
+
+def test_a_calibrated_verdict_is_for_the_specs_own_target_class() -> None:
+    v = calibrated_keep()
+    other = spec().model_copy(update={"target_class": "native"})
+    with pytest.raises(ValidationError, match="own target class"):
+        record(verdict=v, spec=other)
+    with pytest.raises(ValidationError, match="own target class"):
+        record(verdict=v, spec=spec())
 
 
 def test_other_warnings_do_not_withhold_a_keep() -> None:

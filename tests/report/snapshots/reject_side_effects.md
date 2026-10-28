@@ -10,7 +10,7 @@ The experiment itself is not valid: the `side_effects` gate failed. Gates run be
 
 The `side_effects` gate failed. No claim about speed.
 
-Benchmark `sum-loop` at spec hash `19a402352efef3cdef27afa687089f3d88b4fb6a46059e68964a654020fbd2a6`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `26da90f52e3a8f3ca6f92e14fede8662a6c7d8bc522211b9df3fdba64e505e97`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -18,8 +18,8 @@ Not recorded: the repository and the candidate's commit.
 
 Not measured: gates run before any timing, so this verdict carries no speedup estimate or interval.
 
-- Rounds: 0, of at most 200
-- Looks: 0, of at most 5
+- Rounds: 0, of at most 60
+- Looks: 0, of at most 6
 - Procedure: `t_log_ratio`
 - Regression: no
 - Cross host: no
@@ -132,7 +132,7 @@ None recorded.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `19a402352efef3cdef27afa687089f3d88b4fb6a46059e68964a654020fbd2a6`
+- spec_hash: `26da90f52e3a8f3ca6f92e14fede8662a6c7d8bc522211b9df3fdba64e505e97`
 - schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
@@ -145,8 +145,8 @@ Fixed in the spec before any round.
 - correctness timeout_seconds: 120.0
 - correctness output `out/result.npy`: compare `numbers`, rtol 1e-09, atol 0.0, equal_nan no
 - warmup: 2
-- budget: max_rounds 200, max_seconds 600.0
-- looks: n0 10, k 10, max_looks 5
+- budget: max_rounds 60, max_seconds 600.0
+- looks: n0 10, k 10, max_looks 6
 - min_effect: 0.03
 - alpha: 0.05
 - timeout_seconds: 30.0

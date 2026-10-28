@@ -237,10 +237,10 @@ including resumes. The run ends itself first when it can: before it
 starts a round that could not finish, with the 10 s grace, before the
 deadline, it takes its final look on the rounds it has, as at the end
 of `budget.max_seconds`, and writes its record with a
-`time_limit_reached` warning. That is the state `finished`, with an
-INCONCLUSIVE verdict (always, while the procedure is uncalibrated)
-from the rounds it has. When the deadline is hit with no such end
-(the run is inside a round or the gates) the run's process and
+`time_limit_reached` warning. That is the state `finished`, with the
+verdict that look gives (INCONCLUSIVE unless its interval clears or
+falls below the bar) from the rounds it has. When the deadline is hit
+with no such end (the run is inside a round or the gates) the run's process and
 everything it started are killed (SIGALRM in the run's process, then
 SIGKILL of the tree if unwinding takes longer than 10 seconds), the
 `timed_out` marker is written, and the state is `timed_out`: no
@@ -262,8 +262,28 @@ verdict. A `timed_out` run can't be resumed.
 | `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `procedure`, `diagnostics` and the rest |
 | `gates` | array | `{"gate", "status"}` in the record's order |
 | `warnings` | array | `{"code", "message"}` for every warning in the record |
-| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown` and `schedule_uncalibrated`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
+| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown`, `schedule_uncalibrated`, `schedule_not_class_own`, `target_class_unknown` and `target_class_unverified`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
 | `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
+
+`verdict.calibration` is `calibrated` exactly when all five hold: the
+spec declares `target_class` (one of `python_cpu`, `native`,
+`web_service`, `llm_serving`, `gpu_kernel`, `agentic`), the project
+model (`.perfproof/project.json` of the main checkout) has a target
+entry of that class in state `confirmed` and not stale by the check of
+`perfproof project check` (`proposed`, `stale` and `retired` do not
+count; a changed evidence file, or no model, does not count), its look schedule is
+that class's own default schedule, `alpha` is 0.05, and that schedule
+is calibrated (`gpu_kernel` is not yet: no real traces).
+Then `verdict.target_class` is the class and
+`verdict.calibration_conditions` names the procedure, schedule, `alpha`
+and the seed of the run of record. Otherwise it is `uncalibrated` and a
+KEEP is withheld (INCONCLUSIVE, `insufficient_evidence`) with one
+warning naming why: `target_class_unknown` (no class declared),
+`schedule_not_class_own` (the schedule is another class's),
+`target_class_unverified` (the project model does not confirm the
+class) or `schedule_uncalibrated` (`alpha` or schedule outside the domain,
+including `gpu_kernel`). A REJECT on evidence is decided the same
+either way. "The calibrated domain" in `method.md` has the rule.
 
 `verdict.procedure` names the interval procedure that decided:
 `hac_lf` or `t_log_ratio_batch_means`. `compare` picks it from the

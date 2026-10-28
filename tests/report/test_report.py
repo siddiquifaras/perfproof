@@ -99,8 +99,8 @@ def spec(**update: Any) -> Data:
             ],
         },
         "warmup": 2,
-        "budget": {"max_rounds": 200, "max_seconds": 600.0},
-        "looks": {"n0": 10, "k": 10, "max_looks": 5},
+        "budget": {"max_rounds": 60, "max_seconds": 600.0},
+        "looks": {"n0": 10, "k": 10, "max_looks": 6},
         "timeout_seconds": 30.0,
         "harness": ["bench.py"],
         "oracle": ["tests/test_core.py"],
@@ -108,6 +108,9 @@ def spec(**update: Any) -> Data:
         "config": ["pyproject.toml"],
         "objective": "wall_time",
         "guardrails": [memory_guardrail(), latency_not_applicable()],
+        # The calibrated verdicts here are for python_cpu, and a
+        # calibrated verdict is for the spec's own class.
+        "target_class": "python_cpu",
     }
     data.update(update)
     return data
@@ -546,8 +549,8 @@ def inconclusive_budget() -> RunRecord:
             rule=5,
             estimate=1.05,
             interval=iv(1.02, 1.08),
-            rounds=200,
-            looks=5,
+            rounds=60,
+            looks=6,
             diagnostics=diagnostics(
                 metric_disagreement=True,
                 wall_interval=iv(0.97, 1.0),
@@ -610,8 +613,8 @@ def procedure_uncalibrated() -> RunRecord:
             outcome="INCONCLUSIVE",
             reason="insufficient_evidence",
             rule=5,
-            rounds=200,
-            looks=5,
+            rounds=60,
+            looks=6,
             target_class=None,
             calibration="uncalibrated",
             diagnostics=diagnostics(procedure_uncalibrated=True),
@@ -640,8 +643,8 @@ def inconclusive_not_verified() -> RunRecord:
             outcome="INCONCLUSIVE",
             reason="insufficient_evidence",
             rule=5,
-            rounds=200,
-            looks=5,
+            rounds=60,
+            looks=6,
             target_class=None,
             calibration="uncalibrated",
             diagnostics=diagnostics(procedure_uncalibrated=True),

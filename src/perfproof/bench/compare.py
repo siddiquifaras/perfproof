@@ -76,14 +76,14 @@ reset that fails fails the `side_effects` gate with its output, per
 "Side effects" in ``docs/method.md``, and the run stops there with
 that gate REJECT; the execution it preceded never runs.
 
-Before calibration
-------------------
-`CALIBRATED` is False until the procedure passes calibration (T1.6,
-T1.7). Rules 2 and 3 then never fire: every comparison that passes
-its gates runs to the end of its budget, or to its ``K``-th look, and
-ends INCONCLUSIVE (``insufficient_evidence``) with the diagnostic
-``procedure_uncalibrated``. The interval procedure is chosen from the
-spec's look schedule before any round
+Calibration
+-----------
+`CALIBRATED` is True: rules 2 and 3 decide. A comparison ends on the
+first look that gives KEEP (rule 2), a performance REJECT (rule 3), a
+guardrail REJECT (rule 2 with a breached guardrail) or the resolution
+stop, and otherwise runs to the end of its budget, or to its ``K``-th
+look, and ends INCONCLUSIVE (``insufficient_evidence``). The interval
+procedure is chosen from the spec's look schedule before any round
 (`perfproof.stats.sequential.procedure_for_schedule`, "The T1.11
 decision" in ``docs/method.md``): ``hac_lf`` for the three default
 schedules of the python_native, web_agentic and llm_serving
@@ -93,14 +93,19 @@ schedule and for any other schedule. The verdict records which
 has one: not below 12 rounds (two complete blocks, and ``hac_lf``'s
 minimum), and not when a ratio or a bound falls outside the float
 range, which records the warning ``interval_unrepresentable``. Under
-the gated batch means the diagnostic gate is still evaluated as if
-calibrated, so a look it would have withheld records
-``autocorrelated_rounds`` or ``outlier_rounds``; ``hac_lf`` has no
-gate and leaves both ``None``. A schedule that can
-take more than one look at 120 rounds or more runs, records the warning
-``schedule_uncalibrated`` and can never KEEP. Only a gate REJECT can
-end a comparison otherwise, and the resolution stop can end it early as
-INCONCLUSIVE.
+the gated batch means the diagnostic gate withholds a look it would
+have decided and records ``autocorrelated_rounds`` or
+``outlier_rounds``; ``hac_lf`` has no gate and leaves both ``None``.
+Outside "The calibrated domain" (``alpha`` 0.05 and the three class
+schedules; the gpu_kernels schedule has no real traces yet) the
+comparison runs and a REJECT is decided as inside, but a KEEP is
+withheld with the warning ``schedule_uncalibrated``. A schedule that
+can take more than one look at 120 rounds or more is withheld the same
+way. The verdict is ``calibrated`` exactly when the spec's declared
+``target_class`` is confirmed by the project model (and not stale), its
+schedule is that class's own, and it is in the domain; otherwise it is
+``uncalibrated`` with one named warning ("The calibrated domain" in
+``docs/method.md``).
 
 Resolution
 ----------
@@ -233,11 +238,15 @@ from perfproof.bench.tree_setup import (
     run_setup,
 )
 from perfproof.machine import fingerprint, machine_warnings
+from perfproof.project.errors import ProjectError
+from perfproof.project.staleness import find_stale
+from perfproof.project.store import load_model
 from perfproof.report import write
 from perfproof.schema import (
     DEFAULT_GUARDRAILS,
     Arm,
     BenchmarkSpec,
+    CalibrationStatus,
     CommandOutput,
     Diagnostics,
     Difference,
@@ -250,11 +259,15 @@ from perfproof.schema import (
     MachineFingerprint,
     MetricKind,
     MetricSpec,
+    Outcome,
     Procedure,
+    Reason,
+    Rule,
     RunRecord,
     RunWarning,
     Sample,
     SetupSpec,
+    Text,
     TreeEnvironment,
     Verdict,
 )
@@ -274,12 +287,17 @@ from perfproof.stats.guardrails import (
 from perfproof.stats.intervals import HAC_MIN_N, hac_lf_interval, t_interval
 from perfproof.stats.sequential import (
     BATCH_BLOCK,
+    CALIBRATION_SEED,
+    DEFAULT_ALPHA,
     LAG1_MIN_BLOCKS,
+    TRACE_BASIS,
     Look,
     Resolution,
     continuity_fails,
     decide_look,
     in_calibrated_domain,
+    is_class_schedule,
+    is_gpu_kernels_schedule,
     lag1_autocorrelation,
     look_confidence,
     plan_looks,
@@ -299,9 +317,10 @@ __all__ = [
     "undeclared_guardrails",
 ]
 
-CALIBRATED: Final = False
-"""Whether the interval procedure has passed calibration. False until
-the M1 exit (T1.6 and T1.7): no KEEP and no performance REJECT."""
+CALIBRATED: Final = True
+"""Whether the interval procedure has passed calibration. True since
+2026-10-28 ("The calibrated domain" in ``docs/method.md``): rules 2 and
+3 decide. Where a KEEP is withheld is the domain's, not this flag's."""
 SAMPLES_NAME: Final = "samples.npz"
 """File name of the raw samples in a run directory."""
 
@@ -455,6 +474,7 @@ def compare(
     process_env: Mapping[str, str],
     order_seed: int,
     harness_root: Path | None = None,
+    project_root: Path | None = None,
     journal: Journal | None = None,
     resume: Resumed | None = None,
     deadline: float | None = None,
@@ -489,6 +509,12 @@ def compare(
         copied from it into both trees before anything runs, replacing
         whatever a user-supplied candidate directory holds there.
         ``None`` copies nothing.
+    project_root : Path, optional
+        Root of the main checkout, whose project model
+        (``.perfproof/project.json``) must hold a ``confirmed`` target
+        of the spec's ``target_class`` for a verdict to be calibrated.
+        ``None``, no model, or an unreadable one fails closed: a KEEP
+        is withheld with ``target_class_unverified``.
     journal : perfproof.bench.journal.Journal, optional
         Where a detached run keeps its progress; each completed round
         is appended to it. ``run_dir`` may then exist already.
@@ -559,6 +585,7 @@ def compare(
     run.baseline_commit = baseline_commit
     run.order_seed = order_seed
     run.harness_root = harness_root
+    run.class_problem = _class_problem(spec, project_root)
     run.wall_step = _wall_step()
     run.deadline = deadline
     return run.execute()
@@ -590,6 +617,9 @@ class _Run:
         self.baseline_commit = ""
         self.order_seed = 0
         self.harness_root: Path | None = None
+        # Fail closed: a class not confirmed by the project model
+        # never makes a verdict calibrated.
+        self.class_problem: str | None = "the project model was not read"
         self.wall_step = 0.0
         self.gates: dict[GateName, GateResult] = {}
         self.warnings: list[RunWarning] = list(machine_warnings(machine))
@@ -832,20 +862,11 @@ class _Run:
                     ),
                 )
             )
-        elif not _in_domain(spec):
+        elif (
+            blocker := _calibration_blocker(spec, self.class_problem)
+        ) is not None:
             self.warnings.append(
-                RunWarning(
-                    code="schedule_uncalibrated",
-                    message=(
-                        f"alpha {spec.alpha} with the look schedule (n0 "
-                        f"{spec.looks.n0}, k {spec.looks.k}, "
-                        f"{spec.looks.max_looks} looks, up to "
-                        f"{spec.budget.max_rounds} rounds) is outside the "
-                        "calibrated domain (alpha 0.05 and the four "
-                        "class schedules): the comparison runs, but this "
-                        "verdict can never be a KEEP"
-                    ),
-                )
+                RunWarning(code=blocker[0], message=blocker[1])
             )
 
     def _test_launcher(self, gate: GateResult) -> GateResult:
@@ -1294,6 +1315,7 @@ class _Run:
         """
         return (
             keep_blocked(self.spec)
+            or _calibration_blocker(self.spec, self.class_problem) is not None
             or self.fallback_reason is not None
             or self._resolution_unknown()
             or any(g.status == "not_available" for g in self.gates.values())
@@ -1310,6 +1332,12 @@ class _Run:
             status == "unmeasurable"
             and any(e.look is None for e in self.guardrail_looks.values())
         )
+
+    def _calibration(
+        self,
+    ) -> tuple[CalibrationStatus, tuple[Text, ...]]:
+        """Calibration of this run's verdicts: see `_calibration`."""
+        return _calibration(self.spec, self.class_problem)
 
     def _keep_blocked(self) -> bool:
         """Whether a KEEP is withheld at this look, for any reason.
@@ -1553,7 +1581,9 @@ class _Run:
             rounds=len(self.measured),
             looks=self.looks,
             procedure=self.procedure,
-            calibration="uncalibrated",
+            target_class=self.spec.target_class,
+            calibration=self._calibration()[0],
+            calibration_conditions=self._calibration()[1],
             diagnostics=Diagnostics(
                 procedure_uncalibrated=decision.procedure_uncalibrated
             ),
@@ -1577,32 +1607,13 @@ class _Run:
                         ),
                     )
                 )
-            elif rule == 2 and self._keep_blocked():
-                pass
-            elif rule != 5:
+            elif rule not in (2, 3, 5):
                 msg = (
-                    f"the last look gave rule {rule}; the thin path can "
-                    "only end on rule 1 (resolution), 5, or a rule 2 "
-                    "that a blocker holds back from KEEP"
+                    f"the last look gave rule {rule}; a comparison ends on "
+                    "rule 1 (resolution), 2, 3 or 5"
                 )
                 raise self.stop("internal_fault", msg)
-        refused = (
-            look is not None
-            and int(look.rule[0]) == 2
-            and self._guardrails_with("breached")
-        )
-        verdict = Verdict(
-            outcome="REJECT" if refused else "INCONCLUSIVE",
-            reason="guardrail" if refused else "insufficient_evidence",
-            rule=2 if look is not None and int(look.rule[0]) == 2 else 5,
-            estimate=estimate,
-            interval=interval,
-            rounds=len(self.measured),
-            looks=ended.looks,
-            procedure=self.procedure,
-            calibration="uncalibrated",
-            diagnostics=diagnostics,
-        )
+        verdict = self._look_verdict(ended, diagnostics, interval, estimate)
         if self.time_limit_hit:
             self.warnings.append(
                 RunWarning(
@@ -1634,6 +1645,51 @@ class _Run:
             for metric in undeclared_guardrails(self.spec)
         )
         return self._write(verdict, self._listed_gates(), guardrails)
+
+    def _look_verdict(
+        self,
+        ended: _Ended,
+        diagnostics: Diagnostics,
+        interval: Interval | None,
+        estimate: float | None,
+    ) -> Verdict:
+        """Build the verdict of the last look, or of no look.
+
+        Rule 2 keeps unless a blocker holds it (`_keep_blocked`): a
+        breached guardrail is then a REJECT with reason ``guardrail``,
+        anything else INCONCLUSIVE. Rule 3 is the performance REJECT,
+        with its regression flag. With no look, or rule 5, the
+        comparison is INCONCLUSIVE.
+        """
+        look = ended.look
+        rule = 5 if look is None else int(look.rule[0])
+        reject = False
+        reason: Reason = "insufficient_evidence"
+        outcome: Outcome = "INCONCLUSIVE"
+        if rule == 2:
+            if self._guardrails_with("breached"):
+                outcome, reason = "REJECT", "guardrail"
+            elif not self._keep_blocked():
+                outcome, reason = "KEEP", "performance"
+        elif rule == 3:
+            outcome, reason, reject = "REJECT", "performance", True
+        return Verdict(
+            outcome=outcome,
+            reason=reason,
+            rule=cast("Rule", rule if rule in (2, 3) else 5),
+            estimate=estimate,
+            interval=interval,
+            rounds=len(self.measured),
+            looks=ended.looks,
+            procedure=self.procedure,
+            regression=reject
+            and look is not None
+            and bool(look.regression[0]),
+            target_class=self.spec.target_class,
+            calibration=self._calibration()[0],
+            calibration_conditions=self._calibration()[1],
+            diagnostics=diagnostics,
+        )
 
     def _guardrail_result(self, g: GuardrailSpec) -> GuardrailResult:
         """Record one declared guardrail as the last look left it."""
@@ -1697,7 +1753,7 @@ class _Run:
         estimate: float | None = None
         if (
             look is not None
-            and int(look.rule[0]) in (2, 5)
+            and int(look.rule[0]) in (2, 3, 5)
             and np.isfinite(look.lower[0])
             and np.isfinite(look.upper[0])
         ):
@@ -2137,22 +2193,156 @@ def keep_blocked(spec: BenchmarkSpec) -> bool:
         )
         or bool(undeclared_guardrails(spec))
         or late_looks(spec) > 1
-        or not _in_domain(spec)
+        or _calibration_blocker(spec) is not None
     )
 
 
-def _in_domain(spec: BenchmarkSpec) -> bool:
-    """Whether the spec's schedule and ``alpha`` are calibrated."""
-    return in_calibrated_domain(spec.looks, spec.budget.max_rounds, spec.alpha)
+def _class_problem(spec: BenchmarkSpec, root: Path | None) -> str | None:
+    """Why the project model does not confirm the spec's class, if so.
+
+    ``None`` only when ``root`` (the main checkout, where the project
+    model lives) holds a readable model with a ``confirmed`` target
+    entry of the spec's class that no invalidation trigger has fired
+    for: the check `perfproof project check` makes
+    (`perfproof.project.staleness.find_stale`), run read-only, so the
+    model is never rewritten here. Otherwise the reason: no root, no
+    model, an unreadable one, no such target, a target not confirmed
+    (``proposed``, ``stale``, ``retired``), or one whose evidence
+    changed since it was confirmed.
+    """
+    cls = spec.target_class
+    if cls is None:
+        return "no target class is declared"
+    if root is None:
+        return "no project root was given"
+    try:
+        model = load_model(root)
+    except (ProjectError, OSError) as exc:
+        return f"the project model is unreadable ({exc})"
+    if model is None:
+        return "there is no project model"
+    own = [t for t in model.targets if t.target_class == cls]
+    if not own:
+        return f"the model has no {cls} target"
+    confirmed = [t for t in own if t.status == "confirmed"]
+    if not confirmed:
+        states = ", ".join(sorted({t.status for t in own}))
+        return f"its {cls} target is {states}, not confirmed"
+    ids = {t.id for t in confirmed}
+    findings, unknown = find_stale(root, model, host_id=None, only=ids)
+    changed = {f.entry_id: f for f in findings}
+    unchecked = {i for i, _ in unknown}
+    if all(i in changed or i in unchecked for i in ids):
+        first = next((changed[i] for i in sorted(ids) if i in changed), None)
+        if first is not None:
+            return (
+                f"its {cls} target is stale: {first.trigger} ({first.detail})"
+            )
+        return f"its {cls} target could not be checked for staleness"
+    return None
+
+
+def _calibration_blocker(
+    spec: BenchmarkSpec, class_problem: str | None = None
+) -> tuple[str, str] | None:
+    """Why the spec's verdict cannot be calibrated, as code and text.
+
+    ``None`` when it can: ``alpha`` and schedule in "The calibrated
+    domain" of ``docs/method.md``, a declared target class, and that
+    class's own schedule, and (``class_problem`` is None) a project
+    model that confirms the class. Checked in that order, so the first
+    reason is the one named; `keep_blocked` passes the default None
+    because the model is read once per run, in `_class_problem`. Each
+    code is in `perfproof.schema.KEEP_BLOCKING_WARNINGS`.
+    """
+    looks, rounds = spec.looks, spec.budget.max_rounds
+    shape = (
+        f"(n0 {looks.n0}, k {looks.k}, {looks.max_looks} looks, up to "
+        f"{rounds} rounds)"
+    )
+    if is_gpu_kernels_schedule(looks, rounds) and spec.alpha == DEFAULT_ALPHA:
+        return (
+            "schedule_uncalibrated",
+            f"the gpu_kernels schedule {shape} has no real GPU traces yet, "
+            "so it is not calibrated: the comparison runs, but this "
+            "verdict can never be a KEEP until they exist",
+        )
+    if not in_calibrated_domain(looks, rounds, spec.alpha):
+        return (
+            "schedule_uncalibrated",
+            f"alpha {spec.alpha} with the look schedule {shape} is outside "
+            "the calibrated domain (alpha 0.05 and the python_native, "
+            "web_agentic and llm_serving schedules): the comparison runs, "
+            "but this verdict can never be a KEEP",
+        )
+    if spec.target_class is None:
+        return (
+            "target_class_unknown",
+            "the spec declares no target_class, so no class's calibration "
+            "can be claimed: the comparison runs, but this verdict can "
+            "never be a KEEP; declare the class in a new spec",
+        )
+    if not is_class_schedule(spec.target_class, looks, rounds):
+        return (
+            "schedule_not_class_own",
+            f"the look schedule {shape} is not the default schedule of "
+            f"the declared target class {spec.target_class}, the one "
+            "calibrated for it: the comparison runs, but this verdict can "
+            "never be a KEEP",
+        )
+    if class_problem is not None:
+        return (
+            "target_class_unverified",
+            f"the project model does not confirm the declared target "
+            f"class {spec.target_class}: {class_problem}. The comparison "
+            "runs, but this verdict can never be a KEEP; confirm or "
+            "refresh the target with `perfproof project`",
+        )
+    return None
+
+
+def _calibration(
+    spec: BenchmarkSpec,
+    class_problem: str | None = None,
+) -> tuple[CalibrationStatus, tuple[Text, ...]]:
+    """Calibration status of the spec's verdicts, and its conditions.
+
+    Calibrated exactly when `CALIBRATED`, the spec declares a target
+    class, its schedule is that class's own, and ``alpha`` and schedule
+    are in the calibrated domain; the conditions then name what the
+    calibration rests on. Otherwise ``uncalibrated`` and no conditions.
+    """
+    cls = spec.target_class
+    if (
+        not CALIBRATED
+        or cls is None
+        or _calibration_blocker(spec, class_problem) is not None
+    ):
+        return "uncalibrated", ()
+    looks, rounds = spec.looks, spec.budget.max_rounds
+    procedure = procedure_for_schedule(looks, rounds, spec.alpha)
+    return (
+        "calibrated",
+        (
+            f"interval procedure {procedure}",
+            f"look schedule (n0 {looks.n0}, k {looks.k}, {looks.max_looks} "
+            f"looks, {rounds} rounds), the default of {cls}",
+            f"alpha {spec.alpha}",
+            "one host",
+            "real A/A traces of the class under its own schedule "
+            f"({TRACE_BASIS[cls]}), run of record seed "
+            f"{CALIBRATION_SEED}",
+        ),
+    )
 
 
 def undeclared_guardrails(spec: BenchmarkSpec) -> tuple[str, ...]:
     """List the default guardrails the spec leaves out.
 
-    The target class is unknown here, so the defaults are those of
-    `perfproof.schema.DEFAULT_GUARDRAILS` for ``None``, less the ones
-    the spec declares and the primary objective. Each is recorded
-    ``not_declared`` instead of stopping the comparison.
+    The defaults are those of `perfproof.schema.DEFAULT_GUARDRAILS` for
+    the spec's ``target_class`` (every default when it declares none),
+    less the ones the spec declares and the primary objective. Each is
+    recorded ``not_declared`` instead of stopping the comparison.
 
     Parameters
     ----------
@@ -2167,7 +2357,7 @@ def undeclared_guardrails(spec: BenchmarkSpec) -> tuple[str, ...]:
     declared = {g.metric for g in spec.guardrails}
     return tuple(
         m
-        for m in DEFAULT_GUARDRAILS[None]
+        for m in DEFAULT_GUARDRAILS[spec.target_class]
         if m not in declared and m != spec.objective
     )
 

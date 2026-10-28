@@ -12,7 +12,7 @@ The budget ran out with the interval still straddling the bar 1 + min_effect. Ne
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `35e64e84d6ccef3ac37e0087d254a652bee2fe2cdc6a2b47cf154a3d0f0b552e`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `reported` in `ms`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `b60da744d26eb9ff10dc831a00715d81e46ae3dfd9333f24873d07785be59283`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `reported` in `ms`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -20,8 +20,8 @@ Not recorded: the repository and the candidate's commit.
 
 - Speedup estimate: 1.05; above 1 means the candidate is faster
 - Interval at the last look: 1.02 to 1.08 at confidence 0.99
-- Rounds: 200, of at most 200
-- Looks: 5, of at most 5
+- Rounds: 60, of at most 60
+- Looks: 6, of at most 6
 - Procedure: `t_log_ratio`
 - Regression: no
 - Cross host: no
@@ -123,7 +123,7 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `35e64e84d6ccef3ac37e0087d254a652bee2fe2cdc6a2b47cf154a3d0f0b552e`
+- spec_hash: `b60da744d26eb9ff10dc831a00715d81e46ae3dfd9333f24873d07785be59283`
 - schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
@@ -136,8 +136,8 @@ Fixed in the spec before any round.
 - correctness timeout_seconds: 120.0
 - correctness output `out/result.npy`: compare `numbers`, rtol 1e-09, atol 0.0, equal_nan no
 - warmup: 2
-- budget: max_rounds 200, max_seconds 600.0
-- looks: n0 10, k 10, max_looks 5
+- budget: max_rounds 60, max_seconds 600.0
+- looks: n0 10, k 10, max_looks 6
 - min_effect: 0.03
 - alpha: 0.05
 - timeout_seconds: 30.0

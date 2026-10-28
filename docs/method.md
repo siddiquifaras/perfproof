@@ -1897,9 +1897,24 @@ the diagnostic gate below refuses to decide.
 **Skew in one version.** When one version is occasionally much
 slower, the log ratios are skewed, and a t interval is expected to
 under-cover on the skewed side. Calibration has no one-version skew
-scenario, so whether the primary covers under skew is unknown: no
-committed run shows it passing or failing, and until one does this is
-a stated limit of the procedure. The record reports the skewness of
+scenario among its audit ranges; the skew probe outside them (T1.13,
+`tests/calibration/skew.py`) fails 11 of 168 cells on the shipped
+procedure at each recorded seed, 8 of them on the three class
+schedules (stats-auditor recount of the committed CSVs, 2026-10-28),
+and is recorded, not accepted. The real traces show the limit too: the
+stats-auditor attributed the failing `linux-llm` off-class cells under
+"Real noise" to that trace's burst segment, whose mean (-0.613%) sits
+below the trace's overall mean (-0.073%): replicates are centred on the
+overall mean, so the quiet pairs sit about 0.060% above `S` (the
+auditor's ablation: dropping the first 36 pairs cuts false KEEPs at
+1.03 from 143 to 9 on `python_native`), the skew limit this paragraph
+describes. The trace's 16 extreme pairs are 10 negative and 6 positive,
+and an arm-swapped replay gives at most 0.93%. No committed artifact
+holds these measurements. So the primary
+is not shown to cover under skew, and where a workload has it the
+coverage is expected to fail on the skewed side; the false-KEEP rates
+measured on those cells are named limits there, not acceptance. The
+record reports the skewness of
 `d`, and the report warns when its magnitude exceeds 2. Slow runs
 rarer than about one in `n` can't be seen at all by any procedure on
 `n` rounds; the record states how many rounds the verdict rests on.
@@ -2106,7 +2121,8 @@ are null there, since it has no gate. The per-look lag-1, its upper
 bound and the limit used are computed (`Look.lag1`, `Look.ucb`,
 `Look.rho_limit`) but not yet in the record; the record's
 `lag1_autocorrelation` is the lag-1 of the log ratios as before.
-`CALIBRATED` stays False.
+`CALIBRATED` stayed False at that point (it is True since the flip
+of 2026-10-28).
 
 **Why.** Two measurements. (1) With critical values calibrated for
 independent noise, every HAC, bootstrap or batch-means interval failed
@@ -2423,8 +2439,8 @@ scheduled look, but the calibration harness cuts runs by the time
 budget in the same way (`cut_by_time`), so those looks are inside the
 cells above. A test holds the production table equal to the
 calibration's schedules, and another holds each schedule to its
-procedure. `CALIBRATED` stays False: the flip is a separate step after
-the guardrails (T2.15) and a stats-auditor pass.
+procedure. `CALIBRATED` stayed False then: the flip was a separate step
+after the guardrails (T2.15) and a stats-auditor pass (done 2026-10-28).
 
 **Why.** Neither `hac_lf` nor `bm_lf` meets the owner's constraint of
 never being worse than the gated primary on any cell. Both lose on
@@ -2581,8 +2597,8 @@ The look schedule is fixed before the first round:
   final look on the rounds it has, exactly as at a `max_seconds` end,
   and records a `time_limit_reached` warning that says how many
   rounds the final look used (complete order pairs only). Under the
-  uncalibrated procedure that is always INCONCLUSIVE
-  (`insufficient_evidence`); a run with fewer than `n0` rounds has no
+  procedure that was uncalibrated, INCONCLUSIVE
+  (`insufficient_evidence`; a calibrated one can give any verdict); a run with fewer than `n0` rounds has no
   look and is INCONCLUSIVE with no interval. The time limit is a budget
   end, not a verification gap: it does not block a KEEP that the final
   look's interval supports, and the warning is not one of the things
@@ -2724,7 +2740,10 @@ schedule or `alpha`. The rules, the bar and the table below are the same for bot
 interval and, for batch means, the gate differ. `hac_lf` never
 withholds a look.
 
-**Before calibration.** Until the procedure has passed calibration
+**Before calibration.** (Historical: `CALIBRATED` is True from the
+flip of 2026-10-28, under "The calibrated domain", and rules 2 and 3
+decide. What follows is what a record made with `CALIBRATED` False
+shows.) Until the procedure has passed calibration
 (see "Calibration"), rules 2 and 3 never match. A comparison runs to
 the end of its budget and ends **INCONCLUSIVE**
 (`insufficient_evidence`), with the diagnostic
@@ -3164,7 +3183,9 @@ shows first.
   whose true rate is 1.5% passes a cell with probability 0.998; one at
   2.0% passes with probability 0.66. The split under "Stopping" is
   designed to 1.25% so that a sound procedure has room to spare.
-- Every cell must pass. A failing cell can't be dropped, rerun at a
+- Every cell must pass. (Amended 2026-10-28 for the real traces only,
+  by the owner after results: "every cell" there means the in-class
+  cells; see "Real noise".) A failing cell can't be dropped, rerun at a
   larger `R`, or rerun at another seed. The fix is a change to the
   procedure, after which the whole calibration runs again at a new
   seed.
@@ -3181,33 +3202,89 @@ shows first.
 ### The calibrated domain
 
 Calibration supports the procedures under the conditions tested, and
-`CALIBRATED` claims no more than that. The domain is:
+`CALIBRATED` (True from 2026-10-28) claims no more than that. The
+domain is:
 
 - **`alpha` 0.05**, the default. The acceptance rule was run at no other
   level, and the gated primary breaches the 2.5% limit at `alpha` 0.1
   and 0.2 (stats-auditor on PR #85).
-- **One of the four class schedules**, as `(n0, k, K, max_rounds)`:
-  `python_native` `(10, 10, 6, 60)`, `web_agentic` `(10, 10, 3, 30)`,
-  `llm_serving` `(10, 6, 3, 22)` and `gpu_kernels` `(20, 20, 6, 120)`.
+- **One of three class schedules**, as `(n0, k, K, max_rounds)`:
+  `python_native` `(10, 10, 6, 60)`, `web_agentic` `(10, 10, 3, 30)` and
+  `llm_serving` `(10, 6, 3, 22)`, each decided by `hac_lf` ("The T1.11
+  decision") and accepted on its own class's real traces ("Real noise").
   The time budget is not part of the key (calibration cuts runs by it).
-  `hac_lf` decides the first three and the gated batch means the
-  fourth ("The T1.11 decision").
+- **Not yet: `gpu_kernels`** `(20, 20, 6, 120)`. It has no real traces,
+  so it is pending them and outside the domain: the owner will record
+  GPU traces on a rented GPU before launch, and until they pass the rule
+  KEEP is withheld on this schedule.
 
-Outside it, any other schedule or any `alpha` but 0.05, there is no
-acceptance evidence, so perfproof withholds the KEEP and nothing else.
-The comparison runs, measures and reports as usual, the interval is
-recorded, and a REJECT (a failed gate, a breached guardrail, or a
-rule 3 interval below the bar) is decided as in the domain. Where rule
-2 would keep, the outcome is INCONCLUSIVE with reason
+Outside it, any other schedule, the gpu_kernels schedule, or any `alpha`
+but 0.05, there is no acceptance evidence, so perfproof withholds the
+KEEP and nothing else. The comparison runs, measures and reports as
+usual, the interval is recorded, and a REJECT (a failed gate, a breached
+guardrail, or a rule 3 interval below the bar) is decided as in the
+domain. Where rule 2 would keep, the outcome is INCONCLUSIVE with reason
 `insufficient_evidence` and the warning `schedule_uncalibrated`, which
-names the `alpha` and the schedule and says the verdict can never be a
-KEEP. The code is `perfproof.stats.sequential.in_calibrated_domain`,
-used by `keep_blocked` in `bench/compare.py`. A schedule with more than
-one look at 120 observations or more is also withheld ("Stopping"),
-inside or outside the list. A REJECT is not withheld outside the
-domain, and its false-REJECT rate there was not measured either; the
-report's claim for it is as scoped as for a KEEP. The acceptance rule's
-cells are about the domain only.
+says why: for `gpu_kernels` that it has no real traces yet, otherwise
+the `alpha` and the schedule. Either way it says the verdict can never
+be a KEEP. The code is
+`perfproof.stats.sequential.in_calibrated_domain`, used by
+`keep_blocked` in `bench/compare.py`. A schedule with more than one look
+at 120 observations or more is also withheld ("Stopping"), inside or
+outside the list. A REJECT is not withheld outside the domain, and its
+false-REJECT rate there was not measured either; the report's claim for
+it is as scoped as for a KEEP. The acceptance rule's cells are about the
+domain only, and the off-class limits under "Real noise" hold inside it.
+
+**The class and its schedule.** A spec declares `target_class`
+(`BenchmarkSpec`, optional, left out of `spec_hash` while unset). One
+map, `CLASS_SCHEDULES` in `perfproof.stats.sequential`, gives each
+class its own default schedule, from "Defaults per target class":
+`python_cpu` (Python, CPU-bound) and `native` (Native) `(10, 10, 6, 60)`
+(the `python_native` schedule); `web_service` (Web services) and
+`agentic` (Agentic apps) `(10, 10, 3, 30)` (`web_agentic`);
+`llm_serving` (LLM serving) `(10, 6, 3, 22)`; `gpu_kernel` (GPU kernels)
+`(20, 20, 6, 120)`. The same classes are named for the three `hac_lf`
+schedules under "The T1.11 decision".
+
+**What the field describes.** `calibration` is a property of the spec
+(class, schedule, `alpha`), not of the rule that decided: every verdict
+of a spec carries it, a gate REJECT (rule 1, decided on correctness or
+integrity evidence, no interval) and the resolution stop included.
+
+**When a verdict is `calibrated`.** Exactly when the spec declares a
+`target_class`, the project model confirms it, its schedule is that
+class's own (`CLASS_SCHEDULES`), `alpha` is 0.05 and the schedule is in
+the domain above. The agent writes `target_class` and perfproof cannot
+tell whether it is true, so `compare` checks it against the project
+model of the main checkout (`.perfproof/project.json`, read once per
+run): the class must be that of a target entry in state `confirmed` for
+which no invalidation trigger has fired, tested read-only with the
+staleness check of `perfproof project check` (`find_stale`; the model
+is never rewritten by `compare`). A `proposed`, `stale` or `retired`
+entry does not count, a confirmed one whose evidence file changed does
+not either, and neither does a missing, unreadable or target-less
+model; the warning names which. This is a deterministic
+check that fails closed; it is a check of consistency with what the
+developer confirmed, not proof the code is of that class. The verdict's
+`calibration_conditions` name the real traces the class rests on
+(`TRACE_BASIS`): python_cpu 10, native 2, web_service 2, agentic 4,
+llm_serving 2 (CPU Ollama only). `RunRecord` also refuses a `calibrated`
+verdict whose spec is not on its class's own schedule at `alpha` 0.05,
+or whose class is `gpu_kernel`, so a record cannot claim what `compare`
+would not give. The verdict
+then carries `calibration` `calibrated`, `target_class` and
+`calibration_conditions` naming the procedure, schedule, `alpha`, one
+host and the seed of the run of record. Otherwise `calibration` is
+`uncalibrated` and a KEEP is withheld with one named warning, the first
+of: `schedule_uncalibrated` (`alpha` or schedule outside the domain,
+which includes `gpu_kernel`), `target_class_unknown` (no class
+declared), `schedule_not_class_own` (the schedule is another class's,
+an off-class run), `target_class_unverified` (the project model does
+not confirm the class). A REJECT on evidence (rule 1, a guardrail breach, a
+rule 3 interval at or below the bar) is decided the same whether the
+verdict is calibrated or not. `RunRecord` refuses a `calibrated` verdict
+whose class is not the spec's.
 
 ### Development scenarios
 
@@ -3305,16 +3382,113 @@ or INCONCLUSIVE, never KEEP.
 
 | Target class | Development traces | Audit traces | Status |
 |---|---|---|---|
-| Python, CPU-bound | this MacBook | Linux CI runner | planned in M2 |
-| Native code | this MacBook | Linux CI runner | planned in M4 |
-| GPU kernels | one paid GPU session | a second paid session | planned in M5 |
-| LLM serving throughput | one paid GPU session | a second paid session | planned in M5 |
+| Python, CPU-bound | this MacBook | Linux CI runner | 10 traces (rolling 7, membership 3); in-class run of record below |
+| Native code | this MacBook | Linux CI runner | 2 traces (picolm); in-class run of record below |
+| Web services | Hetzner Linux VM (both traces) | Linux CI runner | 2 traces (web); in-class run of record below |
+| Agentic apps | this MacBook | Linux CI runner | 4 traces (agent); in-class run of record below |
+| GPU kernels | one paid GPU session | a second paid session | no traces: pending, KEEP withheld |
+| LLM serving throughput | one paid GPU session | a second paid session | 2 traces, CPU Ollama only (no GPU); in-class run of record below |
 
 Until a target class passes on its held-out traces, its verdicts carry
 "not calibrated for this target class" in the report.
 
 Calibration results are written to this page with the seed, `R`, the
 observed rates, and their Clopper-Pearson bounds.
+
+**The real-trace unit, and the owner's decision (Faras, 2026-10-28).**
+The decision came after the results were seen: the stats-auditor's
+whole real-trace run of PR #101 failed 6 cells, and the unit below was
+fixed then, not before. The rule itself, the limit 2.5% and the
+Clopper-Pearson test at `R = 4000` with a largest passing count of 83,
+is unchanged.
+
+- **Acceptance unit.** The real-trace unit is each target class's own
+  traces under its own class schedule. A trace of another class run
+  under a schedule that is not its own (an **off-class** cell) is
+  reported, and a failure there is published as a named limit below,
+  not counted as acceptance.
+- **Which traces are in which class.** From each trace's header
+  `target`, a workload label and not a class name, so the mapping is a
+  reading. By class of `docs/targets.md`: `rolling` (7) and
+  `membership` (3) are `python_cpu`, 10 traces; `picolm` (2) is
+  `native`; `web` (2, the retried partial run left out) is
+  `web_service`; `agent` (4) is `agentic`; `llm` (2, CPU Ollama
+  serving, no GPU) is `llm_serving`. The `python_native` schedule's
+  in-class cells also include `node` (5) and `java` (2), which belong to
+  none of the six classes (`docs/targets.md` names Python and Node
+  separately, and no Java class): they are run under that schedule as
+  the nearest, and without them the in-class cells of the three
+  schedules are 420 and none fails (stats-auditor). The `web_agentic`
+  schedule's in-class cells are `web` and `agent` together (6 traces).
+  `picolm` is a native LLM inference engine run on CPU as a command, and
+  its cells pass under every schedule, so the choice between
+  `python_native` and `llm_serving` for it moves no result.
+  `gpu_kernels` has no real traces, so none is in its class.
+- **`gpu_kernels` is not calibrated at launch.** With no real traces
+  its real-trace unit is empty, so a KEEP is withheld on that schedule
+  until GPU traces exist. The owner will record them on a rented GPU
+  before launch.
+
+**Run of record for the `CALIBRATED` flip.** The whole real-trace
+calibration (`tests/calibration/run_real.py run`, `R = 4000`, the
+three procedures of `PHASE_2`, 27 traces, 3 block rules, 4 schedules,
+7 speedups, 2268 cells per procedure) at seed `661371947387106328`,
+drawn from the operating system's entropy on 2026-10-28 and written
+here before the run. Results are in
+`tests/calibration/results/real-seed-661371947387106328.csv`. The
+procedure judged is the shipped one: `hac_lf` on the three class
+schedules, the gated batch means on `gpu_kernels`.
+
+| Cells | Schedule | Cells | Failing | Worst false KEEPs of 4000 |
+|---|---|---|---|---|
+| in class | python_native | 399 | 0 | 30, `linux-rolling/fixed20/python_native/1.03` (bound 1.016%) |
+| in class | web_agentic | 126 | 0 | 22, `linux-loaded-steady-web/fixed20/web_agentic/1.03` |
+| in class | llm_serving | 42 | 0 | 29, `linux-llm/fixed6/llm_serving/1.03` |
+| off class | python_native | 168 | 2 | 157, `linux-llm/fixed20/python_native/1.03` |
+| off class | web_agentic | 441 | 0 | 43, `linux-llm/pw/web_agentic/1.03` |
+| off class | llm_serving | 525 | 0 | 41, `linux-rolling/fixed20/llm_serving/1.03` |
+| off class | gpu_kernels | 567 | 4 | 473, `linux-llm/fixed20/gpu_kernels/1.03` |
+
+All 567 in-class cells pass; the worst in-class bound is 1.016% at the
+2.5% limit. The acceptance table names speedups 0.95 and 1.04 too; they
+are not in `run_real.py`'s `SPEEDUPS` (0.80, 0.90, 1.00, 1.03, 1.05,
+1.10, 1.20), so the run of record does not contain them. The
+stats-auditor ran the 162 in-class cells at those two speedups at its
+own seed as a diagnostic, 0 failing; that is not acceptance. The in-class pass is the acceptance for the three class
+schedules. `gpu_kernels` has no in-class cell, and its off-class
+cells are not acceptance.
+
+**Named limits: the 6 failing off-class cells.** Every failing cell is
+a trace under a schedule of another class, on the shipped procedure,
+at true speedup 1.03. They were found by the auditor at seed
+`3018888685074391575` (`R = 4000`, 648 cells) and reproduce at seed
+`661371947387106328`. False KEEPs of 4000, the auditor's seed first:
+
+| Trace | Schedule | Auditor's seed | Run of record |
+|---|---|---|---|
+| `linux-llm` | `gpu_kernels` | 484, 349 and 190 | 473 (fixed20), 342 (fixed6), 185 (pw) |
+| `linux-llm` | `python_native` | 153 and 94 | 157 (fixed20), 96 (fixed6) |
+| `linux-loaded-steady-web` | `gpu_kernels` | 104 | 107 (fixed20) |
+
+The auditor attributed the five `linux-llm` cells to that trace's burst
+segment, whose mean (-0.613%) sits below the trace's overall mean
+(-0.073%), so that the quiet replicates sit about 0.060% above `S`: the
+skew limit under "Assumptions". A second audit measured the same (all
+16 pairs beyond 6 robust standard deviations lie in pairs 0 to 34, 10
+negative and 6 positive). The `linux-loaded-steady-web` cell
+has a different cause: three extreme pairs (159, 237 and 500), not the
+early segment. Neither measurement is in a committed artifact. The
+auditor reports the false-KEEP rate at true speedups up to 1.025 as
+0.00% to 0.07% on these cells (not rerun here: the run of record has
+no 1.025 cell). Read these as limits that bite at a true speedup
+at the bar: the counts above are at 1.03, and a workload of one class
+decided on another class's schedule can keep a change whose true
+speedup is at the bar. The schedule is chosen from the spec, not the
+workload, and the skill's spec guidance uses the `python_native`
+schedule for every workload (`skills/perfproof/spec.md`), so in
+practice a web, agentic or LLM workload runs on that schedule, which
+makes the off-class `linux-llm` on `python_native` cells the ones an
+LLM workload meets.
 
 ### Guardrail cells
 
@@ -3431,7 +3605,8 @@ schedule's last look. Not covered: one-version skew (above), a pool that
 hands one version systematically different hosts, drift across a whole
 cross-host campaign, CV other than 5% for the non-log-normal
 development rows, and any target class other than through its schedule.
-Real noise is not calibrated yet.
+Real noise is covered under "Real noise" (its own class's traces
+under its own schedule, 2026-10-28).
 
 **Runs.** Four complete runs, all on this MacBook (macOS arm64), 4
 worker processes, 25 s of wall time each for the two T1.8 runs.
@@ -3850,9 +4025,9 @@ uncalibrated.
 
 **What this leaves.** Calibrated under the conditions above only; the
 gate is blunt where the autocorrelation is hidden, as cross host, and
-its cost is power. The procedure is still `CALIBRATED = False` in
-`bench/compare.py`, and T1.7 audits it on held-out scenarios drawn at
-audit time.
+its cost is power. At that point the procedure was still
+`CALIBRATED = False` in `bench/compare.py`, and T1.7 audited it on
+held-out scenarios drawn at audit time.
 
 ### T1.11 results (`hac_lf`)
 

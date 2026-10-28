@@ -15,7 +15,7 @@ Labels:
 
 No claim. The evidence recorded here does not settle whether the candidate should be kept.
 
-Benchmark `sum-loop` at spec hash `6a09135b445e1ecf60c9ff5be91dfcf2b47f4eb93a5080d20399a82d479bc39f`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
+Benchmark `sum-loop` at spec hash `7688390228715965417da1cc1217475717acbf52de82b78e25b87dc6234d7af8`, baseline commit `0123456789abcdef0123456789abcdef01234567`. Metric `wall` in `s`, lower is better, objective `wall_time`; min_effect = 0.03 as stored.
 
 Not recorded: the repository and the candidate's commit.
 
@@ -23,8 +23,8 @@ Not recorded: the repository and the candidate's commit.
 
 - Speedup estimate: 1.12; above 1 means the candidate is faster
 - Interval at the last look: 1.04 to 1.2 at confidence 0.99
-- Rounds: 40, of at most 200
-- Looks: 1, of at most 5
+- Rounds: 40, of at most 60
+- Looks: 1, of at most 6
 - Procedure: `t_log_ratio`
 - Regression: no
 - Cross host: yes
@@ -220,7 +220,7 @@ Not recorded: the repository and the candidate's commit.
 Fixed in the spec before any round.
 
 - name: `sum-loop`
-- spec_hash: `6a09135b445e1ecf60c9ff5be91dfcf2b47f4eb93a5080d20399a82d479bc39f`
+- spec_hash: `7688390228715965417da1cc1217475717acbf52de82b78e25b87dc6234d7af8`
 - schema_version: 4
 - command: `["python", "bench.py", "--n", "1000"]`
 - cwd: `.`
@@ -233,8 +233,8 @@ Fixed in the spec before any round.
 - correctness timeout_seconds: 120.0
 - correctness output `out/result.npy`: compare `numbers`, rtol 1e-09, atol 0.0, equal_nan no
 - warmup: 2
-- budget: max_rounds 200, max_seconds 600.0
-- looks: n0 10, k 10, max_looks 5
+- budget: max_rounds 60, max_seconds 600.0
+- looks: n0 10, k 10, max_looks 6
 - min_effect: 0.03
 - alpha: 0.05
 - timeout_seconds: 30.0
