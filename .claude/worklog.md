@@ -145,6 +145,11 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
     - CLI: `profile` prints a next-step hint when `project_frames_above_bar` is empty;
     - then d3 on the 12 real tasks only.
   - The strict edit detector scores dotnet and fd-bare as "profile after edit".
+  - **d3** (skill 51d408b: end-to-end through the public entry point first, a rerun isn't a second workload, 28 lines shorter, plus the #98 hint, #95 and #96; real tasks only; $7.57): real 4/12, wrong KEEP 0.
+    - Passed: all four fd tasks (real-fd-hidden-fix, -msg-vague, -msg-bare, rust-fd).
+    - go-echo: `Echo.ServeHTTP` is now in the profile but not named as the cost.
+    - Still not reached: xarray (3 tasks), java base64, simdjson to_chars, fastify routeHandler. dotnet: "profile after edit" (strict detector).
+    - Discovery spend so far: about $26.40.
 
 - **#90 B1 (lead, 2026-10-28):** the stats audit at 824ea35 found that the rank-based cap bound holds only under AR(1)-like dependence.
   - Loaded real A/A traces missed the median 7.3% and 18.4% of the time, against a 0.21% tail.
