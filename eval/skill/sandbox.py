@@ -24,11 +24,13 @@ from __future__ import annotations
 
 import base64
 import functools
+import hashlib
 import json
 import os
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import time
 import urllib.parse
@@ -312,6 +314,96 @@ def _nuget_feed(home: Path, real: Path) -> None:
     )
 
 
+_TMP_ROOT_NAME = "t"
+_TMP_DIGEST_CHARS = 6
+
+
+def short_tmp(base: Path) -> Path:
+    """Name the task's private temp directory, kept short.
+
+    A unix socket path holds 104 bytes on macOS (``sun_path``), and
+    tools such as ``dotnet-trace`` put one in ``TMPDIR``. Under the
+    private directory the path grew with the run label and task id
+    (126 characters in one run), so the directory sits at the top of
+    the work root instead, under a short name derived from ``base``.
+
+    Parameters
+    ----------
+    base : Path
+        The task's private directory, ``<work>/<run>/sandbox/<id>/
+        private``; a shallower path puts the directory beside it.
+
+    Returns
+    -------
+    Path
+        ``<work>/t/<6 hex digits>``: private to ``base`` (the digest
+        covers its full path), not created.
+    """
+    parents = base.parents
+    root = parents[3] if len(parents) > 3 else base.parent
+    digest = hashlib.sha256(str(base).encode()).hexdigest()
+    return root / _TMP_ROOT_NAME / digest[:_TMP_DIGEST_CHARS]
+
+
+def _checked_tmp_parent(path: Path) -> None:
+    """Create ``path``'s parent; refuse one the agent cannot have made.
+
+    The parent holds every task's temp directory and is outside the
+    agent's write rules, so a link there, or another user's directory,
+    means tampering.
+
+    Raises
+    ------
+    RuntimeError
+        If the parent is not a real directory of the current user.
+    """
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    st = parent.lstat()
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid():
+        msg = f"{parent} is not a directory of this user"
+        raise RuntimeError(msg)
+
+
+def reset_tmp(base: Path) -> Path:
+    """Empty a task's temp directory; call once, when the task starts.
+
+    The directory sits outside the per-run tree, so a rerun of the same
+    task would otherwise start with the last agent's files. Later
+    ``private_env`` calls (harness steps, further turns) keep what is
+    there.
+
+    Parameters
+    ----------
+    base : Path
+        The task's private directory (see ``short_tmp``).
+
+    Returns
+    -------
+    Path
+        The new, empty directory, mode 0700. A link or file in its
+        place is removed without being followed.
+
+    Raises
+    ------
+    RuntimeError
+        If the parent ``t`` directory is a link or another user's.
+    """
+    tmp = short_tmp(base)
+    _checked_tmp_parent(tmp)
+    _remove(tmp)
+    tmp.mkdir(mode=0o700)
+    tmp.chmod(0o700)
+    return tmp
+
+
+def _ensure_tmp(tmp: Path) -> None:
+    """Keep ``tmp``'s contents; replace a link or file in its way."""
+    _checked_tmp_parent(tmp)
+    _ensure_dir(tmp)
+    tmp.chmod(0o700)
+
+
 def private_env(base: Path) -> dict[str, str]:
     """Give a task its own home directory and temp directory.
 
@@ -329,10 +421,11 @@ def private_env(base: Path) -> dict[str, str]:
     Returns
     -------
     dict of str to str
-        ``HOME``, ``TMPDIR`` and zsh's ``TMPPREFIX`` inside ``base``,
-        and ``RUSTUP_HOME`` at the real toolchains. The private home
-        links the real ``~/.rustup`` (read-only to an agent) so rustup
-        still finds its toolchains. ``uv`` finds the installed
+        ``HOME`` inside ``base``, ``TMPDIR`` (``short_tmp``, mode 0700)
+        and zsh's ``TMPPREFIX`` inside it, and ``RUSTUP_HOME`` at the
+        real toolchains. The private home links the real
+        ``~/.rustup`` (read-only to an agent) so rustup still finds its
+        toolchains. ``uv`` finds the installed
         interpreters through ``PATH`` (``~/.local/bin`` links) and
         downloads a missing one into the private home's own
         ``~/.local/share/uv/python``, which the harness never touches.
@@ -342,9 +435,9 @@ def private_env(base: Path) -> dict[str, str]:
         (``guarded``) stops the agent renaming or removing them or
         their parent.
     """
-    tmp = base / "tmp"
+    tmp = short_tmp(base)
     home = base / "home"
-    _ensure_dir(tmp)
+    _ensure_tmp(tmp)
     _ensure_dir(home)
     real = Path.home()
     if (real / ".rustup").exists():
@@ -1014,6 +1107,12 @@ def profile(
         stopped by the read and socket rules, not by this one).
     """
     temps = list(_TEMP_DIRS if temp_dirs is None else temp_dirs)
+    # A task's temp directory is outside its private directory (see
+    # ``short_tmp``); it is as writable as the private directory is.
+    write = [
+        *write,
+        *(short_tmp(p) for p in write if p.name == "private"),
+    ]
     # The kernel matches the real path; a task dir reached through a
     # symlink (``/tmp`` is one) must be allowed under both spellings.
     read = _both(read)

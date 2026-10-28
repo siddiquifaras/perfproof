@@ -1217,6 +1217,9 @@ def run_task(
     out = run_dir / task.id
     work = run_dir if work_root is None else work_root / run_dir.name
     repo = work / "repos" / task.id
+    # The task's temp directory is outside the run tree: empty it once,
+    # before any build step uses it and the agent starts.
+    sandbox.reset_tmp(work / "sandbox" / task.id / "private")
     extra_path = [path_dir]
     spec: realrepo.RepoSpec | None = None
     toolchains: list[Path] = []

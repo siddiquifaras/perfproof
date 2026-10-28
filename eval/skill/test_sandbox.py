@@ -973,10 +973,10 @@ def test_each_task_gets_a_private_home_and_a_private_tmpdir(
     tmp_path: Path,
 ) -> None:
     env = sandbox.agent_env(os.environ, tmp_path / "s", [])
+    assert Path(env["HOME"]).is_relative_to(tmp_path / "s" / "private")
+    assert Path(env["TMPDIR"]) == sandbox.short_tmp(tmp_path / "s" / "private")
     for key in ("HOME", "TMPDIR"):
-        path = Path(env[key])
-        assert path.is_relative_to(tmp_path / "s" / "private"), key
-        assert path.is_dir(), key
+        assert Path(env[key]).is_dir(), key
     assert env["HOME"] != os.environ["HOME"]
     rustup = Path.home() / ".rustup"
     if rustup.is_dir():
@@ -2111,3 +2111,142 @@ def test_a_native_dotnet_on_path_is_named_dotnet_root(
     assert env["DOTNET_ROOT"] == str(host)
     without = sandbox.agent_env(_FAKE, tmp_path / "s2", [plain])
     assert "DOTNET_ROOT" not in without
+
+
+_SOCKET_NAME = "dotnet-trace-53095-20261028_073237.socket".ljust(60, "x")
+
+
+def _long_private(root: Path) -> Path:
+    label = "d1-dotnet-" + "very-long-run-label-" * 3
+    task = "dotnet-markdig-hidden-fix-" + "long-task-id-" * 3
+    return root / "work" / label / "sandbox" / task / "private"
+
+
+def test_tmpdir_leaves_room_for_a_socket_name_under_any_label() -> None:
+    root = Path("/Users/ppeval/eval-work")
+    tmp = sandbox.short_tmp(_long_private(root))
+    assert len(_SOCKET_NAME) == 60
+    assert len(str(tmp)) + 60 < 104
+
+
+def test_tasks_get_different_private_temp_dirs(tmp_path: Path) -> None:
+    sand = tmp_path / "w" / "r" / "sandbox"
+    a = sandbox.agent_env(os.environ, sand / "a", [])
+    b = sandbox.agent_env(os.environ, sand / "b", [])
+    assert a["TMPDIR"] != b["TMPDIR"]
+    assert Path(a["TMPDIR"]).stat().st_mode & 0o777 == 0o700
+    again = sandbox.agent_env(os.environ, sand / "a", [])
+    assert again["TMPDIR"] == a["TMPDIR"]
+
+
+def test_profile_allows_the_short_tmp_and_still_closes_shared_temp(
+    tmp_path: Path,
+) -> None:
+    private = _long_private(tmp_path)
+    tmp = sandbox.short_tmp(private)
+    root = Path(__file__).resolve().parents[2]
+    text = sandbox.profile(Path.home(), root, False, write=[private])
+    assert f'(allow file-write* (subpath "{tmp}"))' in text
+    assert f'(allow file-read* (subpath "{tmp}"))' in text
+    assert f'(remote unix-socket (subpath "{tmp}"))' in text
+    for shared in ("/private/tmp", "/private/var/folders"):
+        assert f'(deny file-read* (subpath "{shared}"))' in text
+        assert f'(allow file-write* (subpath "{shared}"))' not in text
+        assert f'(allow file-read* (subpath "{shared}"))' not in text
+    # The parent holds other tasks' directories and stays unwritable.
+    assert f'(allow file-write* (subpath "{tmp.parent}"))' not in text
+
+
+@confinement
+def test_a_unix_socket_binds_in_tmpdir_and_shared_temp_stays_closed() -> None:
+    # A short root: the pytest temp directory is itself too long.
+    root = Path(tempfile.mkdtemp(prefix="pp", dir="/tmp"))
+    try:
+        scratch = root / "w" / "label" / "sandbox" / "task"
+        env = sandbox.agent_env(os.environ, scratch, [])
+        assert len(env["TMPDIR"]) + 60 < 104
+        text = sandbox.profile(
+            Path.home(),
+            root / "pp",
+            False,
+            read=[Path(sys.prefix)],
+            write=[scratch / "private"],
+        )
+        sb = root / "t.sb"
+        sb.write_text(text, encoding="utf-8")
+
+        def run(code: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [
+                    "sandbox-exec",
+                    "-f",
+                    str(sb),
+                    sys.executable,
+                    "-I",
+                    "-c",
+                    code,
+                ],
+                cwd="/",
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "TMPDIR": env["TMPDIR"]},
+            )
+
+        ok = run(
+            "import os, socket\n"
+            "s = socket.socket(socket.AF_UNIX)\n"
+            f"s.bind(os.path.join(os.environ['TMPDIR'], {_SOCKET_NAME!r}))\n"
+            "print('bound')"
+        )
+        assert ok.stdout.strip() == "bound", ok.stderr
+        shared = run(
+            "import socket\n"
+            "s = socket.socket(socket.AF_UNIX)\n"
+            "s.bind('/private/tmp/pp-probe.sock')"
+        )
+        assert shared.returncode != 0
+        assert not Path("/private/tmp/pp-probe.sock").exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_tmpdir_is_emptied_at_task_start_and_kept_after(
+    tmp_path: Path,
+) -> None:
+    private = tmp_path / "w" / "r" / "sandbox" / "a" / "private"
+    sandbox.reset_tmp(private)
+    tmp = Path(sandbox.private_env(private)["TMPDIR"])
+    (tmp / "left").write_text("x", encoding="utf-8")
+    again = Path(sandbox.private_env(private)["TMPDIR"])
+    assert again == tmp
+    assert (tmp / "left").exists()
+    assert sandbox.reset_tmp(private) == tmp
+    assert list(tmp.iterdir()) == []
+    assert tmp.stat().st_mode & 0o777 == 0o700
+
+
+def test_reset_does_not_follow_a_planted_link(tmp_path: Path) -> None:
+    private = tmp_path / "w" / "r" / "sandbox" / "a" / "private"
+    tmp = sandbox.reset_tmp(private)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "keep").write_text("x", encoding="utf-8")
+    tmp.rmdir()
+    tmp.symlink_to(elsewhere)
+    sandbox.reset_tmp(private)
+    assert tmp.is_dir()
+    assert not tmp.is_symlink()
+    assert (elsewhere / "keep").exists()
+
+
+def test_a_linked_tmp_parent_is_refused(tmp_path: Path) -> None:
+    private = tmp_path / "w" / "r" / "sandbox" / "a" / "private"
+    tmp = sandbox.reset_tmp(private)
+    moved = tmp_path / "moved"
+    tmp.parent.rename(moved)
+    tmp.parent.symlink_to(moved)
+    with pytest.raises(RuntimeError):
+        sandbox.reset_tmp(private)
+    with pytest.raises(RuntimeError):
+        sandbox.private_env(private)
