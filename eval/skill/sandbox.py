@@ -111,6 +111,12 @@ _HOME_READ = (
     ".rustup",
     ".nvm",
 )
+# Readable only when the agents run as the eval user, whose home it is:
+# the global .NET tools (``dotnet-trace``, which ``perfproof profile``
+# runs for C# tasks), on the agent's ``PATH`` through
+# ``realrepo.toolchain_dirs``. The owner's own tools directory is not
+# opened to an agent that runs as the owner.
+_HOME_READ_EVAL_USER = (".dotnet/tools",)
 # Shared caches are not writable: an unconfined build or the owner's own
 # work would read what the agent planted. Each task gets private ones
 # (``private_env``).
@@ -474,7 +480,8 @@ def agent_env(
     dict of str to str
         Only the allowlisted names of ``base``, with ``gh`` and git
         neutered, git identity set by environment, and ``PATH`` led by
-        ``extra_path`` and a ``gh`` stub that fails.
+        ``extra_path`` and a ``gh`` stub that fails. ``DOTNET_ROOT``
+        names the first ``extra_path`` directory holding ``dotnet``.
     """
     env = {k: v for k, v in base.items() if _allowed(k)}
     gh_dir = scratch / "gh"
@@ -508,6 +515,13 @@ def agent_env(
         env[f"GIT_CONFIG_VALUE_{n}"] = value
     env.update(private_env(scratch / "private"))
     env.update(toolchain_env())
+    # Global .NET tools (dotnet-trace) are apphosts that look for the
+    # runtime in DOTNET_ROOT or /usr/local/share/dotnet only, so a
+    # user-local install on PATH is invisible to them without this.
+    for directory in extra_path:
+        if (directory / "dotnet").is_file():
+            env["DOTNET_ROOT"] = str(directory)
+            break
     dirs = [*(str(p) for p in extra_path), str(stub)]
     toolbin = _tool_bin(scratch / "toolbin", env.get("DEVELOPER_DIR"))
     if toolbin is not None:
@@ -1022,7 +1036,10 @@ def profile(
     ]
     lines += _subpaths(
         "allow file-read*",
-        [home / p for p in _HOME_READ] + list(read) + list(write),
+        [home / p for p in _HOME_READ]
+        + ([home / p for p in _HOME_READ_EVAL_USER] if as_eval_user() else [])
+        + list(read)
+        + list(write),
     )
     lines += _subpaths("deny file-read*", [home / p for p in _HOME_CARVED])
     lines.append("(deny file-write*)")

@@ -472,7 +472,13 @@ def build_real_repo(
     shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
     if before_setup is not None:
         before_setup()
-    realrepo.run_setup(spec, dest, extra_path, confine=sandbox.as_eval_user())
+    realrepo.run_setup(
+        spec,
+        dest,
+        extra_path,
+        confine=sandbox.as_eval_user(),
+        hide_planted=task.is_hidden_fix,
+    )
     return seeded
 
 

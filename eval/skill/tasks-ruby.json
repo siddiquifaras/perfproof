@@ -46,6 +46,10 @@
       "budget_usd": 3.0,
       "task_budget_usd": 3.0,
       "timeout_s": 2400,
+      "bar_exclusion": {
+        "reason": "Judged, not measured here: a micro win of the same kind as the Django one. String#blank? is already optimised and the change (avoid repeated bytesize calls) is judged too small to show above the 3% bar end to end.",
+        "evidence": "Change title in eval/tasks/known-change/rails-rails-pr59030.json: 'Speed up String#blank? further by avoiding repeated bytesize calls'. Judged a micro win in the round 9 run 1 diagnosis (lead, 2026-10-28). No cap or timing for it was measured here."
+      },
       "expect": {
         "trigger": true,
         "fix": "optional_branch",
@@ -53,7 +57,7 @@
         "hotspot": {
           "file": "activesupport/lib/active_support/core_ext/object/blank.rb",
           "function": "String#blank?",
-          "top_n": 5
+          "top_n": "skill"
         }
       }
     },

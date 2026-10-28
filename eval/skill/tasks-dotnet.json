@@ -26,7 +26,7 @@
         "hotspot": {
           "file": "src/Markdig/Parsers/InlineProcessor.cs",
           "function": "Markdig.Parsers.InlineProcessor.ProcessInlineLeaf",
-          "top_n": 5
+          "top_n": "skill"
         }
       }
     },

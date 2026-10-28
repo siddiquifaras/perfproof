@@ -27,7 +27,7 @@
         "hotspot": {
           "file": "lib/route.js",
           "function": "routeHandler",
-          "top_n": 5
+          "top_n": "skill"
         }
       }
     },

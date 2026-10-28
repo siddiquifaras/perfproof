@@ -19,7 +19,16 @@ class Summary(BaseModel):
     Attributes
     ----------
     tasks, passed : int
-        Tasks scored and tasks with every applicable check true.
+        Tasks counted in the pass bar and those with every applicable
+        check true. A task excluded from the bar (``bar_excluded``) is
+        in neither.
+    excluded, excluded_passed : int
+        Tasks excluded from the bar, and those that passed anyway. Every
+        other count below (wrong KEEPs, cost, check rates) still covers
+        them.
+    message_variants : list of int
+        [passed, total] over the prompt variants (task ids with a
+        ``-msg-`` marker), which are also counted in the totals above.
     trigger_hits, trigger_total : int
         Trigger tasks whose observed start matched the expectation, and
         all trigger tasks.
@@ -34,7 +43,7 @@ class Summary(BaseModel):
         hotspot.
     hotspot_by_rule : dict of str to list of int
         The same, split by rule: ``top1`` (must rank first, the small
-        examples) and ``top5`` (real repositories), as [ok, total].
+        examples) and ``top15`` (real repositories), as [ok, total].
     fix_ok, fix_total : int
         Correct fix outcome, over prove and find tasks.
     tree_ok, tree_total : int
@@ -51,6 +60,9 @@ class Summary(BaseModel):
 
     tasks: int
     passed: int
+    excluded: int = 0
+    excluded_passed: int = 0
+    message_variants: list[int] = [0, 0]
     trigger_hits: int
     trigger_total: int
     verdict_ok: int
@@ -104,9 +116,17 @@ def summarize(scores: list[TaskScore]) -> Summary:
     fix = _count([s.fix_ok for s in scores])
     tree = _count([s.tree_ok for s in scores])
     wording = Counter(w.rule for s in scores for w in s.wording)
+    counted = [s for s in scores if s.bar_excluded is None]
+    excluded = [s for s in scores if s.bar_excluded is not None]
     return Summary(
-        tasks=len(scores),
-        passed=sum(s.passed for s in scores),
+        tasks=len(counted),
+        passed=sum(s.passed for s in counted),
+        excluded=len(excluded),
+        excluded_passed=sum(s.passed for s in excluded),
+        message_variants=[
+            sum(s.passed for s in scores if "-msg-" in s.task_id),
+            sum("-msg-" in s.task_id for s in scores),
+        ],
         trigger_hits=trig[0],
         trigger_total=trig[1],
         verdict_ok=verdict[0],
@@ -173,7 +193,21 @@ def _table(scores: list[TaskScore]) -> list[str]:
 def _summary_lines(m: Summary) -> list[str]:
     wording = ", ".join(f"{k} {v}" for k, v in m.wording.items()) or "none"
     return [
-        f"- Tasks passed: {m.passed} of {m.tasks}",
+        f"- Tasks passed: {m.passed} of {m.tasks}"
+        + (
+            f"; excluded from the bar: {m.excluded_passed} of "
+            f"{m.excluded} passed (listed apart below)"
+            if m.excluded
+            else ""
+        ),
+        *(
+            [
+                "- Prompt variants (`-msg-`): "
+                f"{m.message_variants[0]} of {m.message_variants[1]} passed"
+            ]
+            if m.message_variants[1]
+            else []
+        ),
         f"- Trigger set: {m.trigger_hits} of {m.trigger_total} matched",
         f"- Verdict accepted: {m.verdict_ok} of {m.verdict_total}; "
         f"wrong KEEP: {m.wrong_keeps}",
@@ -316,6 +350,14 @@ def write(
     if skipped:
         lines += ["## Skipped (not scored)", ""]
         lines += [f"- `{k['task_id']}`: {k['reason']}" for k in skipped]
+        lines.append("")
+    left_out = [s for s in scores if s.bar_excluded is not None]
+    if left_out:
+        lines += ["## Excluded from the pass bar (scored, not counted)", ""]
+        lines += [
+            f"- `{s.task_id}`: {_mark(s.passed)}. {s.bar_excluded}"
+            for s in left_out
+        ]
         lines.append("")
     details = _details(scores)
     if details:

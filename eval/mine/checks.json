@@ -361,6 +361,9 @@
       "cargo build --release --locked",
       "python3 ../../../../tasks/workloads/sharkdp-fd-pr853/make_tree.py"
     ],
+    "planted": [
+      "eval-tree"
+    ],
     "workload": "target/release/fd --color=always -HI -j1 . eval-tree",
     "workload_source": "adapted from the hyperfine command in the description of https://github.com/sharkdp/fd/pull/853 (--color=always -HI -j1), searching a fixed generated tree of 20,000 files (eval/tasks/workloads/sharkdp-fd-pr853/make_tree.py) instead of a Linux checkout",
     "oracle": "cargo test --release --locked",
@@ -633,6 +636,9 @@
       "npm install --ignore-scripts --no-audit --no-fund --before 2026-09-27",
       "cp ../../../../tasks/workloads/fastify-fastify-pr7056/bench.js eval_bench.js"
     ],
+    "planted": [
+      "eval_bench.js"
+    ],
     "workload": "node eval_bench.js",
     "workload_source": "written here from the description of https://github.com/fastify/fastify/pull/7056 (the per-request child logger, with request logging on): GET /item/:id served in process by app.inject with a pino logger writing to a discarded stream, a fixed warm-up then a fixed window, eval/tasks/workloads/fastify-fastify-pr7056/bench.js",
     "oracle": "node --test test/child-logger-factory.test.js test/encapsulated-child-logger-factory.test.js test/logger/*.test.js",
@@ -667,6 +673,9 @@
     "setup": [
       "./mvnw -q -B -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true package",
       "javac -cp target/classes -d eval-wl ../../../../tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java"
+    ],
+    "planted": [
+      "eval-wl"
     ],
     "workload": "java -cp target/classes:eval-wl Base64Workload",
     "workload_source": "written here from the description of https://github.com/FasterXML/jackson-core/pull/1674 (Base64Variant.encode): a program encoding 16 byte, 1 KiB and 64 KiB payloads in process, warmed up until stable (eval/tasks/workloads/fasterxml-jackson-core-pr1674/Base64Workload.java)",
@@ -756,6 +765,9 @@
       "cp ../../../../tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go .",
       "go test -count 1 -run ^$ ./..."
     ],
+    "planted": [
+      "eval_servehttp_bench_test.go"
+    ],
     "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalServeHTTPPath$ -benchtime 2000000x .",
     "workload_source": "written here from the description of https://github.com/labstack/echo/pull/1799 (a performance regression from escaping the request path in ServeHTTP; its benchmarks are BenchmarkEcho* in the description and are not in the tree): a Go benchmark that serves a GET whose path has one percent-encoded segment through the router, eval/tasks/workloads/labstack-echo-pr1799/eval_servehttp_bench_test.go, copied into the tree",
     "oracle": "go test -count 1 . ./middleware/",
@@ -797,6 +809,9 @@
     "setup": [
       "cp -r ../../../../tasks/workloads/xoofx-markdig-pr922/EvalPipeTable .",
       "dotnet build -c Release -nologo -p:NuGetAudit=false -m:1 -nodeReuse:false -p:UseSharedCompilation=false EvalPipeTable/EvalPipeTable.csproj"
+    ],
+    "planted": [
+      "EvalPipeTable"
     ],
     "workload": "dotnet EvalPipeTable/bin/Release/net10.0/EvalPipeTable.dll",
     "workload_source": "written here from the description of https://github.com/xoofx/markdig/pull/922 (PipeTableParser): a .NET program that parses one pipe table of 600 rows to HTML (eval/tasks/workloads/xoofx-markdig-pr922/EvalPipeTable), copied into the tree",
@@ -857,6 +872,10 @@
       "cp ../../../../tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp .",
       "c++ -std=c++20 -O2 -Iinclude -Isrc -o eval_to_chars eval_to_chars.cpp src/simdjson.cpp",
       "c++ -std=c++20 -O1 -Iinclude -Isrc -Itests -Itests/builder -o eval_builder_tests tests/builder/builder_string_builder_tests.cpp src/simdjson.cpp"
+    ],
+    "planted": [
+      "eval_to_chars.cpp",
+      "eval_to_chars"
     ],
     "workload": "./eval_to_chars",
     "workload_source": "written here from the title of https://github.com/simdjson/simdjson/pull/2805 (to_chars in the DOM serializer and the string builder): a C++ program that serializes a parsed array of 100,000 doubles 400 times with simdjson::to_string, eval/tasks/workloads/simdjson-simdjson-pr2805/eval_to_chars.cpp, copied into the tree and built with the system c++ against src/simdjson.cpp; the benchmark the pull request quotes (benchmark_car_builder) is not used",

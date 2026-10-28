@@ -9,12 +9,26 @@ send when the skill asks a question, and the expected outcome.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    field_validator,
+    model_validator,
+)
 
 TASKS_FILE = Path(__file__).resolve().parent / "tasks.json"
 """The committed task-set file."""
+
+SKILL_READ_ROWS: Final = 15
+"""Rows of each profile list the skill has the agent print and read.
+
+``skills/perfproof/SKILL.md`` says "Print the top 15" of ``hotspots``
+and of ``frames_by_total``;
+``test_skill_read_rows_matches_the_skill`` fails if the skill and this
+constant drift apart. A task's ``top_n`` of ``"skill"`` is this number,
+so the scorer's window is the rows the agent was told to read."""
 
 Kind = Literal["prove", "find", "trigger"]
 FixKind = Literal["none", "branch", "optional_branch"]
@@ -75,8 +89,10 @@ class Hotspot(_Model):
     top_n : int
         The function must be among the first ``top_n`` hotspots of a
         ``perfproof profile`` output in the transcript (1: it must
-        rank first, as for the small examples; 5 for real
-        repositories), and be named, without a negation, after it.
+        rank first, as for the small examples; ``"skill"`` in a
+        manifest, read as `SKILL_READ_ROWS`, for real repositories,
+        which is the number of rows the skill tells the agent to read),
+        and be named, without a negation, after it.
     accept : list of HotspotName
         Further functions that count as the bottleneck, for when the
         cost is not where the fix is edited: a function the compiler
@@ -88,6 +104,11 @@ class Hotspot(_Model):
     function: str
     top_n: int = 1
     accept: list[HotspotName] = []
+
+    @field_validator("top_n", mode="before")
+    @classmethod
+    def _skill_window(cls, value: Any) -> Any:
+        return SKILL_READ_ROWS if value == "skill" else value
 
     @model_validator(mode="after")
     def _accepted_say_why(self) -> Hotspot:
@@ -138,6 +159,24 @@ class RealRepo(_Model):
     branch: str | None = None
     requires: list[str] = []
     shim: Literal["go", "ruby"] | None = None
+
+
+class BarExclusion(_Model):
+    """Why a task is left out of the pass bar.
+
+    The scorer still scores the task and the report lists it apart; it
+    is not counted in the tasks passed.
+
+    Attributes
+    ----------
+    reason : str
+        Why no honest run can pass it.
+    evidence : str
+        The measurement or record behind the reason, with its source.
+    """
+
+    reason: str
+    evidence: str
 
 
 class Expect(_Model):
@@ -204,6 +243,9 @@ class Task(_Model):
         ``None``.
     locked : list of str
         Files a change must not touch (harness, oracle, config).
+    bar_exclusion : BarExclusion or None
+        Set when the task cannot be passed honestly: it is scored and
+        reported but not counted in the pass bar.
     """
 
     id: str
@@ -218,7 +260,17 @@ class Task(_Model):
     task_budget_usd: float | None = None
     timeout_s: float | None = None
     locked: list[str] = []
+    bar_exclusion: BarExclusion | None = None
     expect: Expect
+
+    @property
+    def is_hidden_fix(self) -> bool:
+        """Whether the task hides a known fix and gives no workload.
+
+        A ``find`` task with a known hotspot: the agent must make its
+        own workload, so none made for the task may sit in its tree.
+        """
+        return self.kind == "find" and self.expect.hotspot is not None
 
     @model_validator(mode="after")
     def _one_source(self) -> Task:

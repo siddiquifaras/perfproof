@@ -146,7 +146,7 @@ class TaskScore(_Model):
         what the user could read afterwards.
     hotspot_top_n : int or None
         The rank window the hotspot rule used (1: must rank first;
-        5: top five), ``None`` without a known hotspot.
+        15: the rows the skill reads), ``None`` without a known hotspot.
     hotspot_detail : str
         Why.
     fix_ok : bool or None
@@ -173,6 +173,9 @@ class TaskScore(_Model):
         One-minute load average when the task began.
     passed : bool
         Every applicable check holds and wording is clean.
+    bar_excluded : str or None
+        The task's ``bar_exclusion.reason`` when it is left out of the
+        pass bar; the task is scored as any other.
     """
 
     task_id: str
@@ -200,6 +203,7 @@ class TaskScore(_Model):
     calls: int
     load_start: float
     passed: bool
+    bar_excluded: str | None = None
 
 
 def _sentences(text: str) -> list[str]:
@@ -1148,6 +1152,9 @@ def _build(
         calls=calls,
         load_start=meta.load_start[0],
         passed=passed,
+        bar_excluded=(
+            None if task.bar_exclusion is None else task.bar_exclusion.reason
+        ),
     )
 
 

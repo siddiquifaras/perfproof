@@ -5,6 +5,12 @@
   "summary": {
     "tasks": 2,
     "passed": 0,
+    "excluded": 0,
+    "excluded_passed": 0,
+    "message_variants": [
+      0,
+      0
+    ],
     "trigger_hits": 0,
     "trigger_total": 0,
     "verdict_ok": 2,
@@ -63,7 +69,8 @@
       "agent_turns": 10,
       "calls": 2,
       "load_start": 9.32275390625,
-      "passed": false
+      "passed": false,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-membership-fix",
@@ -99,7 +106,8 @@
       "agent_turns": 9,
       "calls": 2,
       "load_start": 9.26513671875,
-      "passed": false
+      "passed": false,
+      "bar_excluded": null
     }
   ]
 }

@@ -93,6 +93,11 @@ class RepoSpec(BaseModel):
         Environment the build and tests need.
     oracle : str or None
         The project's test command.
+    planted : list of str
+        Paths, relative to the repo, that ``setup`` creates for the
+        task's own workload (copied files, built binaries, generated
+        data). A hidden-fix agent must not see them: see
+        `run_setup`.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -105,6 +110,7 @@ class RepoSpec(BaseModel):
     setup: list[str]
     env: dict[str, str]
     oracle: str | None
+    planted: list[str] = []
 
 
 @functools.lru_cache(maxsize=1)
@@ -243,6 +249,7 @@ def load_spec(manifest_id: str) -> RepoSpec:
         ],
         env=dict(checks.get("env", {})),
         oracle=oracle.get("command"),
+        planted=list(checks.get("planted", [])),
     )
 
 
@@ -502,6 +509,7 @@ def run_setup(
     timeout: float = SETUP_TIMEOUT_S,
     *,
     confine: bool = False,
+    hide_planted: bool = False,
 ) -> None:
     """Run the build commands, then hide what they created from git.
 
@@ -521,6 +529,14 @@ def run_setup(
         and temp directory, no clipboard, Apple Events or keychain, the
         workload files readable. Used for the eval user, where a build
         script must not be able to rewrite the staged harness.
+    hide_planted : bool, optional
+        Delete ``spec.planted`` once the commands have run, before the
+        untracked files are listed for ``.git/info/exclude`` (so the
+        names are not written there either). For a hidden-fix task,
+        whose agent must write its own workload: a benchmark made for
+        the task names the function and the fix. The harness's own
+        workload checks (``eval/mine/check.py``) run the commands in
+        their own tree and are not affected.
 
     Raises
     ------
@@ -544,6 +560,8 @@ def run_setup(
             raise SetupError(msg)
         # A later step can use what an earlier one made (the venv).
         env = task_env(spec, repo, extra_path)
+    if hide_planted:
+        remove_planted(spec, repo)
     status = _git(repo, "status", "--porcelain", "--untracked-files=normal")
     created = [
         ln[3:].rstrip("/")
@@ -554,6 +572,37 @@ def run_setup(
     exclude.parent.mkdir(exist_ok=True)
     with exclude.open("a", encoding="utf-8") as sink:
         sink.write("".join(f"/{name}\n" for name in created))
+
+
+def remove_planted(spec: RepoSpec, repo: Path) -> None:
+    """Delete the task-made workload files from a task tree.
+
+    Parameters
+    ----------
+    spec : RepoSpec
+        Names the paths in ``planted``.
+    repo : Path
+        The task repo.
+
+    Raises
+    ------
+    SetupError
+        If a planted path is outside the repo, or is still there after
+        the delete.
+    """
+    root = repo.resolve()
+    for name in spec.planted:
+        target = (root / name).resolve()
+        if root not in target.parents:
+            msg = f"planted path {name!r} is outside the repo"
+            raise SetupError(msg)
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        else:
+            target.unlink(missing_ok=True)
+        if target.exists():
+            msg = f"planted path {name!r} could not be removed"
+            raise SetupError(msg)
 
 
 def run_oracle(
@@ -726,13 +775,22 @@ def toolchain_dirs(real: RealRepo) -> list[Path]:
         The native directory of each of ``go``, ``ruby`` (or
         ``bundle``) and ``dotnet`` that the task requires and this
         machine has, so it wins over any launcher that runs the same
-        toolchain in a container; empty otherwise.
+        toolchain in a container; empty otherwise. With the eval user,
+        a ``dotnet`` task also gets ``~/.dotnet/tools``.
     """
     found: list[Path] = []
     for requirement in real.requires:
         directory = _native(requirement)
         if directory is not None and directory not in found:
             found.append(directory)
+        tools = Path.home() / ".dotnet" / "tools"
+        if (
+            requirement == "dotnet"
+            and sandbox.as_eval_user()
+            and tools.is_dir()
+            and tools not in found
+        ):
+            found.append(tools)
     return found
 
 

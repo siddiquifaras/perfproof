@@ -249,7 +249,7 @@ def test_every_real_task_has_a_development_manifest(
 
 def test_batch_one_covers_the_languages_and_families() -> None:
     by_family: dict[str, int] = {}
-    for task in REAL.tasks:
+    for task in [t for t in REAL.tasks if "-msg-" not in t.id]:
         assert task.repo is not None
         manifest = realrepo.load_spec(task.repo.manifest)
         assert manifest.repository
@@ -265,7 +265,7 @@ def test_batch_one_covers_the_languages_and_families() -> None:
         "known-change": 3,
         "nothing-to-keep": 2,
     }
-    assert len(REAL.tasks) == 8
+    assert len([t for t in REAL.tasks if "-msg-" not in t.id]) == 8
 
 
 def test_a_held_out_manifest_cannot_be_loaded() -> None:

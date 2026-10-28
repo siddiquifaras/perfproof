@@ -26,7 +26,65 @@
         "hotspot": {
           "file": "xarray/core/pycompat.py",
           "function": "is_dask_collection",
-          "top_n": 5
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "real-xarray-msg-claim",
+      "kind": "find",
+      "repo": {
+        "manifest": "pydata-xarray-pr6107",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "Reading netCDF files from disk is obviously the bottleneck here, it has been killing us for months. Please speed it up.",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "xarray/core/pycompat.py",
+          "function": "is_dask_collection",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "real-xarray-msg-rambling",
+      "kind": "find",
+      "repo": {
+        "manifest": "pydata-xarray-pr6107",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "Some context first. We are a small climate-research group and this code started as one grad student's thesis scripts, which three people have since patched in turn. Most of our work is on a shared workstation, we have never had a proper test environment, and the reviewers of our last paper were unkind about the figures. We do not use dask or a cluster: the arrays are plain in-memory NumPy ones, and some of our loops over small arrays feel several times slower than the same loop in bare NumPy, which surprised us. We also have a long-standing argument about whether to move to Zarr. Could you look at making it faster?",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "xarray/core/pycompat.py",
+          "function": "is_dask_collection",
+          "top_n": "skill"
         }
       }
     },
@@ -55,7 +113,79 @@
         "hotspot": {
           "file": "src/output.rs",
           "function": "fd::output::print_entry_colorized",
-          "top_n": 5,
+          "top_n": "skill",
+          "accept": [
+            {
+              "file": "src/output.rs",
+              "function": "fd::output::print_entry",
+              "why": "In the release build (LTO, one codegen unit) print_entry_colorized is inlined into print_entry, so its frame never appears; print_entry is where its time shows. Same reason as tasks-rust.json."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "real-fd-msg-vague",
+      "kind": "find",
+      "repo": {
+        "manifest": "sharkdp-fd-pr853",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "this tool feels sluggish lately, no idea why",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/output.rs",
+          "function": "fd::output::print_entry_colorized",
+          "top_n": "skill",
+          "accept": [
+            {
+              "file": "src/output.rs",
+              "function": "fd::output::print_entry",
+              "why": "In the release build (LTO, one codegen unit) print_entry_colorized is inlined into print_entry, so its frame never appears; print_entry is where its time shows. Same reason as tasks-rust.json."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "real-fd-msg-bare",
+      "kind": "find",
+      "repo": {
+        "manifest": "sharkdp-fd-pr853",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "make this faster",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 1800,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/output.rs",
+          "function": "fd::output::print_entry_colorized",
+          "top_n": "skill",
           "accept": [
             {
               "file": "src/output.rs",
@@ -84,6 +214,10 @@
       "budget_usd": 3.0,
       "task_budget_usd": 3.0,
       "timeout_s": 1800,
+      "bar_exclusion": {
+        "reason": "Judged, not measured here: the whole-workload speedup cap of the fix is reported as about 1.017 (round 9 run 1 diagnosis), under the 3% bar, so no honest run could keep it. The PR's win is per call (749 ns to 262 ns), not per login-protected request.",
+        "evidence": "Per-call timings from the PR description, recorded in eval/tasks/hidden-fix/django-django-pr21460.json (evidence[0]): 749 ns +/- 2.08 ns before, 262 ns +/- 0.488 ns after. Cap about 1.017 from the round 9 run 1 diagnosis (lead, 2026-10-28); the archived profile of that run (eval/skill/runs/r9-1-real/real-django-hidden-fix, untracked, in worktree agent-a8e576a4c2b071e63) shows caps of the same size (LazySettings.__getattribute__ 1.0179, cap_above_bar false) and no django/contrib/auth/decorators.py frame in the first 20 of either list. The cap of the fixed function itself was not recomputed here."
+      },
       "expect": {
         "trigger": true,
         "fix": "optional_branch",
@@ -91,7 +225,7 @@
         "hotspot": {
           "file": "django/contrib/auth/decorators.py",
           "function": "user_passes_test",
-          "top_n": 5,
+          "top_n": "skill",
           "accept": [
             {
               "file": "django/contrib/auth/decorators.py",

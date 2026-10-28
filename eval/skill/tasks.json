@@ -215,10 +215,126 @@
       }
     },
     {
+      "id": "find-rolling-msg-rambling",
+      "kind": "find",
+      "example": "rolling",
+      "prompt": "So some background. We are a four-person team that took over this service from a contractor last spring, and the codebase has the usual layers of history: a first version written in a weekend, a rewrite when we added the dashboard, and a lot of comments that no longer match what the code does. We run it on one small VM with Python 3.12 and NumPy, deployed by a shell script Dana wrote, and our on-call rota is mostly spent restarting things. Product wants a weekly report and the CEO wants a new logo, which is not helping. Anyway, one thing I did notice: the part that turns our per-second request counts into the load over a sliding stretch of time gets slower the longer the history is, and the nightly job takes noticeably longer than it used to. Could you see what you can do about speed here?",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "rolling.py",
+          "function": "rolling_sum"
+        },
+        "fix": "branch"
+      }
+    },
+    {
+      "id": "find-rolling-msg-bare",
+      "kind": "find",
+      "example": "rolling",
+      "prompt": "/perfproof",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_rolling.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "rolling.py",
+          "function": "rolling_sum"
+        },
+        "fix": "branch"
+      }
+    },
+    {
       "id": "find-membership-light",
       "kind": "find",
       "example": "membership",
       "prompt": "/perfproof light",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "orders.py",
+          "function": "held_orders"
+        },
+        "fix": "branch"
+      }
+    },
+    {
+      "id": "find-membership-msg-claim",
+      "kind": "find",
+      "example": "membership",
+      "prompt": "The database layer is obviously the bottleneck here, it has been killing us for months. Everyone knows the queries are the slow part. Please make it faster.",
+      "followups": [
+        "go ahead, light, yes",
+        "yes, go ahead",
+        "yes"
+      ],
+      "budget_usd": 1.0,
+      "locked": [
+        "bench.py",
+        "tests/test_orders.py",
+        "pytest.ini"
+      ],
+      "expect": {
+        "trigger": true,
+        "outcomes": [
+          "INCONCLUSIVE",
+          "KEEP"
+        ],
+        "hotspot": {
+          "file": "orders.py",
+          "function": "held_orders"
+        },
+        "fix": "branch"
+      }
+    },
+    {
+      "id": "find-membership-msg-vague",
+      "kind": "find",
+      "example": "membership",
+      "prompt": "this app feels sluggish lately, no idea why. could you look into it?",
       "followups": [
         "go ahead, light, yes",
         "yes, go ahead",

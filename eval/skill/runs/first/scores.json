@@ -5,6 +5,12 @@
   "summary": {
     "tasks": 20,
     "passed": 18,
+    "excluded": 0,
+    "excluded_passed": 0,
+    "message_variants": [
+      0,
+      0
+    ],
     "trigger_hits": 12,
     "trigger_total": 12,
     "verdict_ok": 6,
@@ -59,7 +65,8 @@
       "agent_turns": 8,
       "calls": 2,
       "load_start": 7.4892578125,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-rolling-wrong-output",
@@ -86,7 +93,8 @@
       "agent_turns": 11,
       "calls": 2,
       "load_start": 11.669921875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-rolling-bench-edit",
@@ -113,7 +121,8 @@
       "agent_turns": 7,
       "calls": 2,
       "load_start": 11.06689453125,
-      "passed": false
+      "passed": false,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-membership-fix",
@@ -140,7 +149,8 @@
       "agent_turns": 8,
       "calls": 2,
       "load_start": 10.0087890625,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-membership-wrong-output",
@@ -167,7 +177,8 @@
       "agent_turns": 11,
       "calls": 2,
       "load_start": 9.412109375,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "prove-membership-bench-edit",
@@ -199,7 +210,8 @@
       "agent_turns": 7,
       "calls": 2,
       "load_start": 7.26025390625,
-      "passed": false
+      "passed": false,
+      "bar_excluded": null
     },
     {
       "task_id": "find-rolling-light",
@@ -226,7 +238,8 @@
       "agent_turns": 18,
       "calls": 4,
       "load_start": 7.66845703125,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "find-membership-light",
@@ -253,7 +266,8 @@
       "agent_turns": 12,
       "calls": 3,
       "load_start": 6.7353515625,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-make-faster",
@@ -280,7 +294,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 11.5263671875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-why-slow",
@@ -307,7 +322,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 11.16357421875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-wrong-perf",
@@ -334,7 +350,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.91064453125,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-find-inefficiencies",
@@ -361,7 +378,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.43701171875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-speed-up-fn",
@@ -388,7 +406,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 9.84130859375,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-profile",
@@ -415,7 +434,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 9.37353515625,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-pr-faster",
@@ -442,7 +462,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.55810546875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "pos-verify-claim",
@@ -469,7 +490,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 11.31396484375,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "neg-typo",
@@ -496,7 +518,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.73681640625,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "neg-add-test",
@@ -523,7 +546,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.517578125,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "neg-explain",
@@ -550,7 +574,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.23583984375,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     },
     {
       "task_id": "neg-rename",
@@ -577,7 +602,8 @@
       "agent_turns": 3,
       "calls": 1,
       "load_start": 10.13671875,
-      "passed": true
+      "passed": true,
+      "bar_excluded": null
     }
   ]
 }

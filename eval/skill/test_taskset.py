@@ -14,8 +14,9 @@ TASKS = taskset.load().tasks
 
 def test_task_ids_are_unique_and_cover_the_brief() -> None:
     ids = [t.id for t in TASKS]
+    base = [t for t in TASKS if "-msg-" not in t.id]
     assert len(ids) == len(set(ids))
-    kinds = {k: sum(t.kind == k for t in TASKS) for k in ("prove", "find")}
+    kinds = {k: sum(t.kind == k for t in base) for k in ("prove", "find")}
     assert kinds == {"prove": 6, "find": 2}
     triggers = [t for t in TASKS if t.kind == "trigger"]
     assert sum(t.expect.trigger for t in triggers) == 8

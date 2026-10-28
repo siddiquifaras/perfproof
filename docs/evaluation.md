@@ -195,9 +195,69 @@ can change this answer.
 
 | Family | Seeded as | Prompt | Passes when |
 |---|---|---|---|
-| hidden-fix | the task commit, no later history | `/perfproof light` (the Django task adds "Our login-protected views are slower than they should be.": a user names the slow area, never the function or the fix), then "yes, go ahead with your suggestions" | the known function is in the first 5 rows of either list (when the task directory holds `profile-<name>-<id>.json`, the `result.json` files `perfproof profile` saved, the lists are those files': the union of the first N of `hotspots` and of `frames_by_total` of every result whose `finished_at` is before the `timestamp` of the event carrying the first detected edit, with no reading of what the agent printed; a profile id in a tool call is not used, since a piped call does not show it; runs archived before the CLI saved results, and any with a file that cannot be read, use the printed text as follows) as the agent printed it (`hotspots`, by self share, or `frames_by_total`, by total share; the output must name the list, by the CLI's table titles or by the key or heading, not a list of key names, else it is read as one list by total share, and a row is never re-ranked by the other list's share) of the first successful `perfproof profile` call before the first detected edit of the code (a failed attempt before it is fine; detection is pattern based, so an edit made in a way the patterns miss is not seen) and is named after it (the small examples need rank 1; the two rules are counted apart); a function matches by its short name as profilers print it (argument list, Rust hash, package path and receiver punctuation stripped; the owner path compared as a trailing match when the manifest gives one; a frame with no file needs such an owner; `#` and `.` stay distinct), and is named after it only in its owner-qualified form (`Echo.ServeHTTP`, not `ServeHTTP`) and only for the accepted function the profile showed, and a manifest may accept further (function, file) pairs with a stated reason, for a function the compiler inlined or a wrapper that runs per call; a `perfproof/*` branch, if any, passes the manifest's tests and edits no test file; tree clean; `Result:` line and wording rules hold; no network lookup of the fix |
+| hidden-fix | the task commit, no later history | `/perfproof light` (the Django task adds "Our login-protected views are slower than they should be.": a user names the slow area, never the function or the fix), then "yes, go ahead with your suggestions" | the known function is in the first 15 rows of either list (`taskset.SKILL_READ_ROWS`: the rows the skill tells the agent to print and read, kept equal to the skill by a test) (when the task directory holds `profile-<name>-<id>.json`, the `result.json` files `perfproof profile` saved, the lists are those files': the union of the first N of `hotspots` and of `frames_by_total` of every result whose `finished_at` is before the `timestamp` of the event carrying the first detected edit, with no reading of what the agent printed; a profile id in a tool call is not used, since a piped call does not show it; runs archived before the CLI saved results, and any with a file that cannot be read, use the printed text as follows) as the agent printed it (`hotspots`, by self share, or `frames_by_total`, by total share; the output must name the list, by the CLI's table titles or by the key or heading, not a list of key names, else it is read as one list by total share, and a row is never re-ranked by the other list's share) of the first successful `perfproof profile` call before the first detected edit of the code (a failed attempt before it is fine; detection is pattern based, so an edit made in a way the patterns miss is not seen) and is named after it (the small examples need rank 1; the two rules are counted apart); a function matches by its short name as profilers print it (argument list, Rust hash, package path and receiver punctuation stripped; the owner path compared as a trailing match when the manifest gives one; a frame with no file needs such an owner; `#` and `.` stay distinct), and is named after it only in its owner-qualified form (`Echo.ServeHTTP`, not `ServeHTTP`) and only for the accepted function the profile showed, and a manifest may accept further (function, file) pairs with a stated reason, for a function the compiler inlined or a wrapper that runs per call; a `perfproof/*` branch, if any, passes the manifest's tests and edits no test file; tree clean; `Result:` line and wording rules hold; no network lookup of the fix |
 | known-change | `main` at the parent, the fix on `pr-<n>` | a plain "is this PR actually faster?" naming the branch | the skill starts, `compare` ran, the verdict is INCONCLUSIVE, no code changed, `Result:` line correct |
 | nothing-to-keep | the merge, optimization already in | `/perfproof light`, same follow-ups | no KEEP, tree clean, wording and `Result:` line hold |
+
+**Hidden-fix trees hold no workload made for the task.** A hidden-fix
+agent writes its own workload. Setup used to copy the task's own
+benchmark into the tree (`eval_bench.js` for fastify, whose comment named
+the PR and the child logger; `eval_servehttp_bench_test.go` for Echo;
+`eval-wl/Base64Workload.class` for Jackson, and the same kind of file
+for simdjson, Markdig and fd's `eval-tree`). Each `checks.json` entry
+that does this lists the paths in `planted`, and for a hidden-fix task
+(`taskset.Task.is_hidden_fix`: a `find` task with a known hotspot)
+`realrepo.run_setup(..., hide_planted=True)` deletes them after the
+build and before the untracked files are written to `.git/info/exclude`,
+so neither the files nor their names are left. The harness's own
+workload and oracle checks (`eval/mine/check.py`) run the same setup
+commands in their own trees and are untouched. Known-change and
+nothing-to-keep tasks hand the agent a workload on purpose and keep
+their files. `eval_builder_tests` (simdjson) stays: it is the oracle's
+binary, built from the project's own tests. Traces outside the tree
+(the toolchain's build cache in the task's private home) are not
+removed; whether they hold anything the agent could read as a hint
+was not checked.
+`test_hidden_fix_tasks.py` checks that a hidden-fix manifest whose setup
+uses a task workload file lists at least one planted path, that each
+listed name appears in its setup or workload script (not that the list
+is complete), that a setup run with `hide_planted` leaves none of it in
+the tree or in `exclude`, and that the runner passes the flag for
+hidden-fix tasks only.
+
+**Tasks excluded from the pass bar.** A task whose win cannot be seen
+end to end cannot be passed honestly, and counting it would hide real
+results. Such a task carries `bar_exclusion` (a reason and the
+evidence) in its task file; the scorer still scores it, `scores.json`
+keeps its `bar_excluded` reason, and the report lists it under
+"Excluded from the pass bar". `Summary.tasks` and `passed` leave it
+out and `excluded`, `excluded_passed` count it. The wrong-KEEP count,
+cost and the per-check rates still include it, so no guard is
+loosened. Two tasks are excluded, with the evidence in their task
+files: `real-django-hidden-fix` (the cap of the fix is about 1.017, under
+the 3% bar; the PR's win, 749 ns to 262 ns per call, is invisible in a
+login-protected request) and `ruby-rails-find` (`String#blank?`, a
+micro win of the same kind). The Django cap comes from the round 9 run 1
+diagnosis and was not recomputed for the fixed function; nothing was
+measured for the Rails task.
+
+**Prompt variants.** Real users often give no workload, ramble, or
+overstate. Eight tasks repeat a task with only the prompt changed, and
+keep its repository, follow-ups, locks and scoring; their ids carry
+`-msg-` and the report counts them on their own line. A prompt never
+names the hidden function (a test checks the manifest's names).
+
+| Style | `tasks.json` | `tasks-real.json` |
+|---|---|---|
+| no workload | `find-rolling-msg-bare` (`/perfproof` alone) | `real-fd-msg-bare` ("make this faster") |
+| vague | `find-membership-msg-vague` | `real-fd-msg-vague` |
+| rambling, one hint buried | `find-rolling-msg-rambling` | `real-xarray-msg-rambling` |
+| wrong claim | `find-membership-msg-claim` (the database layer; this repo has none) | `real-xarray-msg-claim` (reading netCDF from disk; the workload is in memory) |
+
+The wrong-claim tasks have no extra check. They pass on the task's own
+rule: the known function ranks in a real profile before any edit and is
+named without a negation, so an agent that chased the claim without
+profiling, or never named the real cost, fails.
 
 **What the agent can reach.** The agent has unrestricted `Bash`, so
 three layers (`eval/skill/sandbox.py`) stand between it and the owner's
@@ -226,7 +286,7 @@ a denied binary, and by files nobody had listed.
      Pythons), `~/.local/share/claude` (the `claude` install),
      `~/.local/jdk`, `~/.local/go` (without `$GOROOT/go.env`, `go env
      GOPROXY` is empty and module downloads fail), `~/.local/dotnet`,
-     `~/.local/ruby`, `~/.cargo/bin`
+     `~/.local/ruby`, `~/.dotnet/tools` (the eval user's `dotnet-trace`; only when the agents run as that user), `~/.cargo/bin`
      (not its `config.toml` or
      `credentials*`), `~/.rustup`, `~/.nvm`. System paths stay readable.
      Nothing of `~/.claude`, `~/.claude.json`, `~/.ssh`, `~/.config`,

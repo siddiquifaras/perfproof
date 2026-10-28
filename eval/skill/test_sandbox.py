@@ -2097,3 +2097,17 @@ def test_the_auth_probe_runs_in_a_session_of_its_own(
     assert seen["token_kwargs"] == {"refresh": sandbox.refresh_sign_in}
     assert seen["start_new_session"] is True
     assert "tok-secret-1" not in record.read_text(encoding="utf-8")
+
+
+def test_a_native_dotnet_on_path_is_named_dotnet_root(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "dotnet-home"
+    host.mkdir()
+    (host / "dotnet").write_text("", encoding="utf-8")
+    plain = tmp_path / "bin"
+    plain.mkdir()
+    env = sandbox.agent_env(_FAKE, tmp_path / "s", [plain, host])
+    assert env["DOTNET_ROOT"] == str(host)
+    without = sandbox.agent_env(_FAKE, tmp_path / "s2", [plain])
+    assert "DOTNET_ROOT" not in without

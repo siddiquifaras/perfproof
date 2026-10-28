@@ -656,6 +656,13 @@ def test_a_function_in_a_hotspots_path_does_not_pass_the_check(
     form: str,
 ) -> None:
     task = _task("tasks-real.json", "real-xarray-hidden-fix")
+    assert task.expect.hotspot is not None
+    # The row is rank 9, outside a window of five. This test is about
+    # the heading parse, not the task's window, so it fixes the window.
+    five = task.expect.hotspot.model_copy(update={"top_n": 5})
+    task = task.model_copy(
+        update={"expect": task.expect.model_copy(update={"hotspot": five})}
+    )
     printed = (
         _list_with_the_word_in_row_six(form)
         .replace("tgt a.py", "is_dask_collection xarray/core/pycompat.py")

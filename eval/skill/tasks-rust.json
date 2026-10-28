@@ -26,7 +26,7 @@
         "hotspot": {
           "file": "src/output.rs",
           "function": "fd::output::print_entry",
-          "top_n": 5
+          "top_n": "skill"
         }
       }
     },

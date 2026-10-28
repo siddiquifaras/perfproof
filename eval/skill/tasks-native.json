@@ -24,7 +24,7 @@
         "hotspot": {
           "file": "src/to_chars.cpp",
           "function": "simdjson::internal::to_chars",
-          "top_n": 5
+          "top_n": "skill"
         }
       }
     },
