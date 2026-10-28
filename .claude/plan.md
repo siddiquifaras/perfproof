@@ -36,6 +36,10 @@ Tracks run in parallel; dates are when each must be done.
 **Revised 2026-10-28 after the 10-24 to 10-28 pause (lead).** Launch stays 11-02.
 - 10-28: T2.15 guardrails (#90) merged; skill round 9 rounds 2 and 3;
   T3.16 install and first run.
+- 10-28 to 10-30: discovery fixed before launch (Faras, 10-28):
+  hidden-fix tasks were 1 of 10 in round 9 run 1 against 7 of 10 for
+  proving a change. Diagnose where it breaks first, then fix it in the
+  skill or the CLI, iterating on the hidden-fix tasks.
 - 10-29: CALIBRATED prerequisites (the GPU real-trace cell at larger R;
   `keep_blocked` for custom schedules and alpha; the calibrated domain
   in method.md; committed traces); the p99 measurement channel; T3.15
