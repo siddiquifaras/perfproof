@@ -245,6 +245,24 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
   user stands, the gap, a concrete next step and "keep going?"; never a
   dead end. Numbers are information, never a verdict.
 
+- **Discovery diagnosis (round 9 run 1, 2026-10-28):** hidden-fix 1 of 10. The causes, bucketed by task:
+  - **Scorer window:** top 5, while the skill reads 15. The hidden function sat at ranks 11 to 14 on xarray, real-fd and rust-fd, and xarray was fixed and named.
+  - **Planted hint workloads:** in the fastify, Go echo (the only pass) and Java trees.
+  - **Workloads that never execute the hidden code:** fd piped (colour off), jackson, simdjson, rails.
+  - **Light depth:** one workload and one idea. No agent ever tried a second workload or the project's tests.
+  - **Two tasks that can't pass honestly:** django at 1.7% and rails `blank?`, both micro wins under the 3% bar.
+
+  Plan:
+  - (1) Eval fixes: window equals the skill's read size, no planted hints for hidden-fix, django and rails excluded from the bar with evidence, dotnet-trace and SDK 9 for ppeval (`task/t3.8-hidden-fix-tasks`).
+  - (2) CLI `profile show --function` and `project_frames_above_bar` (`task/profile-query`).
+  - (3) Skill:
+    - run the program as users run it (modes, tty versus pipe, flags);
+    - read the branches the workload skipped;
+    - a second workload from the project's tests or benchmarks when no project entry point is near the bar;
+    - query a suspect function's share instead of stopping.
+
+    Iterate on the hidden-fix tasks only, then a full round.
+
 ### In progress
 
 Resumed 2026-10-21 on Faras's "continue". Stop at the next 5-hour limit and do not restart.
