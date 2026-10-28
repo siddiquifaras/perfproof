@@ -1,5 +1,6 @@
 """Unit tests of the real-trace loader and replicate builder."""
 
+import gzip
 import json
 import math
 from pathlib import Path
@@ -76,3 +77,28 @@ def test_odd_or_oversized_blocks_are_refused(tmp_path: Path) -> None:
         rt.replicate_indexes(trace, 5, 2, 10, rng)
     with pytest.raises(ValueError, match="exceeds"):
         rt.replicate_indexes(trace, 40, 2, 10, rng)
+
+
+def test_committed_traces_load_and_include_picolm() -> None:
+    traces = {t.name: t for t in rt.load_all()}
+    assert "linux-picolm" in traces
+    assert traces["linux-picolm"].pairs == 1000
+    assert not any(rt.EXCLUDED_SUFFIX in name for name in traces)
+    assert all(t.pairs >= 2 for t in traces.values())
+
+
+def test_missing_traces_fail_with_a_clear_message(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="no A/A traces in"):
+        rt.load_all(tmp_path)
+    with pytest.raises(FileNotFoundError, match="no A/A traces in"):
+        rt.load_all(tmp_path / "absent")
+
+
+def test_loader_reads_gzip(tmp_path: Path) -> None:
+    plain = tmp_path / "linux-g.jsonl"
+    _write(plain, 20)
+    packed = tmp_path / "linux-h.jsonl.gz"
+    packed.write_bytes(gzip.compress(plain.read_bytes()))
+    a, b = rt.load_trace(plain), rt.load_trace(packed)
+    assert b.name == "linux-h"
+    assert np.array_equal(a.d, b.d)

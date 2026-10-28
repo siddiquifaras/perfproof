@@ -279,6 +279,7 @@ from perfproof.stats.sequential import (
     Resolution,
     continuity_fails,
     decide_look,
+    in_calibrated_domain,
     lag1_autocorrelation,
     look_confidence,
     plan_looks,
@@ -827,6 +828,21 @@ class _Run:
                         f"{LAG1_MIN_BLOCKS * BATCH_BLOCK} rounds or more, "
                         "outside the schedules the procedure was "
                         "calibrated on: the comparison runs, but this "
+                        "verdict can never be a KEEP"
+                    ),
+                )
+            )
+        elif not _in_domain(spec):
+            self.warnings.append(
+                RunWarning(
+                    code="schedule_uncalibrated",
+                    message=(
+                        f"alpha {spec.alpha} with the look schedule (n0 "
+                        f"{spec.looks.n0}, k {spec.looks.k}, "
+                        f"{spec.looks.max_looks} looks, up to "
+                        f"{spec.budget.max_rounds} rounds) is outside the "
+                        "calibrated domain (alpha 0.05 and the four "
+                        "class schedules): the comparison runs, but this "
                         "verdict can never be a KEEP"
                     ),
                 )
@@ -2095,9 +2111,12 @@ def keep_blocked(spec: BenchmarkSpec) -> bool:
     with no value to measure: ``peak_memory`` in a unit other than
     bytes; or a default one left undeclared), or when the look schedule
     is outside the calibrated ones (more than one look at 120
-    observations or more, see `late_looks`). A measured or reported
-    guardrail does not block here: whether it passes is decided at each
-    look from its values, and a reported one missing from a round is
+    observations or more, see `late_looks`), or when the schedule or
+    ``alpha`` is outside the calibrated domain
+    (`perfproof.stats.sequential.in_calibrated_domain`). A measured or
+    reported guardrail does not block here: whether it passes is
+    decided at each look from its values, and a reported one missing
+    from a round is
     ``unmeasurable`` then. Rule 2 then ends INCONCLUSIVE at that look;
     REJECTs are unaffected.
 
@@ -2118,7 +2137,13 @@ def keep_blocked(spec: BenchmarkSpec) -> bool:
         )
         or bool(undeclared_guardrails(spec))
         or late_looks(spec) > 1
+        or not _in_domain(spec)
     )
+
+
+def _in_domain(spec: BenchmarkSpec) -> bool:
+    """Whether the spec's schedule and ``alpha`` are calibrated."""
+    return in_calibrated_domain(spec.looks, spec.budget.max_rounds, spec.alpha)
 
 
 def undeclared_guardrails(spec: BenchmarkSpec) -> tuple[str, ...]:

@@ -289,7 +289,7 @@ optional `limit_quantile` loses nothing, and a spec that sets no
 | Field | Type | |
 |---|---|---|
 | `label`, `limit` | string, number | The limit's label and cap, in the guardrail's unit |
-| `quantile` | number | The statistic the cap is on: 0.5 (the median) unless the spec declares `limit_quantile`, such as 0.99 |
+| `quantile` | number | The statistic the cap is on: 0.5 (the median) unless the spec declares `limit_quantile` (such as 0.99; only the median is calibrated) |
 | `typical` | number | The sample's own value of that statistic |
 | `reliable_value` | number or null | The one-sided bound in the cap's direction, in these runs: the upper bound for a cap, the lower for a floor. Its design confidence holds only for rounds that behave like a stable machine; it is not claimed for drift or another machine. Null while too few rounds give a bound, and for a guardrail recorded `unmeasurable` |
 | `gap` | number or null | `reliable_value - limit`, signed; null with `reliable_value`. For a cap, at most 0 is met; for a floor, at least 0 |

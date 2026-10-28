@@ -2925,9 +2925,11 @@ that case and is not shown for drift. Known limits, measured by the
 audits: on persistent series the bound misses its tail (local-level
 10.5% to 12.1%, regime 1.5% to 5.9% at fixed `n = 120`, over two audit
 runs, against 0.21%; on the repo's real A/A traces at `n = 120`, loaded
-Linux rows up to 7.3% and 18.4%, Mac rows up to 19.5% and 32.2%, 28 of
-32 Mac rows above 4 times the tail; verdict-level false passes at 1.01
-of 62 to 391 of 4000 across the audits), and the failed replacements are recorded under
+Linux rows up to 10.9% and 18.4%, Mac rows up to 19.5% and 32.2%, 14 of
+16 Mac rows at `n = 120` above 4 times the tail (28 of 32 counts `n` =
+60 and 120 together); verdict-level false passes at 1.01 of 62 to 391
+of 4000 across the audits, and 781 of 4000 in a period-150
+oscillation), and the failed replacements are recorded under
 "Guardrail calibration results". The `CALIBRATED` flip for guardrail
 caps does not claim coverage under persistent drift. No diagnostic that
 already exists detects drift in the candidate's own values (the gate on
@@ -3175,6 +3177,37 @@ shows first.
 - Passing supports the procedure under the conditions tested, not in
   general. Every report names the conditions its target class was
   calibrated under.
+
+### The calibrated domain
+
+Calibration supports the procedures under the conditions tested, and
+`CALIBRATED` claims no more than that. The domain is:
+
+- **`alpha` 0.05**, the default. The acceptance rule was run at no other
+  level, and the gated primary breaches the 2.5% limit at `alpha` 0.1
+  and 0.2 (stats-auditor on PR #85).
+- **One of the four class schedules**, as `(n0, k, K, max_rounds)`:
+  `python_native` `(10, 10, 6, 60)`, `web_agentic` `(10, 10, 3, 30)`,
+  `llm_serving` `(10, 6, 3, 22)` and `gpu_kernels` `(20, 20, 6, 120)`.
+  The time budget is not part of the key (calibration cuts runs by it).
+  `hac_lf` decides the first three and the gated batch means the
+  fourth ("The T1.11 decision").
+
+Outside it, any other schedule or any `alpha` but 0.05, there is no
+acceptance evidence, so perfproof withholds the KEEP and nothing else.
+The comparison runs, measures and reports as usual, the interval is
+recorded, and a REJECT (a failed gate, a breached guardrail, or a
+rule 3 interval below the bar) is decided as in the domain. Where rule
+2 would keep, the outcome is INCONCLUSIVE with reason
+`insufficient_evidence` and the warning `schedule_uncalibrated`, which
+names the `alpha` and the schedule and says the verdict can never be a
+KEEP. The code is `perfproof.stats.sequential.in_calibrated_domain`,
+used by `keep_blocked` in `bench/compare.py`. A schedule with more than
+one look at 120 observations or more is also withheld ("Stopping"),
+inside or outside the list. A REJECT is not withheld outside the
+domain, and its false-REJECT rate there was not measured either; the
+report's claim for it is as scoped as for a KEEP. The acceptance rule's
+cells are about the domain only.
 
 ### Development scenarios
 
@@ -4382,6 +4415,28 @@ calibration is under "Calibration results"), the real traces beyond the
 the golden set's regression subset replays to the same verdicts
 (`tests/golden/`, `test_golden_replay.py`).
 
+**Real-trace cell `linux-picolm/fixed20/gpu_kernels/1.03` of the gated
+primary.** The cell ran on an interim 141-pair prefix and failed at two
+of three audit seeds (85, 90 and 98 false KEEPs of 4000, bound up to
+2.89%); the failure stands. The prefix is the first 284 records of the
+committed 1000-pair `tests/calibration/traces/data/linux-picolm.jsonl.gz`
+(verified byte for byte). Over 40 further seeds at `R = 4000` its pooled
+rate was 2.05% (95% interval 1.99% to 2.11%). Reruns at `R = 40000`
+(about 2.1%) are diagnostics, not a pass: the acceptance rule above bars
+a rerun of a failing cell at a larger `R` or another seed. The
+diagnostic at seed `2287571529693778369` (block 20, `gpu_kernels`
+schedule, one host, an unkeyed replicate stream) gave 830 false KEEPs of
+40000 (2.075%, Clopper-Pearson 95% upper bound 2.196%); `run_real.py`'s
+keyed stream at the same seed gives 785. The same seed on the full
+1000-pair trace gave 200 of 40000 (0.50%). For scale, a cell of true
+rate 2.11% passes the rule with probability 0.47 at `R = 4000` (83 the
+largest passing count), 0.978 at 20000 and 0.9998 at 40000 (948). The
+trace of record for `linux-picolm` is the 1000-pair file, in a whole
+real-trace run at a fresh seed. The committed traces are not the 19
+traces of the earlier real-trace runs: those read the Mac traces under
+older names, and the committed set has more
+(`tests/calibration/real_traces.py`).
+
 ### Guardrail calibration results
 
 Written by T2.15, from the cells prespecified under "Guardrail cells".
@@ -4511,12 +4566,14 @@ real traces. A local-level series (slow share 0.5, `rho` 0.97) at fixed
 `n = 120` missed the median above 10.6% and below 12.1% of the time
 against a 0.21% tail, a persistent two-state regime 5.6% and 1.5%, and
 on the repo's real A/A traces at `n = 120` loaded Linux rows missed up
-to 7.3% and 18.4% and Mac rows up to 19.5% and 32.2%, 28 of 32 Mac rows
-above 4 times the tail (quiet Linux traces were fine, worst 0.91%; the
+to 10.9% and 18.4% and Mac rows up to 19.5% and 32.2%, 14 of 16 Mac rows
+at `n = 120` above 4 times the tail (28 of 32 counts `n` = 60 and 120
+together) (quiet Linux traces were fine, worst 0.91%; the
 windows overlap, so those rates are noisy). Verdict-level false passes
 at a true ratio of 1.01 reached 211 to 368 of 4000 on the local-level
 series, and two drift scenarios (outside the cells, which exclude drift)
-gave 136 and 270 of 4000. So the stated confidence is a property of
+gave 136 and 270 of 4000, and a period-150 oscillation 781 of 4000.
+So the stated confidence is a property of
 series whose dependence is AR(1)-like; on persistent regimes and drift
 it is not shown and the audit found it false. Decision (lead, following Faras's standing rule): keep the rank bound
 and scope the claim to the session, as under "Scope of the claim"; no

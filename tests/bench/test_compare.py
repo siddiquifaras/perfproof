@@ -1374,10 +1374,82 @@ def test_a_kept_decision_is_withheld_off_the_calibrated_schedules(
     assert keep_blocked(spec) is blocked
 
 
+@pytest.mark.parametrize(
+    ("looks", "max_rounds", "alpha", "blocked"),
+    [
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, 0.05, False),
+        ({"n0": 10, "k": 10, "max_looks": 3}, 30, 0.05, False),
+        ({"n0": 10, "k": 6, "max_looks": 3}, 22, 0.05, False),
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, 0.05, False),
+        ({"n0": 10, "k": 10, "max_looks": 6}, 60, 0.1, True),
+        ({"n0": 10, "k": 10, "max_looks": 3}, 30, 0.2, True),
+        ({"n0": 10, "k": 6, "max_looks": 3}, 22, 0.01, True),
+        ({"n0": 20, "k": 20, "max_looks": 6}, 120, 0.1, True),
+        ({"n0": 10, "k": 10, "max_looks": 3}, 40, 0.05, True),
+        ({"n0": 12, "k": 2, "max_looks": 1}, 12, 0.05, True),
+    ],
+    ids=[
+        "python",
+        "web",
+        "llm",
+        "gpu",
+        "python-alpha-0.1",
+        "web-alpha-0.2",
+        "llm-alpha-0.01",
+        "gpu-alpha-0.1",
+        "custom-schedule",
+        "single-look-schedule",
+    ],
+)
+def test_a_kept_decision_is_withheld_outside_the_calibrated_domain(
+    looks: dict[str, int], max_rounds: int, alpha: float, blocked: bool
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            looks=looks,
+            budget={"max_rounds": max_rounds, "max_seconds": 600.0},
+            alpha=alpha,
+            guardrails=NOT_APPLICABLE,
+        )
+    )
+    assert keep_blocked(spec) is blocked
+
+
+def test_a_custom_schedule_ends_inconclusive_with_the_reason_once_calibrated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = slow_baseline(tmp_path)
+    result = project.run(faster_candidate(project), keepworthy_spec())
+    blocked_everywhere(seen)
+    assert_withheld(result, blocker="schedule_uncalibrated")
+    warned = [
+        w for w in result.record.warnings if w.code == "schedule_uncalibrated"
+    ]
+    assert len(warned) == 1
+    assert "calibrated domain" in warned[0].message
+
+
+def test_alpha_other_than_the_default_ends_inconclusive_once_calibrated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = calibrated(monkeypatch)
+    project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
+    result = project.run(faster_candidate(project), web_spec(alpha=0.1))
+    assert all(seen.blocked), seen.blocked
+    assert (seen.rules[-1], seen.held[-1]) == (2, True)
+    assert_withheld(result, blocker="schedule_uncalibrated")
+    warned = [
+        w for w in result.record.warnings if w.code == "schedule_uncalibrated"
+    ]
+    assert len(warned) == 1
+    assert "alpha 0.1" in warned[0].message
+
+
 def test_the_default_schedules_have_no_late_look_warning(
     project: Project,
 ) -> None:
-    result = project.run(project.candidate("same", {}))
+    result = project.run(project.candidate("same", {}), web_spec())
     assert "schedule_uncalibrated" not in {
         w.code for w in result.record.warnings
     }
@@ -2037,7 +2109,16 @@ def slow_baseline(tmp_path: Path, **kwargs: Any) -> Project:
 def blocked_everywhere(seen: Seen) -> None:
     assert seen.blocked, "no look was taken"
     assert all(seen.blocked), seen.blocked
-    assert all(seen.held), (seen.rules, seen.held)
+    assert 2 in seen.rules, f"no rule 2 look was taken: {seen.rules}"
+    held = [h for r, h in zip(seen.rules, seen.held, strict=True) if r == 2]
+    assert all(held), (seen.rules, seen.held)
+
+
+def web_project(tmp_path: Path, **kwargs: Any) -> Project:
+    """A project whose baseline is twice as slow, for `web_spec`."""
+    return make_project(
+        tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0), **kwargs
+    )
 
 
 def assert_withheld(result: CompareResult, *, blocker: str) -> None:
@@ -2061,15 +2142,15 @@ def test_control_nothing_unverified_is_not_blocked(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen = calibrated(monkeypatch)
-    project = slow_baseline(tmp_path)
-    spec = keepworthy_spec()
+    project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
+    spec = web_spec()
     with pytest.raises(CompareStoppedError) as stopped:
         project.run(faster_candidate(project), spec)
     # A KEEP is not built in the thin path: the look would have kept.
     assert stopped.value.code == "internal_fault"
-    assert seen.blocked == [False]
-    assert seen.rules == [2]
-    assert seen.held == [False]
+    assert seen.blocked == [False, False]
+    assert seen.rules == [4, 2]
+    assert seen.held == [False, False]
 
 
 def memory_work(scale: float, mib: int) -> str:
@@ -2300,12 +2381,10 @@ def test_an_unidentified_runtime_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen = calibrated(monkeypatch)
-    project = slow_baseline(
+    project = web_project(
         tmp_path, executables={"run.sh": "#!/bin/sh\nexec python bench.py\n"}
     )
-    spec = keepworthy_spec(
-        command=["./run.sh"], harness=["bench.py", "run.sh"]
-    )
+    spec = web_spec(command=["./run.sh"], harness=["bench.py", "run.sh"])
     result = project.run(faster_candidate(project), spec)
     blocked_everywhere(seen)
     assert_withheld(result, blocker="runtime")
@@ -2320,8 +2399,8 @@ def test_an_unreadable_host_identity_blocks_keep_at_every_look(
         update={"host_id": None, "missing": {**real.missing, "host_id": "x"}}
     )
     monkeypatch.setattr(compare_module, "fingerprint", lambda: blind)
-    project = slow_baseline(tmp_path)
-    result = project.run(faster_candidate(project), keepworthy_spec())
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec())
     blocked_everywhere(seen)
     assert_withheld(result, blocker="same_host")
 
@@ -2338,10 +2417,10 @@ def test_a_host_identity_lost_after_the_last_look_withholds_keep(
     monkeypatch.setattr(
         compare_module, "fingerprint", lambda: next(calls, blind)
     )
-    project = slow_baseline(tmp_path)
-    result = project.run(faster_candidate(project), keepworthy_spec())
+    project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
+    result = project.run(faster_candidate(project), web_spec())
     # Nothing blocked at the look: the host was readable then.
-    assert seen.blocked == [False]
+    assert seen.blocked == [False, False]
     assert_withheld(result, blocker="same_host")
     assert gates(result.record)["same_host"] == "not_available"
 
@@ -2350,10 +2429,8 @@ def test_no_correctness_check_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen = calibrated(monkeypatch)
-    project = slow_baseline(tmp_path)
-    result = project.run(
-        faster_candidate(project), keepworthy_spec(correctness={})
-    )
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec(correctness={}))
     blocked_everywhere(seen)
     assert_withheld(result, blocker="correctness")
 
@@ -2362,8 +2439,8 @@ def test_coverage_not_available_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen = calibrated(monkeypatch, coverage_passed=False)
-    project = slow_baseline(tmp_path)
-    result = project.run(faster_candidate(project), keepworthy_spec())
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec())
     blocked_everywhere(seen)
     assert_withheld(result, blocker="coverage")
 
@@ -2372,8 +2449,8 @@ def test_an_undeclared_guardrail_blocks_keep_at_every_look(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen = calibrated(monkeypatch)
-    project = slow_baseline(tmp_path)
-    spec = keepworthy_spec(objective=None, guardrails=[])
+    project = web_project(tmp_path)
+    spec = web_spec(objective=None, guardrails=[])
     result = project.run(faster_candidate(project), spec)
     blocked_everywhere(seen)
     assert_withheld(result, blocker="peak_memory")
@@ -2390,7 +2467,7 @@ def test_a_counter_fallback_blocks_keep_at_every_look(
     monkeypatch.setattr(compare_module, "counter_unavailable_reason", no_perf)
     # Wall time of the whole command: the work itself must dominate it.
     project = make_project(tmp_path, baseline=work(0.4))
-    spec = keepworthy_spec(
+    spec = web_spec(
         metric={
             "kind": "counter",
             "direction": "lower_is_better",
@@ -2427,8 +2504,8 @@ def test_an_unknown_resolution_blocks_keep_at_every_look(
         return None
 
     monkeypatch.setattr(compare_module, "_printed_step", unreadable)
-    project = slow_baseline(tmp_path)
-    result = project.run(faster_candidate(project), keepworthy_spec())
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec())
     blocked_everywhere(seen)
     assert_withheld(result, blocker="resolution_unknown")
 

@@ -890,8 +890,9 @@ class GuardrailSpec(_Model):
     """Absolute limits on the candidate's own value."""
     limit_quantile: Level | None = None
     """The statistic every limit of this guardrail refers to: the
-    quantile of the candidate's own values a cap is on, such as ``0.99``
-    for a p99 cap. ``None`` means the median, ``0.5``. Left out of
+    quantile of the candidate's own values a cap is on (``0.99`` for a
+    p99 cap, which is not calibrated: only the median is). ``None``
+    means the median, ``0.5``. Left out of
     ``spec_hash`` while ``None``, so a spec written before this field
     existed keeps its hash."""
 
@@ -1846,7 +1847,8 @@ class LimitStanding(_Model):
     limit: Positive
     """The cap, in the guardrail's unit."""
     quantile: Level
-    """The statistic the cap is on: ``0.5`` the median, ``0.99`` p99."""
+    """The statistic the cap is on: ``0.5`` the median (calibrated),
+    ``0.99`` p99 (not)."""
     typical: Positive
     """The sample quantile of the candidate's values at that level, in
     the guardrail's unit: the median, or the declared quantile."""

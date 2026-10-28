@@ -443,7 +443,8 @@ def evaluate_guardrail(
         values themselves, which a step does not bias.
     quantile : float, default 0.5
         The statistic the limits are on, in ``(0, 1)``: the median
-        unless a project declares another, such as 0.99.
+        unless a project declares another (only the median is
+        calibrated).
 
     Returns
     -------
@@ -638,7 +639,10 @@ class LimitBounds:
     ----------
     lower, upper : numpy.ndarray of float64, shape (R,)
         Bounds on the quantile, each wrong with probability at most
-        ``tail``; NaN where there are too few effective rounds for a
+        ``tail`` for series whose dependence is AR(1)-like and has no
+        drift: on persistent regimes and drift the miss rate is far
+        higher (``docs/method.md``, "Scope of the claim"); NaN where
+        there are too few effective rounds for a
         bound on either side (both are NaN together).
     typical : numpy.ndarray of float64, shape (R,)
         The sample quantile of all the values.

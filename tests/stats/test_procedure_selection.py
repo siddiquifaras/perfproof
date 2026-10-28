@@ -5,7 +5,10 @@ import itertools
 import pytest
 
 from perfproof.schema import LookSchedule
-from perfproof.stats.sequential import procedure_for_schedule
+from perfproof.stats.sequential import (
+    in_calibrated_domain,
+    procedure_for_schedule,
+)
 
 HAC = ((10, 10, 6, 60), (10, 10, 3, 30), (10, 6, 3, 22))
 GATED = "t_log_ratio_batch_means"
@@ -78,3 +81,55 @@ def test_an_alpha_off_the_default_falls_back_to_the_gated_primary(
     # tabulated level, which would stop the run mid-comparison.
     chosen = procedure_for_schedule(schedule(n0, k, looks), max_rounds, alpha)
     assert chosen == GATED
+
+
+@pytest.mark.parametrize(
+    ("n0", "k", "looks", "max_rounds"), [*HAC, (20, 20, 6, 120)]
+)
+def test_the_four_class_schedules_are_in_the_calibrated_domain(
+    n0: int, k: int, looks: int, max_rounds: int
+) -> None:
+    assert in_calibrated_domain(schedule(n0, k, looks), max_rounds)
+
+
+@pytest.mark.parametrize("alpha", [0.01, 0.049999, 0.1, 0.2])
+@pytest.mark.parametrize(
+    ("n0", "k", "looks", "max_rounds"), [*HAC, (20, 20, 6, 120)]
+)
+def test_any_alpha_but_the_default_is_outside_the_domain(
+    n0: int, k: int, looks: int, max_rounds: int, alpha: float
+) -> None:
+    assert not in_calibrated_domain(schedule(n0, k, looks), max_rounds, alpha)
+
+
+@pytest.mark.parametrize(
+    ("n0", "k", "looks", "max_rounds"),
+    [
+        (12, 10, 6, 60),
+        (10, 10, 6, 62),
+        (10, 10, 5, 60),
+        (20, 20, 6, 118),
+        (20, 20, 6, 121),
+        (20, 10, 6, 120),
+        (10, 10, 4, 30),
+    ],
+)
+def test_a_custom_schedule_is_outside_the_domain(
+    n0: int, k: int, looks: int, max_rounds: int
+) -> None:
+    assert not in_calibrated_domain(schedule(n0, k, looks), max_rounds)
+
+
+def test_the_domain_is_exactly_the_four_schedules_at_the_default_alpha() -> (
+    None
+):
+    inside = {
+        (n0, k, looks, max_rounds, alpha)
+        for n0 in (10, 12, 20)
+        for k in (2, 5, 6, 10, 12, 20)
+        for looks in range(1, 9)
+        for max_rounds in range(1, 141)
+        for alpha in (0.05, 0.1)
+        if in_calibrated_domain(schedule(n0, k, looks), max_rounds, alpha)
+    }
+    assert inside == {(*key, 0.05) for key in (*HAC, (20, 20, 6, 120))}

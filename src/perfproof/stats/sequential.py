@@ -150,6 +150,7 @@ __all__ = [
     "SequentialResult",
     "continuity_fails",
     "decide_look",
+    "in_calibrated_domain",
     "lag1_autocorrelation",
     "look_confidence",
     "outlier_share",
@@ -208,6 +209,7 @@ _HAC_SCHEDULES: Final = frozenset(
         (10, 6, 3, 22),
     }
 )
+_CALIBRATED_SCHEDULES: Final = _HAC_SCHEDULES | {(20, 20, 6, 120)}
 _MAD_TO_SD: Final = 1.482602218505602
 _WITHHELD: Final = np.array(["", "autocorrelated_rounds", "outlier_rounds"])
 _EXACT_FLOATS: Final = frozenset(
@@ -459,6 +461,35 @@ def procedure_for_schedule(
     if key in _HAC_SCHEDULES and alpha == DEFAULT_ALPHA:
         return "hac_lf"
     return "t_log_ratio_batch_means"
+
+
+def in_calibrated_domain(
+    looks: LookSchedule, max_rounds: int, alpha: float = DEFAULT_ALPHA
+) -> bool:
+    """Whether a spec is inside the calibrated domain.
+
+    "The calibrated domain" in ``docs/method.md``: ``alpha`` equal to
+    `DEFAULT_ALPHA` and one of the four class schedules, ``(n0, k, K,
+    max_rounds)`` of ``(10, 10, 6, 60)``, ``(10, 10, 3, 30)``, ``(10,
+    6, 3, 22)`` and ``(20, 20, 6, 120)``. There is no acceptance
+    evidence outside it, so a KEEP there is withheld.
+
+    Parameters
+    ----------
+    looks : perfproof.schema.LookSchedule
+        The spec's look schedule.
+    max_rounds : int
+        The spec's round budget.
+    alpha : float, default `DEFAULT_ALPHA`
+        The spec's ``alpha``.
+
+    Returns
+    -------
+    bool
+        True only for the four schedules at the default ``alpha``.
+    """
+    key = (looks.n0, looks.k, looks.max_looks, max_rounds)
+    return key in _CALIBRATED_SCHEDULES and alpha == DEFAULT_ALPHA
 
 
 def look_confidence(alpha: float, max_looks: int) -> float:

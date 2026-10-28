@@ -1795,7 +1795,7 @@
             }
           ],
           "default": null,
-          "description": "The statistic every limit of this guardrail refers to: the\nquantile of the candidate's own values a cap is on, such as ``0.99``\nfor a p99 cap. ``None`` means the median, ``0.5``. Left out of\n``spec_hash`` while ``None``, so a spec written before this field\nexisted keeps its hash.",
+          "description": "The statistic every limit of this guardrail refers to: the\nquantile of the candidate's own values a cap is on (``0.99`` for a\np99 cap, which is not calibrated: only the median is). ``None``\nmeans the median, ``0.5``. Left out of\n``spec_hash`` while ``None``, so a spec written before this field\nexisted keeps its hash.",
           "title": "Limit Quantile"
         }
       },
@@ -2305,7 +2305,7 @@
           "type": "number"
         },
         "quantile": {
-          "description": "The statistic the cap is on: ``0.5`` the median, ``0.99`` p99.",
+          "description": "The statistic the cap is on: ``0.5`` the median (calibrated),\n``0.99`` p99 (not).",
           "exclusiveMaximum": 1,
           "exclusiveMinimum": 0,
           "title": "Quantile",

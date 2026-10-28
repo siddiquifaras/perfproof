@@ -23,6 +23,7 @@ to even) or fixed.
 Nothing here touches the network.
 """
 
+import gzip
 import json
 import math
 from dataclasses import dataclass
@@ -33,26 +34,13 @@ import numpy as np
 from inference import FloatArray, order_centre, politis_white_length
 from numpy.typing import NDArray
 
-SOURCES: Final = (
-    (Path("/Users/faras/code/perfproof/scratch/linux-peek"), "linux-*.jsonl"),
-    (
-        Path(
-            "/Users/faras/code/perfproof/.claude/worktrees/"
-            "agent-adffba1a6b1fcf18d/scratch/traces/data"
-        ),
-        "mac-*.jsonl",
-    ),
-    (
-        Path(
-            "/Users/faras/code/perfproof/.claude/worktrees/"
-            "agent-adffba1a6b1fcf18d/scratch/traces/data"
-        ),
-        "linuxvm-*.jsonl",
-    ),
-)
-"""Where the recorded traces are: the Hetzner Linux traces, and the
-Mac and Linux-VM traces of the T2.11 worker (read only; the same
-worktree's ``linux-*`` files are the Hetzner ones already listed)."""
+TRACE_DIR: Final = Path(__file__).parent / "traces" / "data"
+"""The committed traces (T2.11 phase 1, PR #84): ``<label>.jsonl.gz``
+beside ``<label>.header.json``."""
+PATTERNS: Final = ("linux-*.jsonl.gz", "linuxvm-*.jsonl.gz", "mac-*.jsonl.gz")
+"""Which committed traces are A/A traces of the real hosts."""
+EXCLUDED_SUFFIX: Final = "-partial-before-retry"
+"""A run cut short and redone; kept in the repo for the record only."""
 FIXED_BLOCKS: Final = (6, 20)
 """Fixed block lengths (even: 5 would split an order pair, so 6, the
 primary's block, stands for 5)."""
@@ -95,7 +83,8 @@ def load_trace(path: Path) -> Trace:
         pairs.
     """
     pairs: dict[int, dict[str, tuple[float, float, int]]] = {}
-    with path.open() as source:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt") as source:
         for line in source:
             r = json.loads(line)
             if r["warmup"]:
@@ -121,7 +110,7 @@ def load_trace(path: Path) -> Trace:
     load_b = np.array([pairs[p]["B"][1] for p in keep])
     first = np.array([pairs[p]["B"][2] == 0 for p in keep], dtype=np.bool_)
     return Trace(
-        name=path.stem,
+        name=path.name.removesuffix(".gz").removesuffix(".jsonl"),
         t_base=t_a,
         d=np.log(t_a / t_b),
         x=load_b - load_a,
@@ -129,12 +118,32 @@ def load_trace(path: Path) -> Trace:
     )
 
 
-def load_all() -> list[Trace]:
-    """Every trace of `SOURCES` that exists, sorted by name."""
-    found = [
-        p for directory, pattern in SOURCES for p in directory.glob(pattern)
-    ]
-    return [load_trace(p) for p in sorted(found, key=lambda p: p.name)]
+def load_all(directory: Path = TRACE_DIR) -> list[Trace]:
+    """Every committed trace of `PATTERNS` in ``directory``, by name.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``directory`` is missing or holds no trace: the traces are
+        part of the repository, so this means a broken checkout, and
+        running on fewer traces would change every result silently.
+    """
+    found = sorted(
+        {
+            p
+            for pattern in PATTERNS
+            for p in directory.glob(pattern)
+            if EXCLUDED_SUFFIX not in p.name
+        },
+        key=lambda p: p.name,
+    )
+    if not found:
+        msg = (
+            f"no A/A traces in {directory} (expected {', '.join(PATTERNS)} "
+            "from PR #84); check the checkout"
+        )
+        raise FileNotFoundError(msg)
+    return [load_trace(p) for p in found]
 
 
 def politis_white_block(trace: Trace) -> int:
