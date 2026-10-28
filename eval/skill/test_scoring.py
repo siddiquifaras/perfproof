@@ -1177,3 +1177,15 @@ def test_cheap_missed_edits_are_seen() -> None:
         "sed -i 's/a/b/' .perfproof/specs/r.json",
     ):
         assert not _bash_edit(command), command
+
+
+def test_the_oracle_deselects_the_flaky_test_only_where_it_is_declared(
+    tmp_path: Path,
+) -> None:
+    repo = Path(__file__).resolve().parents[2] / "examples"
+    python = Path("python")
+    rolling = runner.oracle_argv(repo / "rolling", python)
+    membership = runner.oracle_argv(repo / "membership", python)
+    assert rolling[-2:] == ["-m", "not deliberately_flaky"]
+    assert membership == [str(python), "-m", "pytest", "-q"]
+    assert runner.oracle_argv(tmp_path, python) == membership

@@ -757,11 +757,41 @@ def asks_question(result: dict[str, object]) -> bool:
     return "?" in "\n".join(body[-6:])
 
 
+_FLAKY_MARKER = "deliberately_flaky"
+
+
+def oracle_argv(tree: Path, python: Path) -> list[str]:
+    """Build the oracle's pytest command for one example tree.
+
+    pytest 9.2 rejects a ``-m`` expression that names a marker the
+    tree does not register when ``--strict-markers`` is on, so the
+    flaky test is deselected only in a tree that declares the marker.
+
+    Parameters
+    ----------
+    tree : Path
+        The example tree the tests run in.
+    python : Path
+        The interpreter that runs pytest.
+
+    Returns
+    -------
+    list of str
+        The argv, with ``-m "not deliberately_flaky"`` only when the
+        tree's ``pytest.ini`` or ``pyproject.toml`` names the marker.
+    """
+    argv = [str(python), "-m", "pytest", "-q"]
+    for name in ("pytest.ini", "pyproject.toml"):
+        config = tree / name
+        if config.is_file() and _FLAKY_MARKER in config.read_text(
+            encoding="utf-8"
+        ):
+            return [*argv, "-m", f"not {_FLAKY_MARKER}"]
+    return argv
+
+
 def _tests(tree: Path, python: Path) -> tuple[bool, str]:
-    argv, env = confined(
-        [str(python), "-m", "pytest", "-q", "-m", "not deliberately_flaky"],
-        tree,
-    )
+    argv, env = confined(oracle_argv(tree, python), tree)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     proc = subprocess.run(
         argv,
