@@ -1,6 +1,7 @@
 {
   "schema_version": 4,
   "name": "rolling-sum",
+  "target_class": "python_cpu",
   "command": ["python", "bench.py", "--output", "output/sums.npy"],
   "cwd": ".",
   "env": {},
