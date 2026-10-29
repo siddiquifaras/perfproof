@@ -6,6 +6,8 @@ throughput. Every run starts a fresh server process and a fresh load
 generator, so the whole command is one fresh-process launch.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import os
@@ -107,19 +109,38 @@ async def burst(port: int) -> tuple[list[float], int]:
     return latencies, retries[0]
 
 
+def server_argv(args: list[str], port: int) -> list[str]:
+    """Return the server command for one round.
+
+    With no ``args`` it is the FastAPI app under uvicorn. Otherwise
+    ``args`` is the server command of another-language target and the
+    port is appended as its last argument.
+    """
+    if args:
+        return [*args, str(port)]
+    return [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "app:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+        "--log-level",
+        "warning",
+    ]
+
+
 def main() -> int:
     """Run one round and print its metrics."""
     port = free_port()
     t0 = time.perf_counter()
     server = subprocess.Popen(
-        [
-            sys.executable, "-m", "uvicorn", "app:app",
-            "--host", "127.0.0.1", "--port", str(port),
-            "--log-level", "warning",
-        ],
+        server_argv(sys.argv[1:], port),
         cwd=os.getcwd(),
         stdin=subprocess.DEVNULL,
-    )  # fmt: skip
+    )
     try:
         wait_healthy(port, time.monotonic() + 30)
         t1 = time.perf_counter()

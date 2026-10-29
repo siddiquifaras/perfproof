@@ -1,0 +1,7 @@
+{
+  "name": "perfproof-web-node-target",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dependency-free (node:http, node:sqlite) web trace target; there is nothing to lock.",
+  "engines": { "node": ">=22.13" }
+}

@@ -3384,7 +3384,8 @@ or INCONCLUSIVE, never KEEP.
 |---|---|---|---|
 | Python, CPU-bound | this MacBook | Linux CI runner | 10 traces (rolling 7, membership 3); in-class run of record below |
 | Native code | this MacBook | Linux CI runner | 2 traces (picolm); in-class run of record below |
-| Web services | Hetzner Linux VM (both traces) | Linux CI runner | 2 traces (web); in-class run of record below |
+| Node and JVM code | Linux VM, this MacBook | Linux CI runner | node 5, java 3 (`mac-java` new); in-class run of managed classes below |
+| Web services | Hetzner Linux VM (both `web` traces); this MacBook (`web-node`, `web-go`) | Linux CI runner | 4 traces (web 2, web-node, web-go); in-class run of record below |
 | Agentic apps | this MacBook | Linux CI runner | 4 traces (agent); in-class run of record below |
 | GPU kernels | one paid GPU session | a second paid session | no traces: pending, KEEP withheld |
 | LLM serving throughput | one paid GPU session | a second paid session | 2 traces, CPU Ollama only (no GPU); in-class run of record below |
@@ -3413,7 +3414,10 @@ is unchanged.
   `membership` (3) are `python_cpu`, 10 traces; `picolm` (2) is
   `native`; `web` (2, the retried partial run left out) is
   `web_service`; `agent` (4) is `agentic`; `llm` (2, CPU Ollama
-  serving, no GPU) is `llm_serving`. The `python_native` schedule's
+  serving, no GPU) is `llm_serving`. (This is the mapping of the earlier
+  run of record, below; the managed-classes run further down puts
+  `node`, `java` and the new web traces in classes of their own.) In
+  the earlier run the `python_native` schedule's
   in-class cells also include `node` (5) and `java` (2), which belong to
   none of the six classes (`docs/targets.md` names Python and Node
   separately, and no Java class): they are run under that schedule as
@@ -3489,6 +3493,125 @@ schedule for every workload (`skills/perfproof/spec.md`), so in
 practice a web, agentic or LLM workload runs on that schedule, which
 makes the off-class `linux-llm` on `python_native` cells the ones an
 LLM workload meets.
+
+**Run of record for the managed classes (pre-registered, Faras,
+2026-10-29).** The owner decision of 2026-10-29, taken after the earlier
+results were seen (`.claude/worklog.md`, Decisions), makes KEEP reachable for
+Node and JVM code (two new classes, `node` and `jvm`, on the
+`python_native` schedule, `(10, 10, 6, 60)`) and for web services in
+Node, Go and Ruby. Ruby web services are in `web_service` by the class
+rule; no Ruby trace exists, so the run says nothing about them. The
+`node` and `jvm` classes were decided by the owner after the earlier
+results were seen, not before them. This paragraph is written before
+the run. The trace
+set is every trace committed in `tests/calibration/traces/data/` at the
+commit that holds this paragraph: the 27 of the run above plus
+`mac-java` (`Bench.java`, JDK 21, 1000 pairs), `mac-web-node` (a Node
+`node:http` server, 600 pairs) and `mac-web-go` (a Go `net/http`
+server, 600 pairs), recorded on this Mac in normal day-to-day use, 30
+traces. The class mapping: `node` traces (header `target` `node`, 5) in `node`; `java` traces (`linux-java`,
+`linuxvm-loadedbyothers-java` and `mac-java`, 3) in `jvm`; `web` (2, the
+retried partial run left out), `web-node` and `web-go` traces (4) in
+`web_service`; every other mapping as above. The procedures are the
+three of `PHASE_2` (`batch_means_6`, `batch_means_6_ungated`, `hac_lf`),
+3 block rules, 4 schedules, 7 speedups, `R = 4000`, at seed
+`8268209547887630561`, drawn from the operating system's entropy on
+2026-10-29 (`secrets.randbits(63)`) and committed before the run. The
+acceptance rule is unchanged (largest passing count 83 of 4000). No
+failing cell is rerun to obtain a pass. Results are reported below the
+table of the run above, with the in-class cells per schedule, the cells
+of the three new traces, the node and java cells under `python_native`
+and the web traces under `web_agentic`.
+
+**Results of the managed-classes run.** Run on 2026-10-29,
+`tests/calibration/run_real.py run --out
+tests/calibration/results/real-seed-8268209547887630561.csv --workers 4
+--seed 8268209547887630561`, `R = 4000`, 7560 rows (2520 cells per procedure),
+wall time 50 s as the script reported it. CSV:
+`tests/calibration/results/real-seed-8268209547887630561.csv`. The
+procedure judged is the shipped one (`hac_lf`; the gated batch means on
+`gpu_kernels`). The three new traces were recorded on this Mac in
+normal day-to-day use, one at a time: `mac-java` 1000 pairs in 26.7 min
+(host load1 mean 6.76, max 16.17 on 10 cores), `mac-web-node` 600
+pairs in 60.4 min (mean 5.55, max 11.14; the power source read Battery
+Power on pairs 228 and 229, three runs, with no CPU speed limit) and
+`mac-web-go` 600 pairs in 56.6 min (mean 4.80, max 7.57). None recorded
+a retry or a throttled run.
+
+| Cells | Schedule | Cells | Failing | Worst false KEEPs of 4000 |
+|---|---|---|---|---|
+| in class | python_native | 420 | 0 | 37, `linux-rolling/fixed20/python_native/1.03` (bound 1.215%) |
+| in class | web_agentic | 168 | 0 | 18, `mac-loaded-agent/fixed6/web_agentic/1.03` |
+| in class | llm_serving | 42 | 0 | 25, `linux-llm/pw/llm_serving/1.03` |
+| off class | python_native | 210 | 2 | 170, `linux-llm/fixed20/python_native/1.03` |
+| off class | web_agentic | 462 | 0 | 43, `linux-llm/pw/web_agentic/1.03` |
+| off class | llm_serving | 588 | 0 | 40, `linux-rolling/fixed20/llm_serving/1.03` |
+| off class | gpu_kernels | 630 | 4 | 474, `linux-llm/fixed20/gpu_kernels/1.03` |
+
+All 630 in-class cells pass. The failing off-class cells are the six
+of the run above again, at the same trace and schedule pairs and speedup
+(1.03): `linux-llm` on `python_native` (fixed6 86, fixed20 170) and on
+`gpu_kernels` (pw 204, fixed6 308, fixed20 474), and
+`linux-loaded-steady-web` on `gpu_kernels` (fixed20 102). No other
+off-class cell fails, including the three new traces on every schedule.
+By class, the in-class cells and the worst false KEEPs of 4000:
+
+| Class | Schedule | Traces | Cells | Failing | Worst false KEEPs of 4000 |
+|---|---|---|---|---|---|
+| python_cpu | python_native | 10 | 210 | 0 | 37, `linux-rolling/fixed20/python_native/1.03` |
+| native | python_native | 2 | 42 | 0 | 13, `mac-loadedbyothers-picolm/fixed6/python_native/1.03` |
+| node | python_native | 5 | 105 | 0 | 23, `linux-node/pw/python_native/1.03` |
+| jvm | python_native | 3 | 63 | 0 | 19, `linux-java/fixed20/python_native/1.03` |
+| web_service | web_agentic | 4 | 84 | 0 | 16, `linux-loaded-steady-web/fixed20/web_agentic/1.03` |
+| agentic | web_agentic | 4 | 84 | 0 | 18, `mac-loaded-agent/fixed6/web_agentic/1.03` |
+| llm_serving | llm_serving | 2 | 42 | 0 | 25, `linux-llm/pw/llm_serving/1.03` |
+
+False KEEPs of 4000 at true speedup 1.00 / 1.03, by block rule (pw /
+fixed6 / fixed20), of the cells the managed classes decide on. A
+count of 84 or more fails (83 passes; none fails); every speedup of every cell here
+passes. Politis-White blocks: `mac-java` 6, `mac-web-node` 2,
+`mac-web-go` 2.
+
+| Trace | Schedule | pw | fixed6 | fixed20 |
+|---|---|---|---|---|
+| `mac-java` | python_native (in class) | 0 / 3 | 0 / 9 | 0 / 6 |
+| `mac-web-node` | python_native | 0 / 3 | 0 / 2 | 0 / 2 |
+| `mac-web-node` | web_agentic (in class) | 0 / 7 | 0 / 4 | 0 / 1 |
+| `mac-web-go` | python_native | 0 / 12 | 0 / 9 | 0 / 15 |
+| `mac-web-go` | web_agentic (in class) | 0 / 13 | 0 / 14 | 0 / 8 |
+| `linux-java` | python_native (in class) | 0 / 13 | 0 / 15 | 0 / 19 |
+| `linuxvm-loadedbyothers-java` | python_native (in class) | 0 / 7 | 0 / 4 | 0 / 10 |
+| `linux-node` | python_native (in class) | 0 / 23 | 0 / 19 | 0 / 4 |
+| `linux-loaded-steady-node` | python_native (in class) | 0 / 16 | 0 / 17 | 0 / 1 |
+| `linux-loaded-bursty-node` | python_native (in class) | 0 / 18 | 1 / 13 | 0 / 15 |
+| `mac-loadedbyothers-node` | python_native (in class) | 0 / 14 | 0 / 7 | 0 / 10 |
+| `mac-loadedbyothers-burners-node` | python_native (in class) | 0 / 17 | 0 / 20 | 0 / 15 |
+| `linux-web` | web_agentic (in class) | 0 / 7 | 0 / 3 | 0 / 0 |
+| `linux-loaded-steady-web` | web_agentic (in class) | 0 / 7 | 0 / 9 | 0 / 16 |
+
+The `mac-java` cells on `web_agentic`, `llm_serving` and `gpu_kernels`
+(worst 31 of 4000, `gpu_kernels` pw at 1.03), and the `mac-web-node` and
+`mac-web-go` cells on `llm_serving` and `gpu_kernels` (worst 34,
+`mac-web-go/fixed20/gpu_kernels/1.03`), also all pass. The two web
+traces are one load shape of one service (2000 requests at concurrency
+16, a server started per run) on one Mac, and `mac-java` is one JDK 21
+on one Mac; the run says nothing about a JVM or Node service under
+other runtimes, hosts or loads. The `web-go` target's `/db` route reads
+an in-memory index instead of SQLite (the Go standard library has none).
+
+**Named limits of the managed-classes run.**
+
+- All three new traces come from one Mac session each, on one machine,
+  in normal day-to-day use. The run says nothing about other hosts,
+  other runtimes or other loads.
+- Ruby has no trace (see above).
+- The run has no 0.95 or 1.04 speedup cells, as `SPEEDUPS` has none. The
+  stats-auditor ran the in-class cells at those two speedups at its own
+  seed `8786722520344204948`: 180 in-class cells, 0 failing, worst 8
+  false KEEPs of 4000. That is an auditor check, not the run of record.
+- A fresh seed resamples the same traces by block bootstrap, so it
+  tests the procedure on those traces again, not on new workloads; the
+  pass is no stronger than the traces are representative.
 
 ### Guardrail cells
 
