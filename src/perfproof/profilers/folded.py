@@ -53,6 +53,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal
 
+from perfproof.bench.spec import STATE_DIR
 from perfproof.schema import Hotspot
 
 __all__ = [
@@ -130,6 +131,7 @@ class _Frame:
     frame_kind: Literal["python", "native"]
     is_library: bool
     location: str | None
+    is_harness: bool = False
 
 
 class _Normaliser:
@@ -146,6 +148,7 @@ class _Normaliser:
         self._prefixes = tuple(sorted(p.rstrip("/") + "/" for p in prefixes))
         self._own_modules = frozenset(own_modules)
         self._exists: dict[str, bool] = {}
+        self._file_exists: dict[str, bool] = {}
 
     def frame(self, text: str) -> _Frame:
         """Normalise one frame as the profiler wrote it."""
@@ -177,16 +180,43 @@ class _Normaliser:
         if path == _UNRESOLVED:
             return _Frame(function, None, None, "native", True, location)
         own, shown = self._classify_path(path)
+        harness = self._is_harness(shown)
+        if harness:
+            own = False
         if path.endswith(_PYTHON_SUFFIXES):
-            return _Frame(function, shown, line, "python", not own, location)
+            return _Frame(
+                function, shown, line, "python", not own, location, harness
+            )
         module = posixpath.basename(path)
-        own = own or (
-            module in self._own_modules and not _is_runtime(function)
+        own = not harness and (
+            own or (module in self._own_modules and not _is_runtime(function))
         )
         if line is not None:
-            return _Frame(function, shown, line, "native", not own, location)
+            return _Frame(
+                function, shown, line, "native", not own, location, harness
+            )
         name = f"{module}`{function}" if module else function
-        return _Frame(name, None, None, "native", not own, location)
+        return _Frame(name, None, None, "native", not own, location, harness)
+
+    def _is_harness(self, shown: str) -> bool:
+        """Whether a shown path is under the project's state directory.
+
+        This is the one place ownership of such a file is decided: the
+        workload driver an agent writes under ``.perfproof/harness/``
+        is perfproof's own state, never the user's code. ``shown`` is
+        root-relative only for a file inside the project, so a path
+        outside it never matches. A relative path counts only when
+        the file exists, as for `_classify_path`.
+        """
+        if shown.split("/", 1)[0] != STATE_DIR:
+            return False
+        if posixpath.isabs(shown):
+            return False
+        cached = self._file_exists.get(shown)
+        if cached is None:
+            cached = (self._root / shown).is_file()
+            self._file_exists[shown] = cached
+        return cached
 
     def _classify_path(self, path: str) -> tuple[bool, str]:
         """Say whether a path is the project's, and how to show it.
@@ -737,12 +767,18 @@ def rank(
             keep_all
             or (
                 g not in wrappers
-                and (not has_project or in_work[g] or group_self[g] > 0)
+                and (
+                    not has_project
+                    or in_work[g]
+                    or group_self[g] > 0
+                    or frames[members[g][0]].is_harness
+                )
                 and (
                     not has_project
                     or group_self[g] > 0
                     or no_project_below[g]
                     or not frames[members[g][0]].is_library
+                    or frames[members[g][0]].is_harness
                 )
                 and not _synthetic(frames[members[g][0]])
             )
@@ -779,6 +815,7 @@ def rank(
                 line=frames[i].line,
                 frame_kind=frames[i].frame_kind,
                 is_library=frames[i].is_library,
+                is_harness=frames[i].is_harness,
                 self_fraction=self_counts[i] / samples,
                 total_fraction=total_counts[i] / samples,
             )
@@ -796,6 +833,7 @@ def rank(
                     line=shown.line,
                     frame_kind=shown.frame_kind,
                     is_library=shown.is_library,
+                    is_harness=shown.is_harness,
                     self_fraction=group_self[g] / samples,
                     total_fraction=group_total[g] / samples,
                 )

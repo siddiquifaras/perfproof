@@ -5,9 +5,15 @@ from pathlib import Path
 
 import pytest
 
+from perfproof.commands import JsonValue
+from perfproof.commands import profile as profile_command
+from perfproof.commands._profile_show import (
+    _render,  # pyright: ignore[reportPrivateUsage]
+)
 from perfproof.profilers.folded import (
     DEFAULT_TOP_N,
     FoldedStackError,
+    _Normaliser,  # pyright: ignore[reportPrivateUsage]
     summarise,
     summarise_file,
 )
@@ -636,3 +642,62 @@ def test_project_code_that_mentions_std_types_stays_project(
 )
 def test_runtime_functions_in_an_own_binary_are_library(frame: str) -> None:
     assert one_frame(frame, own=OWN_BINARIES)[-1] is True
+
+
+@pytest.mark.parametrize("project_first", [True, False])
+def test_path_checks_do_not_share_a_cache_between_meanings(
+    tmp_path: Path, project_first: bool
+) -> None:
+    """Ownership and harness status of a path are cached apart.
+
+    A file in a library directory under ``.perfproof/`` is not "own" but
+    is harness; asking about ownership first must not hide that.
+    """
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    nested = tmp_path / ".perfproof" / "harness" / "site-packages"
+    nested.mkdir(parents=True)
+    (nested / "drv.py").write_text("x = 1\n", encoding="utf-8")
+    project = "f (app.py:1)"
+    harness = "g (.perfproof/harness/site-packages/drv.py:1)"
+    normaliser = _Normaliser(tmp_path, ())
+    order = (project, harness) if project_first else (harness, project)
+    frames = {text: normaliser.frame(text) for text in order}
+    assert not frames[project].is_library
+    assert not frames[project].is_harness
+    assert frames[harness].is_library
+    assert frames[harness].is_harness
+
+
+def test_harness_frames_read_harness_not_library_in_text() -> None:
+    hotspot = Hotspot(
+        function="drive",
+        file=".perfproof/harness/driver.py",
+        line=6,
+        frame_kind="python",
+        is_library=True,
+        is_harness=True,
+        self_fraction=0.0,
+        total_fraction=0.5,
+    )
+    row = profile_command._row(hotspot)  # pyright: ignore[reportPrivateUsage]
+    assert row.endswith("drive  (harness)")
+    entry: dict[str, JsonValue] = {
+        "function": "drive",
+        "file": hotspot.file,
+        "line": 6,
+        "is_library": True,
+        "is_harness": True,
+        "self_fraction": 0.0,
+        "total_fraction": 0.5,
+        "total_samples": 5,
+        "cap": 2.0,
+    }
+    result: dict[str, JsonValue] = {
+        "run_id": "r",
+        "name": "n",
+        "pattern": "drive",
+        "samples": 10,
+        "found": True,
+        "functions_omitted": 0,
+    }
+    assert _render(result, [entry]).endswith("drive  (harness)")

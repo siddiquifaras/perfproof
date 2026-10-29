@@ -2041,6 +2041,10 @@ class Hotspot(_Model):
     """Share of the profile's total spent in this frame itself."""
     total_fraction: Fraction | None
     """Share including callees; ``None`` if the profiler gives none."""
+    is_harness: Flag = False
+    """Whether the frame is in perfproof's own state directory (an
+    agent's workload driver under ``.perfproof/harness/``). Such a frame
+    has ``is_library`` true and is never a candidate."""
 
     @model_validator(mode="after")
     def _check_shares(self) -> Self:

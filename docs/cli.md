@@ -79,7 +79,8 @@ as for the run's directory.
 The result also carries, added after the keys above:
 
 - `project_frames_above_bar`: the project's own frames
-  (`is_library` false) whose total share is at least `min_effect`,
+  (`is_library` false; never a harness frame) whose total share is at
+  least `min_effect`,
   ranked by total, as `Hotspot` objects. It is not cut to `--top`, only
   to 50, so every project function worth a cap is listed even when
   the printed lists don't reach it. Frames the total ranking leaves
@@ -141,7 +142,7 @@ the profile, the denominator), `found`, `functions`, `functions_omitted`,
 `reason`, `match`, `note`, `min_effect` (the run's bar, `null` if it
 did not save one) and `labels`. `functions` lists the matches by total share then self
 share, at most 50, each with `function`, `file`, `line`, `frame_kind`,
-`is_library`, `self_fraction`, `total_fraction`, `self_samples`,
+`is_library`, `is_harness`, `self_fraction`, `total_fraction`, `self_samples`,
 `total_samples`, `cap` (`1 / (1 - total_fraction)`, a bound and never a
 measured effect; `null` when the function is the whole profile), `seen`
 and, when the bar is known, `cap_above_bar` (`true` for a `null` cap).
@@ -257,6 +258,14 @@ with each one a process creates, so the latest run (what `profile show`
 reads by default) is the last created, also within one `--sizes` run.
 Delete old runs under `.perfproof/profiles/` when
 the code has changed: the ranking has no notion of a stale profile.
+
+A frame whose file is under the project's `.perfproof/` directory (the
+workload driver an agent keeps in `.perfproof/harness/`) is not project
+code: it is `is_library` true and `is_harness` true on its `Hotspot`,
+so it is never ranked, never in `project_frames_above_bar` or a growth
+fit, never counts as a project frame for `next_step`, and its file is
+never counted as sampled. It stays in `hotspots` and `frames_by_total`
+with `is_harness` set, so an agent can see its driver's cost.
 
 The rule is fixed: **cap at the largest size measured, descending.**
 Within each benchmark, take the profile at its largest measured size (a

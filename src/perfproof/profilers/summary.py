@@ -87,6 +87,7 @@ def _frame(hotspot: Hotspot, min_effect: float | None) -> JsonValue:
         "line": hotspot.line,
         "frame_kind": hotspot.frame_kind,
         "is_library": hotspot.is_library,
+        "is_harness": hotspot.is_harness,
         "self_fraction": hotspot.self_fraction,
         "total_fraction": hotspot.total_fraction,
         "cap": cap,

@@ -15,6 +15,7 @@ import pytest
 from perfproof.cli import main
 from perfproof.commands import profile as profile_command
 from perfproof.profilers.folded import rank_file, summarise_file
+from perfproof.profilers.growth import project_functions
 from perfproof.profilers.run import (
     PYINSTRUMENT_VERSION,
     Profile,
@@ -1354,6 +1355,54 @@ def test_pyinstrument_profiles_a_module(tmp_path: Path) -> None:
         "spin.py",
         False,
     )
+
+
+@pytest.mark.integration
+def test_a_driver_under_the_state_directory_is_never_a_candidate(
+    tmp_path: Path,
+) -> None:
+    reason = uv_missing()
+    if reason is not None:
+        pytest.skip(reason)
+    tree = tmp_path / "tree"
+    write(
+        tree / "lib.py",
+        "def spin(n):\n    total = 0\n    for i in range(n):\n"
+        "        total += i % 7\n    return total\n\n\n"
+        "def tail(n):\n    return sum(range(n))\n",
+    )
+    driver = write(
+        tree / ".perfproof" / "harness" / "driver.py",
+        "import sys\n\nsys.path.insert(0, '.')\n\n"
+        "from lib import spin, tail\n\n\ndef drive():\n"
+        "    spin(3000000)\n\n\ndrive()\ntail(20000000)\n",
+    )
+    spec = make_spec([sys.executable, str(driver.relative_to(tree))])
+    profile, _ = run_profile(spec, tree, profiler="pyinstrument")
+    harness = [*profile.hotspots, *profile.frames_by_total]
+    drive = [h for h in harness if h.function == "drive"]
+    assert drive
+    assert all(
+        h.is_harness
+        and h.is_library
+        and h.file == ".perfproof/harness/driver.py"
+        for h in drive
+    )
+    above = {h.function for h in profile.project_frames_above_bar}
+    assert "spin" in above
+    assert "drive" not in above
+    assert not any(h.is_harness for h in profile.project_frames_above_bar)
+    spin = next(
+        h for h in profile.project_frames_above_bar if h.function == "spin"
+    )
+    assert (spin.file, spin.is_harness) == ("lib.py", False)
+    found, _ = project_functions(
+        profile.folded_path,
+        tree,
+        (),
+        weight_unit=profile.weight_unit,
+    )
+    assert {key[2] for key in found} == {"spin", "tail"}
 
 
 @pytest.mark.integration

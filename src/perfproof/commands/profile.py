@@ -987,7 +987,13 @@ def _location(hotspot: Hotspot) -> str:
 def _row(h: Hotspot) -> str:
     """Render one frame of a table: shares, location, name."""
     total = "" if h.total_fraction is None else f"{h.total_fraction:.1%}"
-    library = "  (library)" if h.is_library else ""
+    library = (
+        "  (harness)"
+        if h.is_harness
+        else "  (library)"
+        if h.is_library
+        else ""
+    )
     return (
         f"  {h.self_fraction:5.1%} {total:>6}  {_location(h)}  "
         f"{h.function}{library}"

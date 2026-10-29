@@ -41,6 +41,7 @@ in.
     The matching functions by total share then self share, descending,
     at most `perfproof.profilers.query.MAX_MATCHES`. Each has
     ``function``, ``file``, ``line``, ``frame_kind``, ``is_library``,
+    ``is_harness``,
     ``self_fraction``, ``total_fraction``, ``self_samples``,
     ``total_samples``, ``cap`` (the bound ``1 / (1 - total_fraction)``,
     never a measured effect; ``null`` when the function is the whole
@@ -269,6 +270,7 @@ def _entry(match: FunctionMatch, min_effect: float | None) -> JsonValue:
         "line": h.line,
         "frame_kind": h.frame_kind,
         "is_library": h.is_library,
+        "is_harness": h.is_harness,
         "self_fraction": h.self_fraction,
         "total_fraction": h.total_fraction,
         "self_samples": match.self_samples,
@@ -289,6 +291,7 @@ def _absent(function: str, reason: str, min_effect: float | None) -> JsonValue:
         "line": None,
         "frame_kind": None,
         "is_library": None,
+        "is_harness": None,
         "self_fraction": 0.0,
         "total_fraction": 0.0,
         "self_samples": 0,
@@ -319,7 +322,13 @@ def _render(result: dict[str, JsonValue], entries: list[JsonValue]) -> str:
             place = f"{place}:{e['line']}"
         cap = e["cap"]
         shown = "inf" if cap is None else f"{float(cast('float', cap)):.2f}x"
-        library = "  (library)" if e["is_library"] else ""
+        library = (
+            "  (harness)"
+            if e["is_harness"]
+            else "  (library)"
+            if e["is_library"]
+            else ""
+        )
         lines.append(
             f"  {float(cast('float', e['self_fraction'])):5.1%} "
             f"{float(cast('float', e['total_fraction'])):6.1%} "

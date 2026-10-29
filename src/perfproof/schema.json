@@ -1899,6 +1899,12 @@
           ],
           "description": "Share including callees; ``None`` if the profiler gives none.",
           "title": "Total Fraction"
+        },
+        "is_harness": {
+          "default": false,
+          "description": "Whether the frame is in perfproof's own state directory (an\nagent's workload driver under ``.perfproof/harness/``). Such a frame\nhas ``is_library`` true and is never a candidate.",
+          "title": "Is Harness",
+          "type": "boolean"
         }
       },
       "required": [
