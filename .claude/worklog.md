@@ -24,6 +24,7 @@ Node warm-up rule at 0cc9771: robust estimator (window medians, MAD se, 4% cap),
 
 | Commit | What |
 |---|---|
+| `e6d5f92` | Skill cap-goal merged (PR #115), squash. A missed or too-close limit states where the run stands ('in these runs'), names the likely cause, proposes one change, and asks 'Keep going on getting under or over <limit>?'; on yes it loops via compare. Cap versus floor gap sign handled; an allowance-only breach has no loop; not_established is its own INCONCLUSIVE row. Reviewer PASS after two blocks. Mac 6737, Linux 6639. SKILL.md net +6 (accepted) |
 | `c28e418` | README merged (PR #113), squash. What it is, install (not yet live), light/medium/deep, the real end-to-end example (calibrated KEEP 63.86x, with its warnings explained), what KEEP needs (class confirmed and not stale, own schedule, alpha 0.05, not gpu_kernel), calibration 420 in-class cells with 0 failing (own-class unit decided after results), held-out discovery 2 of 8 (25%, Wilson 7.1-59.1%), r10 42 of 55 plus 2 excluded (tuning set), no eval round yet exercising a calibrated KEEP. Every link checked. Reviewer PASS after two blocking rounds. Mac 6737, Linux 6639. Process note: push and merge ran in one command (push succeeded); keep them separate |
 | `521e48e` | Eval results merged (PR #114), squash: `report.md` and `scores.json` for r10 (9 families) and heldout-1/2 (22 files; transcripts not committed, full archives in `scratch/run-archives/`). heldout-1 re-scored in place with the --sizes-aware scorer (badger and fasthttp detail only). Secret scan clean. Reviewer PASS. Mac 6735, Linux 6639 |
 | `f9193fe` | Held-out scoring merged (PR #112), squash. uuid setup uses `npm ci` (#110's `--no-package-lock` broke its Babel oracle). Hidden-fix setup now requires the oracle to pass on the untouched tree before any agent runs. The edit-detector cd-resolution attempt was REVERTED after review (it missed subshells, builtin cd, pushd and if-blocks, as #97 did); datafusion stays an edit-before-profile fail, documented in docs/evaluation.md. Re-score: 388 entries, 0 changed. Reviewer PASS. Mac 6737, Linux 6639; own tests 726 after the main merge |
@@ -150,6 +151,12 @@ metered this period, $21.67 covered by credit, $0.00 billed; no Modal
 apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
+
+- **Proving run prove1 (2026-10-29, main ec88ffb, CALIBRATED on, as ppeval, 24 tasks, $11.47): zero KEEP verdicts.**
+  - Every known speedup, including prove-rolling-fix and prove-membership-fix, ended uncalibrated with `target_class_unknown` or `target_class_unverified`.
+  - Cause: in prove mode the skill never confirms the project's target class, and the example specs (`examples/*/spec.json`) carry no `target_class`, so a user asking "is this faster?" can never get a KEEP. PRODUCT GAP; fixing.
+  - Also 3 known changes REJECT(performance) (markdig, lz4, arrow) and guava REJECT(guardrail), all scored wrong. Need to tell a true below-bar effect (stale expectation from the uncalibrated era) from a false REJECT.
+  - Passes 17 of 24; wrong KEEP 0 (vacuous: no KEEP occurred).
 
 - **Correction (README review, 2026-10-29).**
   - "Wrong KEEP 0" is vacuous everywhere. r10 and d1-d3 ran with CALIBRATED False (#104 merged after them), so no KEEP was possible. The held-out runs came after the flip (skill 029f5c2) but reached no verdict (0 of 0). No eval round has yet exercised a calibrated KEEP. The evidence for KEEP is the calibration.
