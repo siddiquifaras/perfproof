@@ -537,6 +537,7 @@ def build_real_repo(
         extra_path,
         confine=sandbox.as_eval_user(),
         hide_planted=task.is_hidden_fix,
+        check_oracle=task.is_hidden_fix,
     )
     return seeded
 

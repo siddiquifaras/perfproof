@@ -241,6 +241,24 @@ runs inside `do`/`then`/`else`, as the one it is. A computed tail that
 climbs out of the directory is not seen: a crafted `python3 - ../src/x`
 with `open(".perfproof/" + sys.argv[1], "w")` is now missed, and a
 string-concatenated tail that climbs out with `..` was already missed.)
+Known limit: the edit detector does not follow `cd`, so a relative
+write after a `cd` into `.perfproof/` (`cd <repo>/.perfproof/harness;
+cat > gen.sql`) is read as an edit of that name in the code. Following
+`cd` was tried and dropped: a flat directory misses real edits after a
+subshell, pipe, `if`, `||`, `pushd`, `builtin cd` or `eval`.
+`heldout-apache-datafusion-pr26790-hidden-fix` (`heldout-2`) is scored
+as an edit before the profile for this reason, and under the scoring
+rule that stands as a fail; its saved profiles do not contain the
+hidden function either. For a hidden-fix task, setup also runs the oracle
+on the untouched tree after the build, and fails with "oracle fails on
+the untouched task tree" and its output tail if it does not exit 0 (the
+`uuidjs-uuid-pr677` setup first used `npm install --no-package-lock`,
+which took newer Babel plugins than the pinned `@babel/core` loads, so
+the oracle failed on every tree, the agent's included; it now uses
+`npm ci` from the lockfile at the task commit, which also leaves the
+tracked lockfile alone). The archive keeps no diff, only the branch
+sha, so its fix check cannot be recomputed from it; the branch survives
+in the eval user's work tree, where the repaired oracle passes on it.
 Setup also fails, before any agent runs, with "setup modified tracked
 files: <paths>" when the build leaves a tracked file (outside
 `.perfproof/`) changed, as an `npm install` that rewrites a lockfile

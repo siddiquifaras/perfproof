@@ -551,6 +551,7 @@ def run_setup(
     *,
     confine: bool = False,
     hide_planted: bool = False,
+    check_oracle: bool = False,
 ) -> None:
     """Run the build commands, then hide what they created from git.
 
@@ -579,10 +580,20 @@ def run_setup(
         workload checks (``eval/mine/check.py``) run the commands in
         their own tree and are not affected.
 
+    check_oracle : bool, optional
+        After the build and the removal of planted files, run the
+        manifest's oracle on the untouched tree (as `run_oracle` runs
+        it), so a task whose tests cannot run in this environment fails
+        here, with the tail of their output, and not as a wrong
+        verdict on the agent's change. A manifest with no oracle is
+        not checked.
+
     Raises
     ------
     SetupError
-        If a command fails; the message holds its tail.
+        If a command fails, the oracle fails on the untouched tree, or
+        the build leaves a tracked file changed; the message holds the
+        tail or the paths.
     """
     env = task_env(spec, repo, extra_path)
     for command in spec.setup:
@@ -603,6 +614,11 @@ def run_setup(
         env = task_env(spec, repo, extra_path)
     if hide_planted:
         remove_planted(spec, repo)
+    if check_oracle and spec.oracle is not None:
+        ok, tail = run_oracle(spec, repo, extra_path)
+        if not ok:
+            msg = f"oracle fails on the untouched task tree: {tail}"
+            raise SetupError(msg)
     status = _git(repo, "status", "--porcelain", "--untracked-files=normal")
     created = [
         ln[3:].rstrip("/")

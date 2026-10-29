@@ -1183,7 +1183,7 @@
   },
   "uuidjs-uuid-pr677": {
     "setup": [
-      "npm install --ignore-scripts --no-audit --no-fund --no-package-lock --before 2026-10-18",
+      "npm ci --ignore-scripts --no-audit --no-fund",
       "cp ../../../../tasks/workloads/uuidjs-uuid-pr677/bench.mjs eval_bench.mjs"
     ],
     "planted": [
@@ -1193,6 +1193,6 @@
     "workload_source": "written here from the description of https://github.com/uuidjs/uuid/pull/677 (the hyperfine files it quotes are not in the tree): stringifying many 16-byte arrays, eval/tasks/workloads/uuidjs-uuid-pr677/bench.mjs, copied into the tree",
     "oracle": "env BABEL_ENV=commonjsNode node_modules/.bin/jest test/unit/stringify.test.js",
     "oracle_source": "the unit tests of src/stringify.js, the file https://github.com/uuidjs/uuid/pull/677 changes, run by the project's own jest; targeted tests only",
-    "notes": "Dependencies installed with npm install --ignore-scripts and --before the mining date (the lockfile is not used). Node is v24 from nvm"
+    "notes": "Dependencies installed with npm ci --ignore-scripts, from the lockfile at the task commit (an install without it picked newer Babel plugins that the pinned @babel/core cannot load). Node is v24 from nvm"
   }
 }

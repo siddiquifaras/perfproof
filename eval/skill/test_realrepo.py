@@ -842,3 +842,48 @@ def test_a_setup_that_edits_a_tracked_file_fails_before_any_agent(
         realrepo.SetupError, match=r"setup modified tracked files: f\.txt"
     ):
         realrepo.run_setup(spec, dest, [])
+
+
+def _oracle_spec(
+    second: str, third: str, oracle: str | None
+) -> realrepo.RepoSpec:
+    return _spec(second, third).model_copy(update={"oracle": oracle})
+
+
+@pytest.mark.skipif(
+    not sandbox.confinement_available(), reason="needs macOS sandbox-exec"
+)
+def test_an_oracle_that_fails_on_the_untouched_tree_fails_setup(
+    tmp_path: Path, remote: tuple[str, str, str]
+) -> None:
+    host, second, third = remote
+    dest = tmp_path / "run"
+    spec = _oracle_spec(second, third, "python3 -c 'raise SystemExit(4)'")
+    realrepo.seed_repo(
+        spec, taskset.RealRepo(manifest="x"), dest, tmp_path / "c", host
+    )
+    with pytest.raises(
+        realrepo.SetupError, match="oracle fails on the untouched task tree"
+    ):
+        realrepo.run_setup(spec, dest, [], check_oracle=True)
+    # Off by default, and a manifest with no oracle is not checked.
+    realrepo.run_setup(spec, dest, [])
+    realrepo.run_setup(
+        _oracle_spec(second, third, None), dest, [], check_oracle=True
+    )
+
+
+@pytest.mark.skipif(
+    not sandbox.confinement_available(), reason="needs macOS sandbox-exec"
+)
+def test_an_oracle_that_passes_leaves_setup_clean(
+    tmp_path: Path, remote: tuple[str, str, str]
+) -> None:
+    host, second, third = remote
+    dest = tmp_path / "run"
+    spec = _oracle_spec(second, third, "python3 -c 'raise SystemExit(0)'")
+    realrepo.seed_repo(
+        spec, taskset.RealRepo(manifest="x"), dest, tmp_path / "c", host
+    )
+    realrepo.run_setup(spec, dest, [], check_oracle=True)
+    assert _git(dest, "status", "--porcelain") == ""
