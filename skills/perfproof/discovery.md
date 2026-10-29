@@ -42,6 +42,50 @@ row-by-row work over data frames or arrays, a query per item, reading
 the same file again, and building something on every call that could
 be built once.
 
+## Tests as a coverage probe
+
+At `medium` and `deep`, after the first rank, profile the project's own
+tests once. User-style workloads often never reach the slow code, and
+the tests often do. Say in the plan which tests you will run and the
+cap on them (a fast subset, one package or marker set, or a time limit).
+It is never the first workload, never what gets proved, and what it
+shows are leads, not claims: tests use odd inputs and heavy set-up.
+
+1. **Run it.** Profile the project's test command as a workload (the
+   driver goes in `.perfproof/harness/`, as in [spec.md](spec.md)), with
+   its own name, serially (one process: no parallel workers), on the
+   subset above. Commands: `python -m pytest -q <paths>` (or the
+   project's runner), `node --test <files>` (see [node.md](node.md)),
+   `go test` on one package ([go.md](go.md)), `cargo test --release
+   --locked` ([rust.md](rust.md)), `dotnet test`
+   ([csharp.md](csharp.md)), `bundle exec rspec` or `rake test`
+   ([ruby.md](ruby.md)), Maven or Gradle `test` ([java.md](java.md)).
+   Tests that only start the program as a child process profile the
+   test code, not the program: say so and skip the probe.
+2. **Read it on its own.** `perfproof profile show --rank <tests name>
+   --json`. Never rank it together with the user workloads: rank those
+   by their own names. Rows in test files (a `test` or `tests`
+   directory, `test_*`, `*_test.*`, `conftest.py`) are project code and
+   do rank; so does a project's own test runner. Read past them and
+   past the set-up that dominates a test run.
+3. **Find the leads.** A lead is project code (not a test file, not the
+   runner) that the tests reach and your workloads do not:
+   - a function that ranks high under the tests and is absent from the
+     user workloads' ranking (`profile show <workload> --function <name>`
+     answers `found: false`);
+   - a file in the user workloads' `coverage.files` (never sampled) that
+     is not in the test profile's `coverage.files`. Share is a poor
+     filter here: the code a user path needs is often a tiny share of a
+     test run. Name the areas in plain words.
+4. **Reach it as a user would.** For the best lead, read the tests that
+   call it: their inputs show the shape. Find the real entry point (a
+   route, a command, the public API) that reaches it, and build or
+   extend a workload through that, with realistic input. Profile and
+   rank that workload; only its ranking can pick a candidate. If no
+   entry point a user would use reaches the lead, say so in plain words
+   ("the tests run `<function>`, but nothing a user does reaches it")
+   and move on.
+
 ## Cheap tests
 
 Before writing a real change, run the cheapest check that would prove

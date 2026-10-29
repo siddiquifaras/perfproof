@@ -132,8 +132,8 @@ ranked list of where the time goes, with ceilings, and a result.
 | Depth | Find | Prove |
 |---|---|---|
 | `light` | map how the program is used; the 2 most-used workloads, each with `--sizes` where there is a size knob; rank; try the top real candidate | default for proving |
-| `medium` (bare `/perfproof`) | the full map; 3-4 workloads from different entry points or directions, with `--sizes`; rank; name the files no workload reached; try the top 2-3 candidates and prove the best | the same, plus the claim check |
-| `deep` | every entry point; `--sizes` everywhere, with a larger size added; every candidate with a meaningful ceiling; a second, fresh `perfproof compare` of the best against its baseline | every candidate in the branch, one at a time |
+| `medium` (bare `/perfproof`) | the full map; 3-4 workloads from different entry points or directions, with `--sizes`; rank; name the files no workload reached; profile the tests as a coverage probe; try the top 2-3 candidates and prove the best | the same, plus the claim check |
+| `deep` | every entry point; `--sizes` everywhere, with a larger size added; every candidate with a meaningful ceiling, and the tests profiled as a coverage probe; a second, fresh `perfproof compare` of the best against its baseline | every candidate in the branch, one at a time |
 
 Say in one sentence what the depth will cover and that `light` is
 shorter; don't wait for an answer unless they asked. Remember the depth
@@ -328,8 +328,8 @@ No discovery. One candidate at a time, against its parent.
    `no_project_frame_above_bar` means profile a second workload through
    another entry point, `project_frames_unknown` means rerun with
    `--own-module` or fix `--repo`, per its message. Then run `perfproof
-   profile show --rank --json` and choose from `functions[]` in its order,
-   not from the first profile. `wrapper` rows come last: skip them. Each
+   profile show --rank <your workloads> --json` and choose from
+   `functions[]` in its order, not from the first profile. `wrapper` rows come last: skip them. Each
    row has `cap`, `total_fraction`, `cap_above_bar` and `growth.evidence`.
    Name any row at 5% or more of a profile that you skip, with the reason.
    For a function you suspect from the code that the ranking doesn't show:
@@ -346,7 +346,10 @@ No discovery. One candidate at a time, against its parent.
    `coverage.never_sampled` lists project files no workload ran: say "not
    covered by these workloads", never "fine"; at `medium` and `deep` name
    the main areas in plain words, and run a workload that reaches them if
-   the code says they matter. Before you read code, tell the user in plain
+   the code says they matter. At `medium` and `deep`, profile the
+   project's tests once more as a coverage probe
+   ([discovery.md](discovery.md)): what they reach is a lead, never a
+   candidate or a claim. Before you read code, tell the user in plain
    sentences the top ranked candidates by name and file, with the share as
    a fact about the profile ("<share> of the samples are under
    `<function>` in `<file>`", from `total_fraction`), which you will try
