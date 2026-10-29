@@ -53,10 +53,12 @@ section of `report.md`.
 | INCONCLUSIVE with `verdict.diagnostics.coarse_resolution` | "The benchmark is too short for the timer to tell the versions apart. A longer input would fix that." |
 | INCONCLUSIVE, calibrated, rule 5 | "Undecided: the range <lower> to <upper> still includes the bar (<bar>)." |
 | INCONCLUSIVE, rule 2, `not_verified` has `coverage` naming lines that never ran | "The changed lines <file>:<a>-<b> never ran under any check, so perfproof can't tell whether they broke anything. Add a test that reaches them (it must fail on the original), or leave this change for you to judge?" Say "never ran" from the reason; a new test is a new spec and a new baseline, the user's call. |
-| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail could not be established) | "Measured, but not kept: <each `not_verified` item> couldn't be checked here. <What would make it checkable.>" Don't mention the range or the bar. |
+| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail other than a limit could not be established) | "Measured, but not kept: <each `not_verified` item> couldn't be checked here. <What would make it checkable.>" Don't mention the range or the bar. |
 | KEEP, calibrated | "Kept: <estimate>x faster (range <lower> to <upper>), clear of the bar (<bar>). It's on `perfproof/<name>`." |
 | REJECT `performance` | "Not kept: even the high end of the range, <upper>x, doesn't clear the bar (<bar>)." Say "slower" only if `verdict.regression` is true. |
-| REJECT `guardrail` | "Not kept: it uses more <memory or latency> than allowed (<value> against <limit>)." |
+| REJECT `guardrail`, a limit in `standing` that is missed (`gap` above 0 for a cap, below 0 for a floor) | "Not kept: in these runs it stayed under <reliable_value> (cap <limit>, <gap> short); on a busier or quieter machine this number can move. <The function or allocation the profile blames.> Next I would <one change>. Keep going on getting under <limit>?" A floor: "stayed over <reliable_value> (floor <limit>, <|gap|> short of it, never a negative number)" and "getting over <limit>?". The value is where the run stands, never a verdict. |
+| REJECT `guardrail` from a relative allowance, or with every limit met (a cap at `gap` 0 or below, a floor at 0 or above) | "Not kept: it uses more <memory or latency> than allowed (<value> against <allowance>)." Name the allowance breach; no "keep going under". |
+| INCONCLUSIVE, rule 2, a limit `not_established` with `standing` | "Undecided: in these runs it stayed under <reliable_value> (cap <limit>, <gap> short), too close to call; this number can move. <What the profile blames.> Keep going on getting under <limit>?" A floor: "over" and "getting over". With `reliable_value` null: "<typical> against <limit>, too few rounds to say." |
 
 ## Refusals (a check failed, so speed doesn't matter)
 

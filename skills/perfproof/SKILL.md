@@ -69,9 +69,15 @@ the user.
   its cap, a larger workload, a different angle), and the question
   "keep going?" as the one question, recommendation first (for example
   "Keep going with <idea>, or stop here?"). Numbers here are
-  information, never a KEEP, and the wording rules above still apply:
-  any estimate goes in its own paragraph, the gap and next step in
-  plain sentences around it, never in the same paragraph as a number.
+  information, never a KEEP; the wording rules above still apply: any
+  estimate goes in its own paragraph, the rest in plain sentences.
+  An absolute limit missed or too close to call (`gap` positive for a cap, negative for a floor) is
+  such a stop: from `guardrails[].standing` in the record say where the
+  run stands (`reliable_value`, limit, gap, "in these runs"), name what
+  the profile blames, propose one change, ask "Keep going on getting
+  under <cap>?" ("over <floor>" for a floor). On yes the gap is the
+  goal: profile it, change, `compare`, repeat. A relative allowance
+  breach is "not kept", no loop. `reliable_value` is no verdict.
 - Before anything is decided, name a goal by its metric ("the time
   the `rolling_sum` calls take") and the bar as a line ("the low end of
   the range must be above 3%"), never as "faster" or "beats".
