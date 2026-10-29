@@ -3933,7 +3933,7 @@ def arm_order(result: CompareResult) -> Any:
 
 
 def test_a_default_schedule_is_decided_by_hac_lf(
-    project: Project, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # The wall clock's step is measured per run (1 ms under emulated
     # amd64, about 1 ns natively) and widens the wall interval, so fix
@@ -3941,13 +3941,18 @@ def test_a_default_schedule_is_decided_by_hac_lf(
     step = 2.5e-4
     monkeypatch.setattr(compare_module, "_wall_step", lambda: step)
     spec = BenchmarkSpec.model_validate(spec_fields(**LLM_SCHEDULE))
-    faster = project.candidate("fast", {"work.py": work(0.005)})
+    # Deterministic values (`DET_BENCH`): real sleep timings printed to
+    # the microsecond can repeat often enough, in 10 rounds, to fail the
+    # continuity check (fewer distinct values than half the rounds),
+    # which ends the run at the first look as INCONCLUSIVE.
+    project = make_project(tmp_path, bench=DET_BENCH, baseline=det_work(1.0))
+    faster = project.candidate("fast", {"work.py": det_work(1 / 6)})
     result = project.run(faster, spec)
     v = result.record.verdict
     assert v.procedure == "hac_lf"
-    # The candidate is 6 times faster (0.005 s against 0.03 s), so the
-    # first look with an interval (16 rounds, the second look) clears
-    # the bar; no class is declared, so that KEEP is held and ends it.
+    # The candidate is 6 times faster, so the first look with an
+    # interval (16 rounds, the second look) clears the bar; no class is
+    # declared, so that KEEP is held and ends it.
     assert (v.rounds, v.looks) == (16, 2)
     assert v.interval is not None
     assert v.estimate is not None
