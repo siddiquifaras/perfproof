@@ -27,7 +27,7 @@
     "verified": true
   },
   "oracle": {
-    "command": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+    "command": "node_modules/.bin/vitest run --root . --config eval_vitest.config.mjs",
     "source": "nest's logger.service tests (packages/common/test/services/logger.service.spec.ts), mocha-style tests run under vitest with a minimal config (eval/tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs); targeted tests only",
     "verified": true
   },

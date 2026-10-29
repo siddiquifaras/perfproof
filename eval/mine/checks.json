@@ -661,11 +661,12 @@
       "npm install --prefix .eval-tools --before 2023-02-02 --no-audit --no-fund --ignore-scripts reflect-metadata rxjs iterare uid tslib chai@4 sinon@14 uuid@9",
       "npm install --prefix .eval-tools --before 2026-07-23 --no-audit --no-fund tsx vitest",
       "ln -s .eval-tools/node_modules node_modules",
-      "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/bench.ts eval_bench.ts"
+      "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/bench.ts eval_bench.ts",
+      "cp ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs eval_vitest.config.mjs"
     ],
     "workload": "node --import tsx eval_bench.ts",
     "workload_source": "written here from the description of https://github.com/nestjs/nest/pull/10823 (formatting the timestamp of each log line): ConsoleLogger.log called with timestamps on and stdout discarded, a fixed warm-up then a fixed window, eval/tasks/workloads/nestjs-nest-pr10823-landed/bench.ts, run through tsx",
-    "oracle": "node_modules/.bin/vitest run --root . --config ../../../../tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs",
+    "oracle": "node_modules/.bin/vitest run --root . --config eval_vitest.config.mjs",
     "oracle_source": "nest's logger.service tests (packages/common/test/services/logger.service.spec.ts), mocha-style tests run under vitest with a minimal config (eval/tasks/workloads/nestjs-nest-pr10823-landed/vitest.config.mjs); targeted tests only",
     "notes": "The tree's full toolchain (lerna, gulp, mocha, ts-node on a 2022 lockfile) is not installed; only what ConsoleLogger imports (reflect-metadata, rxjs, iterare, uid, tslib, uuid) at their versions before the merge, plus chai, sinon, tsx and vitest. Node is v24 from nvm. The warm-up and window counts were not chosen from a warm-up curve; the workload's direction of effect was seen once per tree"
   },

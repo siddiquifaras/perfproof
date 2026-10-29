@@ -172,8 +172,11 @@ confirmed target (`perfproof init --json` if it is missing). If one
 target fits and the user hasn't confirmed it, ask one plain question
 ("perfproof sees this as <class> code, from <evidence>; is that
 right?"): fold it into the question you are already asking, or ask it
-on its own if there is none. On yes run `perfproof project confirm
-<target id> --json`. The spec sets that `target_class`
+on its own if there is none. If several targets fit, that same
+question names each candidate with its evidence and asks which one
+applies. On yes run `perfproof project confirm
+<target id> --json` on the chosen target. If none fits, leave
+`target_class` out and say once that KEEP can't be calibrated. The spec sets that `target_class`
 and its schedule ([spec.md](spec.md)); adding them to an existing spec
 changes its hash, so define a new version and say so in one line.
 Without a confirmed class, `compare` measures but cannot keep.
@@ -204,7 +207,8 @@ No discovery. One candidate at a time, against its parent.
    write one: a command that runs the changed code the way it is really
    used, plus the test command and the output files to compare
    ([spec.md](spec.md)), and lock it with
-   `perfproof bench define <name> --spec <file> --json`. A script you
+   `perfproof bench define <name> --spec <file> --json` (read `ok` in
+   the full output; never filter it). A script you
    write for it goes in `.perfproof/harness/`, never in the user's
    tree. If you can't find any command that runs the changed code,
    stop and say so (nothing can be measured without one).

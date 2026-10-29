@@ -4,7 +4,11 @@ perfproof measures one command, the benchmark, and checks one test
 command. You write both into a JSON spec and lock it with
 `perfproof bench define <name> --spec <file> --json`. Locking records the
 hashes of the files listed in `harness`, `oracle`, `inputs` and
-`config`, so a later change that edits them is refused.
+`config`, so a later change that edits them is refused. Read `ok` in
+the full `--json` output and never filter it: defining the same spec
+again after a locked file changed is refused (`"ok": false`,
+`spec_conflict`). To change a locked file, define a new benchmark under
+a new name and compare with that.
 
 Keep the spec file in `.perfproof/specs/<name>.json`. Show the user the
 command, the test command and what is compared, in one short paragraph,
