@@ -1,192 +1,189 @@
 # perfproof
 
-**Find out where your code can get faster, and keep only the changes
-that really are.**
+perfproof is a `/perfproof` skill for coding agents. It looks for where
+your code spends its time, and it checks whether a change really made
+the code faster before keeping it.
 
-Most developers hit a wall with performance. You know your codebase,
-you've already fixed the obvious slow parts, and you're out of ideas.
-Or you have ideas, but no reliable way to tell whether one helped: run
-a benchmark twice and the number moves, so a "20% speedup" from one
-before-and-after run is often just that movement.
+Benchmarks are noisy: run one twice and the number moves, so a "20%
+speedup" from a single before-and-after run is often just that
+movement. perfproof runs old and new code in turns on your machine,
+checks the answers still match, and keeps a change only when the
+measurements back it. The agent does the thinking. A small command-line
+tool, `perfproof`, does everything that has to be exact.
 
-perfproof does both halves of the job, inside your coding agent (Claude
-Code, Codex, or any agent that can run commands). It's a skill that
-does the thinking and a small command-line tool that does everything
-that has to be exact:
-
-- **It finds what you haven't tried.** It profiles your real workloads
-  and looks from angles that are easy to miss: time spent waiting
-  rather than computing, the same work done over and over, code that
-  gets worse as inputs grow, database queries per request, idle GPUs,
-  settings nobody tuned. Each idea becomes a hypothesis, tested cheaply
-  before any code is written.
-- **It proves which changes to keep.** Old and new code run in turns on
-  the same machine, the answers are checked, and a change is kept only
-  if the measurements say it's a real improvement.
-
-It works on code you've never seen and on code you've worked on for
-years. It remembers what it has already tried and why it was rejected,
-so every session starts where the last one stopped.
+It is built for Claude Code. A Codex install exists, but whether a
+Codex model drives the skill well has not been verified.
 
 ## Install
 
-One line puts the `perfproof` command on your PATH and the `/perfproof`
-skill where Claude Code and Codex find it:
+Status: the repository is private and perfproof is not on PyPI until
+the 2026-11-02 launch, so the lines below do not resolve yet. Until
+then, install from a clone (see
+[docs/install.md](docs/install.md#before-the-release-2026-11-02)).
+
+Claude Code, one line (not yet live):
 
 ```bash
-uv tool install --python 3.12 git+https://github.com/siddiquifaras/perfproof && perfproof install-skills
+claude plugin marketplace add siddiquifaras/perfproof && claude plugin install perfproof@perfproof
 ```
 
-Then run `/perfproof` in your agent, in any repository. `perfproof
-doctor` says what is missing and how to fix it. To remove everything:
-`perfproof install-skills --uninstall && uv tool uninstall perfproof`.
-Details: [docs/install.md](docs/install.md).
+Then say `/perfproof` in any repository, or "make this faster". You
+need [uv](https://docs.astral.sh/uv/) and git. Codex, other agents,
+checking the install and uninstalling:
+[docs/install.md](docs/install.md).
 
-## How a session goes
+## What a run looks like
 
-Run `/perfproof` in your agent:
+`/perfproof` takes a depth word. The tiers are defined in
+[the skill](skills/perfproof/SKILL.md) (the table under "depth").
 
-1. **Understand.** perfproof works out what your project is, which
-   workloads matter, what "faster" means for you (latency, throughput,
-   memory, startup, cost), and what must not change. You confirm it.
-2. **Discover.** It ranks opportunities by the most each could gain,
-   with the evidence for each one and anything tried before.
-3. **Try.** The agent writes a change for the best opportunity, or
-   several different ones.
-4. **Prove.** perfproof checks the change still gives the same answers,
-   measures it against the original, and gives a verdict. Kept changes
-   stack up on their own branch; everything else is undone.
-5. **Repeat** until the budget runs out or nothing left could clear the
-   bar. You get one report with every attempt and its evidence.
-
-## The verdict
-
-Every comparison ends with one of three answers:
-
-| Result | Speedup | 95% interval | Why |
-|---|---|---|---|
-| KEEP | +8% | +5% to +11% | Even the low end beats +3% |
-| REJECT | +1% | -1% to +2% | Even the high end misses +3% |
-| INCONCLUSIVE | +5% | +2% to +8% | Might clear +3%, might not, and the run budget is spent |
-
-*These rows show how the rule works. They are not measurements.*
-
-KEEP and REJECT are both claims the numbers back up. INCONCLUSIVE is
-the honest answer when they back neither, and perfproof gives it
-instead of guessing. A change that edits the benchmark or breaks the
-answers is a REJECT however fast it runs.
-
-## What it promises, and what it doesn't
-
-No tool can prove a code change correct. Here's what perfproof does
-promise: **it never keeps a change that failed a check, and every
-report says what it checked and what it couldn't.**
-
-The checks are built to catch "faster but wrong":
-
-- **Your tests**, run on the old code first, so a flaky test gets set
-  aside instead of blamed on the change.
-- **Old and new code side by side** on the same inputs, including real
-  inputs recorded while the benchmark ran.
-- **Every changed line has to run** under those checks. If the tests
-  never reach the code that changed, the change isn't kept.
-- **No speed bought with something else.** Faster but using several
-  times the memory, or with worse tail latency, gets refused.
-- **No side effects.** perfproof won't run a benchmark that points at a
-  real database or any other service that isn't on your machine.
-
-If your tests are thin, perfproof's own checks fill part of the gap,
-and the report tells you exactly which lines nothing verified.
-
-## What it works on
-
-| Kind of code | What perfproof measures | Where it looks for wins |
-|---|---|---|
-| Python | Benchmarks, slow tests, entry points | Vectorization, algorithms, caching, allocations, imports |
-| C, C++, Rust | Benchmark binaries, instruction counts on Linux | Memory layout, SIMD, allocation, branches |
-| Web and CRUD services | Latency percentiles and throughput under steady load | N+1 queries, serialization, connection pools, caching |
-| LLM serving (vLLM, SGLang) | Throughput and latency from the serving benchmarks | Batching, scheduling, KV cache, attention backends, settings |
-| GPU kernels and PyTorch | CUDA-event timing, Nsight, torch.profiler | Occupancy, memory access, launch overhead, fusion, `torch.compile` |
-| Agentic and LLM apps | A recorded run of the app, replayed with no API cost | Wasted calls, calls that could run in parallel, prompt caching |
-
-GPU work runs on a remote host over SSH or on Modal. The agent edits
-code locally and perfproof ships the measurement to the GPU.
-
-## Why it exists
-
-During a hand-run investigation of a vLLM performance report, the exact
-same server config, on the same GPU type, ran at **1172 tok/s** in one
-session and **1360 tok/s** in another. Same code, same flags, 16% apart.
-Comparing those two runs naively would have "found" a regression or a
-speedup that wasn't there.
-
-That investigation also showed why it pays to measure the mechanism and
-not only the headline number. Reading the prefix-cache hit rate from the
-server's metrics changed the conclusion. The full story, with every
-number, is in the [vLLM case study](docs/case-studies/vllm-prefix-caching.md).
-
-perfproof turns those lessons into defaults: look for the mechanism, run
-both versions on one machine, record what that machine was, and report
-the interval instead of a single number.
-
-## Pick how deep it goes
-
-People are on different plans, and a thorough session can use a lot of
-an agent's budget. So `/perfproof` takes one word:
-
-| Command | What it does |
+| Command | What it covers |
 |---|---|
-| `/perfproof light` | One workload, the top idea or two, one attempt, a short measurement. Proving a change you already have is light by default. |
-| `/perfproof` (medium) | Learns the project, tries the best three to five ideas across the angles above. |
-| `/perfproof full` | Every angle, every profiler for your kind of code, as many attempts as the budget allows, the longest measurement. |
+| `/perfproof light` | The 2 most-used workloads, ranks what the profiles show, tries the top candidate. The default when you give it a change to prove. |
+| `/perfproof` (medium, the default) | Maps how the program is used, runs 3 to 4 workloads, names the files no workload reached, tries the top 2 to 3 candidates and proves the best. |
+| `/perfproof deep` | Every entry point, larger sizes, every candidate with a meaningful ceiling, and a second fresh comparison of the best one. |
 
-A lighter run explores less and measures for less time. It never
-lowers the bar: a light run says INCONCLUSIVE more often, but it can't
-keep a change a full run would reject. perfproof's own output is kept
-short, so the agent spends its budget on your code, not on reading
-logs.
+Each run ends with what was slow and why, what changed, the evidence,
+and what was not checked. Kept changes go on a `perfproof/<name>`
+branch you choose to merge. Besides that branch, perfproof writes `.perfproof/` (ignored through
+`.git/info/exclude`, so no tracked file changes) and baseline
+snapshots under `.git/worktrees/`
+([docs/install.md](docs/install.md)).
 
-## What works today
+One real run, recorded by the lead in a
+[comment on PR #104](https://github.com/siddiquifaras/perfproof/pull/104#issuecomment-6479599232)
+(its scripts are not committed; 2026-10-29, a fresh git copy of `examples/rolling`; fields quoted, not a
+full transcript): `perfproof init` proposed `target-python_cpu`, then
+`project confirm`, then `bench define` with `target_class: python_cpu`
+and that class's own schedule. `compare` then gave:
 
-Early development. Nothing is released and there's no install command
-yet. This is what runs now, as `perfproof <command>`:
+```
+KEEP, rule 2, reason performance, calibration: calibrated
+target_class python_cpu
+estimate 63.86x, interval 59.55 to 68.49 at confidence 0.9958
+conditions: hac_lf; schedule (10,10,6,60); alpha 0.05; one host
+warnings: high_load, differential_checks_not_run
+```
 
-| Part | State |
+`differential_checks_not_run` means the old-versus-new output
+comparison was not run for this KEEP, so outputs were not checked that
+way. `high_load` means the machine was busy during the run. This is
+one example project with a planted bottleneck, not a typical result.
+
+## What KEEP means
+
+A comparison ends in KEEP, REJECT or INCONCLUSIVE. KEEP means the
+interval of the measured speedup, at 1 - alpha/(2K) per look (99.58% on
+the python_cpu schedule), lies above the bar (3% by default) and the
+safety checks passed. The rule is in
+[docs/method.md](docs/method.md); the checks include your tests,
+changed-line coverage, and guardrails on memory and tail latency ([guardrails](docs/method.md#guardrails)).
+
+KEEP is calibrated only inside a tested domain
+([the calibrated domain](docs/method.md#the-calibrated-domain)):
+
+- the project's class is confirmed and not stale, and the comparison uses that class's
+  own run schedule at alpha 0.05;
+- classes calibrated: python_cpu, native, web_service, agentic and
+  llm_serving, each on its own schedule.
+
+Otherwise KEEP is withheld, the comparison still runs and reports, and
+the reason is named. Calibration was checked against real recorded
+noise (run of record, seed 661371947387106328: 420 in-class cells, 0
+failing; [method.md "Run of record"](docs/method.md#real-noise),
+[results CSV](tests/calibration/results/real-seed-661371947387106328.csv),
+[PR #104](.claude/worklog.md#commits-and-merges-on-main)). The run also
+had node and java traces that belong to no class, so they are not
+counted. Counting each class's traces under its own schedule was decided
+by the owner after seeing results
+([decision](.claude/worklog.md#decisions)):
+
+| Class | Real traces used |
 |---|---|
-| `doctor`: is this machine fit to measure on | Works |
-| `bench`: define and lock a benchmark | Works |
-| `profile`: where the time goes, with wall versus CPU time | Works (py-spy on Linux, pyinstrument on macOS) |
-| `compare`: old against new, with the safety checks | Runs end to end. Until calibration finishes it answers INCONCLUSIVE or a REJECT from a failed check, never KEEP |
-| Differential checks (old and new code on the same real inputs) | Built, not yet wired into `compare` |
-| Coverage check (every changed line must run) | In review |
-| Calibration (the evidence that KEEP can be trusted) | In progress |
-| Discovery: the project model, the angles, hypotheses, memory of past attempts | Not built yet |
-| The `/perfproof` skill, depth tiers, install | Not built yet |
-| Target classes beyond Python | Not built yet. Native, web, LLM serving, GPU and agentic apps are planned |
+| python_cpu | 10 |
+| native | 2 |
+| web_service and agentic | 6 |
+| llm_serving | 2 (CPU Ollama runs) |
 
-Discovery matters as much as proof. Coding agents write code that
-works, not code that's fast, so the speedups have to be looked for
-deliberately. The proving engine was built first only because an idea
-is worth nothing until a verdict on it can be trusted.
+Limits of that evidence:
+
+- **GPU kernels are not calibrated** (no real GPU traces yet), so KEEP
+  is withheld for them ([decision](.claude/worklog.md#decisions)).
+- **Off-class combinations are a named limit.** Running a class's
+  traces under another class's schedule failed in 6 cells, and those
+  are published as limits, not hidden
+  ([decision](.claude/worklog.md#decisions)).
+- **Absolute limits are scoped "in these runs".** A cap such as "memory
+  stays under X" holds for the machine as it was during the session; a
+  loaded machine can move it
+  (["Scope of the claim" in docs/method.md](docs/method.md)).
+
+## Results so far
+
+**Calibrated KEEPs have not yet been exercised by the eval
+rounds.** r10 and the earlier rounds ran before calibration was
+switched on (PR #104), so no calibrated KEEP was possible in them and
+"no wrong KEEP" there proves nothing. The held-out runs came after it,
+but reached no verdict (0 of 0 accepted in both reports). No round yet
+shows how often a calibrated KEEP is wrong. The evidence for KEEP is the
+calibration above.
+Eval method: [docs/evaluation.md](docs/evaluation.md).
+
+**Discovery on repositories held out from tuning: the planted
+bottleneck was found and named in 2 of 8 (25%, 95% interval about
+7% to 59%).** Full passes as scored: 0 of 8
+([reports: heldout-1](eval/skill/runs/heldout-1/report.md), [heldout-2](eval/skill/runs/heldout-2/report.md); [narrative](.claude/worklog.md#decisions)). The 8 tasks came from two runs: 4 failed setup in the first.
+Three were fixed and run with the same frozen skill; rolldown could not
+build in the eval sandbox, so the draw rule passed it over and drew uuid
+in its place. The skill was
+frozen first; the 8 tasks were drawn by a pre-registered rule
+([PR #102](.claude/worklog.md#commits-and-merges-on-main)).
+
+The main failure: on unseen code, the workloads the agent picked mostly
+did not reach the slow path (badger, fasthttp, numpy, arrow-rs and
+datafusion). In dask it was in the profile but not chosen. To make
+this visible, `perfproof` reports files no workload ever sampled
+("never sampled"), and the skill says "not covered by these workloads"
+rather than "fine"
+([PR #105](.claude/worklog.md#commits-and-merges-on-main)).
+
+**Development-set round r10** (55 tasks counted against the bar, $24.38, plus 2 failures excluded
+from the count: `real-django-hidden-fix` and `ruby-rails-find`). This is
+the tuning set, so it says the skill works there, not that discovery
+generalises ([narrative](.claude/worklog.md#decisions)). Reports: [examples](eval/skill/runs/r10-ex/report.md), [real](eval/skill/runs/r10-real/report.md), [Rust](eval/skill/runs/r10-rust/report.md), [.NET](eval/skill/runs/r10-dotnet/report.md), [Java](eval/skill/runs/r10-java/report.md), [Ruby](eval/skill/runs/r10-ruby/report.md), [Go](eval/skill/runs/r10-go/report.md), [native](eval/skill/runs/r10-native/report.md), [Node](eval/skill/runs/r10-node/report.md):
+
+| Family | Tasks passed |
+|---|---|
+| Examples | 23 of 24 |
+| Real repos | 5 of 11 |
+| Rust | 3 of 3 |
+| .NET, Java, Ruby | 2 of 3, 2 of 3, 2 of 2 |
+| Go, native, Node | 2 of 3, 2 of 3, 1 of 3 |
+| Total | 42 of 55 |
+
+## Limits and what is not verified
+
+- Discovery is weak on unseen code: 2 of 8 held out, above.
+- The held-out set is now spent for tuning claims; its hidden names
+  have been seen ([worklog](.claude/worklog.md#decisions)).
+- Codex model use is unverified; GPU kernels have no KEEP.
+- Comparing runs from different machines or sessions is not supported:
+  one identical config moved 16% across two sessions
+  ([vLLM case study](docs/case-studies/vllm-prefix-caching.md)).
+- Counter metrics need Linux; macOS has no `perf`
+  ([AGENTS.md](AGENTS.md)).
+- A task set is a sample of real performance work, not all of it
+  ([evaluation limits](docs/evaluation.md#limits)).
+- No claim here is a speedup you should expect on your code. Only a
+  KEEP from your own run is a measurement.
 
 ## Docs
 
-- [Who it is for](docs/product.md): one command for beginners and
-  experts, on any plan
-- [The CLI and a session](docs/cli.md): what using it looks like
-- [Understand and discover](docs/discovery.md): how perfproof builds its
-  picture of a project and finds what to try
-- [Method](docs/method.md): how a change is proven, and the exact
-  KEEP / REJECT / INCONCLUSIVE rule
-- [Target classes](docs/targets.md): what "correct" means for each
-  kind of code, and what's supported
-- [Failure modes](docs/failure-modes.md): every way this could go wrong,
-  and what stops it
-- [Evaluation](docs/evaluation.md): how we test that it works, on tasks
-  we didn't write
-- [Architecture](docs/architecture.md): how the pieces fit, and what it
-  reuses from existing tools
-- [vLLM case study](docs/case-studies/vllm-prefix-caching.md)
+[Who it is for](docs/product.md), [the CLI](docs/cli.md),
+[discovery](docs/discovery.md), [method](docs/method.md),
+[target classes](docs/targets.md),
+[failure modes](docs/failure-modes.md),
+[architecture](docs/architecture.md).
 
 ## License
 
