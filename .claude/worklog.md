@@ -145,6 +145,18 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Held-out discovery run heldout-1 (2026-10-29, skill frozen at 029f5c2, as ppeval, $4.92).** Scored 4 of 8, passed 0 of 4; a hotspot was named in 1 of 4 (fast-json-stringify, which failed only on a wording false positive, "shorter than 42 characters").
+  - dask: the hidden function was in the profile but not chosen.
+  - badger and fasthttp (Go): "no profile output". This is a SCORER GAP: the agents used `profile --sizes` and `--rank` successfully, but the scorer doesn't read `--sizes` results. They are unscored, not missed.
+  - 4 tasks never ran because setup failed in the sandbox:
+    - arrow-rs and datafusion: rustup couldn't write `~/.rustup/tmp`;
+    - numpy: no vendored-meson submodule;
+    - rolldown: the native build order.
+    They passed the draw's build check outside the eval-user sandbox. They're still unseen by the skill, so they're still held out.
+  - Product bug found: the ranking counts the agent's own `.perfproof/harness/` driver as project code (`main.main`, 3.41x).
+  - Fixes: `task/heldout-harness` (scorer and setups), `task/rank-skip-harness` (the product bug). Then re-score heldout-1 (free) and run the 4 unrun tasks once (about $3).
+  - The lead has seen some hidden function names in the report, so no skill tuning toward these tasks from here on.
+
 - **Discovery and depth (Faras, 2026-10-29).**
   - Discovery must find the real bottleneck on an unknown repo, not the first plausible function. The eval answer keys only grade.
   - Plan:
