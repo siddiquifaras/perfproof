@@ -38,6 +38,15 @@ checked, and run `java` itself:
 - Give both versions the same flags. `JAVA_TOOL_OPTIONS` is recorded by
   name only: never set it in the spec to change heap or GC for one
   version.
+- With a `peak_memory` guardrail, put the same `-Xmx` in both commands:
+  the one the project runs with, or a size the workload fits in.
+  With no fixed `-Xmx` the peak can track how far the JVM grows its
+  heap rather than what the code keeps, and a faster version that
+  allocates at a higher rate can then show far more memory. If a memory
+  breach came from runs with no fixed `-Xmx`, say so and compare both
+  again with one before calling it a regression; that run's guardrail
+  decides, and its timing replaces the earlier one, since a smaller
+  heap changes how often the JVM collects.
 
 ## Warm-up
 

@@ -51,8 +51,10 @@
         "trigger": true,
         "fix": "none",
         "outcomes": [
-          "INCONCLUSIVE"
-        ]
+          "INCONCLUSIVE",
+          "REJECT"
+        ],
+        "reason": "performance"
       }
     },
     {

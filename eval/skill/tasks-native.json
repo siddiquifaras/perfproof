@@ -44,7 +44,8 @@
       "expect": {
         "trigger": true,
         "fix": "none",
-        "outcomes": ["KEEP", "INCONCLUSIVE"]
+        "outcomes": ["REJECT", "INCONCLUSIVE"],
+        "reason": "performance"
       }
     },
     {
