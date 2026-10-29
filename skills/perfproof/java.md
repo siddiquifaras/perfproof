@@ -271,9 +271,71 @@ per JDK.
 
 ## Coverage
 
-JaCoCo is the Java tool. It is not wired into the coverage check yet,
-so the report says changed lines were not checked; do not claim they
-ran.
+A change is kept only if every changed line ran under the checks.
+JaCoCo is the tool: perfproof reads its XML report (`jacococli report
+--xml`) from `$PERFPROOF_COVERAGE_REPORT`, resolving
+`package/Source.java` under `src/main/java` (then `src/java`, `src`)
+of `correctness.cwd`. Download `org.jacoco.agent-<v>-runtime.jar` and
+`org.jacoco.cli-<v>-nodeps.jar` from Maven Central once, into a
+directory outside the tree, and use their absolute paths.
+
+The agent and the report are two steps, so save this wrapper as
+`.perfproof/harness/Coverage.java` and list it in `harness`. It runs
+the test command with the agent in every JVM it starts, then writes
+the XML:
+
+```java
+// Usage: java Coverage.java AGENT.jar CLI.jar CLASSES SOURCES -- TEST...
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+
+public final class Coverage {
+    public static void main(String[] a) throws Exception {
+        String out = System.getenv("PERFPROOF_COVERAGE_REPORT");
+        if (out == null || a.length < 6 || !a[4].equals("--")) {
+            System.err.println("need PERFPROOF_COVERAGE_REPORT and "
+                + "AGENT CLI CLASSES SOURCES -- TEST...");
+            System.exit(2);
+        }
+        Path dir = Files.createTempDirectory(
+            Path.of(out).toAbsolutePath().getParent(), "jacoco-");
+        Path exec = dir.resolve("jacoco.exec");
+        ProcessBuilder tests =
+            new ProcessBuilder(Arrays.copyOfRange(a, 5, a.length));
+        tests.environment().put("JAVA_TOOL_OPTIONS", "-javaagent:"
+            + new File(a[0]).getAbsolutePath() + "=destfile=" + exec);
+        int code = tests.inheritIO().start().waitFor();
+        if (Files.exists(exec)) {
+            Path xml = dir.resolve("report.xml");
+            List<String> cli = List.of("java", "-jar", a[1], "report",
+                exec.toString(), "--classfiles", a[2], "--sourcefiles", a[3],
+                "--xml", xml.toString());
+            if (new ProcessBuilder(cli).inheritIO().start().waitFor() == 0) {
+                Files.move(xml, Path.of(out));
+            }
+        }
+        for (File f : dir.toFile().listFiles()) {
+            f.delete();
+        }
+        dir.toFile().delete();
+        System.exit(code);
+    }
+}
+```
+
+The spec's `coverage_command` is then `["java",
+".perfproof/harness/Coverage.java", "<agent jar>", "<cli jar>",
+"<compiled classes dir>", "src/main/java", "--", <the correctness
+command>]`, with `coverage_timeout_seconds`. Proven with a JUnit 5
+console run over classes `javac` built in `setup`: a changed line the
+tests run gave the coverage gate `passed`, one no test runs gave
+`not_available`. A Maven or Gradle test command after `--` (the
+classes dir `target/classes` or `build/classes/java/main`) should work
+the same way, since the agent travels in `JAVA_TOOL_OPTIONS` to the
+forked test JVM; that was not run. Never time a run with the agent on.
 
 ## When to stop
 

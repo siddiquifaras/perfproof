@@ -273,9 +273,9 @@ count, never as a timing.
 - The oracle is the project's tests (`vitest`, `jest`, `node --test`)
   plus the output the harness writes; give the test command only the
   files for the code you changed when the whole suite is slow.
-- perfproof can't yet check which changed lines ran for Node; say so
-  as the CLI's `not_verified` list does, and do not offer a test for
-  it.
+- A KEEP needs the coverage check, which for Node means declaring
+  `correctness.coverage_command` (see Coverage below). Without it the
+  change is measured but not kept.
 - A change to a dependency (`package.json`, the lockfile) is a runtime
   change: `node_modules` differs between the versions, and the check
   that names the runtime does not see the loader's or the library's
@@ -283,6 +283,60 @@ count, never as a timing.
   without asking.
 - Compare in one launch form on one machine; Node's version and the
   JIT's behaviour change between releases and hosts.
+
+## Coverage
+
+A Node change is kept only if every changed line ran under the checks.
+Declare a coverage command that runs the project's test command under
+`c8` and leaves lcov at exactly `$PERFPROOF_COVERAGE_REPORT`. `c8`
+writes `lcov.info` into a report directory and has no flag for a file
+path, so a tiny argv-only wrapper moves it. Save it as
+`.perfproof/harness/coverage.mjs` and list it in `harness`:
+
+```js
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+
+const out = process.env.PERFPROOF_COVERAGE_REPORT
+const c8 = join(process.cwd(), 'node_modules', '.bin', 'c8')
+if (!out || !existsSync(c8)) {
+  console.error('need PERFPROOF_COVERAGE_REPORT and node_modules/.bin/c8')
+  process.exit(2)
+}
+const dir = mkdtempSync(join(dirname(out), 'c8-'))
+const run = spawnSync(
+  c8,
+  ['--reporter=lcovonly', `--reports-dir=${dir}`,
+    `--temp-directory=${join(dir, 'tmp')}`, '--', ...process.argv.slice(2)],
+  { stdio: 'inherit' },
+)
+if (existsSync(join(dir, 'lcov.info'))) {
+  renameSync(join(dir, 'lcov.info'), out)
+}
+rmSync(dir, { recursive: true, force: true })
+process.exit(run.status ?? 1)
+```
+
+The spec then has `"coverage_command": ["node",
+".perfproof/harness/coverage.mjs", <the test command>]` (for example
+`node_modules/.bin/borp`, or `node --test`) and a
+`coverage_timeout_seconds`.
+
+- `c8` must be in `node_modules/.bin` in each version. If the project
+  lacks it, add `["npm", "install", "--no-save", "--ignore-scripts",
+  "c8"]` to `setup` (no lockfile change). The wrapper exits 2 rather
+  than download it.
+- TypeScript run through `tsx` (`node --import tsx --test x.ts`) or
+  Node's own type stripping (`node --test x.ts`) reports the source's
+  line numbers; both were checked with an enum above the function, so
+  compiled and source lines differ. Code compiled without a source map
+  would report lines of the output.
+- Child processes the tests start are covered too (`c8` sets
+  `NODE_V8_COVERAGE`). c8 counts a line as run when the range around
+  it ran, so a one-line function nobody calls can still show a hit; a
+  changed line on a line of its own is judged exactly.
+- Never time a run under `c8`: it is for the check only.
 
 ## When to stop
 

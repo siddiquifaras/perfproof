@@ -507,11 +507,12 @@ stays 4.
 When non-Python files changed and the command is declared, `compare`
 runs it once in the candidate tree (in `correctness.cwd`) with the
 environment variable `PERFPROOF_COVERAGE_REPORT` set to a file path that
-does not exist, and reads lcov (`SF:`, `DA:`, `end_of_record`) or
-Cobertura XML from there. With no command declared nothing extra runs
+does not exist, and reads lcov (`SF:`, `DA:`, `end_of_record`),
+Cobertura XML or JaCoCo XML from there. With no command declared nothing extra runs
 and those changes are `not_available` ("no coverage command declared").
 Paths in the report are relative to `correctness.cwd` (Cobertura: to
-each `<source>` first) or absolute inside the tree. A changed line
+each `<source>` first; JaCoCo: package path plus source file name under
+`src/main/java` and the other source roots) or absolute inside the tree. A changed line
 listed with zero hits is unverified (gate `not_available`, lines
 named); a line not listed is not executable. The full contract is
 "Coverage reports" in `docs/method.md`.

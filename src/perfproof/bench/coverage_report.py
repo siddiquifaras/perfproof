@@ -9,15 +9,22 @@ is in "Coverage reports" in ``docs/method.md``:
   ``correctness.coverage_command`` in the candidate tree and puts the
   path to write in the environment variable `REPORT_ENV_VAR`. With no
   such command declared nothing runs, and the gate says so.
-- **Formats.** lcov (``SF:``, ``DA:line,hits``, ``end_of_record``) and
+- **Formats.** lcov (``SF:``, ``DA:line,hits``, ``end_of_record``),
   Cobertura XML (``class`` elements with a ``filename``, and ``line``
-  elements with ``number`` and ``hits``), told apart by the first
-  non-blank character (``<`` is XML). Only line hits are read; branch
-  data is ignored.
+  elements with ``number`` and ``hits``) and JaCoCo XML (``package``
+  elements with a ``name``, ``sourcefile`` elements with a ``name``,
+  and ``line`` elements with ``nr`` and ``ci``, the covered
+  instructions, which is the hit count). The first non-blank character
+  tells XML (``<``) from lcov, and the root element tells JaCoCo
+  (``report``) from Cobertura (``coverage``); any other root is
+  refused. Only line hits are read; branch data is ignored.
 - **Which file.** A path inside the candidate tree names that file;
   an absolute path outside it is ignored. A relative path is relative
   to the command's working directory (``correctness.cwd``), except in
-  Cobertura, where it is relative to each ``<source>`` first.
+  Cobertura, where it is relative to each ``<source>`` first. In
+  JaCoCo a file is its package path plus the source file's name,
+  looked for under the Maven and Gradle source roots of the command's
+  directory (`JACOCO_SOURCE_ROOTS`), then the directory itself.
 - **Which lines.** A line listed with hits above zero ran; listed with
   zero hits, it is executable and never ran; not listed, it is not
   executable, as that tool sees it.
@@ -43,6 +50,11 @@ MAX_REPORT_BYTES: Final = 64 * 1024 * 1024
 """Largest report read, in bytes. Provisional: an input bound chosen
 here, not measured and not a memory bound (parsing uses a multiple of
 it); a larger report is refused as unreadable rather than parsed."""
+
+JACOCO_SOURCE_ROOTS: Final = ("src/main/java", "src/java", "src", ".")
+"""Directories, relative to the command's working directory, under
+which a JaCoCo package path is looked for, in order (Maven and Gradle
+use ``src/main/java``)."""
 
 type Hits = dict[str, dict[int, int]]
 
@@ -78,7 +90,7 @@ def read_report(
     ------
     ReportError
         If the report is larger than `MAX_REPORT_BYTES`, is not UTF-8,
-        or is not valid lcov or Cobertura.
+        or is not valid lcov, Cobertura or JaCoCo.
     OSError
         If the file exists but cannot be read.
     """
@@ -90,7 +102,7 @@ def read_report(
     data = report.read_bytes()
     bases = [Path(os.path.realpath(root / cwd))]
     if data.lstrip().startswith(b"<"):
-        return _cobertura(data, Path(os.path.realpath(root)), bases)
+        return _xml(data, Path(os.path.realpath(root)), bases)
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -171,8 +183,8 @@ def _lcov(text: str, root: Path, bases: Sequence[Path]) -> Hits:
     return found
 
 
-def _cobertura(data: bytes, root: Path, bases: Sequence[Path]) -> Hits:
-    """Parse Cobertura ``class`` and ``line`` elements."""
+def _xml(data: bytes, root: Path, bases: Sequence[Path]) -> Hits:
+    """Parse an XML report and read it as JaCoCo or Cobertura."""
     if b"<!ENTITY" in data:
         msg = "the report declares XML entities"
         raise ReportError(msg)
@@ -181,6 +193,50 @@ def _cobertura(data: bytes, root: Path, bases: Sequence[Path]) -> Hits:
     except ET.ParseError as exc:
         msg = f"the report is not valid XML: {exc}"
         raise ReportError(msg) from exc
+    if tree.tag == "report":
+        return _jacoco(tree, root, bases)
+    if tree.tag == "coverage":
+        return _cobertura(tree, root, bases)
+    msg = f"the XML root is <{tree.tag}>, not <coverage> or <report>"
+    raise ReportError(msg)
+
+
+def _jacoco(tree: ET.Element, root: Path, bases: Sequence[Path]) -> Hits:
+    """Parse JaCoCo package, sourcefile and line elements."""
+    sources = [
+        Path(os.path.realpath(bases[0] / r)) for r in JACOCO_SOURCE_ROOTS
+    ]
+    found: Hits = {}
+    for package in tree.iter("package"):
+        directory = package.get("name")
+        if directory is None:
+            msg = "a package element has no name"
+            raise ReportError(msg)
+        for source in package.iterfind("sourcefile"):
+            name = source.get("name")
+            if not name:
+                msg = f"a sourcefile of package {directory!r} has no name"
+                raise ReportError(msg)
+            path = _locate(
+                f"{directory}/{name}" if directory else name, sources, root
+            )
+            for line in source.iterfind("line"):
+                number, hits = line.get("nr"), line.get("ci")
+                if number is None or hits is None:
+                    msg = f"a line of {name} has no nr or ci"
+                    raise ReportError(msg)
+                lineno = _count(number, f"{name} line number")
+                if lineno < 1:
+                    msg = f"{name}: line numbers start at 1"
+                    raise ReportError(msg)
+                _add(found, path, lineno, _count(hits, f"{name} ci"))
+            if path is not None:
+                found.setdefault(path, {})
+    return found
+
+
+def _cobertura(tree: ET.Element, root: Path, bases: Sequence[Path]) -> Hits:
+    """Parse Cobertura ``class`` and ``line`` elements."""
     sources = [
         Path(os.path.realpath(Path(s.text.strip())))
         if Path(s.text.strip()).is_absolute()

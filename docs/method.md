@@ -197,17 +197,24 @@ and perfproof reads it. The whole contract:
   opt-in. A command that exits non-zero, times out, or writes no report
   leaves them `not_available` with that reason, or `waived` with the
   opt-in, as for any non-Python change the gate could not check.
-- *Format.* lcov (`SF:`, `DA:<line>,<hits>`, `end_of_record`) or
+- *Format.* Three: lcov (`SF:`, `DA:<line>,<hits>`, `end_of_record`),
   Cobertura XML (`class` elements with `filename`, `line` elements
-  with `number` and `hits`), told apart by the first non-blank
-  character (`<` is XML). Only line hits are read. A report larger
+  with `number` and `hits`) and JaCoCo XML (`package` elements with a
+  `name`, `sourcefile` elements with a `name`, `line` elements with
+  `nr` and `ci`; the hits are `ci`, the covered instructions). The
+  first non-blank character tells XML (`<`) from lcov, and the root
+  element tells JaCoCo (`report`) from Cobertura (`coverage`); any
+  other root is unreadable. Only line hits are read. A report larger
   than 64 MiB (a provisional input bound, not measured and not a
   memory bound), or one that does not parse, is unreadable and counts
   as no report, with the error in the gate's detail.
 - *Which file.* A path inside the candidate tree names that file; an
   absolute path outside it is ignored. A relative path is relative to
   the correctness command's working directory (`correctness.cwd`), and
-  for Cobertura to each `<source>` directory first. A changed file the
+  for Cobertura to each `<source>` directory first. A JaCoCo file is
+  its package path plus the source file's name, looked for under
+  `src/main/java`, `src/java`, `src` and then the directory itself,
+  each below `correctness.cwd`; the first that exists names the file. A changed file the
   report does not list is not checked.
 - *Which lines.* The changed lines are the lines `git diff` adds or
   changes in the candidate (every line of a new file), as for Python.

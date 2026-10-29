@@ -153,6 +153,7 @@ def make_trees(
         **(files or {}),
     }
     for name, text in contents.items():
+        (repo / name).parent.mkdir(parents=True, exist_ok=True)
         (repo / name).write_text(text)
     git(repo, "init", "-q")
     git(repo, "add", ".")
@@ -1022,6 +1023,45 @@ def test_a_changed_native_line_the_report_shows_never_ran(
     assert result.status == "not_available"
     assert unverified(result) == {"native.c": (1,)}
     assert "native.c lines 1 never ran" in result.detail
+
+
+JACOCO = Path(__file__).resolve().parents[1] / "fixtures" / "java" / "jacoco"
+JAVA_FILE = "src/main/java/com/example/Calc.java"
+
+
+def java_trees(tmp_path: Path) -> dict[Arm, Path]:
+    """Trees holding the fixture's Java source and its real report."""
+    return make_trees(
+        tmp_path,
+        {
+            JAVA_FILE: (JACOCO / "Calc.java").read_text(),
+            "report.py": WRITE_REPORT,
+            "report.info": (JACOCO / "report.xml").read_text(),
+        },
+    )
+
+
+def test_a_changed_java_line_the_jacoco_report_shows_ran_passes(
+    tmp_path: Path,
+) -> None:
+    trees = java_trees(tmp_path)
+    edit(trees["candidate"], JAVA_FILE, "a + b", "b + a")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    assert result.status == "passed", result.detail
+    assert "1 non-Python files checked from the coverage report" in (
+        result.detail
+    )
+
+
+def test_a_changed_java_line_the_jacoco_report_shows_never_ran(
+    tmp_path: Path,
+) -> None:
+    trees = java_trees(tmp_path)
+    edit(trees["candidate"], JAVA_FILE, "x * 2", "2 * x")
+    result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
+    line = line_of(trees["candidate"], JAVA_FILE, "        return 2 * x;")
+    assert result.status == "not_available", result.detail
+    assert unverified(result) == {JAVA_FILE: (line,)}
 
 
 def test_a_changed_line_the_report_does_not_list_is_not_executable(

@@ -11,6 +11,7 @@ RECORDED_SOURCE = next(
     for line in (FIXTURES / "cobertura.xml").read_text().splitlines()
     if "<source>" in line
 )
+JACOCO = Path(__file__).resolve().parents[1] / "fixtures" / "java" / "jacoco"
 CALC = {1: 1, 2: 1, 5: 1, 6: 0}
 TEST_CALC = {1: 1, 4: 1, 5: 1}
 
@@ -159,3 +160,88 @@ def test_a_nul_byte_in_a_path_is_a_report_error(tmp_path: Path) -> None:
     report.write_bytes(b"SF:a\x00b.c\nDA:1,1\nend_of_record\n")
     with pytest.raises(ReportError, match="NUL"):
         read_report(report, tree(tmp_path))
+
+
+def java_tree(tmp_path: Path, where: str = "src/main/java") -> Path:
+    root = tmp_path / "tree"
+    source = root / where / "com" / "example"
+    source.mkdir(parents=True)
+    (source / "Calc.java").write_text((JACOCO / "Calc.java").read_text())
+    return root
+
+
+def test_a_real_jacoco_report_gives_paths_and_instruction_hits(
+    tmp_path: Path,
+) -> None:
+    root = java_tree(tmp_path)
+    found = read_report(JACOCO / "report.xml", root)
+    assert found == {
+        "src/main/java/com/example/Calc.java": {7: 4, 8: 2, 12: 0}
+    }
+
+
+def test_jacoco_paths_follow_the_command_directory(tmp_path: Path) -> None:
+    root = tmp_path / "tree"
+    module = root / "mod" / "src" / "main" / "java" / "com" / "example"
+    module.mkdir(parents=True)
+    (module / "Calc.java").write_text("")
+    found = read_report(JACOCO / "report.xml", root, "mod")
+    assert list(found or {}) == ["mod/src/main/java/com/example/Calc.java"]
+
+
+def test_jacoco_falls_back_to_a_flat_source_root(tmp_path: Path) -> None:
+    root = java_tree(tmp_path, "src")
+    found = read_report(JACOCO / "report.xml", root)
+    assert list(found or {}) == ["src/com/example/Calc.java"]
+
+
+def test_a_jacoco_file_in_no_source_root_gets_the_first_root(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "tree"
+    root.mkdir()
+    found = read_report(JACOCO / "report.xml", root)
+    assert found == {
+        "src/main/java/com/example/Calc.java": {7: 4, 8: 2, 12: 0}
+    }
+
+
+def test_jacoco_and_cobertura_are_told_apart_by_the_root(
+    tmp_path: Path,
+) -> None:
+    root = java_tree(tmp_path)
+    cobertura = tmp_path / "c.xml"
+    cobertura.write_text(
+        '<coverage><class filename="a.py"><lines>'
+        '<line number="1" hits="2"/></lines></class></coverage>'
+    )
+    assert read_report(cobertura, root) == {"a.py": {1: 2}}
+    unknown = tmp_path / "u.xml"
+    unknown.write_text("<other/>")
+    with pytest.raises(ReportError, match="root"):
+        read_report(unknown, root)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '<report><package name="p"><sourcefile name="A.java">'
+        '<line nr="1"/></sourcefile></package></report>',
+        '<report><package name="p"><sourcefile name="A.java">'
+        '<line nr="x" mi="0" ci="1"/></sourcefile></package></report>',
+        '<report><package name="p"><sourcefile name="A.java">'
+        '<line nr="0" mi="0" ci="1"/></sourcefile></package></report>',
+        '<report><package name="p"><sourcefile name="A.java">'
+        '<line nr="1" mi="0" ci="-1"/></sourcefile></package></report>',
+        '<report><package><sourcefile name="A.java"/></package></report>',
+        '<report><package name="p"><sourcefile/></package></report>',
+        "<report><package name=",
+    ],
+)
+def test_a_malformed_jacoco_report_is_refused(
+    tmp_path: Path, text: str
+) -> None:
+    report = tmp_path / "r.xml"
+    report.write_text(text)
+    with pytest.raises(ReportError):
+        read_report(report, java_tree(tmp_path))
