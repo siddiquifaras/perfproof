@@ -25,6 +25,9 @@ uv run --frozen pyright
 uv run --frozen pytest -q
 '
 
+# pyright installs Node through nodeenv; pin it, because nodeenv's
+# "latest" lookup fails on pre-release version strings (2026-10-30).
 git archive --format=tar "$commit" | docker run --rm -i \
   --platform linux/amd64 -e "UV_PYTHON=$py" \
+  -e PYRIGHT_PYTHON_NODE_VERSION=22.11.0 \
   -e UV_PYTHON_PREFERENCE=only-system "python:$py-bookworm" sh -c "$inner"
