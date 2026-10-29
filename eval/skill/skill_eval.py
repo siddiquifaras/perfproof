@@ -38,6 +38,17 @@ direction words" rule inverted, to show the scorer sees the difference::
     uv run python skill_eval.py run --skill ../../scratch/broken
 
 ``archive`` keeps a run's transcripts and scores for the repo.
+
+Baseline arm: ``--arm baseline`` runs the same task in the same sandbox,
+with the same budget, timeout, model and follow-ups, but with no skill
+in the repo and no ``perfproof`` launcher on ``PATH``; the first message
+is ``prompts[level]["baseline"]`` (``--level vague|detailed``). A run
+directory holds one arm and level (``run.json``); ``compare`` puts the
+runs of one task file side by side, from saved runs, with no model
+call::
+
+    uv run python eval/skill/skill_eval.py run --arm baseline --label b1
+    uv run python eval/skill/skill_eval.py compare RUN_DIR_1 RUN_DIR_2
 """
 
 from __future__ import annotations
@@ -56,6 +67,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+import arms
+import compare
 import eval_user
 import realrepo
 import reporting
@@ -333,11 +346,13 @@ def _run_locked(args: argparse.Namespace, user: eval_user.EvalUser) -> int:
     eval_user.sweep(user)
     tasks = taskset.load(args.tasks_file)
     chosen = _select(tasks.tasks, args.only)
+    require_prompts(chosen, args.arm, args.level)
     run_id = eval_user.check_label(
-        args.label or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        args.label or default_label(args.arm, args.level)
     )
     run_dir = Path(args.out) / run_id
     run_dir.mkdir(parents=True, exist_ok=args.resume)
+    arms.write_run_marker(run_dir, args.arm, args.level)
     # Building and installing the wheel is heavy: not while the machine
     # must stay quiet.
     wait_while_marked(args.pause_marker)
@@ -388,6 +403,8 @@ def _run_locked(args: argparse.Namespace, user: eval_user.EvalUser) -> int:
                 label=run_id,
                 only=[task.id],
                 held_out=args.held_out,
+                arm=args.arm,
+                level=args.level,
             ),
         )
         codes.append(done.returncode)
@@ -440,10 +457,12 @@ def _run_here(args: argparse.Namespace) -> int:
     cache = args.cache or DEFAULT_OUT / "cache"
     tasks = taskset.load(args.tasks_file)
     chosen = _select(tasks.tasks, args.only)
-    run_id = args.label or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    require_prompts(chosen, args.arm, args.level)
+    run_id = args.label or default_label(args.arm, args.level)
     run_dir = Path(args.out) / run_id
     run_dir.mkdir(parents=True, exist_ok=args.resume)
-    path_dir = runner.shim_dir(run_dir)
+    arms.write_run_marker(run_dir, args.arm, args.level)
+    path_dir = runner.shim_dir(run_dir, with_cli=args.arm == "skill")
     skill_dir = Path(args.skill)
     sys.stdout.write(f"run {run_dir}\n")
     stopped: str | None = None
@@ -471,6 +490,8 @@ def _run_here(args: argparse.Namespace) -> int:
                 cache,
                 work_root,
                 held_out=args.held_out,
+                arm=args.arm,
+                level=args.level,
             )
         except sandbox.SandboxUnavailableError as exc:
             # The sign-in ran out between tasks: keep what finished.
@@ -503,13 +524,61 @@ def _run_here(args: argparse.Namespace) -> int:
     return status
 
 
+def default_label(arm: str, level: str) -> str:
+    """Name a run by time, arm and level."""
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return f"{stamp}-{arm}-{level}"
+
+
+class PromptMissingError(ValueError):
+    """A chosen task has no first message for the arm and level."""
+
+
+def require_prompts(
+    chosen: list[taskset.Task], arm: taskset.Arm, level: taskset.Level
+) -> None:
+    """Refuse the run before anything starts if a prompt is missing.
+
+    Raises
+    ------
+    PromptMissingError
+        Naming every chosen task that has no message for ``arm`` and
+        ``level`` (a task without ``prompts`` has only skill/vague).
+    """
+    problems: list[str] = []
+    for task in chosen:
+        try:
+            task.prompt_for(arm, level)
+        except ValueError as exc:
+            problems.append(str(exc))
+    if problems:
+        raise PromptMissingError("; ".join(problems))
+
+
 def _score_and_report(
     run_dir: Path, tasks_file: Path, previous: Path | None
 ) -> int:
     tasks = taskset.load(tasks_file)
-    scores = scoring.score_run(run_dir, tasks)
-    reporting.write(run_dir, scores, previous)
-    sys.stdout.write((run_dir / "report.md").read_text(encoding="utf-8"))
+    arm, _ = arms.read_run_marker(run_dir)
+    # The skill's own checks (verdict, Result line, wording) mean
+    # nothing for plain Claude Code: a baseline run gets the common
+    # scores only.
+    if arm == "skill":
+        scores = scoring.score_run(run_dir, tasks)
+        reporting.write(run_dir, scores, previous)
+        sys.stdout.write((run_dir / "report.md").read_text(encoding="utf-8"))
+    arms.write_arm_scores(run_dir, arms.score_arm_run(run_dir, tasks))
+    return 0
+
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    tasks = taskset.load(args.tasks_file)
+    text = compare.render(compare.load(args.run_dirs, tasks), tasks)
+    if args.out is None:
+        sys.stdout.write(text)
+    else:
+        args.out.write_text(text, encoding="utf-8")
+        sys.stdout.write(f"{args.out}\n")
     return 0
 
 
@@ -674,6 +743,20 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="run tasks, then score the run")
     run.add_argument("--only", nargs="+", help="task id patterns")
+    run.add_argument(
+        "--arm",
+        choices=taskset.ARMS,
+        default="skill",
+        help="skill: perfproof installed; baseline: plain Claude Code, no "
+        "skill and no perfproof on PATH, same sandbox, budget, model and "
+        "follow-ups",
+    )
+    run.add_argument(
+        "--level",
+        choices=taskset.LEVELS,
+        default="vague",
+        help="which first message of the task: prompts[level][arm]",
+    )
     run.add_argument("--skill", type=Path, default=runner.SKILL_SOURCE)
     run.add_argument("--label", help="run id; a timestamp by default")
     run.add_argument(
@@ -739,6 +822,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     probe.add_argument("--work-root", type=Path)
     probe.set_defaults(func=_cmd_auth_probe)
+    cmp = sub.add_parser(
+        "compare",
+        help="arms and levels of one task file side by side, from saved runs",
+    )
+    cmp.add_argument("run_dirs", type=Path, nargs="+")
+    cmp.add_argument("--out", type=Path, help="write the report here")
+    cmp.set_defaults(func=_cmd_compare)
     score = sub.add_parser("score", help="score a saved run, no re-run")
     score.add_argument("run_dir", type=Path)
     score.add_argument("--previous", type=Path)
@@ -761,6 +851,7 @@ def main(argv: list[str] | None = None) -> int:
     except (
         eval_user.EvalUserUnavailableError,
         eval_user.BundleTamperedError,
+        PromptMissingError,
     ) as exc:
         sys.stderr.write(f"{exc}\n")
         return 2

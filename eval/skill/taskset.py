@@ -32,6 +32,17 @@ so the scorer's window is the rows the agent was told to read."""
 
 Kind = Literal["prove", "find", "trigger"]
 FixKind = Literal["none", "branch", "optional_branch"]
+Arm = Literal["skill", "baseline"]
+"""``skill``: perfproof installed; ``baseline``: plain Claude Code."""
+Level = Literal["vague", "detailed"]
+"""How much the user's message says: nothing, or a specific request."""
+ARMS: Final[tuple[Arm, ...]] = ("skill", "baseline")
+LEVELS: Final[tuple[Level, ...]] = ("vague", "detailed")
+WALL_METRICS: Final = frozenset(
+    {"wall_seconds", "wall_time", "wall_time_s", "wall"}
+)
+"""Names of ``speed_check.metric`` the harness can time (the command's
+wall time). Any other name gives an unknown speedup."""
 
 
 class _Model(BaseModel):
@@ -179,6 +190,43 @@ class BarExclusion(_Model):
     evidence: str
 
 
+class PromptPair(_Model):
+    """The first message of one prompt level, for each arm.
+
+    Attributes
+    ----------
+    skill : str
+        Sent to the agent that has perfproof (``/perfproof`` or
+        ``/perfproof <text>``).
+    baseline : str
+        Sent to plain Claude Code, with no perfproof installed.
+    """
+
+    skill: str
+    baseline: str
+
+
+class SpeedCheck(_Model):
+    """How the harness times a task's final tree against its base.
+
+    Attributes
+    ----------
+    command : str
+        Run in the repository root (split with ``shlex``, no shell),
+        once per timed sample, in the base tree and in the final tree.
+    metric : str
+        What is timed. Only the names in `WALL_METRICS` (the command's
+        wall time) are supported; any other leaves the speedup unknown.
+    build : str or None
+        Run, untimed, after each switch of tree and before the samples,
+        for projects that compile.
+    """
+
+    command: str
+    metric: str = "wall_seconds"
+    build: str | None = None
+
+
 class Expect(_Model):
     """What a correct run looks like.
 
@@ -227,7 +275,13 @@ class Task(_Model):
     branches : list of BranchSpec
         Branches to seed, each one commit on the baseline.
     prompt : str
-        The user's first message.
+        The user's first message of the skill arm at the vague level
+        (the only combination of a task without ``prompts``).
+    prompts : dict of str to PromptPair or None
+        The first message per level (``vague``, ``detailed``) and arm.
+        ``None``: only ``prompt`` exists, for the skill arm.
+    speed_check : SpeedCheck or None
+        How the harness times the final tree against the base tree.
     followups : list of str
         Generic replies, sent in order while the skill is asking a
         question.
@@ -253,7 +307,9 @@ class Task(_Model):
     example: str | None = None
     repo: RealRepo | None = None
     branches: list[BranchSpec] = []
-    prompt: str
+    prompt: str = ""
+    prompts: dict[Level, PromptPair] | None = None
+    speed_check: SpeedCheck | None = None
     followups: list[str] = []
     max_turns: int | None = None
     budget_usd: float = 1.0
@@ -271,6 +327,48 @@ class Task(_Model):
         own workload, so none made for the task may sit in its tree.
         """
         return self.kind == "find" and self.expect.hotspot is not None
+
+    def prompt_for(self, arm: Arm, level: Level) -> str:
+        """Pick the first message of an arm at a level.
+
+        Parameters
+        ----------
+        arm : {"skill", "baseline"}
+            Who is asked.
+        level : {"vague", "detailed"}
+            How much the message says.
+
+        Returns
+        -------
+        str
+            ``prompts[level][arm]``; for a task without ``prompts``,
+            ``prompt`` for the skill arm at the vague level.
+
+        Raises
+        ------
+        ValueError
+            If the task has no message for the combination.
+        """
+        if self.prompts is None:
+            if arm == "skill" and level == "vague" and self.prompt:
+                return self.prompt
+            msg = (
+                f"task {self.id} has no prompts: only the skill arm at the "
+                f"vague level exists, not {arm}/{level}"
+            )
+            raise ValueError(msg)
+        pair = self.prompts.get(level)
+        if pair is None:
+            msg = f"task {self.id} has no {level!r} prompts"
+            raise ValueError(msg)
+        return pair.skill if arm == "skill" else pair.baseline
+
+    @model_validator(mode="after")
+    def _has_prompt(self) -> Task:
+        if not self.prompt and not self.prompts:
+            msg = f"task {self.id}: set prompt or prompts"
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def _one_source(self) -> Task:

@@ -1018,6 +1018,67 @@ the launchers started.
 These are pass/fail checks on the skill's behaviour, not performance
 labels: the labels come from the independent procedure above.
 
+## Baseline arm: plain Claude Code against the skill
+
+Question: does perfproof give leverage over a plain coding agent asked
+"make the whole app faster"? `skill_eval.py run --arm baseline` runs a
+task in the same ppeval sandbox with the same budget, timeout, model
+and follow-ups, with no skill in the repo and no `perfproof` on `PATH`
+(any `PATH` directory holding the command is dropped, because `uv run`
+puts the checkout's venv first; `baseline_leaks` fails the task before
+the first call if either is present). `--level vague|detailed` picks
+`prompts[level][arm]` of the task; a task without `prompts` has only
+skill/vague. A run directory holds one arm and level (`run.json`; the
+default label ends `-<arm>-<level>`; `--resume` refuses to mix).
+
+Scoring on common terms (`eval/skill/arms.py`, both arms; the skill's
+own checks in `scoring.py` are unchanged and skipped for the baseline):
+
+- *Found*: the hotspot function is named in the final answer (same
+  naming rule as the skill's hotspot check, no negation), or the
+  hotspot's file is edited in the final tree. File level only: the saved
+  state holds paths, not diffs.
+- *Correct*: the example's tests or the manifest's oracle pass on the
+  final tree (the newest kept `perfproof/*` branch, tests passing or
+  not, else the working tree; one rule for both arms).
+- *Claims*: sentences of the final answer saying the code got faster
+  (`N% faster`, `Nx`/`N times faster`, "faster", "quicker", "speedup",
+  "sped up", reduced runtime/latency, performance gain). Questions,
+  negated sentences and fenced code are not claims; hedged ones are.
+  A claim is *backed* for the skill arm by a perfproof `KEEP` verdict;
+  for the baseline by timings the agent ran itself on both versions: a
+  Bash timing command with numeric output before its first edit of the
+  code and another after its last edit. Otherwise it is *unbacked*. Only
+  that structure is checked, not that the sentence's number matches the
+  timings, so it flatters the baseline.
+- *Speedup*: the harness times the final tree against the base tree
+  after the agent finishes (`speedcheck.py`, `speed_check` of the task:
+  `command`, `metric` = wall time, optional untimed `build`). Method: a
+  fixed interleaved A/B loop (checkout base and final in turn in the
+  repo, one untimed warm-up, 7 timed samples each, ratio of medians,
+  95% seeded percentile bootstrap), not `perfproof compare`: the
+  baseline must be judged without the tool it lacks, `compare` needs a
+  benchmark definition per project, and a plain loop runs on any
+  language. It is cruder than `compare` (no calibration, no sequential
+  looks). A failing command or an unsupported metric gives `unknown`; an
+  unchanged tree gives `unchanged`. The agent's own numbers are never
+  used for this.
+- *Contamination* (baseline): the init event lists perfproof, a Bash
+  command runs or imports it, the Skill tool is called for it, or a Read,
+  Glob, Grep or Bash input holds a path with `perfproof/` or `SKILL.md`.
+  This is the second line. The first: the baseline's sandbox denies
+  reads of the checkout's `.venv` and `src`, the `venv_dir` environment
+  and any `perfproof` launcher on `PATH` or in `~/.local/bin` (the skill
+  and the package live in the venv), and its `python` is the venv's base
+  interpreter with `PYTHONPATH` pointing at `baseline-site`, hard links
+  to the venv's third-party packages without perfproof. A sandboxed
+  probe in `test_arms.py` shows the skill and sources unreadable and
+  `import perfproof` failing, while NumPy and pytest import.
+
+`skill_eval.py compare RUN_DIR...` puts the runs of one task file side
+by side from saved runs: per task a row for each level and arm, then
+totals per level. No model call.
+
 ## Limits
 
 - A task set is a sample of real performance work, not all of it.

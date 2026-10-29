@@ -768,6 +768,26 @@ def _named(
     )
 
 
+def named_in(hotspot: Hotspot, texts: list[str]) -> bool:
+    """Tell whether any accepted function is named, without negation.
+
+    Parameters
+    ----------
+    hotspot : Hotspot
+        The known bottleneck; the primary function and every accepted
+        one count.
+    texts : list of str
+        Text the user could read (the final answer).
+
+    Returns
+    -------
+    bool
+        Whether a sentence names one, in the form `hotspot_check` uses
+        and holds no negation.
+    """
+    return _named(hotspot, hotspot.accepted(), texts)[0]
+
+
 def _saved_hotspot_check(
     hotspot: Hotspot,
     turns: list[transcript.Turn],
@@ -1027,7 +1047,7 @@ def score_task(task: Task, task_dir: Path) -> TaskScore:
     texts = transcript.assistant_texts(turns)
     calls = transcript.tool_calls(turns)
     cost, agent_turns, api_seconds = transcript.result_metrics(turns)
-    explicit = task.prompt.startswith("/perfproof")
+    explicit = task.prompt_for("skill", meta.level).startswith("/perfproof")
     started = True if explicit else transcript.skill_started(turns)
     trigger_ok = None if explicit else started == task.expect.trigger
     if task.kind == "trigger":

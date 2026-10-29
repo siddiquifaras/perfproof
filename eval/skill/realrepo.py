@@ -521,6 +521,40 @@ def _run(
     return proc.returncode, tail
 
 
+def run_command(
+    command: str,
+    cwd: Path,
+    env: dict[str, str],
+    timeout: float,
+    *,
+    confine: bool,
+    read: Sequence[Path] = (),
+) -> tuple[int, str]:
+    """Run one command line in a task repo, as the harness's own step.
+
+    Parameters
+    ----------
+    command : str
+        Split with ``shlex``; no shell.
+    cwd : Path
+        The task repo (two levels inside the run's work directory).
+    env : dict of str to str
+        Environment.
+    timeout : float
+        Seconds before the process group is killed (exit code 124).
+    confine : bool
+        Run behind the ``sandbox-exec`` profile.
+    read : sequence of Path, optional
+        Extra readable directories (the ``PATH`` ones).
+
+    Returns
+    -------
+    tuple of (int, str)
+        Exit code and the tail of the output.
+    """
+    return _run(command, cwd, env, timeout, confine=confine, read=read)
+
+
 def kill_containers() -> None:
     """Kill containers started by the toolchain launchers."""
     try:

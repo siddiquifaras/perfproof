@@ -1070,6 +1070,7 @@ def profile(
     read: Sequence[Path] = (),
     write: Sequence[Path] = (),
     temp_dirs: Sequence[Path | str] | None = None,
+    deny_read: Sequence[Path] = (),
 ) -> str:
     """Write the ``sandbox-exec`` profile text.
 
@@ -1097,6 +1098,9 @@ def profile(
         readable.
     temp_dirs : sequence of Path or str, optional
         Writable temp directories; the system's by default.
+    deny_read : sequence of Path, optional
+        Paths closed to reads even when an allow above covers them
+        (the baseline arm: the perfproof environment and sources).
 
     Returns
     -------
@@ -1141,6 +1145,7 @@ def profile(
         + list(write),
     )
     lines += _subpaths("deny file-read*", [home / p for p in _HOME_CARVED])
+    lines += _subpaths("deny file-read*", _both(deny_read))
     lines.append("(deny file-write*)")
     lines.append('(allow file-write* (subpath "/dev"))')
     lines += _subpaths(
@@ -1222,6 +1227,7 @@ def wrap(
     cwd: Path | None = None,
     read: Sequence[Path] = (),
     write: Sequence[Path] = (),
+    deny_read: Sequence[Path] = (),
 ) -> list[str]:
     """Prefix a command with ``sandbox-exec``.
 
@@ -1244,6 +1250,8 @@ def wrap(
         writable.
     read, write : sequence of Path, optional
         More paths to leave readable, and readable and writable.
+    deny_read : sequence of Path, optional
+        Paths closed to reads whatever else allows them.
 
     Returns
     -------
@@ -1269,6 +1277,7 @@ def wrap(
             allow_docker,
             read=[*read, *([] if cwd is None else [cwd])],
             write=[*write, *([] if cwd is None else [cwd])],
+            deny_read=deny_read,
         ),
         encoding="utf-8",
     )

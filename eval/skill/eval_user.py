@@ -761,6 +761,8 @@ def guest_argv(
     label: str,
     only: Sequence[str],
     held_out: bool = False,
+    arm: str = "skill",
+    level: str = "vague",
 ) -> list[str | Path]:
     """Build the command line of one guest ``run``.
 
@@ -775,6 +777,9 @@ def guest_argv(
         the pause marker between tasks).
     held_out : bool, optional
         Pass ``--held-out`` to the guest.
+    arm, level : str, optional
+        Passed as ``--arm`` and ``--level`` when not the defaults
+        (``skill``, ``vague``).
 
     Returns
     -------
@@ -794,6 +799,8 @@ def guest_argv(
         "run",
         "--no-eval-user",
         *(["--held-out"] if held_out else []),
+        *(["--arm", arm] if arm != "skill" else []),
+        *(["--level", level] if level != "vague" else []),
         "--label",
         label,
         "--resume",

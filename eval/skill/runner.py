@@ -32,7 +32,8 @@ from pydantic import BaseModel, ConfigDict
 
 import realrepo
 import sandbox
-from taskset import Task, TaskSet
+import speedcheck
+from taskset import Arm, Level, SpeedCheck, Task, TaskSet
 from transcript import as_dict, as_list, load_turns, seen_verdicts
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -80,6 +81,8 @@ _NOISE_SUBTYPES = frozenset(
     }
 )
 _COMMAND_TIMEOUT = 120.0
+_SPEED_TIMEOUT = 600.0
+"""Seconds one ``speed_check`` command or build may take."""
 _MIN_CALL_USD = 0.05
 """Below this much task budget, no further call is started."""
 
@@ -156,6 +159,15 @@ class State(_Model):
         The working tree and every branch that was not seeded.
     run_verdicts : list of RunVerdict
         Verdicts from the run records, oldest first.
+    base_changed : list of str
+        Paths of the working tree (committed or not, new files
+        included) that differ from the seeded ``main`` commit; unlike
+        ``TreeState.changed`` it holds even if the agent committed on
+        ``main``. Empty in states saved before it existed.
+    final_ref : str
+        The tree the run is judged on by the arm comparison: the
+        newest-committed new ``perfproof/*`` branch (tests passing or
+        not), otherwise ``working``.
     """
 
     status: str
@@ -164,6 +176,8 @@ class State(_Model):
     seeded: dict[str, str]
     trees: list[TreeState]
     run_verdicts: list[RunVerdict]
+    base_changed: list[str] = []
+    final_ref: str = "working"
 
 
 class TurnMeta(_Model):
@@ -214,6 +228,10 @@ class Meta(_Model):
     held_out : bool
         The task ran under ``--held-out``; scoring and reports load its
         spec the same way.
+    arm : {"skill", "baseline"}
+        ``baseline``: plain Claude Code, no skill, no ``perfproof``.
+    level : {"vague", "detailed"}
+        Which first message of the task was sent.
     """
 
     task_id: str
@@ -226,6 +244,8 @@ class Meta(_Model):
     turns: list[TurnMeta]
     setup_seconds: float = 0.0
     held_out: bool = False
+    arm: Arm = "skill"
+    level: Level = "vague"
 
 
 def confined(
@@ -331,7 +351,7 @@ def skill_hash(skill_dir: Path) -> str:
     return digest.hexdigest()[:12]
 
 
-def shim_dir(root: Path) -> Path:
+def shim_dir(root: Path, *, with_cli: bool = True) -> Path:
     """Create ``python`` and ``perfproof`` launchers for the run's PATH.
 
     A user's agent finds both on its PATH; here they point at this
@@ -342,6 +362,10 @@ def shim_dir(root: Path) -> Path:
     ----------
     root : Path
         Directory to create the ``bin`` directory in.
+    with_cli : bool, optional
+        ``False`` for the baseline arm: only the ``python`` launcher
+        is written, and a ``perfproof`` launcher left by an earlier
+        call is removed.
 
     Returns
     -------
@@ -359,19 +383,136 @@ def shim_dir(root: Path) -> Path:
         raise FileNotFoundError(msg)
     bindir = root / "bin"
     bindir.mkdir(parents=True, exist_ok=True)
-    for name, target in (
-        ("python", venv / "python"),
-        ("perfproof", venv / "perfproof"),
-    ):
+    if with_cli:
+        wanted = [
+            ("python", venv / "python"),
+            ("perfproof", venv / "perfproof"),
+        ]
+        body = '#!/bin/sh\nexec "{target}" "$@"\n'
+    else:
+        (bindir / "perfproof").unlink(missing_ok=True)
+        site = baseline_site(root)
+        wanted = [("python", (venv / "python").resolve())]
+        body = (
+            f'#!/bin/sh\nPYTHONPATH="{site}" PYTHONNOUSERSITE=1 '
+            'exec "{target}" "$@"\n'
+        )
+    for name, target in wanted:
         launcher = bindir / name
         launcher.write_text(
-            f'#!/bin/sh\nexec "{target}" "$@"\n', encoding="utf-8"
+            body.replace("{target}", str(target)), encoding="utf-8"
         )
         launcher.chmod(0o755)
     return bindir
 
 
-def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
+_BASELINE_SKIP = ("perfproof", "_virtualenv", "ruff", "pyright", "nodeenv")
+
+
+def baseline_site(root: Path) -> Path:
+    """Build the packages directory of the baseline's ``python``.
+
+    The baseline agent needs the third-party packages the examples use
+    (NumPy, pytest) but nothing of perfproof. The venv itself holds the
+    package, its skill and its sources, so it is closed to the baseline
+    (`agent_deny`); this directory holds hard links (copies where that
+    fails) to the venv's third-party files, without perfproof, its
+    ``.pth`` files or the dev tools. The baseline's ``python`` is the
+    venv's base interpreter with ``PYTHONPATH`` set to it.
+
+    Parameters
+    ----------
+    root : Path
+        The directory ``shim_dir`` was given.
+
+    Returns
+    -------
+    Path
+        ``<root>/baseline-site``, built once.
+    """
+    site = root / "baseline-site"
+    if site.is_dir():
+        return site
+    sources = sorted((venv_dir() / "lib").glob("python3*/site-packages"))
+    if not sources:
+        msg = f"no site-packages under {venv_dir()}"
+        raise FileNotFoundError(msg)
+
+    def link_or_copy(src: str, dst: str) -> str:
+        try:
+            os.link(src, dst)
+        except OSError:
+            shutil.copy2(src, dst)
+        return dst
+
+    shutil.copytree(
+        sources[0],
+        site,
+        symlinks=True,
+        copy_function=link_or_copy,
+        ignore=lambda _dir, names: [
+            n
+            for n in names
+            if n.startswith(_BASELINE_SKIP)
+            or n.endswith(".pth")
+            or n == "__pycache__"
+        ],
+    )
+    return site
+
+
+def agent_deny(arm: Arm) -> list[Path]:
+    """List the perfproof paths the baseline's sandbox must not read.
+
+    Parameters
+    ----------
+    arm : {"skill", "baseline"}
+        The arm.
+
+    Returns
+    -------
+    list of Path
+        Empty for the skill arm. For the baseline: this checkout's
+        ``.venv`` and ``src``, the environment ``venv_dir`` names (the
+        eval user's tool environment), and every ``perfproof`` launcher
+        found on the harness's ``PATH`` or in ``~/.local/bin``. Note the
+        skill and the package live in those environments.
+    """
+    if arm != "baseline":
+        return []
+    found = [REPO_ROOT / ".venv", REPO_ROOT / "src", venv_dir()]
+    dirs = [
+        *os.environ.get("PATH", "").split(os.pathsep),
+        str(Path.home() / ".local" / "bin"),
+    ]
+    found += [Path(d) / "perfproof" for d in dirs if d]
+    return found
+
+
+def agent_read(arm: Arm, path_dir: Path) -> list[Path]:
+    """List the perfproof-environment paths an arm's sandbox may read.
+
+    Parameters
+    ----------
+    arm : {"skill", "baseline"}
+        The arm.
+    path_dir : Path
+        The launcher directory of the run.
+
+    Returns
+    -------
+    list of Path
+        The skill arm: this checkout's ``.venv`` and ``src``. The
+        baseline: its perfproof-free packages directory instead.
+    """
+    if arm == "baseline":
+        return [path_dir.parent / "baseline-site"]
+    return [REPO_ROOT / ".venv", REPO_ROOT / "src"]
+
+
+def build_repo(
+    task: Task, dest: Path, skill_dir: Path | None
+) -> dict[str, str]:
     """Build the task's repo: baseline on ``main``, branches, the skill.
 
     Parameters
@@ -380,8 +521,9 @@ def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
         The task; its example and branches decide the content.
     dest : Path
         Directory to create; it must not exist.
-    skill_dir : Path
-        The skill to copy to ``.claude/skills/perfproof/``.
+    skill_dir : Path or None
+        The skill to copy to ``.claude/skills/perfproof/``; ``None``
+        (the baseline arm) installs nothing.
 
     Returns
     -------
@@ -418,8 +560,8 @@ def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
         _git(dest, "add", "-A")
         _git(dest, "commit", "-q", "-m", branch.message)
         _git(dest, "checkout", "-q", "main")
-    target = dest / ".claude" / "skills" / "perfproof"
-    shutil.copytree(skill_dir, target)
+    if skill_dir is not None:
+        shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
     return _branch_tips(dest)
 
 
@@ -482,7 +624,7 @@ def build_real_repo(
     task: Task,
     spec: realrepo.RepoSpec,
     dest: Path,
-    skill_dir: Path,
+    skill_dir: Path | None,
     cache_dir: Path,
     extra_path: list[Path],
     before_setup: Callable[[], None] | None = None,
@@ -497,8 +639,9 @@ def build_real_repo(
         The manifest's repository, commits, build commands and oracle.
     dest : Path
         Directory to create; it must not exist.
-    skill_dir : Path
-        The skill to copy to ``.claude/skills/perfproof/``.
+    skill_dir : Path or None
+        The skill to copy to ``.claude/skills/perfproof/``; ``None``
+        (the baseline arm) installs nothing.
     cache_dir : Path
         Where fetched repositories are cached between runs.
     extra_path : list of Path
@@ -528,7 +671,8 @@ def build_real_repo(
     (dest / ".git" / "info" / "exclude").write_text(
         ".claude/\n", encoding="utf-8"
     )
-    shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
+    if skill_dir is not None:
+        shutil.copytree(skill_dir, dest / ".claude" / "skills" / "perfproof")
     if before_setup is not None:
         before_setup()
     realrepo.run_setup(
@@ -1104,21 +1248,28 @@ def _real_trees(
     task: Task,
     spec: realrepo.RepoSpec,
     extra_path: list[Path],
+    test_working: bool = False,
 ) -> list[TreeState]:
     """Name what changed in each tree; run the oracle on kept branches.
 
     The oracle runs in the repo itself, with the branch checked out and
     the original checkout restored afterwards, because the build (a
     venv with an editable install, a build directory) lives there.
+    With ``test_working`` (the baseline arm, which keeps no branch) it
+    also runs on the working tree as the agent left it.
     """
     branches = _branch_tips(repo)
     head = _git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    working_ok: bool | None = None
+    working_tail = ""
+    if test_working:
+        working_ok, working_tail = realrepo.run_oracle(spec, repo, extra_path)
     trees = [
         TreeState(
             ref="working",
             changed=_changed_vs_main(repo, None),
-            tests_ok=None,
-            tests_tail="",
+            tests_ok=working_ok,
+            tests_tail=working_tail,
         )
     ]
     for ref in sorted(b for b in branches if b not in seeded):
@@ -1143,6 +1294,7 @@ def capture_state(
     seeded: dict[str, str],
     work: Path,
     real: tuple[Task, realrepo.RepoSpec, list[Path]] | None = None,
+    arm: Arm = "skill",
 ) -> State:
     """Read the repo's state after a run, running the tests.
 
@@ -1159,6 +1311,10 @@ def capture_state(
         For a real repository: the task, its manifest spec and the
         ``PATH`` directories. The manifest's test command then runs on
         each kept branch; the example's tests do not apply.
+    arm : {"skill", "baseline"}, optional
+        For ``baseline`` on a real repository the manifest's test
+        command also runs on the working tree (the agent keeps no
+        branch); the skill arm's states are unchanged by this.
 
     Returns
     -------
@@ -1169,8 +1325,14 @@ def capture_state(
     status = _git(repo, "status", "--porcelain").stdout
     branches = _branch_tips(repo)
     head = _git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    base_changed = _base_changed(repo, seeded.get("main"))
     if real is not None:
-        trees = _real_trees(repo, seeded, *real)
+        trees = _real_trees(
+            repo,
+            seeded,
+            *real,
+            test_working=arm == "baseline" and bool(base_changed),
+        )
     else:
         python = venv_dir() / "bin" / "python"
         work.mkdir(parents=True, exist_ok=True)
@@ -1186,6 +1348,26 @@ def capture_state(
         seeded=seeded,
         trees=trees,
         run_verdicts=run_verdicts(repo),
+        base_changed=base_changed,
+        final_ref=final_ref(repo, trees, seeded),
+    )
+
+
+def _base_changed(repo: Path, base: str | None) -> list[str]:
+    """List working-tree files that differ from the base commit."""
+    if base is None:
+        return []
+    diff = _git(repo, "diff", "--name-only", base, "--", check=False)
+    if diff.returncode != 0:
+        return []
+    tracked = diff.stdout
+    fresh = _git(repo, "ls-files", "--others", "--exclude-standard").stdout
+    return sorted(
+        {
+            p
+            for p in [*tracked.splitlines(), *fresh.splitlines()]
+            if p and not p.startswith(".perfproof/")
+        }
     )
 
 
@@ -1227,6 +1409,147 @@ def _call_cost(result: dict[str, object] | None) -> float:
     return float(cost) if isinstance(cost, int | float) else 0.0
 
 
+def path_without_cli(path: str) -> str:
+    """Drop every ``PATH`` directory that holds a ``perfproof`` command.
+
+    The harness itself often runs from the checkout's virtualenv
+    (``uv run``), which puts its ``bin`` first on ``PATH``; the agent
+    inherits that unless it is removed. The baseline's ``python``
+    launcher does not depend on it.
+
+    Parameters
+    ----------
+    path : str
+        A ``PATH`` value.
+
+    Returns
+    -------
+    str
+        The same value without those directories.
+    """
+    return os.pathsep.join(
+        d
+        for d in path.split(os.pathsep)
+        if not d or not (Path(d) / "perfproof").exists()
+    )
+
+
+def baseline_leaks(repo: Path, env: dict[str, str]) -> list[str]:
+    """List what would let a baseline agent use perfproof.
+
+    Parameters
+    ----------
+    repo : Path
+        The task repo, as built.
+    env : dict of str to str
+        The environment the agent's ``claude`` call gets.
+
+    Returns
+    -------
+    list of str
+        Empty when the baseline is clean: no ``.claude/skills`` or
+        ``.claude/commands`` in the repo, and no ``perfproof`` on the
+        ``PATH`` the agent gets. The venv's Python (the ``python``
+        launcher) can still import the package; the baseline scorer
+        flags any transcript that uses it.
+    """
+    found = [
+        f".claude/{name} exists in the repo"
+        for name in ("skills", "commands", "agents")
+        if (repo / ".claude" / name).exists()
+    ]
+    on_path = shutil.which("perfproof", path=env.get("PATH", ""))
+    if on_path is not None:
+        found.append(f"perfproof is on PATH: {on_path}")
+    return found
+
+
+def final_ref(
+    repo: Path, trees: list[TreeState], seeded: dict[str, str]
+) -> str:
+    """Choose the final tree of a run.
+
+    The newest-committed new ``perfproof/*`` branch, whether or not its
+    tests pass (one rule for both arms: a failing kept branch is a
+    failing final tree); otherwise ``working``.
+    """
+    kept = [
+        t.ref
+        for t in trees
+        if t.ref not in {"working", *seeded} and t.ref.startswith("perfproof/")
+    ]
+    if not kept:
+        return "working"
+    return max(
+        kept,
+        key=lambda ref: int(
+            _git(repo, "log", "-1", "--format=%ct", ref).stdout.strip()
+        ),
+    )
+
+
+def _speed_check(
+    check: SpeedCheck,
+    repo: Path,
+    state: State,
+    env: dict[str, str],
+    extra_path: list[Path],
+    spec: realrepo.RepoSpec | None,
+) -> speedcheck.SpeedResult:
+    """Time the run's final tree against its base, in the repo itself.
+
+    The build products (a venv, a build directory) live in the repo, so
+    the two trees are checked out in turn there. The working tree is
+    first committed on a detached HEAD; the state was captured before.
+    The command runs behind the sandbox profile, without the sign-in.
+    """
+    del spec
+    try:
+        base = state.seeded["main"]
+        ref = state.final_ref
+        if ref == "working":
+            _git(repo, "checkout", "-q", "--detach")
+            _git(repo, "add", "-A", "--", ".", ":!.perfproof")
+            _git(
+                repo,
+                "commit",
+                "-q",
+                "--allow-empty",
+                "-m",
+                "ppeval final tree",
+            )
+        final = _git(repo, "rev-parse", ref if ref != "working" else "HEAD")
+        quiet = {
+            k: v for k, v in env.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"
+        }
+
+        def run(command: str, cwd: Path) -> tuple[int, float]:
+            began = time.perf_counter()
+            code, _ = realrepo.run_command(
+                command,
+                cwd,
+                quiet,
+                _SPEED_TIMEOUT,
+                confine=True,
+                read=extra_path,
+            )
+            return code, time.perf_counter() - began
+
+        return speedcheck.measure(
+            base,
+            final.stdout.strip(),
+            ref,
+            check,
+            repo,
+            run,
+            lambda *args: _git(repo, *args).stdout,
+        )
+    except (RuntimeError, OSError, KeyError, ValueError) as exc:
+        return speedcheck.SpeedResult(
+            status="unknown", reason=f"harness error: {exc}"[:300]
+        )
+
+
 def run_task(
     task: Task,
     taskset: TaskSet,
@@ -1236,6 +1559,8 @@ def run_task(
     cache_dir: Path | None = None,
     work_root: Path | None = None,
     held_out: bool = False,
+    arm: Arm = "skill",
+    level: Level = "vague",
 ) -> Meta:
     """Run one task end to end and write its record.
 
@@ -1262,6 +1587,14 @@ def run_task(
     held_out : bool, optional
         The task is a held-out one (``skill_eval.py run --held-out``);
         its manifest must be held-out and built. Refused otherwise.
+    arm : {"skill", "baseline"}, optional
+        ``baseline``: the repo gets no skill, ``path_dir`` must not
+        hold a ``perfproof`` launcher (`baseline_leaks` is checked
+        before the first call), and the baseline prompt is sent.
+        Everything else (sandbox, budget, timeout, model, follow-ups)
+        is the same as for ``skill``.
+    level : {"vague", "detailed"}, optional
+        Which first message of the task is sent.
 
     Returns
     -------
@@ -1275,6 +1608,8 @@ def run_task(
         lacks a toolchain it needs. Nothing is written to the task
         directory then, so the caller can record the task as skipped.
     """
+    first_message = task.prompt_for(arm, level)
+    installed = skill_dir if arm == "skill" else None
     started = time.monotonic()
     started_at = datetime.now(UTC).isoformat(timespec="seconds")
     load_start = list(os.getloadavg())
@@ -1309,14 +1644,14 @@ def run_task(
             task,
             spec,
             repo,
-            skill_dir,
+            installed,
             cache_dir or run_dir.parent / "cache",
             extra_path,
             before_setup_for(task, spec, repo, extra_path, bool(toolchains)),
         )
         env = realrepo.task_env(spec, repo, extra_path)
     else:
-        seeded = build_repo(task, repo, skill_dir)
+        seeded = build_repo(task, repo, installed)
         env = sandbox.agent_env(
             os.environ, work / "sandbox" / task.id, [path_dir]
         )
@@ -1334,11 +1669,17 @@ def run_task(
     secrets = sandbox.env_secrets(env)
     SECRETS_USED.extend(s for s in secrets if s not in SECRETS_USED)
     forms = sandbox.secret_forms(secrets)
+    if arm == "baseline":
+        env["PATH"] = path_without_cli(env.get("PATH", ""))
+        leaks = baseline_leaks(repo, env)
+        if leaks:
+            msg = f"the baseline sandbox is not clean: {leaks}"
+            raise RuntimeError(msg)
     setup_seconds = round(time.monotonic() - started, 2)
     out.mkdir(parents=True)
     turns: list[TurnMeta] = []
     session_id: str | None = None
-    prompt = task.prompt
+    prompt = first_message
     replies = list(task.followups)
     spent = 0.0
     while True:
@@ -1357,10 +1698,10 @@ def run_task(
                 *toolchains,
                 work / "shims",
                 work / "sandbox" / task.id,
-                REPO_ROOT / ".venv",
-                REPO_ROOT / "src",
+                *agent_read(arm, path_dir),
             ],
             write=[config_dir, work / "sandbox" / task.id / "private"],
+            deny_read=agent_deny(arm),
         )
         meta, result = run_turn(
             argv,
@@ -1408,11 +1749,19 @@ def run_task(
         seeded,
         run_dir / "work" / task.id,
         None if spec is None else (task, spec, extra_path),
+        arm,
     )
     (out / "state.json").write_text(
         state.model_dump_json(indent=2), encoding="utf-8"
     )
     save_profile_results(repo, out)
+    if task.speed_check is not None:
+        speed = _speed_check(
+            task.speed_check, repo, state, env, extra_path, spec
+        )
+        (out / speedcheck.SPEED_FILE).write_text(
+            speed.model_dump_json(indent=2), encoding="utf-8"
+        )
     version = subprocess.run(
         ["claude", "--version"],
         env=sandbox.agent_env(os.environ, work / "sandbox" / "version", []),
@@ -1428,10 +1777,12 @@ def run_task(
         load_start=load_start,
         load_end=list(os.getloadavg()),
         claude_version=version,
-        skill_sha=skill_hash(skill_dir),
+        skill_sha=skill_hash(skill_dir) if installed is not None else "none",
         turns=turns,
         setup_seconds=setup_seconds,
         held_out=held_out,
+        arm=arm,
+        level=level,
     )
     (out / "meta.json").write_text(
         meta_all.model_dump_json(indent=2), encoding="utf-8"
