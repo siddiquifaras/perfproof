@@ -1,0 +1,133 @@
+{
+  "run_id": "r10-go",
+  "skill_sha": "8d7428333413",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 3,
+    "passed": 2,
+    "excluded": 0,
+    "excluded_passed": 0,
+    "message_variants": [
+      0,
+      0
+    ],
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 2,
+    "verdict_total": 2,
+    "wrong_keeps": 0,
+    "result_ok": 3,
+    "result_total": 3,
+    "hotspot_ok": 0,
+    "hotspot_total": 1,
+    "hotspot_by_rule": {
+      "top15": [
+        0,
+        1
+      ]
+    },
+    "fix_ok": 3,
+    "fix_total": 3,
+    "tree_ok": 3,
+    "tree_total": 3,
+    "wording": {
+      "leak": 1
+    },
+    "cost_usd": 1.86,
+    "wall_seconds": 840.4,
+    "api_seconds": 834.2,
+    "agent_turns": 62
+  },
+  "skipped": [],
+  "tasks": [
+    {
+      "task_id": "go-echo-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 15,
+      "hotspot_detail": "Echo.ServeHTTP is in the profile but never named as the cost",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/router-label-index, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "leak",
+          "text": "{\"command\": \"mkdir -p .perfproof/harness/bench .perfproof/specs && cat > .perfproof/harness/bench/main.go <<'EOF'\\n// Drives Echo end to end through ServeHTT..."
+        }
+      ],
+      "cost_usd": 0.8317,
+      "api_seconds": 323.2,
+      "wall_seconds": 325.4,
+      "agent_turns": 26,
+      "calls": 2,
+      "load_start": 5.294921875,
+      "passed": false,
+      "bar_excluded": null
+    },
+    {
+      "task_id": "go-gin-known-change",
+      "kind": "prove",
+      "trigger": true,
+      "trigger_ok": true,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": true,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": null,
+      "hotspot_top_n": null,
+      "hotspot_detail": "",
+      "fix_ok": true,
+      "fix_detail": "no code changed",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.2996,
+      "api_seconds": 204.9,
+      "wall_seconds": 206.6,
+      "agent_turns": 14,
+      "calls": 1,
+      "load_start": 4.21630859375,
+      "passed": true,
+      "bar_excluded": null
+    },
+    {
+      "task_id": "go-gin-nothing-to-keep",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": true,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": null,
+      "hotspot_top_n": null,
+      "hotspot_detail": "",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/light-1, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.7294,
+      "api_seconds": 306.1,
+      "wall_seconds": 308.4,
+      "agent_turns": 22,
+      "calls": 2,
+      "load_start": 5.9619140625,
+      "passed": true,
+      "bar_excluded": null
+    }
+  ]
+}

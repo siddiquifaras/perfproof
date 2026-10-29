@@ -1,0 +1,189 @@
+{
+  "run_id": "heldout-1",
+  "skill_sha": "b8a6ec5ab299",
+  "claude_version": "2.1.291 (Claude Code)",
+  "summary": {
+    "tasks": 4,
+    "passed": 0,
+    "excluded": 0,
+    "excluded_passed": 0,
+    "message_variants": [
+      0,
+      0
+    ],
+    "trigger_hits": 0,
+    "trigger_total": 0,
+    "verdict_ok": 0,
+    "verdict_total": 0,
+    "wrong_keeps": 0,
+    "result_ok": 4,
+    "result_total": 4,
+    "hotspot_ok": 1,
+    "hotspot_total": 4,
+    "hotspot_by_rule": {
+      "top15": [
+        1,
+        4
+      ]
+    },
+    "fix_ok": 4,
+    "fix_total": 4,
+    "tree_ok": 4,
+    "tree_total": 4,
+    "wording": {
+      "direction_word": 1,
+      "leak": 2
+    },
+    "cost_usd": 4.92,
+    "wall_seconds": 804.3,
+    "api_seconds": 793.6,
+    "agent_turns": 109
+  },
+  "skipped": [
+    {
+      "task_id": "heldout-apache-arrow-rs-pr11143-hidden-fix",
+      "reason": "setup `cargo bench -p parquet --features arrow,test_common,experimental --bench arrow_r` exited 1: info: syncing channel updates for 1.99.0-aarch64-apple-darwin\nerror: could not create temp file /Users/ppeval/.rustup/tmp/kdfdt_mztswcz2cy_file: Operation not permitted (os error 1)"
+    },
+    {
+      "task_id": "heldout-apache-datafusion-pr26790-hidden-fix",
+      "reason": "setup `cargo build --profile release-nonlto -p datafusion-physical-plan --example eval_` exited 1: info: syncing channel updates for 1.99.1-aarch64-apple-darwin\nerror: could not create temp file /Users/ppeval/.rustup/tmp/7reykt3skjhvmg5s_file: Operation not permitted (os error 1)"
+    },
+    {
+      "task_id": "heldout-numpy-numpy-pr30810-hidden-fix",
+      "reason": "setup `uv pip install --exclude-newer 2026-02-11 .` exited 1:   cause: The build backend returned an error\n  cause: Call to `mesonpy.build_wheel` failed (exit status: 1)\n\n         [stdout]\n\n         meson-python: error: Could not find the specified meson: \"vendored-meson/meson/meson.py\"\n\nhint: Build failures usually indicate a problem with the package or the build environment"
+    },
+    {
+      "task_id": "heldout-rolldown-rolldown-pr10678-hidden-fix",
+      "reason": "setup `npx --yes pnpm@11.17.0 --filter rolldown run build-native:release` exited 1:     }\n  }\n}\n\nNode.js v24.13.0\n$ tsc -p ./tsconfig.check.json\n[ELIFECYCLE] Command failed with exit code 1.\nerror TS18003: No inputs were found in config file '/Users/ppeval/eval-work/work/heldout-1/repos/heldout-rolldown-rolldown-pr10678-hidden-fix/packages/rolldown/tsconfig.check.json'. Specified 'include' paths were '[\"dist/**/*.d.*ts\"]' and 'exclude' paths were '[]'."
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "heldout-dask-dask-pr11899-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": null,
+      "verdict_source": "none",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "NO VERDICT (no change was tried, so no comparison was run)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 15,
+      "hotspot_detail": "HighLevelGraph.cull is in the profile but never named as the cost",
+      "fix_ok": true,
+      "fix_detail": "no change kept",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [],
+      "cost_usd": 0.5526,
+      "api_seconds": 124.7,
+      "wall_seconds": 126.6,
+      "agent_turns": 18,
+      "calls": 2,
+      "load_start": 3.1044921875,
+      "passed": false,
+      "bar_excluded": null
+    },
+    {
+      "task_id": "heldout-dgraph-io-badger-pr2269-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 15,
+      "hotspot_detail": "valueLog.rewrite is not in the first 15 of hotspots or frames_by_total of a saved profile: ['runtime.pthread_cond_signal', 'runtime.madvise', 'runtime.usleep', 'logFile.writeEntry', 'y.ValueStruct.Encode', 'Iterator.fill', 'skl.Arena.putKey', 'runtime.pthread_cond_wait', 'skl.node.key', 'table.Builder.append', 'y.SafeCopy', 'Txn.modify', 'logFile.zeroNextEntry', 'Txn.Get', 'main.main.func2.1', 'runtime.pthread_cond_signal', 'DB.doWrites.func1', 'DB.writeRequests', 'DB.writeToLSM', 'memTable.Put', 'runtime.madvise', 'main.main', 'DB.View', 'main.main.func2', 'skl.Skiplist.Put', 'skl.newNode', 'logFile.writeEntry', 'runtime.stealWork', 'runtime.usleep', 'y.ValueStruct.Encode', 'logFile.writeEntry', 'skl.Arena.putKey', 'y.ValueStruct.Encode', 'runtime.madvise', 'runtime.usleep', 'Txn.modify', 'table.Builder.append', 'skl.node.key', 'runtime.pthread_cond_signal', 'logFile.encodeEntry', 'table.Builder.compressData', 'table.Builder.addHelper', 'logFile.zeroNextEntry', 'WriteBatch.Set', 'logFile.encodeEntry', 'DB.doWrites.func1', 'DB.writeRequests', 'DB.writeToLSM', 'memTable.Put', 'skl.Skiplist.Put', 'skl.newNode', 'logFile.writeEntry', 'Open.func5', 'DB.flushMemtable', 'DB.handleMemTableFlush', 'buildL0Table', 'table.Builder.addInternal', 'table.Builder.Add', 'y.ValueStruct.Encode', 'skl.Arena.putKey']",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/wal-encode, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "leak",
+          "text": "{\"command\": \"mkdir -p .perfproof/harness/bench .perfproof/specs && cat > .perfproof/harness/bench/main.go <<'EOF'\\n// perfproof workload: mode \\\"write\\\" bulk..."
+        }
+      ],
+      "cost_usd": 3.04,
+      "api_seconds": 332.8,
+      "wall_seconds": 336.7,
+      "agent_turns": 45,
+      "calls": 4,
+      "load_start": 4.0146484375,
+      "passed": false,
+      "bar_excluded": null
+    },
+    {
+      "task_id": "heldout-fastify-fast-json-stringify-pr900-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "INCONCLUSIVE (insufficient_evidence)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "INCONCLUSIVE (insufficient_evidence)",
+      "result_line_ok": true,
+      "hotspot_named": true,
+      "hotspot_top_n": 15,
+      "hotspot_detail": "build is in the profile's top 15 and is named",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/light-1, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "direction_word",
+          "text": "It is the per-character loop for strings shorter than 42 characters, so its cap is at most 1.27x."
+        }
+      ],
+      "cost_usd": 0.6549,
+      "api_seconds": 155.7,
+      "wall_seconds": 158.1,
+      "agent_turns": 22,
+      "calls": 2,
+      "load_start": 13.0888671875,
+      "passed": false,
+      "bar_excluded": null
+    },
+    {
+      "task_id": "heldout-valyala-fasthttp-pr1945-hidden-fix",
+      "kind": "find",
+      "trigger": null,
+      "trigger_ok": null,
+      "verdict": "REJECT (performance)",
+      "verdict_source": "record",
+      "verdict_ok": null,
+      "wrong_keep": false,
+      "result_line": "REJECT (performance)",
+      "result_line_ok": true,
+      "hotspot_named": false,
+      "hotspot_top_n": 15,
+      "hotspot_detail": "delAllArgs is not in the first 15 of hotspots or frames_by_total of a saved profile: ['runtime.madvise', 'hash/fnv.(*sum64a).Write', 'validHeaderValueByte', 'headerScanner.next', 'RequestHeader.parseHeaders', 'github.com/valyala/bytebufferpool.(*ByteBuffer).Reset', 'RequestHeader.AppendBytes', 'main.main', 'readRawHeaders', 'runtime.mallocgc', 'runtime.pthread_cond_signal', 'runtime.memmove', 'appendHeaderLine', 'peekArgStr', 'internal/bytealg.IndexString', 'main.main', 'runtime.madvise', 'Request.Read', 'Request.ReadLimitBody', 'hash/fnv.(*sum64a).Write', 'RequestHeader.Read', 'RequestHeader.readLoop', 'RequestHeader.tryRead', 'RequestHeader.parse', 'RequestHeader.parseHeaders', 'Request.WriteTo', 'writeBufio', 'Request.Write', 'validHeaderValueByte', 'RequestHeader.AppendBytes', 'runtime.madvise', 'hash/fnv.(*sum64a).Write', 'runtime.memmove', 'runtime.pthread_cond_signal', 'RequestHeader.parseHeaders', 'runtime.(*mcache).refill', 'isValidMethod', 'readRawHeaders', 'runtime.memequal', 'RequestHeader.peek', 'headerScanner.next', 'cookieScanner.next', 'bytes.LastIndex', 'unescape', 'runtime.memmove', 'main.main', 'hash/fnv.(*sum64a).Write', 'runtime.madvise', 'Request.Read', 'Request.ReadLimitBody', 'RequestHeader.Read', 'RequestHeader.readLoop', 'RequestHeader.tryRead', 'RequestHeader.parse', 'Request.WriteTo', 'writeBufio', 'Request.Write', 'RequestHeader.parseHeaders', 'argsScanner.next', 'Request.PostArgs', 'runtime.madvise', 'hash/fnv.(*sum64a).Write', 'runtime.pthread_cond_signal', 'internal/bytealg.IndexByte', 'bufio.(*Reader).reset', 'RequestHeader.parseHeaders', 'cookieScanner.next', 'argsScanner.next', 'validHeaderValueByte', 'decodeArgAppend', 'normalizeHeaderKey', 'appendQuotedPath', 'runtime.memmove', 'runtime.kevent', 'cookieScanner.next', 'main.main', 'runtime.madvise', 'hash/fnv.(*sum64a).Write', 'Request.Read', 'Request.ReadLimitBody', 'RequestHeader.Read', 'RequestHeader.readLoop', 'RequestHeader.tryRead', 'RequestHeader.parse', 'RequestHeader.parseHeaders', 'argsScanner.next', 'Args.ParseBytes', 'Request.WriteTo', 'writeBufio', 'Request.Write', 'runtime.kevent', 'runtime.pthread_cond_timedwait_relative_np', 'hash/fnv.(*sum64a).Write', 'runtime.asyncPreempt', 'runtime.usleep', 'runtime.pthread_cond_wait', 'runtime.pthread_cond_signal', 'runtime.pthread_kill', 'runtime.(*gcWork).tryGetObjFast', 'runtime.madvise', 'runtime.kevent', 'hash/fnv.(*sum64a).Write', 'main.main', 'runtime.pthread_cond_timedwait_relative_np', 'runtime.asyncPreempt', 'runtime.usleep', 'runtime.pthread_cond_wait', 'runtime.pthread_cond_signal', 'runtime.pthread_kill', 'runtime.(*gcWork).tryGetObjFast', 'runtime.madvise', 'runtime.kevent', 'runtime.pthread_kill', 'runtime.pthread_cond_wait', 'runtime.asyncPreempt', 'runtime.usleep', 'hash/fnv.(*sum64a).Write', 'runtime.madvise', 'runtime.(*unwinder).valid', 'runtime.pthread_cond_timedwait_relative_np', 'runtime.pthread_cond_signal', 'runtime.kevent', 'runtime.pthread_kill', 'runtime.pthread_cond_wait', 'hash/fnv.(*sum64a).Write', 'main.main', 'runtime.asyncPreempt', 'runtime.usleep', 'runtime.madvise', 'runtime.(*unwinder).valid', 'runtime.pthread_cond_timedwait_relative_np', 'runtime.pthread_cond_signal', 'runtime.kevent', 'hash/fnv.(*sum64a).Write', 'runtime.asyncPreempt', 'runtime.pthread_kill', 'runtime.madvise', 'runtime.pthread_cond_signal', 'runtime.pthread_cond_wait', 'runtime.usleep', 'runtime.pthread_cond_timedwait_relative_np', 'runtime.(*mspan).init', 'runtime.(*unwinder).next', 'runtime.(*mcache).releaseAll', 'runtime.(*mheap).allocNeedsZero', 'runtime.chunkIdx.l1', 'Response.Reset', 'runtime.systemstack', 'runtime.kevent', 'main.main', 'hash/fnv.(*sum64a).Write', 'runtime.(*mheap).alloc.func1', 'runtime.(*mheap).allocSpan', 'runtime.asyncPreempt', 'runtime.pthread_kill', 'runtime.madvise', 'runtime.pthread_cond_signal', 'runtime.pthread_cond_wait', 'runtime.usleep', 'runtime.pthread_cond_timedwait_relative_np', 'runtime.lock2', 'runtime.mallocgc']",
+      "fix_ok": true,
+      "fix_detail": "kept perfproof/decode-arg, tests pass",
+      "tree_ok": true,
+      "tree_detail": "clean",
+      "wording": [
+        {
+          "rule": "leak",
+          "text": "{\"command\": \"head -3 go.mod && mkdir -p .perfproof/harness/wl && cat > .perfproof/harness/wl/main.go <<'EOF'\\n// Workloads driven through the public API, the..."
+        }
+      ],
+      "cost_usd": 0.67,
+      "api_seconds": 180.4,
+      "wall_seconds": 182.9,
+      "agent_turns": 24,
+      "calls": 2,
+      "load_start": 7.05126953125,
+      "passed": false,
+      "bar_excluded": null
+    }
+  ]
+}
