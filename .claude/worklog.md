@@ -149,7 +149,7 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 ### Decisions
 
 - **Correction (README review, 2026-10-29).**
-  - "Wrong KEEP 0" in r10, d1-d3 and the held-out runs is vacuous: all ran with CALIBRATED False (#104 merged after them), so no KEEP was possible. The eval rounds have not yet exercised calibrated KEEPs. The evidence for KEEP is the calibration.
+  - "Wrong KEEP 0" is vacuous everywhere. r10 and d1-d3 ran with CALIBRATED False (#104 merged after them), so no KEEP was possible. The held-out runs came after the flip (skill 029f5c2) but reached no verdict (0 of 0). No eval round has yet exercised a calibrated KEEP. The evidence for KEEP is the calibration.
   - The #104 "567 in-class cells" counts node (5) and java (2) traces, which belong to no class. In-class is 420 cells, 0 failing.
 
 - **Held-out discovery result, final (2026-10-29).** Skill frozen at 029f5c2 for all 8. heldout-1: dask, badger, fasthttp, fast-json-stringify, $4.92. heldout-2: datafusion, numpy, arrow-rs, uuid, $2.97. heldout-2 ran with #109's harness-frame fix in the CLI; heldout-1 didn't.
