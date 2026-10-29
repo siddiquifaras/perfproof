@@ -1923,7 +1923,7 @@ repositories before it counts:
   - Every README claim links to the run or result behind it.
   Dropped (Faras): outside developer trials and an upstream
   maintainer's acceptance as release gates.
-- [ ] **T6.2** README with the case-study and evaluation results, demo
+- [x] **T6.2** (siddiquifaras/perfproof#113, `c28e418`; demo is the PR #104 end-to-end excerpt, no recorded video) README with the case-study and evaluation results, demo
   recording, docs pass, fresh prior-art check.
 - [ ] **T6.3** Release: version, changelog, PyPI publish (Faras), repo
   public (Faras).
