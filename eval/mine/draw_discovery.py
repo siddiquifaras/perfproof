@@ -151,6 +151,7 @@ def derive(
     tasks: list[Task],
     mined: list[str],
     reviews: dict[str, dict[str, Any]],
+    passed_over: dict[str, str] | None = None,
 ) -> Derived:
     """Apply the rule to the manifests.
 
@@ -176,6 +177,7 @@ def derive(
     base = [t for t in tasks if t.id not in mined]
     per_class = draw.draw_splits(base, sel, named)["held-out"]
     taken = {v.task_id for d in per_class.values() for v in d.picks}
+    passed_over = passed_over or {}
     out = Derived()
     out.pool = sorted(t.id for t in tasks if t.family == "hidden-fix")
     kept: list[Task] = []
@@ -217,6 +219,11 @@ def derive(
                     f"language cap: {PER_LANGUAGE} {language} tasks "
                     "already taken; not built",
                 )
+            )
+            continue
+        if task.id in passed_over:
+            out.walk.append(
+                Visit(task.id, language, "passed", passed_over[task.id])
             )
             continue
         if task.status == "candidate":
@@ -261,6 +268,7 @@ def render(record: dict[str, Any], derived: Derived) -> dict[str, Any]:
         "salt": SALT,
         "mined": record["mined"],
         "reviews": record["reviews"],
+        "passed_over": record.get("passed_over", {}),
         "notes": record.get("notes", {}),
         "pool": derived.pool,
         "removed": derived.removed,
@@ -301,7 +309,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args(argv)
     record = load_record()
-    derived = derive(load_tasks(), record["mined"]["ids"], record["reviews"])
+    derived = derive(
+        load_tasks(),
+        record["mined"]["ids"],
+        record["reviews"],
+        record.get("passed_over"),
+    )
     new = render(record, derived)
     text = json.dumps(new, indent=1) + "\n"
     sys.stdout.write(text)

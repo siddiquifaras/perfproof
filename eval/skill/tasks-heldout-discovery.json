@@ -147,14 +147,13 @@
       }
     },
     {
-      "id": "heldout-rolldown-rolldown-pr10678-hidden-fix",
+      "id": "heldout-uuidjs-uuid-pr677-hidden-fix",
       "kind": "find",
       "repo": {
-        "manifest": "rolldown-rolldown-pr10678",
+        "manifest": "uuidjs-uuid-pr677",
         "requires": [
           "node",
-          "npm",
-          "cargo"
+          "npm"
         ]
       },
       "prompt": "/perfproof light",
@@ -166,18 +165,21 @@
       "budget_usd": 3.0,
       "task_budget_usd": 3.0,
       "timeout_s": 2400,
-      "bar_exclusion": {
-        "reason": "Judged, not measured here: the change switches on Node's compile cache at module load in the CLI entry file, so no function holds the cost and the hotspot names only the changed module.",
-        "evidence": "The change itself (a four-line edit of packages/rolldown/bin/cli.mjs). Nothing was run or measured to confirm what a profile shows for it."
-      },
       "expect": {
         "trigger": true,
         "fix": "optional_branch",
         "outcomes": [],
         "hotspot": {
-          "file": "packages/rolldown/bin/cli.mjs",
-          "function": "cli",
-          "top_n": "skill"
+          "file": "src/stringify.js",
+          "function": "unsafeStringify",
+          "top_n": "skill",
+          "accept": [
+            {
+              "file": "src/stringify.js",
+              "function": "stringify",
+              "why": "The compiler may inline unsafeStringify into this wrapper, which runs once per call."
+            }
+          ]
         }
       }
     },

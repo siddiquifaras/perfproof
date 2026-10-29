@@ -663,3 +663,182 @@ def test_task_files_load_exactly_when_the_draw_allows(path: Path) -> None:
         else:
             with pytest.raises(ValueError, match="development"):
                 realrepo.load_spec(task.repo.manifest)
+
+
+def _pin(repo: Path, text: str, name: str = "rust-toolchain.toml") -> None:
+    repo.mkdir(parents=True, exist_ok=True)
+    (repo / name).write_text(text, encoding="utf-8")
+
+
+def test_arust_pin_becomes_one_install_command(tmp_path: Path) -> None:
+    _pin(
+        tmp_path,
+        '# c\n[toolchain]\nchannel = "1.99.0"\n'
+        'components = ["rustfmt", "clippy"]\ntargets = ["wasm32-wasip1"]\n',
+    )
+    assert realrepo.rust_pin(tmp_path) == [
+        "1.99.0",
+        "--no-self-update",
+        "--profile",
+        "minimal",
+        "-c",
+        "rustfmt",
+        "-c",
+        "clippy",
+        "-t",
+        "wasm32-wasip1",
+    ]
+    _pin(tmp_path, '[toolchain]\nchannel = "1.98.0"\nprofile = "default"\n')
+    assert realrepo.rust_pin(tmp_path) == [
+        "1.98.0",
+        "--no-self-update",
+        "--profile",
+        "default",
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '[toolchain]\npath = "/opt/rust"\n',
+        '[toolchain]\nchannel = "../x"\n',
+        '[toolchain]\nchannel = "1.99.0"\ncomponents = ["a b"]\n',
+        '[toolchain]\nchannel = "1.99.0"\ncomponents = "clippy"\n',
+        '[toolchain]\nchannel = "1.99.0"\nprofile = "--x"\n',
+        "[toolchain]\n",
+        "[other]\n",
+    ],
+)
+def test_a_pin_that_is_not_plain_is_left_to_the_confined_build(
+    tmp_path: Path, text: str
+) -> None:
+    _pin(tmp_path, text)
+    assert realrepo.rust_pin(tmp_path) is None
+
+
+def test_a_legacy_pin_file_is_a_channel_name(tmp_path: Path) -> None:
+    _pin(tmp_path, "nightly-2026-01-02\n", "rust-toolchain")
+    assert realrepo.rust_pin(tmp_path) == [
+        "nightly-2026-01-02",
+        "--no-self-update",
+        "--profile",
+        "minimal",
+    ]
+    assert realrepo.rust_pin(tmp_path / "none") is None
+
+
+def _fake_rustup(directory: Path, body: str) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    launcher = directory / "rustup"
+    launcher.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
+    launcher.chmod(0o755)
+    return launcher
+
+
+def test_the_pinned_toolchain_is_installed_before_the_confined_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "work" / "repos" / "t"
+    _pin(repo, '[toolchain]\nchannel = "1.99.0"\ncomponents = ["clippy"]\n')
+    log = tmp_path / "rustup.log"
+    fake = _fake_rustup(
+        tmp_path / "bin", f'echo "$HOME|$RUSTUP_TOOLCHAIN|$*" >> {log}'
+    )
+    monkeypatch.setenv("PATH", f"{fake.parent}{os.pathsep}/usr/bin:/bin")
+    monkeypatch.setenv("RUSTUP_TOOLCHAIN", "stable")
+    realrepo.prefill_rust_toolchain(_spec("a", "b"), repo, [fake.parent])
+    (line,) = log.read_text().splitlines()
+    home, forced, args = line.split("|")
+    private = tmp_path / "work" / "sandbox" / "t" / "private"
+    assert home == str(private / "home")
+    assert forced == "", "a forced toolchain would hide the pin"
+    assert args == (
+        "toolchain install 1.99.0 --no-self-update --profile minimal -c clippy"
+    )
+
+
+def test_a_failed_toolchain_install_is_a_setup_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "work" / "repos" / "t"
+    _pin(repo, '[toolchain]\nchannel = "1.99.0"\n')
+    fake = _fake_rustup(tmp_path / "bin", "echo no network >&2; exit 1")
+    monkeypatch.setenv("PATH", f"{fake.parent}{os.pathsep}/usr/bin:/bin")
+    with pytest.raises(realrepo.SetupError, match="no network"):
+        realrepo.prefill_rust_toolchain(_spec("a", "b"), repo, [fake.parent])
+
+
+def test_a_repo_without_a_pin_runs_no_rustup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "work" / "repos" / "t"
+    repo.mkdir(parents=True)
+    fake = _fake_rustup(tmp_path / "bin", "exit 9")
+    monkeypatch.setenv("PATH", f"{fake.parent}{os.pathsep}/usr/bin:/bin")
+    realrepo.prefill_rust_toolchain(_spec("a", "b"), repo, [fake.parent])
+
+
+def _rust_task(requires: list[str]) -> taskset.Task:
+    task = REAL.tasks[0]
+    assert task.repo is not None
+    repo = task.repo.model_copy(update={"requires": requires})
+    return task.model_copy(update={"repo": repo})
+
+
+def test_only_the_eval_user_installs_a_toolchain_for_a_cargo_task(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = _spec("a", "b")
+    calls: list[str] = []
+
+    def fake(*_args: object, **_kwargs: object) -> None:
+        calls.append("rust")
+
+    monkeypatch.setattr(realrepo, "prefill_rust_toolchain", fake)
+    monkeypatch.delenv(sandbox.TOKEN_FILE_ENV, raising=False)
+    cargo = _rust_task(["cargo"])
+    assert runner.before_setup_for(cargo, spec, tmp_path, [], False) is None
+    monkeypatch.setenv(sandbox.TOKEN_FILE_ENV, "/x")
+    other = _rust_task(["uv"])
+    assert runner.before_setup_for(other, spec, tmp_path, [], False) is None
+    hook = runner.before_setup_for(cargo, spec, tmp_path, [], False)
+    assert hook is not None
+    hook()
+    assert calls == ["rust"]
+
+
+def test_a_failed_submodule_checkout_is_a_setup_error(
+    tmp_path: Path, remote: tuple[str, str, str]
+) -> None:
+    host, task_sha, ref_sha = remote
+    spec = _spec(task_sha, ref_sha).model_copy(
+        update={"submodules": ["vendored/none"]}
+    )
+    real = taskset.RealRepo(manifest="m", requires=[])
+    with pytest.raises(realrepo.SetupError, match="submodule"):
+        realrepo.seed_repo(
+            spec, real, tmp_path / "w", tmp_path / "cache", host
+        )
+
+
+def test_the_numpy_task_names_the_submodules_its_build_reads() -> None:
+    spec = realrepo.load_spec("numpy-numpy-pr30810", held_out=True)
+    assert "vendored-meson/meson" in spec.submodules
+    assert not any(s.startswith("doc/") for s in spec.submodules)
+
+
+def test_a_setup_that_edits_a_tracked_file_fails_before_any_agent(
+    tmp_path: Path, remote: tuple[str, str, str]
+) -> None:
+    host, second, third = remote
+    spec = _spec(second, third).model_copy(
+        update={"setup": ["python3 -c \"open('f.txt','w').write('x')\""]}
+    )
+    dest = tmp_path / "run"
+    realrepo.seed_repo(
+        spec, taskset.RealRepo(manifest="x"), dest, tmp_path / "c", host
+    )
+    with pytest.raises(
+        realrepo.SetupError, match=r"setup modified tracked files: f\.txt"
+    ):
+        realrepo.run_setup(spec, dest, [])

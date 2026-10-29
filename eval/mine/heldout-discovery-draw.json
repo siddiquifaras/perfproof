@@ -188,6 +188,9 @@
    ]
   }
  },
+ "passed_over": {
+  "rolldown-rolldown-pr10678": "2026-10-29: does not build in the eval-user sandbox: the confined setup as ppeval exited 1 (`npx --yes pnpm@11.17.0 --filter rolldown run build-native:release`); napi-rs runs /bin/ps (setuid), refused under sandbox-exec"
+ },
  "notes": {
   "rubocop-rubocop-pr13248": "Reported by the lead, not run in this change: rechecked as the eval user with Ruby 4.0.9 and Bundler 4.0.20, `bundle install` exited 6 because the Gemfile requires bundler < 3.0, so it stays passed over. The first check here, with this account's system Ruby 2.6, also exited 6 (a gem needs Ruby >= 2.7). The walk's outcome for it is unchanged."
  },
@@ -517,8 +520,8 @@
   {
    "id": "rolldown-rolldown-pr10678",
    "language": "JavaScript/TypeScript",
-   "outcome": "taken",
-   "reason": "built and ran on the task tree"
+   "outcome": "passed",
+   "reason": "2026-10-29: does not build in the eval-user sandbox: the confined setup as ppeval exited 1 (`npx --yes pnpm@11.17.0 --filter rolldown run build-native:release`); napi-rs runs /bin/ps (setuid), refused under sandbox-exec"
   },
   {
    "id": "fastify-fast-json-stringify-pr900",
@@ -529,8 +532,8 @@
   {
    "id": "uuidjs-uuid-pr677",
    "language": "JavaScript/TypeScript",
-   "outcome": "passed",
-   "reason": "language cap: 2 JavaScript/TypeScript tasks already taken; not built"
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
   },
   {
    "id": "karpathy-llm-c-matmul-forward-8822e7803e",
@@ -599,8 +602,8 @@
   "numpy-numpy-pr30810",
   "apache-arrow-rs-pr11143",
   "dgraph-io-badger-pr2269",
-  "rolldown-rolldown-pr10678",
   "fastify-fast-json-stringify-pr900",
+  "uuidjs-uuid-pr677",
   "valyala-fasthttp-pr1945"
  ],
  "stopped": null

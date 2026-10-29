@@ -221,6 +221,66 @@ can change this answer.
 | known-change | `main` at the parent, the fix on `pr-<n>` | a plain "is this PR actually faster?" naming the branch | the skill starts, `compare` ran, the verdict is INCONCLUSIVE, no code changed, `Result:` line correct |
 | nothing-to-keep | the merge, optimization already in | `/perfproof light`, same follow-ups | no KEEP, tree clean, wording and `Result:` line hold |
 
+**What the hotspot check reads, `--sizes` included.** The runner keeps
+every `.perfproof/profiles/<name>/<id>/result.json` as
+`profile-<name>-<id>-<hash>.json`. A `perfproof profile --sizes` run
+saves one such result per size (with a `size` key) and writes
+`growth-<group>.json` beside them: the per-size results are kept and
+read by the rule above, as plain ones are; the growth file is not kept
+and not read. A `profile show --rank` print is not "a real perfproof
+profile output" here: when saved results exist the check uses only
+them, and the printed text is the fallback only for runs archived
+without any. (Found on `heldout-1`: the archive had kept the size
+results; the hotspot check read none of them, because the first-edit
+detector took a spec edit, a Python here-document writing
+`.perfproof/specs/<name>.json` through a path it builds, for an edit of
+the code, so every profile counted as after the edit. The detector now
+reads a path built from a literal `.perfproof/` or `.claude/` start as
+scratch, and a Python here-document that takes arguments after `-`, or
+runs inside `do`/`then`/`else`, as the one it is. A computed tail that
+climbs out of the directory is not seen: a crafted `python3 - ../src/x`
+with `open(".perfproof/" + sys.argv[1], "w")` is now missed, and a
+string-concatenated tail that climbs out with `..` was already missed.)
+Setup also fails, before any agent runs, with "setup modified tracked
+files: <paths>" when the build leaves a tracked file (outside
+`.perfproof/`) changed, as an `npm install` that rewrites a lockfile
+would; such a task's setup uses `--no-package-lock`.
+
+**Held-out setup in the eval user's sandbox.** The confined setup may
+not write the real `~/.rustup`, so a Rust task whose
+`rust-toolchain.toml` names a release the eval user lacks failed in
+rustup's sync before any build. `realrepo.prefill_rust_toolchain` runs
+the one `rustup toolchain install <channel> --profile <profile> -c ...`
+the pin names, outside the profile and before the confined setup, as
+the Go module download is (`runner.before_setup_for`, eval user and
+`cargo` tasks only). Only a plain release, `stable`, `beta` or
+`nightly` channel and plain component, target and profile names are
+read from the repo's file; anything else is left to the confined build.
+This keeps the sandbox as it was; the alternative, allowing writes to
+`~/.rustup/tmp` (and, for the install itself, `toolchains/`) during
+setup, would let a build script alter the toolchains every later task
+uses. A task whose build needs git submodules lists them in its
+`checks.json` entry as `submodules`; `realrepo.seed_repo` checks out
+those paths shallowly at the commits the task commit names. The
+mining check (`eval/mine/check.py`) extracts every submodule already.
+`rolldown-rolldown-pr10678` does not build in the eval user's sandbox,
+and the cause is not the build order. With the pinned toolchain
+installed, `build-native:release` compiles the binding, then
+`@napi-rs/cli` (3.8.6, pinned by the lockfile) runs `/bin/ps -o lstart=
+-p <pid>` for its file lock and dies with `spawn EPERM`; the later
+`build-node` and `tsc` steps fail as a result (no binding, no
+`dist/*.d.ts`: "No inputs were found"). `/bin/ps` is setuid, and
+`sandbox-exec` refuses a setuid exec under any profile (probed:
+`(allow default)` alone gives EPERM; unconfined as the same user it
+runs). A `ps` earlier on `PATH` does not help, the path is absolute.
+Running that setup step unconfined would give a repo build script the
+eval user's token and the staged harness, so it was not done. The
+draw record passes it over (`passed_over`, a human input of
+`eval/mine/heldout-discovery-draw.json`, dated, with the confined
+setup's exit status) and the walk continues in the committed order:
+`uuidjs-uuid-pr677` (JavaScript, built here by `check.py` and as the
+eval user through the confined setup, exit 0) is the replacement.
+
 **Hidden-fix trees hold no workload made for the task.** A hidden-fix
 agent writes its own workload. Setup used to copy the task's own
 benchmark into the tree (`eval_bench.js` for fastify, whose comment named

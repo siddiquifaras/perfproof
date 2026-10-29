@@ -45,7 +45,12 @@ def test_only_the_task_tree_decides_whether_it_builds() -> None:
 
 def test_the_committed_record_is_what_the_rule_derives() -> None:
     record = draw_discovery.load_record()
-    derived = derive(load_tasks(), record["mined"]["ids"], record["reviews"])
+    derived = derive(
+        load_tasks(),
+        record["mined"]["ids"],
+        record["reviews"],
+        record.get("passed_over"),
+    )
     assert derived.stopped is None
     assert json.loads(
         json.dumps(draw_discovery.render(record, derived))

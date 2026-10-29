@@ -423,6 +423,61 @@ def build_repo(task: Task, dest: Path, skill_dir: Path) -> dict[str, str]:
     return _branch_tips(dest)
 
 
+def before_setup_for(
+    task: Task,
+    spec: realrepo.RepoSpec,
+    repo: Path,
+    extra_path: list[Path],
+    native: bool,
+) -> Callable[[], None] | None:
+    """Choose what a task needs fetched before its confined build.
+
+    Parameters
+    ----------
+    task : Task
+        A task with ``repo`` set.
+    spec : RepoSpec
+        The manifest's settings.
+    repo : Path
+        The task repo, once seeded.
+    extra_path : list of Path
+        Directories for ``PATH`` while building.
+    native : bool
+        Whether the machine has a native toolchain directory (Go).
+
+    Returns
+    -------
+    callable or None
+        A Go task downloads its modules, a Rust task run by the eval
+        user installs its pinned toolchain (see
+        `realrepo.prefill_rust_toolchain`); ``None`` when the task needs
+        neither.
+    """
+    real = task.repo
+    if real is None:
+        return None
+    steps: list[Callable[[], None]] = []
+    if "go" in real.requires and native:
+        branch = real.branch
+        steps.append(
+            lambda: realrepo.prefill_go_modcache(
+                spec, repo, extra_path, [] if branch is None else [branch]
+            )
+        )
+    if "cargo" in real.requires and sandbox.as_eval_user():
+        steps.append(
+            lambda: realrepo.prefill_rust_toolchain(spec, repo, extra_path)
+        )
+    if not steps:
+        return None
+
+    def run_all() -> None:
+        for step in steps:
+            step()
+
+    return run_all
+
+
 def build_real_repo(
     task: Task,
     spec: realrepo.RepoSpec,
@@ -1249,14 +1304,6 @@ def run_task(
             realrepo.write_shims(shims, task.repo.shim)
             extra_path.append(shims)
         spec = realrepo.load_spec(task.repo.manifest, held_out=held_out)
-        branch = task.repo.branch
-        fetch_go_modules = "go" in task.repo.requires and bool(toolchains)
-
-        def go_modules() -> None:
-            realrepo.prefill_go_modcache(
-                spec, repo, extra_path, [] if branch is None else [branch]
-            )
-
         seeded = build_real_repo(
             task,
             spec,
@@ -1264,7 +1311,7 @@ def run_task(
             skill_dir,
             cache_dir or run_dir.parent / "cache",
             extra_path,
-            go_modules if fetch_go_modules else None,
+            before_setup_for(task, spec, repo, extra_path, bool(toolchains)),
         )
         env = realrepo.task_env(spec, repo, extra_path)
     else:

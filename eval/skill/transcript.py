@@ -784,7 +784,8 @@ def _words(segment: str) -> list[str]:
     except ValueError:
         words = segment.split()
     while words and (
-        re.fullmatch(r"\w+=\S*", words[0]) or words[0] in {"(", "{", "time"}
+        re.fullmatch(r"\w+=\S*", words[0])
+        or words[0] in {"(", "{", "time", "do", "then", "else"}
     ):
         words = words[1:]
     return [w.lstrip("({") for w in words] if words else words
@@ -973,7 +974,7 @@ def _subcommand_positionals(
 # ``subprocess``, ``importlib``, ``exec``, ``globals``, an alias of a
 # builtin) can write, rename or rebind by a route the syntax tree does
 # not show, so the caller falls back to the pattern match.
-_SAFE_MODULES = frozenset({"json", "pathlib", "re", "textwrap"})
+_SAFE_MODULES = frozenset({"json", "pathlib", "re", "sys", "textwrap"})
 _SAFE_FUNCTIONS = frozenset(
     {
         "open",
@@ -1063,6 +1064,53 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
+def _scratch_prefix(node: ast.expr) -> str | None:
+    """Return the leading text of a computed path, if it is scratch.
+
+    Reads the constant start of an f-string, ``"lit" % x``, ``"lit" +
+    x`` or ``"lit".format(x)``, and returns it when it begins with a
+    scratch directory and a slash (``.perfproof/specs/bench_``). The
+    computed tail is not resolved, so a tail that climbs out of the
+    directory is not seen. Known limit: ``python3 - ../src/x`` with
+    ``open(".perfproof/" + sys.argv[1], "w")`` is read as scratch (and
+    a head with a ``..`` component is refused, but a ``..`` supplied
+    through a string-concatenated tail was never seen either).
+    """
+    head = ""
+    if isinstance(node, ast.JoinedStr):
+        for part in node.values:
+            if not (
+                isinstance(part, ast.Constant) and isinstance(part.value, str)
+            ):
+                break
+            head += part.value
+    else:
+        left: ast.expr | None = None
+        marker = ""
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod):
+            left, marker = node.left, "%"
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left = node.left
+            while isinstance(left, ast.BinOp) and isinstance(left.op, ast.Add):
+                left = left.left
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "format"
+        ):
+            left, marker = node.func.value, "{"
+        if not (
+            isinstance(left, ast.Constant) and isinstance(left.value, str)
+        ):
+            return None
+        head = left.value.split(marker, 1)[0] if marker else left.value
+    if ".." not in head.split("/") and any(
+        head.startswith(f"{d}/") for d in _SCRATCH_DIRS
+    ):
+        return head
+    return None
+
+
 def _literal_paths(
     node: ast.expr, names: dict[str, list[str] | None]
 ) -> list[str] | None:
@@ -1071,6 +1119,9 @@ def _literal_paths(
         return [node.value]
     if isinstance(node, ast.Name):
         return names.get(node.id)
+    prefix = _scratch_prefix(node)
+    if prefix is not None:
+        return [prefix]
     if (
         isinstance(node, ast.Call)
         and _call_name(node) in _PATH_CLASSES
@@ -1112,7 +1163,8 @@ def _reads_stdin_program(first_line: str) -> bool:
         return False
     for word in words[1:]:
         if word == "-":
-            continue
+            # Words after ``-`` fill ``sys.argv``; stdin is the program.
+            return True
         if word.startswith("-") and not word.startswith("--"):
             if re.search(r"[cm]", word):
                 return False
@@ -1214,7 +1266,9 @@ def _python_write_targets(segment: str) -> list[str] | None:
     list of str or None
         The literal paths that ``open(..., "w")``,
         ``Path(...).write_text`` and ``Path(...).write_bytes`` write,
-        following a variable that only ever holds string literals.
+        following a variable that only ever holds string literals, and
+        a built path (f-string, ``%``, ``+``, ``.format``) that starts
+        with a literal ``.perfproof/`` or ``.claude/`` as that start.
         ``None`` when that cannot be shown: the command is not exactly
         one here-document read by Python from standard input, the
         script does not parse (or is too deep to), a path is computed,

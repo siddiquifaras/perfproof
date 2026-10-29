@@ -121,7 +121,7 @@
       "output_tail": "[not recorded: the reference workload of a held-out task]"
     }
   ],
-  "split": "held-out",
+  "split": "development-candidate",
   "mined_at": "2026-10-28T14:02:51+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

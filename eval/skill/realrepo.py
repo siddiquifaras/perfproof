@@ -25,7 +25,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -94,6 +94,12 @@ class RepoSpec(BaseModel):
         Environment the build and tests need.
     oracle : str or None
         The project's test command.
+    submodules : list of str
+        Paths, relative to the repo, of the git submodules the build
+        needs. `seed_repo` checks each out at the commit the task
+        commit's gitlink names. The others stay empty, as in any shallow
+        clone: a project with test data in a submodule it never builds
+        from is not made to download it.
     planted : list of str
         Paths, relative to the repo, that ``setup`` creates for the
         task's own workload (copied files, built binaries, generated
@@ -111,6 +117,7 @@ class RepoSpec(BaseModel):
     setup: list[str]
     env: dict[str, str]
     oracle: str | None
+    submodules: list[str] = []
     planted: list[str] = []
 
 
@@ -266,6 +273,7 @@ def load_spec(manifest_id: str, *, held_out: bool = False) -> RepoSpec:
         ],
         env=dict(checks.get("env", {})),
         oracle=oracle.get("command"),
+        submodules=list(checks.get("submodules", [])),
         planted=list(checks.get("planted", [])),
     )
 
@@ -392,6 +400,22 @@ def seed_repo(
         done = _git(dest, *args)
         if done.returncode != 0:
             msg = f"git {args[0]} failed: {done.stderr}"
+            raise SetupError(msg)
+    if spec.submodules:
+        # Shallow, and by the sha in the gitlink: nothing after the task
+        # commit is fetched. The URL is the one the task commit's own
+        # .gitmodules gives.
+        done = _git(
+            dest,
+            "submodule",
+            "update",
+            "--init",
+            "--depth=1",
+            "--",
+            *spec.submodules,
+        )
+        if done.returncode != 0:
+            msg = f"git submodule update failed: {done.stderr[-500:]}"
             raise SetupError(msg)
     tips: dict[str, str] = {}
     out = _git(
@@ -585,6 +609,16 @@ def run_setup(
         for ln in status.stdout.splitlines()
         if ln.startswith("?? ")
     ]
+    modified = [
+        ln[3:]
+        for ln in status.stdout.splitlines()
+        if not ln.startswith("?? ") and not ln[3:].startswith(".perfproof/")
+    ]
+    if modified:
+        # The task tree must start clean: a tracked file the build
+        # rewrote (a lockfile) would fail every run's tree check.
+        msg = f"setup modified tracked files: {', '.join(modified)}"
+        raise SetupError(msg)
     exclude = repo / ".git" / "info" / "exclude"
     exclude.parent.mkdir(exist_ok=True)
     with exclude.open("a", encoding="utf-8") as sink:
@@ -955,6 +989,114 @@ def prefill_go_modcache(
         if code != 0:
             msg = f"`{' '.join(argv)[:80]}` exited {code}: {tail}"
             raise SetupError(msg)
+
+
+_RUST_CHANNEL = re.compile(
+    r"\d+\.\d+(?:\.\d+)?|stable|beta"
+    r"|(?:nightly|beta)-\d{4}-\d{2}-\d{2}|nightly"
+)
+_RUST_NAME = re.compile(r"[a-z0-9][a-z0-9_.-]*")
+
+
+def rust_pin(repo: Path) -> list[str] | None:
+    """Read the ``rustup toolchain install`` words a repo's pin names.
+
+    Reads ``rust-toolchain.toml`` or ``rust-toolchain`` at the repo's
+    root. Only a channel that is a release number, ``stable``, ``beta``
+    or ``nightly`` (dated or not), and component, target and profile
+    names of plain lowercase words are taken: the file is the task
+    repo's and this runs outside the sandbox, so a ``path`` toolchain or
+    anything else is refused (``None``) and left to the confined build.
+    """
+    import tomllib
+
+    for name in ("rust-toolchain.toml", "rust-toolchain"):
+        path = repo / name
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            found: object = tomllib.loads(text).get("toolchain")
+        except tomllib.TOMLDecodeError:
+            found = {"channel": text.strip()}
+        if not isinstance(found, dict):
+            return None
+        table = cast("dict[str, object]", found)
+        channel = table.get("channel")
+        if not isinstance(channel, str) or not _RUST_CHANNEL.fullmatch(
+            channel
+        ):
+            return None
+        words = [channel, "--no-self-update"]
+        profile = table.get("profile", "minimal")
+        if not isinstance(profile, str) or not _RUST_NAME.fullmatch(profile):
+            return None
+        words += ["--profile", profile]
+        for key, flag in (("components", "-c"), ("targets", "-t")):
+            values = table.get(key, [])
+            if not isinstance(values, list):
+                return None
+            for value in cast("list[object]", values):
+                if not isinstance(value, str) or not _RUST_NAME.fullmatch(
+                    value
+                ):
+                    return None
+                words += [flag, value]
+        return words
+    return None
+
+
+def prefill_rust_toolchain(
+    spec: RepoSpec,
+    repo: Path,
+    extra_path: list[Path],
+    timeout: float = SETUP_TIMEOUT_S,
+) -> None:
+    """Install the Rust toolchain a task repo pins, outside the sandbox.
+
+    The confined build may not write the real ``~/.rustup`` (the
+    private home only links it, read-only), so when ``cargo`` meets a
+    ``rust-toolchain.toml`` naming a release that is not installed,
+    rustup's sync fails on its temp file and the build never starts.
+    This runs the one ``rustup toolchain install`` for the pinned
+    channel, components and targets before the build, as the Go module
+    download does, so the confined build finds the toolchain present
+    and writes nothing there. Nothing about the sandbox is widened.
+
+    Parameters
+    ----------
+    spec : RepoSpec
+        Supplies the manifest's variables.
+    repo : Path
+        The task repo, checked out at the task commit.
+    extra_path : list of pathlib.Path
+        Directories for ``PATH``.
+    timeout : float, optional
+        Seconds allowed.
+
+    Raises
+    ------
+    SetupError
+        If the install fails; the message holds its tail. A repo with
+        no pin, or one this refuses to read (see `rust_pin`), is left
+        alone.
+    """
+    words = rust_pin(repo)
+    if words is None:
+        return
+    env = task_env(spec, repo, extra_path)
+    env.pop("RUSTUP_TOOLCHAIN", None)
+    code, tail = _run(
+        " ".join(
+            shlex.quote(a) for a in ["rustup", "toolchain", "install", *words]
+        ),
+        repo,
+        env,
+        timeout,
+    )
+    if code != 0:
+        msg = f"`rustup toolchain install {words[0]}` exited {code}: {tail}"
+        raise SetupError(msg)
 
 
 def missing_requirements(real: RealRepo) -> list[str]:

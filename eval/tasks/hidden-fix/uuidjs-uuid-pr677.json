@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "web",
   "workload": {
-    "command": "hyperfine 'node lc-1a.js' 'node lc-2a.js'",
-    "source": "quoted in the description of https://github.com/uuidjs/uuid/pull/677",
-    "verified": false
+    "command": "node eval_bench.mjs",
+    "source": "written here from the description of https://github.com/uuidjs/uuid/pull/677 (the hyperfine files it quotes are not in the tree): stringifying many 16-byte arrays, eval/tasks/workloads/uuidjs-uuid-pr677/bench.mjs, copied into the tree",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "env BABEL_ENV=commonjsNode node_modules/.bin/jest test/unit/stringify.test.js",
+    "source": "the unit tests of src/stringify.js, the file https://github.com/uuidjs/uuid/pull/677 changes, run by the project's own jest; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,91 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Dependencies installed with npm install --ignore-scripts and --before the mining date (the lockfile is not used). Node is v24 from nvm",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-10-18",
+      "exit_code": 0,
+      "duration_s": 2.01,
+      "date": "2026-10-29T01:12:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 1049 packages in 2s"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/uuidjs-uuid-pr677/bench.mjs eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T01:12:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "env BABEL_ENV=commonjsNode node_modules/.bin/jest test/unit/stringify.test.js",
+      "exit_code": 0,
+      "duration_s": 0.95,
+      "date": "2026-10-29T01:12:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    default\n      ✓ Stringify Array\n      ✓ Stringify TypedArray\n      ✓ Stringify w/ offset\n    safe\n      ✓ Stringify Array\n      ✓ Throws on not enough values\n      ✓ Throws on undefined value\n      ✓ Throws on invalid value\n\nTest Suites: 1 passed, 1 total\nTests:       7 passed, 7 total\nSnapshots:   0 total\nTime:        0.175 s\nRan all test suites matching /test\\/unit\\/stringify.test.js/i."
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "node eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.4,
+      "date": "2026-10-29T01:12:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "74.1 ms best of 5\n(node:75279) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://eval/mine/work/uuidjs-uuid-pr677/task/src/stringify.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to eval/mine/work/uuidjs-uuid-pr677/task/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "npm install --ignore-scripts --no-audit --no-fund --before 2026-10-18",
+      "exit_code": 0,
+      "duration_s": 1.86,
+      "date": "2026-10-29T01:12:55+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "added 1049 packages in 2s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/uuidjs-uuid-pr677/bench.mjs eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T01:12:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "env BABEL_ENV=commonjsNode node_modules/.bin/jest test/unit/stringify.test.js",
+      "exit_code": 0,
+      "duration_s": 0.94,
+      "date": "2026-10-29T01:12:57+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    default\n      ✓ Stringify Array (1 ms)\n      ✓ Stringify TypedArray\n      ✓ Stringify w/ offset\n    safe\n      ✓ Stringify Array\n      ✓ Throws on not enough values (1 ms)\n      ✓ Throws on undefined value\n      ✓ Throws on invalid value\n\nTest Suites: 1 passed, 1 total\nTests:       7 passed, 7 total\nSnapshots:   0 total\nTime:        0.174 s\nRan all test suites matching /test\\/unit\\/stringify.test.js/i."
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "node eval_bench.mjs",
+      "exit_code": 0,
+      "duration_s": 0.37,
+      "date": "2026-10-29T01:12:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "69.1 ms best of 5\n(node:75323) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://eval/mine/work/uuidjs-uuid-pr677/reference/src/stringify.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to eval/mine/work/uuidjs-uuid-pr677/reference/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-28T14:03:13+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

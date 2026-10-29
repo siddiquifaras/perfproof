@@ -940,6 +940,45 @@ def test_a_python_script_that_writes_code_is_still_an_edit() -> None:
         )
 
 
+_COMPUTED_SCRATCH_SCRIPTS = (
+    # heldout-1: a spec edited through a path built from an argument, in
+    # a loop, with the argument passed after ``-``.
+    "for m in a b; do python3 - $m <<'EOF'\nimport json,sys\n"
+    "p='.perfproof/specs/x_%s.json'%sys.argv[1]\n"
+    "s=json.load(open(p)); json.dump(s,open(p,'w'))\nEOF\ndone",
+    "for m in a b; do python3 -I - $m <<'EOF'\nimport json,sys\n"
+    'p=f".perfproof/specs/{sys.argv[1]}.json"\n'
+    'd=json.load(open(p)); json.dump(d,open(p,"w"))\nEOF\ndone',
+    "python3 - <<'EOF'\nimport sys\n"
+    "open('.perfproof/specs/'+sys.argv[1],'w').write('x')\nEOF",
+    "python3 - <<'EOF'\nimport sys\n"
+    "open('.perfproof/specs/{}.json'.format(sys.argv[1]),'w')\nEOF",
+)
+_COMPUTED_CODE_SCRIPTS = (
+    "python3 - <<'EOF'\nimport sys\n"
+    "open('.perfproof/../'+sys.argv[1],'w')\nEOF",
+    "python3 - a <<'EOF'\nimport sys\n"
+    "open('src/%s.py'%sys.argv[1],'w').write('x')\nEOF",
+    "python3 - <<'EOF'\nimport sys\nopen(sys.argv[1]+'.perfproof/x','w')\nEOF",
+    "python3 - <<'EOF'\nimport sys\nopen(sys.argv[1],'w')\nEOF",
+    "python3 - <<'EOF'\nimport sys\nsys.exit(open('src/a.py','w'))\nEOF",
+)
+
+
+def test_a_computed_path_under_perfproof_is_no_edit() -> None:
+    root = "/r/repos/t"
+    for command in _COMPUTED_SCRATCH_SCRIPTS:
+        assert not transcript.is_code_edit("Bash", {"command": command}, root)
+
+
+def test_a_computed_path_outside_perfproof_is_still_an_edit() -> None:
+    root = "/r/repos/t"
+    for command in _COMPUTED_CODE_SCRIPTS:
+        assert transcript.is_code_edit("Bash", {"command": command}, root), (
+            command
+        )
+
+
 def test_a_script_too_deep_to_parse_falls_back_to_the_pattern_match(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

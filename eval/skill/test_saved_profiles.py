@@ -312,6 +312,63 @@ def test_the_runner_keeps_only_the_result_files(
     assert [p.finished_at for p in loaded] == [profiled.finished]
 
 
+SPEC_EDIT = (
+    "for m in held-orders; do python3 - $m <<'EOF'\n"
+    "import json,sys\n"
+    'p=f".perfproof/specs/{sys.argv[1]}.json"\n'
+    'd=json.load(open(p)); d["looks"]={"n0": 10}\n'
+    'json.dump(d,open(p,"w"))\nEOF\ndone'
+)
+
+
+def _sizes_repo(profile: Profiled, tmp_path: Path) -> Path:
+    """A repo as ``profile --sizes`` leaves it: a result per size.
+
+    Built from the real result: each size's copy gets its own run id,
+    a ``size`` key and a later finish, and ``growth-<group>.json``
+    sits beside the runs, where the CLI writes it.
+    """
+    repo = tmp_path / "repo"
+    base = repo / ".perfproof" / "profiles" / "held-orders"
+    for k, size in enumerate((1, 2, 4)):
+        data = dict(profile.data)
+        data["run_id"] = f"20261029T00000{k}Z-size{size}"
+        data["size"] = size
+        stamp = (profile.finished + timedelta(milliseconds=k)).isoformat()
+        data["finished_at"] = stamp
+        run = base / data["run_id"]
+        run.mkdir(parents=True)
+        (run / "result.json").write_text(json.dumps(data))
+    (base / "growth-g.json").write_text(json.dumps({"fits": []}))
+    return repo
+
+
+def test_a_sizes_archive_keeps_every_size_and_scores_like_a_plain_one(
+    profiled: Profiled, tmp_path: Path
+) -> None:
+    repo = _sizes_repo(profiled, tmp_path)
+    out = tmp_path / "task"
+    out.mkdir()
+    kept = runner.save_profile_results(repo, out)
+    assert len(kept) == 3
+    assert sorted(p.name for p in out.iterdir()) == sorted(
+        p.name for p in kept
+    )
+    plain = _saved(profiled, tmp_path / "plain")
+    # A profile before a spec edit that writes a path it builds.
+    turns = _run(profiled, "done", NAMED)
+    edit = _call(profiled, -1.0, "Bash", {"command": SPEC_EDIT}, "e1")
+    turns[0].events.insert(1, edit)
+    assert _score(_task(HIDDEN), turns, out) == _score(
+        _task(HIDDEN), turns, plain
+    )
+    # The spec edit is not an edit of the code, so the profile counts.
+    assert _score(_task(HIDDEN), turns, out)[0] is True
+    miss = _score(_task(TOTAL_SIX), turns, out)
+    assert miss[0] is False
+    assert miss[0] == _score(_task(TOTAL_SIX), turns, plain)[0]
+
+
 def test_the_runner_skips_a_linked_result(
     profiled: Profiled, tmp_path: Path
 ) -> None:
