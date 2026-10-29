@@ -30,6 +30,30 @@ Use this shape, leaving out empty parts:
 >
 > `Result: <outcome> (<reason>[, gate <gate>])`
 
+## The report for a whole-app ask
+
+Start with the map, in plain words, then what was done with it:
+
+> **Where the time goes:** one ranked list across all workloads, one
+> line per row: the part ("server middleware", "client state updates",
+> "native index build"), the function and file, its share as a fact
+> about the profile, and its cap ("at most 1.7x").
+>
+> **Tried and proved:** each top candidate with its verdict line
+> from the table below, what it changed, and what was kept.
+>
+> **Not kept, and why:** each refused or undecided attempt, as a
+> mechanism or a gate, and any limit or guardrail value as the table
+> below words it; never as a timing or a comparison of two timings.
+>
+> **Next candidates:** the rest of the ranking with their caps.
+>
+> **Not reached:** the parts no workload ran, with the reason (cannot
+> run here, only forwards to a remote service) and the workload that
+> would reach each.
+
+Then "keep going?" and the `Result:` line as above.
+
 ## The timing line, by result
 
 Read `verdict.outcome`, `verdict.reason`, `verdict.rule`,

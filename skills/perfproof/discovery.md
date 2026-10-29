@@ -86,6 +86,72 @@ shows are leads, not claims: tests use odd inputs and heavy set-up.
    ("the tests run `<function>`, but nothing a user does reaches it")
    and move on.
 
+## Whole app, several layers
+
+A bare or vague ask ("speed up the app") is the whole project. The
+answer is one ranked map, not one hotspot.
+
+**Map the stack first.** List each part with its own build file or entry
+point (`frontend/`, `backend/`, a native extension, kernels, a CLI, a
+service) and how they connect: a Python call into a C++ extension, a UI
+calling an API, a CLI calling a library. `perfproof init` lists
+`targets[]`, and on a project with a Python package over C++ it gave
+two (`python_cpu`, `native`). On a React front end beside an Express
+server it gave one (`web_service`) and did not list the front end, so
+read the tree too. Choose workloads through the entry points
+a user really uses, so each one runs through the layers (the script
+that builds an index, not a test of the C++ class). In the plan,
+say which parts each workload reaches and which none does. A part that
+cannot run here (a front-end build that fails on this machine's
+runtime, a back end that only forwards calls to a remote service) is
+named as not reached with the reason, never skipped silently.
+
+**What one profile sees.** Measured on macOS (`perfproof profile`, the
+default Python profiler against the `native` recorder in
+[native.md](native.md), the same command each time):
+
+- Python calling a compiled extension: the default Python profiler
+  names the extension call as one leaf frame with no file (`<built-in>`
+  in the run: 93% self share for one call into a C++ index builder). It
+  sees nothing under it. The `native` recorder, started on the same
+  `python` command, names the extension's C++ frames by file and line
+  from the debug info the sampler reads (a build with `-g` keeps it),
+  through several levels. `--own-module <image name>` (the binary's
+  file name, such as the `.so`) is only needed for frames printed
+  without a source line. The recorder shows the
+  interpreter only as CPython's own C frames, so the Python function
+  names are gone. Run both, each under its own benchmark name
+  (`<name>` and `<name>_native`): the first ranks the Python side, the
+  second the native side. Don't rank them together; the same time is
+  counted at two depths.
+- A script that starts another process (a subprocess, a server): both
+  profilers followed only the parent. The child's work showed as the
+  parent waiting (`waitpid` or `wait4`, 95% to 99% of the samples) and
+  nothing of what the child ran. Profile the child's own entry point as
+  its own workload (the server driven by a client script, the library
+  by its own driver).
+- Node and TypeScript under the Node profiler name the project's own
+  TypeScript functions with file and line, in a store or an Express
+  app alike. A server and the script that sends it requests, in one
+  process, are profiled together in one run.
+
+Where a layer is invisible, say so in the plan ("the profile shows the
+call into the extension, not what is inside it") and profile that layer
+with its own workload. A cap taken from a frame that holds a whole
+layer (the entry call of a native library, at 96%) is the layer's cap,
+not a function's; read the frames below it for a candidate.
+
+**Rank across workloads, name the layer.** `profile show --rank` on all
+the workloads gives one list. In the report, each row names its part in
+plain words ("client state updates", "server middleware", "C++ index
+build"), the share and the cap. Dedupe a frame that is the same work at
+two depths.
+
+**Try the top, name the rest.** Prove the top candidates for the depth
+(`medium`: 2 to 3, the best proved against its baseline). The rest stay
+as named next candidates with their caps. The parts no workload reached
+are listed, with the first workload that would reach each.
+
 ## Cheap tests
 
 Before writing a real change, run the cheapest check that would prove

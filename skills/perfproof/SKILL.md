@@ -110,7 +110,10 @@ the user.
 Look at what the user wrote when they asked for perfproof:
 
 1. `light`, `medium` or `deep` as the first word sets the depth (below).
-2. Nothing else: find speedups in this project (**find**), at `medium`.
+2. Nothing else, or a whole-app ask ("speed up the app", "fix
+   everything"): find speedups in the project (**find**), at `medium`,
+   without asking what to speed up. "Fix everything" means rank, then
+   work from the top, and report one ranked map ([messages.md](messages.md)).
 3. A branch, commit, PR or diff named as the whole request, a URL, or
    marked ("pr 123", "branch x", "this diff", "my changes"): **prove** it.
 4. A file or function: find speedups starting there.
@@ -172,10 +175,10 @@ confirmed target (`perfproof init --json` if it is missing). If one
 target fits and the user hasn't confirmed it, ask one plain question
 ("perfproof sees this as <class> code, from <evidence>; is that
 right?"): fold it into the question you are already asking, or ask it
-on its own if there is none. If several targets fit, that same
-question names each candidate with its evidence and asks which one
-applies. On yes run `perfproof project confirm
-<target id> --json` on the chosen target. If none fits, leave
+on its own if there is none. If several fit (one app of
+several parts), the same question names each with its evidence ("Python
+over a C++ extension, from ...; right?"). On yes run `perfproof project
+confirm <target id> --json` on each; a spec takes its part's class. If none fits, leave
 `target_class` out and say once that KEEP can't be calibrated. The spec sets that `target_class`
 and its schedule ([spec.md](spec.md)); adding them to an existing spec
 changes its hash, so define a new version and say so in one line.
@@ -261,9 +264,11 @@ No discovery. One candidate at a time, against its parent.
 1. **Map, then ask once.** Run `perfproof init --json` (once per
    repository; it writes only `.perfproof/`). It proposes `targets[]`,
    `workloads[]` and goals, each with an `id` and its evidence, and
-   `questions[]` for what it could not find out. Then map how the program
-   is used: entry points, modes and flags, README examples, `examples/`,
-   and the project's own benchmarks and tests. Benchmarks and tests that
+   `questions[]` for what it could not find out. Then list the project's
+   parts (each with a build file or entry point) and how they connect,
+   and map how the program is used: entry points, modes and flags,
+   README examples, `examples/`, and the project's own benchmarks and
+   tests. Benchmarks and tests that
    call internal components directly are sources for inputs and for a
    later workload, never the first. Choose workloads from the map, each
    through a different outer entry point or kind of operation, on
@@ -271,8 +276,9 @@ No discovery. One candidate at a time, against its parent.
    take different code paths than a pipe; say which in the plan). Where
    users make many small calls, keep inputs small. A user's claim decides
    only what the first workload looks at; the rest is general use of the
-   project. Say which workloads you picked and why, one line each. A
-   profile covers the whole process, start-up and imports included, so
+   project. Say which workloads you picked and why, one line each, and
+   which parts each reaches. A profile covers the whole process,
+   start-up and imports included, so
    loop long enough that those are a minor share. When you enlarge a
    workload, tell the user what it now does (the input repeated many
    times), never how long a run took in milliseconds. Profile the same
@@ -295,8 +301,10 @@ No discovery. One candidate at a time, against its parent.
    up that only the user can decide.
 2. **Profile.** For Node or TypeScript code read [node.md](node.md) first:
    how to launch, warm up and profile it. `perfproof profile <name>
-   --json`. Write profile output and other scratch files under
-   `.perfproof/`, not `/tmp`: shared temp may not be writable. Print the
+   --json` (several languages in one stack: [discovery.md](discovery.md),
+   "Whole app, several layers"). Write profile output and other
+   scratch files under `.perfproof/`, not `/tmp`: shared temp may not
+   be writable. Print the
    top 15 entries of `result.hotspots[]` in the order the CLI gives them
    (by self share), one per line as `function file line self_fraction
    total_fraction`, not a cut of the whole output, and read them with the
