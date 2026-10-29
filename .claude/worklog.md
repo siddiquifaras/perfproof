@@ -147,6 +147,17 @@ apps running. Ledger: `.claude/local/gpu-spend.md`.
 
 ### Decisions
 
+- **Held-out discovery result, final (2026-10-29).** Skill frozen at 029f5c2 for all 8. heldout-1: dask, badger, fasthttp, fast-json-stringify, $4.92. heldout-2: datafusion, numpy, arrow-rs, uuid, $2.97. heldout-2 ran with #109's harness-frame fix in the CLI; heldout-1 didn't.
+  - **Hidden function found and named: 2 of 8** (fast-json-stringify, uuid). 25%, Wilson 95% about 7-59%. Wrong KEEP 0.
+  - Full passes as scored: 0 of 8.
+    - fast-json-stringify failed only on a wording false positive ("shorter than 42 characters").
+    - uuid failed only because the #110 setup broke its oracle (Babel); with the repaired setup (`npm ci`, PR #112) the agent's fix passes the oracle's 7 tests. The archived score is not rewritten.
+  - Misses:
+    - dask: in the profile, not chosen.
+    - badger, fasthttp, numpy, arrow-rs, datafusion: the workload never surfaced the function (datafusion's 'no profile' was a detector false edit, fixed in #112, still a miss).
+  - Pattern: on unseen code the agents' workloads mostly don't reach the slow path; choosing (dask) is a lesser cause.
+  - The held-out set is now spent for tuning claims: the lead has seen hidden names.
+
 - **Held-out discovery run heldout-1 (2026-10-29, skill frozen at 029f5c2, as ppeval, $4.92).** Scored 4 of 8, passed 0 of 4; a hotspot was named in 1 of 4 (fast-json-stringify, which failed only on a wording false positive, "shorter than 42 characters").
   - dask: the hidden function was in the profile but not chosen.
   - badger and fasthttp (Go): "no profile output". This is a SCORER GAP: the agents used `profile --sizes` and `--rank` successfully, but the scorer doesn't read `--sizes` results. They are unscored, not missed.
