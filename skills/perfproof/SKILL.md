@@ -137,11 +137,11 @@ Depth decides how much you explore and try. It never changes how a
 change is measured or what counts as kept. Every tier ends with a
 ranked list of where the time goes, with ceilings, and a result.
 
-| Depth | Find | Prove |
+| Depth | Find (`perfproof find` asks for) | Prove |
 |---|---|---|
-| `light` | map how the program is used; the 2 most-used workloads, each with `--sizes` where there is a size knob; rank; try the top real candidate | default for proving |
-| `medium` (bare `/perfproof`) | the full map; 3-4 workloads from different entry points or directions, with `--sizes`; rank; name the files no workload reached; profile the tests as a coverage probe; try the top 2-3 candidates and prove the best | the same, plus the claim check |
-| `deep` | every entry point; `--sizes` everywhere, with a larger size added; every candidate with a meaningful ceiling, and the tests profiled as a coverage probe; a second, fresh `perfproof compare` of the best against its baseline | every candidate in the branch, one at a time |
+| `light` | 1 workload; try the top real candidate | default for proving |
+| `medium` (bare `/perfproof`) | tests and existing benchmarks profiled; 3 workloads from different entry points or kinds, one with a size knob; try the top 2-3 candidates and prove the best | the same, plus the claim check |
+| `deep` | one workload per entry point, size knobs everywhere, the native recorder on native parts; every candidate with a meaningful ceiling; a second, fresh `perfproof compare` of the best | every candidate in the branch, one at a time |
 
 Say in one sentence what the depth will cover and that `light` is
 shorter; don't wait for an answer unless they asked. Remember the depth
@@ -166,7 +166,7 @@ with one sentence and one next step:
    old and new versions run in alternating rounds, so load that hits
    both mostly cancels; it only widens the range. Offer to wait only if
    the user would rather. When finding speedups, mention it in the one
-   question of step 1.
+   question of step 2.
 5. The project has no tests or other check of the result: say a change
    can't be kept without one, and offer to write a check (the output on
    a fixed input) with the user's agreement. If they decline, still
@@ -189,13 +189,13 @@ and its schedule ([spec.md](spec.md)); adding them to an existing spec
 changes its hash, so define a new version and say so in one line.
 Without a confirmed class, `compare` measures but cannot keep.
 
-Unless no calibrated class fits, for non-Python code the change touches,
-take its playbook's coverage command and probe the tool (`--version`). If
-missing, add the install to the question you are already asking (find:
-step 1, before any work; prove: before the first `compare`): "to check which
-changed lines your tests run it needs `cargo-llvm-cov`, a dev tool; ok?".
-Yes: install, declare `correctness.coverage_command`. No: say KEEP can't be
-checked.
+When proving a change to non-Python code of a calibrated class, take its
+playbook's coverage command and probe the tool (`--version`). If missing,
+add its install to the question you are already asking, before the first
+`compare`: "to check which changed lines your tests run it needs
+`cargo-llvm-cov`, a dev tool; ok?". Yes: install, declare
+`correctness.coverage_command`. No: say KEEP can't be checked. (Find mode
+gets this from `find`'s question.)
 
 You write only to `.perfproof/`, a coverage tool the user agreed to, and,
 once the checks pass and the user agrees, to one branch `perfproof/<name>` for kept changes. Never commit
@@ -274,125 +274,85 @@ No discovery. One candidate at a time, against its parent.
 
 ## Find speedups
 
-1. **Map, then ask once.** Run `perfproof init --json` (once per
-   repository; it writes only `.perfproof/`). It proposes `targets[]`,
-   `workloads[]` and goals, each with an `id` and its evidence, and
-   `questions[]` for what it could not find out. Then list the project's
-   parts (each with a build file or entry point) and how they connect,
-   and map how the program is used: entry points, modes and flags,
-   README examples, `examples/`, and the project's own benchmarks and
-   tests. Benchmarks and tests that
-   call internal components directly are sources for inputs and for a
-   later workload, never the first. Choose workloads from the map, each
-   through a different outer entry point or kind of operation, on
-   realistic input, run the way users run it (output to a terminal can
-   take different code paths than a pipe; say which in the plan). One
-   kind of operation per workload, never a combined script; one has a
-   single item's size as its knob (a long document, a large image), and
-   one modifies and re-emits data where the project does. Where
-   users make many small calls, keep inputs small. A user's claim decides
-   only what the first workload looks at; the rest is general use of the
-   project. Say which workloads you picked and why, one line each, and
-   which parts each reaches. A profile covers the whole process,
-   start-up and imports included, so
-   loop long enough that those are a minor share. When you enlarge a
-   workload, tell the user what it now does (the input repeated many
-   times), never how long a run took in milliseconds. Profile the same
-   workload you will measure. Prepare everything before you ask: your
-   suggested answer to each question that matters (what "faster" means,
-   what must not change), the spec built on them ([spec.md](spec.md)) or a
-   locked benchmark that fits (one directory per benchmark under
-   `.perfproof/benchmarks/`), and the branch `perfproof/<name>` where
-   attempts will go. Then ask in one message, your suggestion first for
-   each: the workload and answers, the spec in one paragraph, permission
-   for the branch, any machine warning from the checks above, and, when the
-   map puts the likely change in non-Python code of a calibrated class, its
-   coverage tool install (probe it first; see the pre-compare paragraph). This
-   message is a question you will go on from, so it has no `Result:` line.
-   On their yes, confirm in this order, since each needs the one before:
-   `perfproof project confirm <target id> <workload id> --json`, then
+1. **Run `find`.** `perfproof find --depth <depth> --json` (bare
+   `/perfproof` is `medium`). It does the mechanical discovery: the
+   project's parts, each part's tests and existing benchmarks profiled,
+   the native recorder where it applies, and your workloads profiled and
+   ranked. Read `done`, `question`, `next_steps`, `map`, `leads`,
+   `not_reached` and `skipped`. Writing and profiling workloads needs no
+   permission, so do step 2 first and ask in step 3.
+2. **Do the `next_steps` in order** (not `install_or_confirm`), calling
+   `find` again after each.
+   - `define_workloads`: write the workloads it asks for through the
+     entry points it names, on realistic input, run the way users run
+     the program (output to a terminal can take other code paths than a
+     pipe). One kind of operation per workload, never a combined script;
+     one modifies and re-emits data where the project does; where users
+     make many small calls, keep inputs small. Tests and benchmarks that
+     call internals are sources of inputs, never the workload. A user's
+     claim decides only what the first workload looks at. A profile
+     covers start-up too, so loop long enough that it is a minor share,
+     and tell the user what an enlarged workload now does, never how
+     long a run took. Write scratch and profile output under
+     `.perfproof/`, not `/tmp`. Then `perfproof bench define <name>
+     --spec <file> --json` ([spec.md](spec.md)) and `perfproof project
+     add-workload <name> --target <target_id> --json`, so the user can
+     confirm it; read Node and TypeScript launch advice in
+     [node.md](node.md) first.
+   - `add_size_knob`: `perfproof find --size-arg WORKLOAD:FLAG=BASE` (or
+     `--size-env WORKLOAD:NAME=BASE`) for the one workload whose single
+     item can grow: a long document, a large image.
+   - `reach_lead`: write a workload through the entry point a user would
+     use that reaches the lead, shaped by the inputs of the test its
+     `via_test` names. If nothing a user does reaches it, say so in plain
+     words and go on.
+   - `continue_find`: call `find` again.
+   - A step that truly can't be met (one kind of operation exists, the
+     program needs a remote service): `perfproof find --waive
+     CODE=REASON` with the honest reason.
+3. **The one question.** Once `find` has no step left but
+   `install_or_confirm`, ask one question that joins `question` (class,
+   test command, installs) with the workloads you will measure, by name,
+   one line each, and what "faster" means with what must not change,
+   permission for the branch `perfproof/<name>` and any machine warning
+   from the checks. When the test command is unknown, offer the one you
+   would run (`find --test-command <part>='["cmd","arg"]'`). On yes, record
+   it all: `perfproof project confirm <target_id> <workload ids> --json` (those
+   `init` listed and those you added),
+   `perfproof find --confirm-tests <part>`, each install command, then
    `perfproof project goal <workload id> --metric <m> --confirm --json`
-   (`<m>` is `wall`, `cpu`, `p99`, `memory`, or the name of a metric your
-   benchmark reports, with `--direction` and `--unit`), then lock the
-   spec. Nothing is measured on a workload the user has not confirmed.
-   After that, don't stop again before the report unless something comes
-   up that only the user can decide.
-2. **Profile.** For Node or TypeScript code read [node.md](node.md) first:
-   how to launch, warm up and profile it. `perfproof profile <name>
-   --json` (several languages in one stack: [discovery.md](discovery.md),
-   "Whole app, several layers"). Write profile output and other
-   scratch files under `.perfproof/`, not `/tmp`: shared temp may not
-   be writable. Print the
-   top 15 entries of `result.hotspots[]` in the order the CLI gives them
-   (by self share), one per line as `function file line self_fraction
-   total_fraction`, not a cut of the whole output, and read them with the
-   wall versus CPU time. Print the top 15 of `result.frames_by_total[]`
-   the same way: frames by time spent under them, including ones with no
-   self time. A project function (`is_library` false) high there and low
-   or absent in `hotspots` is a candidate: its time is in the calls it
-   makes, so call it less or make those calls cheaper. If most of the
-   profile is interpreter start-up or imports, the workload does too
-   little work per run: loop it or enlarge the input and profile again. If
-   CPU is well below wall, the program is mostly waiting: look at I/O and
-   services, not loops. For a native C or C++ program, profile it through
-   `perfproof profile` with the native recorder in [native.md](native.md)
-   (`--profiler-command`, `--own-module <binary>`): it starts the program
-   itself and runs the system `sample` on macOS (by process id) or `perf`
-   on Linux (which must be on PATH). Do not look a process up by name
-   (`pgrep`, `sample <name>`, `ps`): in a restricted environment those
-   fail, and the result would be a profile perfproof did not make. If the
-   recorder itself fails, read its error and fix the command before
-   falling back to anything else; if you must sample by hand, use the pid
-   of a child you started, call each function's share an estimate, name
-   the sampler, and say perfproof's profile did not run. Before profiling,
-   read the playbook for the language: Java and other JVM code
-   [java.md](java.md), Rust [rust.md](rust.md), Go [go.md](go.md), Ruby
-   [ruby.md](ruby.md), C# and .NET [csharp.md](csharp.md), C and C++
-   [native.md](native.md). Each says how to launch so the runtime is
-   identified, how to warm up, how to profile, and what usually goes
-   wrong. A size knob is a CLI flag, an environment variable, or an input
-   file's size or repeat count. With one, profile with `--sizes 1,2,4
-   (--size-arg=FLAG=BASE | --size-env NAME=BASE)` (three sizes at least,
-   at every depth); without a knob, one plain profile. If
-   `result.next_step` is set, act on it first:
-   `no_project_frame_above_bar` means profile a second workload through
-   another entry point, `project_frames_unknown` means rerun with
-   `--own-module` or fix `--repo`, per its message. Then run `perfproof
-   profile show --rank <your workloads> --json` and choose from
-   `functions[]` in its order, not from the first profile. `wrapper` rows come last: skip them. Each
-   row has `cap`, `total_fraction`, `cap_above_bar` and `growth.evidence`.
-   Name any row at 5% or more of a profile that you skip, with the reason.
-   For a function you suspect from the code that the ranking doesn't show:
-   `perfproof profile show <name> --function <function> --json`; `found:
-   false` means the workloads never ran it or it was inlined, so read the
-   skipped branches (options, modes, input shapes) and say whether a
-   workload that reaches them is worth running. The workloads are too
-   narrow if the ranking is flat (none far above the rest), the top rows
-   are only the driving loop, start-up or one kernel, or they exercised
-   one feature or call path (or `next_step` said so). Then add a workload
-   through a different entry point or direction (not the same one with a
-   larger input) before you choose an idea, even at `light` and before any
-   "keep going?". At `light`, two workloads at most; say so.
-   `coverage.never_sampled` lists project files no workload ran: say "not
-   covered by these workloads", never "fine"; at `medium` and `deep` name
-   the main areas in plain words, and run a workload that reaches them if
-   the code says they matter. At `medium` and `deep`, profile the
-   project's tests once more as a coverage probe
-   ([discovery.md](discovery.md)): what they reach is a lead, never a
-   candidate or a claim. At `medium`, after step 1's yes, before you end
-   the turn, ask, or pick a candidate, run these without asking, or say
-   why one can't (no tests, recorder refused, under 3 kinds of operation)
-   and go on: 3 workloads ranked; the tests probe; a native recorder
-   profile if `init` lists a native target or a `<built-in>` or extension leaf holds 3%. The budget and decision stops still apply. Before you read code, tell the user in plain
-   sentences the top ranked candidates by name and file, with the share as
-   a fact about the profile ("<share> of the samples are under
-   `<function>` in `<file>`", from `total_fraction`), which you will try
-   first, and in one line why it is the biggest: its cap at the largest
-   size, and growth only when `growth.evidence` is `shown`. A `lead` is "a
-   place to look", never a rising ceiling. If the claim's workload shows
-   no project function above the bar, say the profile doesn't support the
-   claim.
-3. **Ideas.** For each ranked candidate, work out the most a change
+   for each (`<m>` is `wall`, `cpu`, `p99`, `memory` or your benchmark's
+   metric, with `--direction` and `--unit`). If a command fails, say so
+   plainly. A workload the user declines stays unconfirmed, so `compare`
+   can't keep a change on it: say that plainly. On no, record nothing and say what
+   that limits: an unconfirmed class or missing coverage tool means KEEP
+   can't be given; an unconfirmed test command means the tests are not
+   profiled, so their leads are missing. After the answer, don't stop
+   again before the report unless only the user can decide something.
+4. Repeat steps 1 to 3 until `done`. Language playbooks say how to launch each
+   runtime: [java.md](java.md), [rust.md](rust.md), [go.md](go.md),
+   [ruby.md](ruby.md), [csharp.md](csharp.md), [native.md](native.md);
+   several languages in one stack: [discovery.md](discovery.md).
+5. **Read the map.** Print the top 15 rows of `map` in the order given,
+   one per line as `function file line cap total_fraction`. Print the top
+   15 of `leads` the same way. Skip `wrapper` rows, and name any row at 5% or more that you skip, with the reason. Leads are
+   places to look, never candidates or claims. A `layer` of `native`
+   under a Python row, or `skipped` entries, say what one profile could
+   not see: say so. For a function the map lacks that you suspect from
+   the code: `perfproof profile show <name> --function <function>
+   --json`. If the map is flat or only start-up and the driving loop,
+   add a workload through another entry point and call `find` again.
+   `not_reached` is "not covered by these workloads", never "fine". If
+   CPU is well below wall, look at I/O and services, not loops. Before
+   reading code, tell the user the top candidates by name and file, with
+   the share as a fact ("<share> of the samples are under `<function>`
+   in `<file>`"), which you will try first and why: its cap at the
+   largest size. If the claim's workload shows no project function
+   above the bar, say the profile doesn't support it. A project function
+   high in total share but low in self share is already a map row, which
+   carries `total_fraction`.
+
+6. **Ideas.** For each ranked candidate, work out the most a change
    there could save (the cap in [discovery.md](discovery.md)). For a Python
    function, measure the cap rather than estimate it:
    `perfproof measure <name> --stub <module>:<function> --json` gives
@@ -403,7 +363,7 @@ No discovery. One candidate at a time, against its parent.
    verdicts. Drop any idea whose cap is at or below `1 + min_effect`
    from the spec. Check the angles in discovery.md for ones the profile
    hints at. Check `git log` for what was tried before.
-4. **Cheap test first.** Before writing a real change, test the idea
+7. **Cheap test first.** Before writing a real change, test the idea
    cheaply (the cheapest check that would prove it wrong). Drop ideas
    it refutes and say why as a mechanism you read in the code or a
    count you made ("the lookup rebuilds a dict on every call"), never
@@ -412,14 +372,14 @@ No discovery. One candidate at a time, against its parent.
    decides what to try next: never report it to the user. Report counts or a bound
    instead ("the stage is 18% of the run, so it can save at most
    1.2x").
-5. **Try.** Create the branch the user allowed in step 1 (ask now
+8. **Try.** Create the branch the user allowed in step 2 (ask now
    only if they did not) from the commit the user was on, write the
    change there, as small as the idea needs, commit it on that branch,
    and prove it exactly as above with `--baseline <that commit>
    --candidate perfproof/<name>`. Every attempt uses that same
    baseline. Before calling a build unbuildable, read 30 log lines and
    try the obvious fix once ([native.md](native.md)).
-6. **Keep or undo.** First switch back to the branch the user was on,
+9. **Keep or undo.** First switch back to the branch the user was on,
    so their working tree is exactly as it was. A KEEP stays on
    `perfproof/<name>`. An attempt whose checks failed is undone by
    deleting its branch, which only you created; never touch anything
@@ -427,7 +387,7 @@ No discovery. One candidate at a time, against its parent.
    checks all passed stays on its branch for the user to judge: say the
    checks passed and the speed is not decided, and offer to delete it.
    Never argue from the estimate.
-7. **Report** once at the end ([messages.md](messages.md)): each idea,
+10. **Report** once at the end ([messages.md](messages.md)): each idea,
    its evidence, what happened, what was kept, what was not checked,
    and what to try next. Say "nothing left could clear the bar" only
    when no idea with a cap above the bar is left untried; otherwise

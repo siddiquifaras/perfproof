@@ -63,6 +63,7 @@ cannot produce a keep while calibration is withheld. The rest go under
 | `gpu_kernel` | "Measured, but perfproof can't yet confirm a keep for GPU kernels." | None: state it, ask no question. |
 | `target_class_unknown`, `schedule_not_class_own`, `schedule_uncalibrated` | "perfproof hasn't been checked on this kind of setup, so it can't confirm a keep." | Fix the spec's class, schedule or alpha and rerun, saying nothing more about it. |
 | `target_class_unverified` | "perfproof hasn't confirmed this project's kind of code yet." | "Is <detected target> right?" On yes, confirm and rerun. |
+| `workload_not_confirmed` | "This workload hasn't been confirmed, so perfproof can't confirm a keep on it." | "Confirm `<workload>` and its goal?" On yes, `project confirm` and `project goal --confirm`, then rerun. After a spec change, `project add-workload <name> --target <id> --replace`, confirm again, rerun. |
 | `coverage`, tool missing | "One check is left: perfproof couldn't confirm your tests run the changed lines, because `<tool>` isn't installed." | "Install it and re-check?" Second option, never set unasked: waive the check (`allow_unchecked_coverage`). |
 | `coverage`, no command declared | "... because no coverage command is declared." | "Add one and re-check?" Same waive option. |
 | `coverage` naming lines that never ran | "The changed lines <file>:<a>-<b> never ran under any check." | A test that reaches them and fails on the original (SKILL.md, "Prove a change"); no install. |
