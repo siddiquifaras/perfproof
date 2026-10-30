@@ -174,26 +174,25 @@ disassembly that shows it, since it differs per compiler version.
 
 ## Coverage
 
-`-C instrument-coverage` and the toolchain's `llvm-profdata` and
-`llvm-cov` give an lcov report. Build a second, instrumented binary in
-`setup`:
+A Rust change is kept only if every changed line ran under the tests.
+Install `cargo-llvm-cov` once (`cargo install cargo-llvm-cov --locked`;
+probe with `cargo llvm-cov --version`). It needs
+`rustup component add llvm-tools-preview` if rustup lacks that
+component. Declare, with a `coverage_timeout_seconds`:
 
+```json
+"coverage_command": ["sh", "-c", "cargo llvm-cov --locked --lcov --output-path \"$PERFPROOF_COVERAGE_REPORT\""]
 ```
-["env", "RUSTFLAGS=-C instrument-coverage", "cargo", "build", "--release",
- "--locked", "--target-dir", "target/perfproof-cov"]
-```
 
-(the build itself was run by hand with that `RUSTFLAGS`, not through
-perfproof's `setup`),
+It runs `cargo test` instrumented and writes lcov with absolute
+`SF:` paths. Proven on a small crate: a changed line its test
+ran gave the coverage gate `passed` in `perfproof compare`
+(`cargo-llvm-cov 0.9.1`). Never time a run under it.
 
-then `python -m perfproof.bench.rust_coverage --output <file>.lcov
---project-root <repo root> -- target/perfproof-cov/release/<name>
-<arguments>` runs it and writes the lines of the project's files that
-ran (`DA:<line>,<count>`, count 0 for a line nothing ran). It needs
-`rustup component add llvm-tools-preview`. The coverage check does not
-read lcov yet, so the report says changed lines were not checked; do not
-claim they ran. A line with count above 0 in the lcov is evidence you
-can cite from it directly.
+For a one-off look at what a workload ran, `python -m
+perfproof.bench.rust_coverage --output <file>.lcov --project-root <repo
+root> -- <instrumented binary> <arguments>` (binary built with
+`RUSTFLAGS=-C instrument-coverage`) writes the lines that ran.
 
 ## When to stop
 

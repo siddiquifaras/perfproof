@@ -279,7 +279,11 @@ JaCoCo is the tool: perfproof reads its XML report (`jacococli report
 `package/Source.java` under `src/main/java` (then `src/java`, `src`)
 of `correctness.cwd`. Download `org.jacoco.agent-<v>-runtime.jar` and
 `org.jacoco.cli-<v>-nodeps.jar` from Maven Central once, into a
-directory outside the tree, and use their absolute paths.
+directory outside the tree, and use their absolute paths. Probe with
+`java -version` (a JDK is needed) and the two jars' presence; fetch
+each with `curl -fLO https://repo1.maven.org/maven2/org/jacoco/<artifact>/<v>/<artifact>-<v>[-runtime|-nodeps].jar`
+(`org.jacoco.agent` with `-runtime`, `org.jacoco.cli` with `-nodeps`;
+both URLs answered 200 for 0.8.12, the jars were not run here).
 
 The agent and the report are two steps, so save this wrapper as
 `.perfproof/harness/Coverage.java` and list it in `harness`. It runs

@@ -189,8 +189,14 @@ and its schedule ([spec.md](spec.md)); adding them to an existing spec
 changes its hash, so define a new version and say so in one line.
 Without a confirmed class, `compare` measures but cannot keep.
 
-You write only to `.perfproof/` and, once the checks pass and the user
-agrees, to one branch `perfproof/<name>` for kept changes. Never commit
+Unless no calibrated class fits, for non-Python code the change touches,
+take its playbook's coverage command and probe the tool (`--version`). If
+missing, add the install to that question ("to check which changed lines
+your tests run it needs `cargo-llvm-cov`, a dev tool; ok?"). Yes: install,
+declare `correctness.coverage_command`. No: say KEEP can't be checked.
+
+You write only to `.perfproof/`, a coverage tool the user agreed to, and,
+once the checks pass and the user agrees, to one branch `perfproof/<name>` for kept changes. Never commit
 to, rewrite or edit a branch the user named or owns; a fix you write for
 their change goes on a new `perfproof/<name>` branch. Before you
 finish, remove files your own runs created in the user's tree (outputs,

@@ -266,10 +266,16 @@ lines that hold a statement and how often they ran; a line counts as
 run only if every block with code on it ran. Never time a binary built
 with `-cover`.
 
-That report is not wired into the coverage check yet, so the report
-says changed lines were not checked; read the lcov file yourself for
-the lines you changed, and do not claim they ran unless it shows them
-with a count above zero.
+Declare it as the coverage command (`coverage_timeout_seconds` too);
+`go` needs no install, and `<python>` is the Python that runs perfproof:
+
+```json
+"coverage_command": ["sh", "-c", "go test -coverprofile=cover.out -covermode=set ./... && <python> -m perfproof.bench.go_coverage --profile cover.out --root . --output \"$PERFPROOF_COVERAGE_REPORT\""]
+```
+
+Proven by running the two steps by hand on a small module (profile
+then lcov: the line a test ran had count 1, the line of an uncalled
+function 0). Not yet run through `perfproof compare` for Go.
 
 ## When to stop
 

@@ -325,10 +325,13 @@ The spec then has `"coverage_command": ["node",
 `node_modules/.bin/borp`, or `node --test`) and a
 `coverage_timeout_seconds`.
 
-- `c8` must be in `node_modules/.bin` in each version. If the project
-  lacks it, add `["npm", "install", "--no-save", "--ignore-scripts",
-  "c8"]` to `setup` (no lockfile change). The wrapper exits 2 rather
-  than download it.
+- `c8` must be in `node_modules/.bin` in each version; probe with
+  `ls node_modules/.bin/c8`. Install it with `npm install --no-save
+  --ignore-scripts c8` (no lockfile change; run once to check, and add
+  `["npm", "install", "--no-save", "--ignore-scripts", "c8"]` to `setup`
+  so each version has it). The wrapper exits 2 rather than download it.
+  Run by hand on a small ESM project with `node --test`: it wrote lcov
+  with the changed function's lines at 1 and an uncalled one's at 0.
 - TypeScript run through `tsx` (`node --import tsx --test x.ts`) or
   Node's own type stripping (`node --test x.ts`) reports the source's
   line numbers; both were checked with an enum above the function, so

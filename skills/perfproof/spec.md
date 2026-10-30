@@ -67,8 +67,8 @@ install there would import its source in both versions.
   language other than Python, and only when the project has a coverage
   tool. A command that runs the tests under it and writes lcov,
   Cobertura or JaCoCo XML to the path in `$PERFPROOF_COVERAGE_REPORT`
-  (Node: `node.md`, Coverage; Java: `java.md`, Coverage). Python needs
-  none. Leave it out when unsure: changes in other languages are then
+  (each language playbook's Coverage section gives the command and its
+  install). Python needs none. Leave it out when unsure: changes in other languages are then
   measured but not kept, with "no coverage command declared".
 
 ## Template
