@@ -55,6 +55,15 @@ Build in `setup` (not timed, not checked) and time the executable:
 - Make the program print a checksum of what it computed, so the oracle
   can compare outputs and the compiler cannot drop the work.
 
+- **macOS: set the SDK path, only if the build reports a missing SDK or
+  system header.** `compare` gives setup and the benchmark only a few
+  variables (`PATH`, `HOME`, `TMPDIR` and a few more), not `SDKROOT`, so
+  a compiler that cannot find the SDK stops with that error. Put it in the spec's `env`, from
+  `xcrun --show-sdk-path` (`"env": {"SDKROOT": "<that path>"}`). Both
+  versions then build against the same SDK. If a native build fails,
+  read the last 30 lines of its log first; a missing optional
+  dependency is the other usual cause.
+
 ## Noise: there is no JIT, there is the machine
 
 Native code is compiled ahead of time: no interpreter, no JIT, no

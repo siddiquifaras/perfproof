@@ -278,7 +278,10 @@ No discovery. One candidate at a time, against its parent.
    later workload, never the first. Choose workloads from the map, each
    through a different outer entry point or kind of operation, on
    realistic input, run the way users run it (output to a terminal can
-   take different code paths than a pipe; say which in the plan). Where
+   take different code paths than a pipe; say which in the plan). One
+   kind of operation per workload, never a combined script; one has a
+   single item's size as its knob (a long document, a large image), and
+   one modifies and re-emits data where the project does. Where
    users make many small calls, keep inputs small. A user's claim decides
    only what the first workload looks at; the rest is general use of the
    project. Say which workloads you picked and why, one line each, and
@@ -366,7 +369,11 @@ No discovery. One candidate at a time, against its parent.
    the code says they matter. At `medium` and `deep`, profile the
    project's tests once more as a coverage probe
    ([discovery.md](discovery.md)): what they reach is a lead, never a
-   candidate or a claim. Before you read code, tell the user in plain
+   candidate or a claim. At `medium`, after step 1's yes, before you end
+   the turn, ask, or pick a candidate, run these without asking, or say
+   why one can't (no tests, recorder refused, under 3 kinds of operation)
+   and go on: 3 workloads ranked; the tests probe; a native recorder
+   profile if `init` lists a native target or a `<built-in>` or extension leaf holds 3%. The budget and decision stops still apply. Before you read code, tell the user in plain
    sentences the top ranked candidates by name and file, with the share as
    a fact about the profile ("<share> of the samples are under
    `<function>` in `<file>`", from `total_fraction`), which you will try
@@ -400,7 +407,8 @@ No discovery. One candidate at a time, against its parent.
    change there, as small as the idea needs, commit it on that branch,
    and prove it exactly as above with `--baseline <that commit>
    --candidate perfproof/<name>`. Every attempt uses that same
-   baseline.
+   baseline. Before calling a build unbuildable, read 30 log lines and
+   try the obvious fix once ([native.md](native.md)).
 6. **Keep or undo.** First switch back to the branch the user was on,
    so their working tree is exactly as it was. A KEEP stays on
    `perfproof/<name>`. An attempt whose checks failed is undone by

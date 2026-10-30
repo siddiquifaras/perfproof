@@ -86,6 +86,51 @@ shows are leads, not claims: tests use odd inputs and heavy set-up.
    ("the tests run `<function>`, but nothing a user does reaches it")
    and move on.
 
+## Workload shape
+
+- **One kind of operation per workload.** A script that converts,
+  resizes and saves in one loop reports one blended profile, and the
+  operation that matters can be a sliver of it or never run at all.
+  Write one small workload per operation (decode, transform, encode,
+  serve a request) and let `profile show --rank` order them.
+- **One workload's knob is a single item's size.** One long document,
+  one large image, one multi-MB body, run with `--sizes` (three sizes
+  at least). Repeating many small items hides work that grows faster
+  than linear in one item.
+- **One modifies and re-emits data**, where the project does that
+  (edit then save, rewrite then serialise, transform then write out):
+  read-only workloads never reach the write side.
+
+## Medium is not done early
+
+After the user's yes in step 1 of "Find speedups", the steps `medium`
+requires need no permission. Say what you are doing and do it, and ask
+nothing until all of these hold:
+
+- 3 or more workloads, each its own kind of operation, are ranked
+  together.
+- The tests probe above has run (or you said why not: the tests only
+  start the program as a child process).
+- A native recorder profile ([native.md](native.md)) exists whenever
+  `init` lists a native target, or a `<built-in>` or extension leaf
+  holds 3% or more of a Python profile. The Python profiler names such a
+  leaf and nothing under it; the recorder names what is inside.
+
+Each step either runs or you say plainly why it can't (no tests, the
+recorder refused or missing, such as `perf_event_open` in a container,
+fewer than 3 kinds of operation) and carry on. The budget and hung-build
+stops and the "only the user can decide" stop still apply, and so does
+the one-question rule: ask only what the repo cannot answer.
+
+## Build failures
+
+A build that fails is not yet "can't be built or measured". Read at
+least the last 30 lines of its log (not 5: the cause is often above the
+final error). Then try the obvious fix once: a missing optional
+dependency the log names, or on macOS the SDK path
+([native.md](native.md)). Only after that say the change can't be built
+here, with the log line that shows why.
+
 ## Whole app, several layers
 
 A bare or vague ask ("speed up the app") is the whole project. The
