@@ -79,6 +79,10 @@ the user.
   under <cap>?" ("over <floor>" for a floor). On yes the gap is the
   goal: profile it, change, `compare`, repeat. A relative allowance
   breach is "not kept", no loop. `reliable_value` is no verdict.
+- Final answer order: what was found and changed, the estimate and range
+  in its own paragraph, why it is right (tests, identical output), the
+  verdict in one plain line plus the one step that clears a withheld
+  keep, the ranked map, `Result:`. A REJECT comes first ([messages.md](messages.md)).
 - Before anything is decided, name a goal by its metric ("the time
   the `rolling_sum` calls take") and the bar as a line ("the low end of
   the range must be above 3%"), never as "faster" or "beats".

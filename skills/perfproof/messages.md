@@ -9,26 +9,66 @@ tells the user, and any tool reading it, that it is.
 
 ## The report after a compare
 
-Use this shape, leaving out empty parts:
+Lead with the value, then the verdict. Use this order, leaving out
+empty parts:
 
-> **What I checked:** <facts: "your 42 tests passed on both versions",
-> "the output file is identical", "236 queries became 10">.
+> **What I found and changed:** <the cause and the change, in plain
+> words: "`replace` copied the whole text once per match; it now builds
+> the result in one pass">. Branch name.
 >
-> **The timing:** <estimate or verdict, see below>.
+> **The timing:** <the estimate and range as its own paragraph, as the
+> table below words it; for a calibrated KEEP or REJECT, the verdict
+> line>.
 >
-> **Not checked:** <every entry of `not_verified`, plus any gate
-> whose status is `waived`, in plain words: "whether every changed line
-> ran under a test", "memory use", "whether both versions ran the same
-> Node">, with what would make it checkable where there is one.
+> **Why I trust it:** <facts only: "175 tests passed on both versions",
+> "the output is identical", "the benchmark files were not edited">.
 >
-> **Conditions:** <only if `doctor` warned or `warnings` names load:
-> "measured on a busy machine (load 7)"; omit otherwise>.
+> **The verdict:** one plain line. A REJECT is said first, before
+> anything else in the answer, as "Not kept: ...". A KEEP is "Kept".
+> A withheld keep is "Not confirmed as a keep yet", then the one
+> step from "Why a keep is withheld" below as a question the user can
+> answer yes to. Never a list of reasons, never a gate or rule name.
+>
+> **Not checked:** <every entry of `not_verified` not already said
+> above, plus any gate whose status is `waived`, in plain words, with
+> what would make it checkable where there is one>. Conditions
+> (`doctor` warned, `warnings` names load) go here as a clause:
+> "measured on a busy machine (load 7)".
+>
+> **Also found:** <the ranked map with caps, then what was not
+> reached, as in the whole-app report>.
 >
 > **Run record:** `<report_path>`.
 >
-> <one next step>
->
 > `Result: <outcome> (<reason>[, gate <gate>])`
+
+Say what the work did before what perfproof could not confirm. A
+withheld keep is a missing step, not a failure: name the step, not the
+rule. Never call the estimate faster or a win, never say "kept" while
+KEEP is withheld, and never bury a REJECT or a refusal.
+
+## Why a keep is withheld
+
+One plain sentence, then the one step that clears it, if there is one,
+asked as a question. Say the sentence once; never add the reason's
+name or a duration you have not measured. If several reasons apply,
+name first the one that cannot be cleared (the first four rows) and
+ask nothing that would not lead to a keep: installing a coverage tool
+cannot produce a keep while calibration is withheld. The rest go under
+"Not checked" as facts.
+
+| Reason | Say | Step that clears it |
+|---|---|---|
+| `metric_not_calibrated` | "For Node and JVM code perfproof can confirm a keep only on whole-command timing; this measurement is inside the process." | None: state it, ask no question. Do not suggest changing the metric. |
+| `gpu_kernel` | "Measured, but perfproof can't yet confirm a keep for GPU kernels." | None: state it, ask no question. |
+| `target_class_unknown`, `schedule_not_class_own`, `schedule_uncalibrated` | "perfproof hasn't been checked on this kind of setup, so it can't confirm a keep." | Fix the spec's class, schedule or alpha and rerun, saying nothing more about it. |
+| `target_class_unverified` | "perfproof hasn't confirmed this project's kind of code yet." | "Is <detected target> right?" On yes, confirm and rerun. |
+| `coverage`, tool missing | "One check is left: perfproof couldn't confirm your tests run the changed lines, because `<tool>` isn't installed." | "Install it and re-check?" Second option, never set unasked: waive the check (`allow_unchecked_coverage`). |
+| `coverage`, no command declared | "... because no coverage command is declared." | "Add one and re-check?" Same waive option. |
+| `coverage` naming lines that never ran | "The changed lines <file>:<a>-<b> never ran under any check." | A test that reaches them and fails on the original (SKILL.md, "Prove a change"); no install. |
+| guardrail `unmeasurable` or a limit `not_established` | "<The guardrail, in words> couldn't be measured here / is too close to call." | What makes it measurable, or the limit row in the table below. |
+| `insufficient_evidence`, calibrated, truly noisy | "The range still includes the bar, so it is undecided." | The stop's one question: "keep going?" (SKILL.md, "How to talk"). |
+| load or throttling | "The machine was busy, which widens the range." | None: a condition, never a reason to withhold. |
 
 ## The report for a whole-app ask
 
@@ -42,9 +82,11 @@ Start with the map, in plain words, then what was done with it:
 > **Tried and proved:** each top candidate with its verdict line
 > from the table below, what it changed, and what was kept.
 >
-> **Not kept, and why:** each refused or undecided attempt, as a
-> mechanism or a gate, and any limit or guardrail value as the table
-> below words it; never as a timing or a comparison of two timings.
+> **Not kept, and why:** each refused or undecided attempt as one
+> plain verdict line and, where there is one, the one step that clears
+> it (see "Why a keep is withheld"), never a list of reasons; any limit
+> or guardrail value as the table below words it; never a comparison
+> of two timings.
 >
 > **Next candidates:** the rest of the ranking with their caps.
 >
@@ -78,7 +120,7 @@ section of `report.md`.
 | INCONCLUSIVE with `verdict.diagnostics.coarse_resolution` | "The benchmark is too short for the timer to tell the versions apart. A longer input would fix that." |
 | INCONCLUSIVE, calibrated, rule 5 | "Undecided: the range <lower> to <upper> still includes the bar (<bar>)." |
 | INCONCLUSIVE, rule 2, `not_verified` has `coverage` naming lines that never ran | "The changed lines <file>:<a>-<b> never ran under any check, so perfproof can't tell whether they broke anything. Add a test that reaches them (it must fail on the original), or leave this change for you to judge?" Say "never ran" from the reason; a new test is a new spec and a new baseline, the user's call. |
-| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail other than a limit could not be established) | "Measured, but not kept: <each `not_verified` item> couldn't be checked here. <What would make it checkable.>" Don't mention the range or the bar. |
+| INCONCLUSIVE, rule 2 (a check could not run, or a guardrail other than a limit could not be established) | "Measured, but not kept: <each `not_verified` item> couldn't be checked here. <What would make it checkable.>" Give the estimate and range in "The timing" as an estimate, not a verdict, and never set them against the bar. |
 | KEEP, calibrated | "Kept: <estimate>x faster (range <lower> to <upper>), clear of the bar (<bar>). It's on `perfproof/<name>`." |
 | REJECT `performance` | "Not kept: even the high end of the range, <upper>x, doesn't clear the bar (<bar>)." Say "slower" only if `verdict.regression` is true. |
 | REJECT `guardrail`, a limit in `standing` that is missed (`gap` above 0 for a cap, below 0 for a floor) | "Not kept: in these runs it stayed under <reliable_value> (cap <limit>, <gap> short); on a busier or quieter machine this number can move. <The function or allocation the profile blames.> Next I would <one change>. Keep going on getting under <limit>?" A floor: "stayed over <reliable_value> (floor <limit>, <|gap|> short of it, never a negative number)" and "getting over <limit>?". The value is where the run stands, never a verdict. |
