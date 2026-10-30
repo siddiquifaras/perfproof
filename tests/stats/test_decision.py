@@ -84,7 +84,14 @@ UNPROBED = "not probed in this test"
 
 def unprobed(model: type[BaseModel], *keep: str) -> dict[str, str]:
     """Reasons for every optional field of ``model`` left ``None``."""
-    skip = {"captured_at", "version", "session", "env_values", "missing"}
+    skip = {
+        "captured_at",
+        "version",
+        "session",
+        "env_values",
+        "missing",
+        "runtime_family",
+    }
     return {
         name: UNPROBED
         for name in model.model_fields

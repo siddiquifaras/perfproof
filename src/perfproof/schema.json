@@ -265,6 +265,8 @@
               "enum": [
                 "python_cpu",
                 "native",
+                "node",
+                "jvm",
                 "web_service",
                 "llm_serving",
                 "gpu_kernel",
@@ -4627,6 +4629,8 @@
           "enum": [
             "python_cpu",
             "native",
+            "node",
+            "jvm",
             "web_service",
             "llm_serving",
             "gpu_kernel",
@@ -4720,6 +4724,20 @@
           "default": null,
           "description": "Version the interpreter reports; an interpreter only.",
           "title": "Runtime Version"
+        },
+        "runtime_family": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the probe identified the interpreter as (``node``, ``java``,\n``ruby``, ``go``, ``dotnet``, ``cc``); ``None`` for a Python\ninterpreter, which the probe does not name, and for any runtime not\nidentified. An interpreter only. The calibration rule for Node and\nJVM runs reads this, never the command.",
+          "title": "Runtime Family"
         },
         "linked_libraries": {
           "anyOf": [
@@ -4963,6 +4981,8 @@
               "enum": [
                 "python_cpu",
                 "native",
+                "node",
+                "jvm",
                 "web_service",
                 "llm_serving",
                 "gpu_kernel",

@@ -430,24 +430,29 @@ verdict. A `timed_out` run can't be resumed.
 | `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `procedure`, `diagnostics` and the rest |
 | `gates` | array | `{"gate", "status"}` in the record's order |
 | `warnings` | array | `{"code", "message"}` for every warning in the record |
-| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown`, `schedule_uncalibrated`, `schedule_not_class_own`, `target_class_unknown` and `target_class_unverified`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
+| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown`, `schedule_uncalibrated`, `schedule_not_class_own`, `metric_not_calibrated`, `target_class_unknown` and `target_class_unverified`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
 | `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
 
-`verdict.calibration` is `calibrated` exactly when all five hold: the
+`verdict.calibration` is `calibrated` exactly when all of these hold: the
 spec declares `target_class` (one of `python_cpu`, `native`,
-`web_service`, `llm_serving`, `gpu_kernel`, `agentic`), the project
+`node`, `jvm`, `web_service`, `llm_serving`, `gpu_kernel`, `agentic`), the project
 model (`.perfproof/project.json` of the main checkout) has a target
 entry of that class in state `confirmed` and not stale by the check of
 `perfproof project check` (`proposed`, `stale` and `retired` do not
 count; a changed evidence file, or no model, does not count), its look schedule is
 that class's own default schedule, `alpha` is 0.05, and that schedule
-is calibrated (`gpu_kernel` is not yet: no real traces).
+is calibrated (`gpu_kernel` is not yet: no real traces), and for `node`
+and `jvm`, or when the runtime gate identified a Node or Java runtime in
+either tree (`runtime_family` of the recorded environment), the primary
+metric's kind is `wall`.
 Then `verdict.target_class` is the class and
 `verdict.calibration_conditions` names the procedure, schedule, `alpha`
 and the seed of the run of record. Otherwise it is `uncalibrated` and a
 KEEP is withheld (INCONCLUSIVE, `insufficient_evidence`) with one
 warning naming why: `target_class_unknown` (no class declared),
 `schedule_not_class_own` (the schedule is another class's),
+`metric_not_calibrated` (`node` or `jvm`, or an identified Node or Java
+runtime, on a primary metric that is not `wall`),
 `target_class_unverified` (the project model does not confirm the
 class) or `schedule_uncalibrated` (`alpha` or schedule outside the domain,
 including `gpu_kernel`). A REJECT on evidence is decided the same
@@ -663,6 +668,28 @@ own outcome stands, with the breach recorded), a p99 shown within it
 no longer blocks a KEEP, and a p99 the benchmark did not print, or
 printed too coarsely (fewer distinct values than half the rounds in
 either arm), makes the guardrail `unmeasurable`, which does.
+
+## `init` targets
+
+`init` proposes a target per class it finds evidence for, each with its
+evidence lines in `result.targets[].evidence`. A class with no runnable
+workload evidence gets a question, never an invented command.
+
+| `target_class` | Proposed when |
+|---|---|
+| `python_cpu` | A Python manifest or Python files |
+| `native` | A C, C++ or Rust build manifest with sources |
+| `node` | A `package.json` with no web framework dependency, and JavaScript or TypeScript source files that are more than half of all source files (`targets.md` has the counting rule; a truncated walk proposes neither) |
+| `jvm` | A `pom.xml`, `build.gradle` or `build.gradle.kts`, and Java, Kotlin, Scala or Groovy source files that are more than half of all source files |
+| `web_service` | Python routes or dependencies; Node `express`, `fastify`, `@nestjs/core`, `koa`, `@hapi/hapi` or `next`; Go `gin`, `echo` or `fiber` in `go.mod`, or `http.ListenAndServe` in a non-test `.go` file; Ruby `rails`, `sinatra` or `roda` in a `Gemfile` |
+| `llm_serving`, `gpu_kernel`, `agentic` | Serving configs, CUDA or Triton code, model client dependencies |
+
+`node` and `jvm` use the `(10, 10, 6, 60)` schedule and are calibrated
+on a `wall` primary metric only (another kind withholds a KEEP with
+`metric_not_calibrated`)
+(owner's decision of 2026-10-29, "Which traces are in which class" in
+`method.md`). A Go, .NET or Ruby library that is not a web service gets
+no class, so a KEEP there is not calibrated.
 
 ## A session
 

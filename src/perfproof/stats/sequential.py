@@ -225,14 +225,16 @@ _HAC_SCHEDULES: Final = frozenset(
 )
 _GPU_KERNELS_SCHEDULE: Final = CLASS_SCHEDULES["gpu_kernel"]
 _CALIBRATED_SCHEDULES: Final = _HAC_SCHEDULES
-CALIBRATION_SEED: Final = 661371947387106328
+CALIBRATION_SEED: Final = 8268209547887630561
 """Seed of the real-trace run of record that accepted the class
 schedules ("Real noise" in ``docs/method.md``)."""
 TRACE_BASIS: Final[Mapping[TargetClass, str]] = MappingProxyType(
     {
         "python_cpu": "10 real traces (rolling, membership)",
         "native": "2 real traces (picolm)",
-        "web_service": "2 real traces (web)",
+        "node": "5 real traces (bench.js)",
+        "jvm": "3 real traces (Bench.java)",
+        "web_service": "4 real traces (web 2, web-node, web-go)",
         "agentic": "4 real traces (agent)",
         "llm_serving": "2 real traces, CPU Ollama only",
     }
@@ -503,8 +505,12 @@ def in_calibrated_domain(
     traces, ``(n0, k, K, max_rounds)`` of ``(10, 10, 6, 60)``
     (python_native), ``(10, 10, 3, 30)`` (web_agentic) and ``(10, 6, 3,
     22)`` (llm_serving). The gpu_kernels schedule ``(20, 20, 6, 120)``
-    is out until real GPU traces exist. There is no acceptance
-    evidence outside the domain, so a KEEP there is withheld.
+    is out until real GPU traces exist. The (10, 10, 6, 60) schedule
+    is also the ``node`` and ``jvm`` classes', which are calibrated on
+    a ``wall`` primary metric only: that is
+    `perfproof.schema.metric_in_calibrated_domain`, checked by
+    `compare` beside this. There is no acceptance evidence outside the
+    domain, so a KEEP there is withheld.
 
     Parameters
     ----------

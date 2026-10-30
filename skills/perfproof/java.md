@@ -1,5 +1,7 @@
 # Java and other JVM code
 
+The project class to confirm for this code is `jvm`.
+
 Read this when the code to speed up is Java, built with Maven or
 Gradle (Kotlin and Scala classes are profiled too, but their source
 files are not mapped, so they show as library code). The method is the same as

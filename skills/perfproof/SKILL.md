@@ -54,7 +54,8 @@ the user.
     "faster".
 - When `verdict.calibration` is not `calibrated`, KEEP is withheld, and
   `not_verified` or `warnings` names why (`target_class_unknown`,
-  `schedule_not_class_own`, `schedule_uncalibrated`). Say it plainly:
+  `schedule_not_class_own`, `schedule_uncalibrated`,
+  `metric_not_calibrated`). Say it plainly:
   "this setup isn't one perfproof has been checked on, so it can't
   confirm a keep", then the estimate (X, range A to B) as "not a
   verdict". For `gpu_kernel`: "measured, but perfproof can't yet confirm

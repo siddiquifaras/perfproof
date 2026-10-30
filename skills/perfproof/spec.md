@@ -134,7 +134,8 @@ install there would import its source in both versions.
 - `target_class` and `looks`: set `target_class` from the `target_class`
   of the `init` target the workload belongs to, and `looks` and
   `budget.max_rounds` to that class's own schedule (`n0`, `k`,
-  `max_looks`, rounds): `python_cpu` and `native` 10, 10, 6, 60;
+  `max_looks`, rounds): `python_cpu`, `native`, `node` and `jvm`
+  10, 10, 6, 60;
   `web_service` and `agentic` 10, 10, 3, 30; `llm_serving` 10, 6, 3, 22;
   `gpu_kernel` 20, 20, 6, 120. Only with that class and its own
   schedule can a KEEP be confirmed. `target_class` is one of the

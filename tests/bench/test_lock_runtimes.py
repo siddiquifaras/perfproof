@@ -216,6 +216,7 @@ def test_node_script_passes_with_the_same_node(
     assert env.runtime_executable == str(node)
     assert env.runtime_version is not None
     assert env.runtime_version.startswith(f"{node_version(node)}; sha256 ")
+    assert env.runtime_family == "node"
     assert result.status == "passed", result.detail
 
 

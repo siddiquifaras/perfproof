@@ -2655,6 +2655,8 @@ with that evidence.
 |---|---|---|---|---|---|---|
 | Python, CPU-bound | 10 | 10 | 6 | 60 | 1800 | Rounds are cheap; six looks let a clear win stop at 10 rounds |
 | Native | 10 | 10 | 6 | 60 | 1800 | As Python |
+| Node | 10 | 10 | 6 | 60 | 1800 | As Python; whole-command `wall` timing only for a calibrated KEEP |
+| JVM | 10 | 10 | 6 | 60 | 1800 | As Python; whole-command `wall` timing only for a calibrated KEEP |
 | Web services | 10 | 10 | 3 | 30 | 3600 | A round is a load run of about a minute; fewer looks cost less confidence |
 | LLM serving | 10 | 6 | 3 | 22 | 3600 | Paid GPU minutes; cross host, the same numbers count session pairs |
 | GPU kernels | 20 | 20 | 6 | 120 | 1800 | Kernel timings are often bimodal, so a later first look |
@@ -3215,7 +3217,9 @@ domain is:
 - **`alpha` 0.05**, the default. The acceptance rule was run at no other
   level, and the gated primary breaches the 2.5% limit at `alpha` 0.1
   and 0.2 (stats-auditor on PR #85).
-- **One of three class schedules**, as `(n0, k, K, max_rounds)`:
+- **One of three class schedules**, as `(n0, k, K, max_rounds)`
+  (`node` and `jvm` use the first, and are calibrated on a `wall`
+  primary metric only, "Named limits" below):
   `python_native` `(10, 10, 6, 60)`, `web_agentic` `(10, 10, 3, 30)` and
   `llm_serving` `(10, 6, 3, 22)`, each decided by `hac_lf` ("The T1.11
   decision") and accepted on its own class's real traces ("Real noise").
@@ -3247,8 +3251,8 @@ domain only, and the off-class limits under "Real noise" hold inside it.
 (`BenchmarkSpec`, optional, left out of `spec_hash` while unset). One
 map, `CLASS_SCHEDULES` in `perfproof.stats.sequential`, gives each
 class its own default schedule, from "Defaults per target class":
-`python_cpu` (Python, CPU-bound) and `native` (Native) `(10, 10, 6, 60)`
-(the `python_native` schedule); `web_service` (Web services) and
+`python_cpu` (Python, CPU-bound), `native` (Native), `node` and `jvm`
+`(10, 10, 6, 60)` (the `python_native` schedule); `web_service` (Web services) and
 `agentic` (Agentic apps) `(10, 10, 3, 30)` (`web_agentic`);
 `llm_serving` (LLM serving) `(10, 6, 3, 22)`; `gpu_kernel` (GPU kernels)
 `(20, 20, 6, 120)`. The same classes are named for the three `hac_lf`
@@ -3261,8 +3265,11 @@ integrity evidence, no interval) and the resolution stop included.
 
 **When a verdict is `calibrated`.** Exactly when the spec declares a
 `target_class`, the project model confirms it, its schedule is that
-class's own (`CLASS_SCHEDULES`), `alpha` is 0.05 and the schedule is in
-the domain above. The agent writes `target_class` and perfproof cannot
+class's own (`CLASS_SCHEDULES`), `alpha` is 0.05, the schedule is in
+the domain above, and the primary metric is `wall` when the class is
+`node` or `jvm` or when the runtime gate identified a Node or Java
+runtime in either tree (`TreeEnvironment.runtime_family`), whatever
+class the spec declares. The agent writes `target_class` and perfproof cannot
 tell whether it is true, so `compare` checks it against the project
 model of the main checkout (`.perfproof/project.json`, read once per
 run): the class must be that of a target entry in state `confirmed` for
@@ -3275,10 +3282,11 @@ model; the warning names which. This is a deterministic
 check that fails closed; it is a check of consistency with what the
 developer confirmed, not proof the code is of that class. The verdict's
 `calibration_conditions` name the real traces the class rests on
-(`TRACE_BASIS`): python_cpu 10, native 2, web_service 2, agentic 4,
-llm_serving 2 (CPU Ollama only). `RunRecord` also refuses a `calibrated`
+(`TRACE_BASIS`): python_cpu 10, native 2, node 5, jvm 3, web_service 4,
+agentic 4, llm_serving 2 (CPU Ollama only). `RunRecord` also refuses a `calibrated`
 verdict whose spec is not on its class's own schedule at `alpha` 0.05,
-or whose class is `gpu_kernel`, so a record cannot claim what `compare`
+or whose class is `gpu_kernel`, or whose class is `node` or `jvm` on a
+primary metric that is not `wall`, so a record cannot claim what `compare`
 would not give. The verdict
 then carries `calibration` `calibrated`, `target_class` and
 `calibration_conditions` naming the procedure, schedule, `alpha`, one
@@ -3287,7 +3295,9 @@ host and the seed of the run of record. Otherwise `calibration` is
 of: `schedule_uncalibrated` (`alpha` or schedule outside the domain,
 which includes `gpu_kernel`), `target_class_unknown` (no class
 declared), `schedule_not_class_own` (the schedule is another class's,
-an off-class run), `target_class_unverified` (the project model does
+an off-class run), `metric_not_calibrated` (a `node` or `jvm` class, or
+an identified Node or Java runtime, on a primary metric that is not
+`wall`), `target_class_unverified` (the project model does
 not confirm the class). A REJECT on evidence (rule 1, a guardrail breach, a
 rule 3 interval at or below the bar) is decided the same whether the
 verdict is calibrated or not. `RunRecord` refuses a `calibrated` verdict
@@ -3469,6 +3479,46 @@ own seed as a diagnostic, 0 failing; that is not acceptance. The in-class pass i
 schedules. `gpu_kernels` has no in-class cell, and its off-class
 cells are not acceptance.
 
+**Named limit: Node and JVM are calibrated on `wall` only
+(stats-auditor of PR #120, 2026-10-29).** All eight Node and Java
+traces are fresh-process `wall` timings. The auditor also recorded
+three in-process Node A/A traces (`reported`, M4, loaded). One of them
+failed its three block-rule cells at a true speedup of 1.03, with 165,
+111 and 166 false KEEPs of 4000 (Clopper-Pearson bounds 4.7%, 3.2% and
+4.7%) against the 2.5% limit; the other two passed, at most 23 of
+4000. There is no in-process JVM trace. The 27% of "Warm-up (Java)" is
+a model in which the two arms settle at different speeds, not a
+measurement. Because one of three in-process Node traces fails, a
+verdict is calibrated only on a `wall` primary metric when the class
+is `node` or `jvm`, and also when the runtime gate identified a Node
+or Java runtime (`TreeEnvironment.runtime_family`) whatever class the
+spec declares: an identified `node bench.js` declared `native` or
+`python_cpu` gave a calibrated KEEP on `reported` before this rule.
+On any other metric kind the comparison runs, the estimate and
+interval stand, and a KEEP cannot be given: `compare` records the
+warning `metric_not_calibrated` and the verdict is INCONCLUSIVE when
+it would have kept. A REJECT is decided as before.
+
+Escapes this rule does not close (named, not fixed):
+
+- A benchmark driver in one runtime that launches another, such as a
+  Python script running `node bench.js`, is calibrated under its
+  declared class: the runtime rule sees only the direct command the
+  runtime gate identified.
+- A Node or Java binary built inside the tree and run with
+  `allow_runtime_change` is probed as a `native_build`, which carries
+  no runtime family, so the rule does not see it. The flag alone does
+  not open this: a `node` or `java` found on `PATH` is still
+  identified and held to `wall`. The skill never sets the flag without
+  asking.
+- An unidentified runtime (a `./run.sh` wrapper) cannot get a KEEP,
+  because the runtime gate is then `not_available`. Its REJECT still
+  carries the `calibrated` label when the spec's class and schedule
+  are in the domain, and a REJECT is decided the same whether the
+  verdict is calibrated or not.
+
+The numbers are the auditor's, not in a committed artifact.
+
 **Named limits: the 6 failing off-class cells.** Every failing cell is
 a trace under a schedule of another class, on the shipped procedure,
 at true speedup 1.03. They were found by the auditor at seed
@@ -3611,7 +3661,8 @@ an in-memory index instead of SQLite (the Go standard library has none).
 - All three new traces come from one Mac session each, on one machine,
   in normal day-to-day use. The run says nothing about other hosts,
   other runtimes or other loads.
-- Ruby has no trace (see above).
+- Ruby has no trace (see above). Go, .NET and Ruby libraries that are
+  not web services have no class and no calibrated KEEP.
 - The run has no 0.95 or 1.04 speedup cells, as `SPEEDUPS` has none. The
   stats-auditor ran the in-class cells at those two speedups at its own
   seed `8786722520344204948`: 180 in-class cells, 0 failing, worst 8

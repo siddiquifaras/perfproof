@@ -605,6 +605,7 @@ def test_probe_records_the_interpreter_of_the_tree(
     assert env.runtime_kind == "interpreter"
     assert env.runtime_executable == str(Path(sys.executable).resolve())
     assert env.runtime_version == sys.version
+    assert env.runtime_family is None
     assert env.env_names == ("FOO", "HOME", "OMP_NUM_THREADS", "PATH")
     assert dict(env.env_values) == {"OMP_NUM_THREADS": "4"}
     assert env.dependency_locks == ()

@@ -275,7 +275,14 @@ MEMORY_RESULT = GuardrailResult(
 
 
 def unprobed(model: type[BaseModel], *keep: str) -> dict[str, str]:
-    skip = {"captured_at", "version", "session", "env_values", "missing"}
+    skip = {
+        "captured_at",
+        "version",
+        "session",
+        "env_values",
+        "missing",
+        "runtime_family",
+    }
     return {
         name: UNPROBED
         for name in model.model_fields

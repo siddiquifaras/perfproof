@@ -1014,8 +1014,21 @@ def _environments(record: RunRecord) -> str:
                 "env_values",
                 "dependency_locks",
                 "linked_libraries",
+                "runtime_family",
             ),
         )
+        # Derived, and set only for Node and Java, where it decides the
+        # calibrated domain; elsewhere a line would only add noise.
+        if env.runtime_family is not None:
+            at = next(
+                (
+                    i + 1
+                    for i, item in enumerate(items)
+                    if item.startswith("runtime_version:")
+                ),
+                len(items),
+            )
+            items.insert(at, f"runtime_family: {_scalar(env.runtime_family)}")
         why = env.missing.get("linked_libraries")
         if env.linked_libraries is None:
             items.append(

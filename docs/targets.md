@@ -26,6 +26,35 @@ calibration don't apply, and the report says so.
 
 ## Node and TypeScript
 
+Target class `node`: schedule `(10, 10, 6, 60)`, calibrated on a
+`wall` primary metric only. Its real traces are the five Node traces
+of `tests/calibration/traces/data` (whole-process `wall` timings,
+`bench.js`), counted in this class by the owner's decision of
+2026-10-29, taken after the results were seen ("Which traces are in
+which class" in [method.md](method.md)). An in-process (`reported`)
+Node measurement gets the estimate and interval but no KEEP ("Named
+limit" in method.md).
+
+`init` proposes `node` when a `package.json` (outside the
+directories below) has no web framework dependency and JavaScript or
+TypeScript source files are more than half of the source files. The one rule
+for `node` and `jvm`: count non-test source files per language over a
+walk of 16 directory levels and `MAX_FILES`, leaving out declaration
+files, tool configs, dot directories and files under `test`, `tests`,
+`spec`, `e2e`, `__tests__`, `__mocks__`, `examples`, `example`,
+`samples`, `docs`, `fixtures`, `static`, `assets`, `public`, `vendor`,
+`third_party`, `dist` and `build`; a language is proposed only when
+its files are more than half of all source files counted, and a
+truncated walk proposes neither (the proposal's notes say so). Every
+language with a known suffix counts in the total (about 50 suffixes:
+Python, JS/TS with Vue and Svelte, Java/Kotlin/Scala/Groovy, C family,
+Rust, Go, Ruby, PHP, Swift, C#, Elixir, Dart and others). A tooling `package.json` in a
+Python, Ruby, Go or Java repository does not make it `node`. A
+framework's own repository, such as echo, gin or Rails itself, may
+get no class. A `package.json` with a web framework dependency
+(`express`, `fastify`, `@nestjs/core`, `koa`, `@hapi/hapi`) makes the
+project `web_service` and is never a `node` manifest.
+
 | | |
 |---|---|
 | Workload | An existing benchmark, a slow test, or an entry point run with `node` (`node bench.js`, `node --import tsx bench.ts`, `node_modules/.bin/tsx bench.ts`, `npx --no-install tsx bench.ts`, `npm exec --no -- tsx bench.ts`); `reported` for in-process work, `wall` only when start-up is the work |
@@ -70,6 +99,19 @@ from one launch form used for both versions.
 | Outside | Windows, embedded targets, builds that need hardware not present |
 
 ## Java and other JVM code
+
+Target class `jvm`: schedule `(10, 10, 6, 60)`, calibrated on a
+`wall` primary metric only. Its real traces are the three Java traces of
+`tests/calibration/traces/data` (`Bench.java`, whole-process `wall`),
+counted in this class by the owner's decision of 2026-10-29
+("Which traces are in which class" in [method.md](method.md)). An
+in-process measurement (a JMH score, a warmed-up `reported` time)
+gets the estimate and interval but no KEEP.
+
+`init` proposes `jvm` when a `pom.xml`, `build.gradle` or
+`build.gradle.kts` (outside the directories above) exists and Java,
+Kotlin, Scala and Groovy source files are together more than half of
+the source files, by the rule under Node. A manifest alone is not enough.
 
 | | |
 |---|---|
@@ -147,6 +189,25 @@ from one launch form used for both versions.
 | Outside | Windows and MSVC, Mach-O universal binaries and 32-bit or big-endian ELF files (their toolchain is not read), `perf stat` counters (not run), programs started through `make` or a script as the profiled command |
 
 ## Web and CRUD services
+
+Target class `web_service`. `init` proposes it from any of:
+
+- Python routes and Python web dependencies, as before;
+- Node: `express`, `fastify`, `@nestjs/core`, `koa`, `@hapi/hapi`
+  (also `next`) in a `package.json`;
+- Go: a `go.mod` that requires `github.com/gin-gonic/gin`,
+  `github.com/labstack/echo`, or `github.com/gofiber/fiber`, or a call
+  to `http.ListenAndServe` in a non-test `.go` file;
+- Ruby: a `Gemfile` with `gem "rails"`, `"sinatra"` or `"roda"`.
+
+A Go, .NET or Ruby library that is not a web service has no class
+(`init` proposes nothing for it), so no KEEP is calibrated for it: a
+stated limit. `http.ListenAndServe` counts only in a non-test,
+non-example `.go` file and not in a comment. Detection reads
+dependencies and code, not a repository's own name, so a framework's
+own repository may get no class: `labstack/echo` and `gin-gonic/gin`
+require none of the above, and Rails has no `rails` line in its
+`Gemfile` and its few JavaScript files do not outnumber its Ruby.
 
 | | |
 |---|---|

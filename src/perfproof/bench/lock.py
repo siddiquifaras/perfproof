@@ -3075,6 +3075,7 @@ def probe_environment(
             None if runtime.executable is None else str(runtime.executable)
         ),
         runtime_version=runtime.version if kind == "interpreter" else None,
+        runtime_family=runtime.family if kind == "interpreter" else None,
         env_names=tuple(launch_env),
         env_values={
             k: v for k, v in launch_env.items() if k in PERFORMANCE_ENV_VARS

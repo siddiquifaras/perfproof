@@ -96,8 +96,9 @@ range, which records the warning ``interval_unrepresentable``. Under
 the gated batch means the diagnostic gate withholds a look it would
 have decided and records ``autocorrelated_rounds`` or
 ``outlier_rounds``; ``hac_lf`` has no gate and leaves both ``None``.
-Outside "The calibrated domain" (``alpha`` 0.05 and the three class
-schedules; the gpu_kernels schedule has no real traces yet) the
+Outside "The calibrated domain" (``alpha`` 0.05, the three class
+schedules, and a ``wall`` primary metric for ``node`` and ``jvm``; the
+gpu_kernels schedule has no real traces yet) the
 comparison runs and a REJECT is decided as inside, but a KEEP is
 withheld with the warning ``schedule_uncalibrated``. A schedule that
 can take more than one look at 120 rounds or more is withheld the same
@@ -270,6 +271,7 @@ from perfproof.schema import (
     Text,
     TreeEnvironment,
     Verdict,
+    metric_in_calibrated_domain,
 )
 from perfproof.stats.decision import (
     GATE_PRECEDENCE,
@@ -698,6 +700,7 @@ class _Run:
                 self.environments["baseline"], self.environments["candidate"]
             )
         )
+        self._warn_calibration()
         self.gates["runtime"] = self._test_launcher(
             runtime_gate(
                 spec,
@@ -862,9 +865,23 @@ class _Run:
                     ),
                 )
             )
-        elif (
-            blocker := _calibration_blocker(spec, self.class_problem)
-        ) is not None:
+
+    def _warn_calibration(self) -> None:
+        """Record why the verdict cannot be calibrated, once.
+
+        Called after the runtime probe, so the one place that decides
+        the blocker sees the identified runtime families as well as the
+        spec: a KEEP withheld by `_calibration_blocker` always carries
+        its warning. The schedule-length warning of
+        `_refuse_unsupported` stands in for it when a schedule takes
+        late looks.
+        """
+        if late_looks(self.spec) > 1:
+            return
+        blocker = _calibration_blocker(
+            self.spec, self.class_problem, self._families()
+        )
+        if blocker is not None:
             self.warnings.append(
                 RunWarning(code=blocker[0], message=blocker[1])
             )
@@ -1305,6 +1322,14 @@ class _Run:
             dtype=np.bool_,
         )
 
+    def _families(self) -> frozenset[str]:
+        """Runtime families the probe identified in either tree."""
+        return frozenset(
+            e.runtime_family
+            for e in self.environments.values()
+            if e.runtime_family is not None
+        )
+
     def _fixed_blocker(self) -> bool:
         """Whether something no further round lifts withholds a KEEP.
 
@@ -1315,7 +1340,10 @@ class _Run:
         """
         return (
             keep_blocked(self.spec)
-            or _calibration_blocker(self.spec, self.class_problem) is not None
+            or _calibration_blocker(
+                self.spec, self.class_problem, self._families()
+            )
+            is not None
             or self.fallback_reason is not None
             or self._resolution_unknown()
             or any(g.status == "not_available" for g in self.gates.values())
@@ -1337,7 +1365,7 @@ class _Run:
         self,
     ) -> tuple[CalibrationStatus, tuple[Text, ...]]:
         """Calibration of this run's verdicts: see `_calibration`."""
-        return _calibration(self.spec, self.class_problem)
+        return _calibration(self.spec, self.class_problem, self._families())
 
     def _keep_blocked(self) -> bool:
         """Whether a KEEP is withheld at this look, for any reason.
@@ -2243,13 +2271,16 @@ def _class_problem(spec: BenchmarkSpec, root: Path | None) -> str | None:
 
 
 def _calibration_blocker(
-    spec: BenchmarkSpec, class_problem: str | None = None
+    spec: BenchmarkSpec,
+    class_problem: str | None = None,
+    families: frozenset[str] = frozenset(),
 ) -> tuple[str, str] | None:
     """Why the spec's verdict cannot be calibrated, as code and text.
 
     ``None`` when it can: ``alpha`` and schedule in "The calibrated
     domain" of ``docs/method.md``, a declared target class, and that
-    class's own schedule, and (``class_problem`` is None) a project
+    class's own schedule, for ``node`` and ``jvm`` a ``wall`` primary
+    metric, and (``class_problem`` is None) a project
     model that confirms the class. Checked in that order, so the first
     reason is the one named; `keep_blocked` passes the default None
     because the model is read once per run, in `_class_problem`. Each
@@ -2271,8 +2302,9 @@ def _calibration_blocker(
         return (
             "schedule_uncalibrated",
             f"alpha {spec.alpha} with the look schedule {shape} is outside "
-            "the calibrated domain (alpha 0.05 and the python_native, "
-            "web_agentic and llm_serving schedules): the comparison runs, "
+            "the calibrated domain (alpha 0.05 and the python_native "
+            "(python_cpu, native, node, jvm), web_agentic (web_service, "
+            "agentic) and llm_serving schedules): the comparison runs, "
             "but this verdict can never be a KEEP",
         )
     if spec.target_class is None:
@@ -2290,6 +2322,16 @@ def _calibration_blocker(
             "calibrated for it: the comparison runs, but this verdict can "
             "never be a KEEP",
         )
+    if not metric_in_calibrated_domain(
+        spec.target_class, spec.metric.kind, families
+    ):
+        return (
+            "metric_not_calibrated",
+            "KEEP is calibrated for Node and Java code only on "
+            "whole-command (wall) timing; this run measured "
+            f"{spec.metric.kind}. The comparison runs and the estimate and "
+            "interval stand, but this verdict can never be a KEEP",
+        )
     if class_problem is not None:
         return (
             "target_class_unverified",
@@ -2304,6 +2346,7 @@ def _calibration_blocker(
 def _calibration(
     spec: BenchmarkSpec,
     class_problem: str | None = None,
+    families: frozenset[str] = frozenset(),
 ) -> tuple[CalibrationStatus, tuple[Text, ...]]:
     """Calibration status of the spec's verdicts, and its conditions.
 
@@ -2316,7 +2359,7 @@ def _calibration(
     if (
         not CALIBRATED
         or cls is None
-        or _calibration_blocker(spec, class_problem) is not None
+        or _calibration_blocker(spec, class_problem, families) is not None
     ):
         return "uncalibrated", ()
     looks, rounds = spec.looks, spec.budget.max_rounds

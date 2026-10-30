@@ -1,5 +1,7 @@
 # Node and TypeScript
 
+The project class to confirm for this code is `node`.
+
 Read this when the code to speed up runs on Node: JavaScript, or
 TypeScript run through `tsx`, `ts-node`, `esbuild-register`, Node's own
 type stripping, or compiled first. It covers how to launch, benchmark

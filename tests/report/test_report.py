@@ -1472,3 +1472,14 @@ def test_a_limit_line_scopes_the_claim_to_the_session() -> None:
         assert "reliably" not in line
         for word in ("faster", "slower", "better", "worse"):
             assert word not in line
+
+
+def test_runtime_family_is_shown_only_when_set() -> None:
+    plain = keep()
+    assert "runtime_family" not in render(plain)
+    envs = [
+        e.model_copy(update={"runtime_family": "node"})
+        for e in plain.environments
+    ]
+    text = render(plain.model_copy(update={"environments": envs}))
+    assert "- runtime_family: `node`" in text

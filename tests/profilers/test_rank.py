@@ -967,3 +967,9 @@ def test_a_single_size_profile_is_its_own_largest() -> None:
         assert row["cap_known"] is True
         assert row["ranked_in"]["run_id"] == "r1"
         assert row["at_largest"][0]["size"] is None
+
+
+def test_node_and_jvm_classes_list_their_own_source_suffixes() -> None:
+    assert {".js", ".ts", ".tsx"} <= suffixes_for(["node"], [])
+    assert {".java", ".kt", ".scala"} <= suffixes_for(["jvm"], [])
+    assert ".py" not in suffixes_for(["node", "jvm"], [])

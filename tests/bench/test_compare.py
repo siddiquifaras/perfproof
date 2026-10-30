@@ -1622,8 +1622,8 @@ def test_a_keep_on_a_class_schedule_is_a_rule_2_keep_end_to_end(
     joined = "; ".join(v.calibration_conditions)
     assert "hac_lf" in joined
     assert "alpha 0.05" in joined
-    assert "661371947387106328" in joined
-    assert "2 real traces (web)" in joined
+    assert "8268209547887630561" in joined
+    assert "4 real traces (web 2, web-node, web-go)" in joined
     assert (
         not {w.code for w in result.record.warnings} & KEEP_BLOCKING_WARNINGS
     )
@@ -4058,3 +4058,204 @@ def test_hac_lf_does_not_withhold_the_autocorrelated_wave(
     report = result.report_path.read_text()
     assert "The diagnostic gate withheld the decision" not in report
     assert read_record(result.record_path) == result.record
+
+
+calibration_blocker = compare_module._calibration_blocker  # pyright: ignore[reportPrivateUsage]
+calibration_of = compare_module._calibration  # pyright: ignore[reportPrivateUsage]
+
+
+def metric_spec(target_class: str, kind: str) -> BenchmarkSpec:
+    return BenchmarkSpec.model_validate(
+        spec_fields(
+            metric={
+                "kind": kind,
+                "direction": "lower_is_better",
+                "unit": "s",
+            },
+            looks=PYTHON_SCHEDULE[0],
+            budget={"max_rounds": 60, "max_seconds": 600.0},
+            guardrails=[
+                {
+                    "metric": g["metric"],
+                    "direction": "lower_is_better",
+                    "unit": g["unit"],
+                    "applicable": False,
+                    "reason": "not used here",
+                }
+                for g in GUARDRAILS
+            ],
+            target_class=target_class,
+            objective="cpu_time" if kind == "cpu" else "wall_time",
+        )
+    )
+
+
+@pytest.mark.parametrize("target_class", ["node", "jvm"])
+@pytest.mark.parametrize("kind", ["reported", "cpu"])
+def test_node_and_jvm_withhold_keep_off_a_wall_metric(
+    target_class: str, kind: str
+) -> None:
+    # The seven Node and Java traces are fresh-process wall timings;
+    # the auditor's in-process Node A/A traces failed at 1.03.
+    spec = metric_spec(target_class, kind)
+    assert keep_blocked(spec)
+    assert calibration_of(spec)[0] == "uncalibrated"
+    blocker = calibration_blocker(spec)
+    assert blocker is not None
+    assert blocker[0] == "metric_not_calibrated"
+    assert "never be a KEEP" in blocker[1]
+
+
+@pytest.mark.parametrize("target_class", ["node", "jvm"])
+def test_node_and_jvm_on_a_wall_metric_are_calibrated(
+    target_class: str,
+) -> None:
+    spec = metric_spec(target_class, "wall")
+    assert calibration_blocker(spec) is None
+    assert calibration_of(spec)[0] == "calibrated"
+
+
+@pytest.mark.parametrize(
+    "target_class", ["python_cpu", "native", "web_service", "agentic"]
+)
+@pytest.mark.parametrize("kind", ["reported", "wall", "cpu"])
+def test_the_metric_kind_restriction_is_only_node_and_jvm(
+    target_class: str, kind: str
+) -> None:
+    schedule = (
+        WEB_SCHEDULE
+        if target_class in {"web_service", "agentic"}
+        else PYTHON_SCHEDULE
+    )
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            metric={
+                "kind": kind,
+                "direction": "lower_is_better",
+                "unit": "s",
+            },
+            looks=schedule[0],
+            budget={"max_rounds": schedule[1], "max_seconds": 600.0},
+            target_class=target_class,
+            objective="cpu_time" if kind == "cpu" else "wall_time",
+        )
+    )
+    blocker = calibration_blocker(spec)
+    assert blocker is None or blocker[0] != "metric_not_calibrated"
+
+
+@pytest.mark.parametrize("family", ["node", "java"])
+@pytest.mark.parametrize("target_class", ["native", "python_cpu"])
+def test_a_node_or_java_runtime_withholds_keep_off_wall_whatever_the_class(
+    family: str, target_class: str
+) -> None:
+    spec = metric_spec(target_class, "reported")
+    assert calibration_blocker(spec) is None
+    blocker = calibration_blocker(spec, None, frozenset({family}))
+    assert blocker is not None
+    assert blocker[0] == "metric_not_calibrated"
+    assert calibration_of(spec, None, frozenset({family}))[0] == (
+        "uncalibrated"
+    )
+
+
+@pytest.mark.parametrize("family", ["node", "java"])
+@pytest.mark.parametrize("target_class", ["native", "python_cpu"])
+def test_a_node_or_java_runtime_on_wall_is_unchanged(
+    family: str, target_class: str
+) -> None:
+    spec = metric_spec(target_class, "wall")
+    families = frozenset({family})
+    assert calibration_blocker(spec, None, families) is None
+    assert calibration_of(spec, None, families)[0] == "calibrated"
+
+
+@pytest.mark.parametrize("family", ["ruby", "go", "dotnet", "cc"])
+def test_other_runtime_families_do_not_restrict_the_metric(
+    family: str,
+) -> None:
+    spec = metric_spec("python_cpu", "reported")
+    assert calibration_blocker(spec, None, frozenset({family})) is None
+
+
+NODE_BENCH_JS = """\
+const { run } = require('./work.js');
+const fs = require('fs');
+const t0 = process.hrtime.bigint();
+const r = run();
+const dt = Number(process.hrtime.bigint() - t0) / 1e9;
+fs.writeFileSync('out.txt', r + '\\n');
+process.stdout.write('PERFPROOF {"value": ' + dt.toFixed(9) + '}\\n');
+"""
+NODE_WORK_JS = (
+    "exports.run = () => { let s = 0; "
+    "for (let i = 0; i < {n}; i++) s += i % 7; return 42; };\n"
+)
+
+
+def node_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    target_class: str,
+    kind: str,
+) -> CompareResult:
+    """A real ``node bench.js`` comparison, the candidate faster."""
+    watch_looks(monkeypatch)
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "bench.js").write_text(NODE_BENCH_JS)
+    (root / "work.js").write_text(NODE_WORK_JS.replace("{n}", "30000000"))
+    project = Project(root=root, commit=commit_all(root), tmp=tmp_path)
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            command=["node", "bench.js"],
+            harness=["bench.js"],
+            oracle=[],
+            config=[],
+            correctness={"outputs": [{"path": "out.txt", "compare": "text"}]},
+            metric={
+                "kind": kind,
+                "direction": "lower_is_better",
+                "unit": "s",
+            },
+            objective="wall_time",
+            guardrails=NOT_APPLICABLE,
+            target_class=target_class,
+            budget={"max_rounds": 60, "max_seconds": 900.0},
+            looks={"n0": 10, "k": 10, "max_looks": 6},
+        )
+    )
+    candidate = project.candidate("cand", {})
+    (candidate / "work.js").write_text(NODE_WORK_JS.replace("{n}", "8000000"))
+    return project.run(candidate, spec)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no node on PATH")
+@pytest.mark.parametrize("target_class", ["native", "python_cpu"])
+def test_a_real_node_run_off_wall_is_withheld_whatever_the_class(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target_class: str
+) -> None:
+    # The runtime family is known only after the probe, so the warning
+    # must be written there: compare() used to raise "a rule 2
+    # INCONCLUSIVE needs something that blocked KEEP".
+    result = node_run(tmp_path, monkeypatch, target_class, "reported")
+    v = result.record.verdict
+    assert result.record.environments[0].runtime_family == "node"
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        2,
+    )
+    assert v.calibration == "uncalibrated"
+    codes = [w.code for w in result.record.warnings]
+    assert codes.count("metric_not_calibrated") == 1
+    assert read_record(result.record_path) == result.record
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no node on PATH")
+def test_a_real_node_run_on_wall_is_not_blocked_by_the_metric_rule(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result = node_run(tmp_path, monkeypatch, "native", "wall")
+    codes = [w.code for w in result.record.warnings]
+    assert "metric_not_calibrated" not in codes

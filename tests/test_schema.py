@@ -2972,6 +2972,8 @@ def test_gate_verdict_needs_no_guardrails_declared() -> None:
         (None, "p99_latency", {"peak_memory", "peak_gpu_memory"}),
         ("python_cpu", "wall_time", {"peak_memory"}),
         ("native", "wall_time", {"peak_memory"}),
+        ("node", "wall_time", {"peak_memory"}),
+        ("jvm", "wall_time", {"peak_memory"}),
         ("web_service", "throughput", {"peak_memory", "p99_latency"}),
         ("web_service", "p99_latency", {"peak_memory"}),
         ("gpu_kernel", "wall_time", {"peak_memory", "peak_gpu_memory"}),
@@ -4564,6 +4566,7 @@ def withheld_keep() -> Verdict:
         "resolution_unknown",
         "schedule_uncalibrated",
         "schedule_not_class_own",
+        "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
     ],
@@ -4723,3 +4726,61 @@ def test_a_spec_written_before_the_coverage_command_still_reads() -> None:
     old = BenchmarkSpec.model_validate(data)
     assert old.correctness.coverage_command is None
     assert old.spec_hash == PINNED_SPEC_HASH
+
+
+def test_the_wall_only_classes_are_exactly_node_and_jvm() -> None:
+    assert {"node", "jvm"} == schema.WALL_ONLY_CLASSES
+    kinds = ("wall", "cpu", "reported", "counter")
+    for cls in schema.CLASS_SCHEDULES:
+        for kind in kinds:
+            expected = kind == "wall" or cls not in {"node", "jvm"}
+            assert schema.metric_in_calibrated_domain(cls, kind) is expected
+
+
+@pytest.mark.parametrize("target_class", ["node", "jvm"])
+def test_a_record_cannot_claim_calibration_for_node_or_jvm_off_wall(
+    target_class: str,
+) -> None:
+    v = calibrated_keep().model_copy(update={"target_class": target_class})
+    walled = calibrated_spec(target_class=target_class)
+    walled = walled.model_copy(
+        update={"metric": walled.metric.model_copy(update={"kind": "wall"})}
+    )
+    assert record(spec=walled, verdict=v)
+    off = walled.model_copy(
+        update={
+            "metric": walled.metric.model_copy(update={"kind": "reported"})
+        }
+    )
+    with pytest.raises(ValidationError, match="needs a wall primary metric"):
+        record(spec=off, verdict=v)
+
+
+@pytest.mark.parametrize("family", ["node", "java"])
+def test_a_record_cannot_claim_calibration_on_a_node_or_java_runtime_off_wall(
+    family: str,
+) -> None:
+    envs = tuple(
+        e.model_copy(update={"runtime_family": family}) for e in environments()
+    )
+    walled = calibrated_spec()
+    walled = walled.model_copy(
+        update={"metric": walled.metric.model_copy(update={"kind": "wall"})}
+    )
+    off = walled.model_copy(
+        update={
+            "metric": walled.metric.model_copy(update={"kind": "reported"})
+        }
+    )
+    assert record(spec=walled, verdict=calibrated_keep(), environments=envs)
+    with pytest.raises(ValidationError, match="needs a wall primary metric"):
+        record(spec=off, verdict=calibrated_keep(), environments=envs)
+    # No identified Node or Java runtime: unchanged.
+    assert record(spec=off, verdict=calibrated_keep())
+
+
+def test_runtime_family_is_derived_and_never_listed_as_missing() -> None:
+    with pytest.raises(ValidationError, match="never listed in missing"):
+        TreeEnvironment(
+            version="baseline", missing={"runtime_family": "not probed"}
+        )

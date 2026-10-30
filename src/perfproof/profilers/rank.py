@@ -66,12 +66,16 @@ _PYTHON: Final = frozenset({".py", ".pyw"})
 _NATIVE: Final = frozenset(
     {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".rs", ".go"}
 )
+_NODE: Final = frozenset({".js", ".mjs", ".cjs", ".ts", ".tsx"})
+_JVM: Final = frozenset({".java", ".kt", ".scala"})
 _BY_CLASS: Final[Mapping[str, frozenset[str]]] = {
     "python_cpu": _PYTHON,
     "web_service": _PYTHON,
     "llm_serving": _PYTHON,
     "agentic": _PYTHON,
     "native": _NATIVE,
+    "node": _NODE,
+    "jvm": _JVM,
     "gpu_kernel": _PYTHON | {".cu", ".cuh"},
 }
 _TEST_DIRS: Final = frozenset({"test", "tests"})

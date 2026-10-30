@@ -97,6 +97,11 @@ SKIP_DIRS: Final = frozenset(
 """Directories the walk never enters. ``candidates`` holds perfproof's
 own candidate trees (``examples/README.md``), copies of the project."""
 MAX_DEPTH: Final = 5
+COUNT_DEPTH: Final = 16
+"""Depth of the second walk that counts source files per language:
+Java and Kotlin packages sit deeper than `MAX_DEPTH`, and counting
+them at that depth would undercount them against shallower
+languages. It shares `MAX_FILES`."""
 MAX_FILES: Final = 50_000
 MAX_READ_BYTES: Final = 256 * 1024
 MAX_SCANNED_PY: Final = 600
@@ -115,6 +120,30 @@ _BENCH_PACKAGES: Final = frozenset(
     {"benchmarks", "benchmark", "bench", "asv_bench"}
 )
 _NOT_ENTRY_DIRS: Final = frozenset({"tests", "test", "docs", "examples"})
+_NOT_SOURCE_DIRS: Final = frozenset(
+    {
+        "test",
+        "tests",
+        "spec",
+        "e2e",
+        "__tests__",
+        "__mocks__",
+        "examples",
+        "example",
+        "samples",
+        "docs",
+        "fixtures",
+        "static",
+        "assets",
+        "public",
+        "vendor",
+        "third_party",
+        "dist",
+        "build",
+    }
+)
+"""Directories whose files are not counted as the project's source when
+`node` and `jvm` are decided."""
 _WEB_DEPS: Final = frozenset(
     {
         "fastapi",
@@ -133,7 +162,75 @@ _WEB_DEPS: Final = frozenset(
         "next",
         "nestjs",
         "@nestjs/core",
+        "@hapi/hapi",
     }
+)
+_GO_WEB_MODULES: Final = (
+    "github.com/gin-gonic/gin",
+    "github.com/labstack/echo",
+    "github.com/gofiber/fiber",
+)
+"""Module path prefixes (so ``echo/v4`` and ``fiber/v2`` match) whose
+presence in a ``go.mod`` marks a Go web service."""
+_RUBY_WEB_GEMS: Final = frozenset({"rails", "sinatra", "roda"})
+_JS_EXT: Final = frozenset(
+    {
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts",
+        ".vue",
+        ".svelte",
+    }
+)
+_LANGUAGE_SUFFIXES: Final = {
+    "python": (".py", ".pyw", ".pyx"),
+    "jvm": (".java", ".kt", ".kts", ".scala", ".groovy"),
+    "c_family": (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp"),
+    "objc": (".m", ".mm"),
+    "rust": (".rs",),
+    "zig": (".zig",),
+    "go": (".go",),
+    "ruby": (".rb",),
+    "php": (".php",),
+    "swift": (".swift",),
+    "dotnet": (".cs", ".fs", ".vb"),
+    "elixir": (".ex", ".exs"),
+    "erlang": (".erl", ".hrl"),
+    "clojure": (".clj", ".cljs"),
+    "dart": (".dart",),
+    "lua": (".lua",),
+    "perl": (".pl", ".pm"),
+    "r": (".r",),
+    "julia": (".jl",),
+    "haskell": (".hs",),
+    "ml": (".ml",),
+    "nim": (".nim",),
+    "crystal": (".cr",),
+    "elm": (".elm",),
+    "solidity": (".sol",),
+}
+_LANGUAGE: Final = {
+    suffix: language
+    for language, suffixes in _LANGUAGE_SUFFIXES.items()
+    for suffix in suffixes
+}
+"""Every source suffix counted when `node` and `jvm` are decided; JS/TS
+(``.vue`` and ``.svelte`` included) is ``js`` and is kept apart."""
+_JVM_MANIFESTS: Final = frozenset(
+    {"pom.xml", "build.gradle", "build.gradle.kts"}
+)
+_GEM_LINE: Final = re.compile(r"""^\s*gem\s+["']([\w.-]+)["']""", re.M)
+_GO_REQUIRE: Final = re.compile(
+    r"^\s*(?:require\s+)?(github\.com/[\w.-]+/[\w.-]+)", re.M
+)
+_GO_LISTEN: Final = re.compile(r"\bhttp\.ListenAndServe(?:TLS)?\(")
+_JS_NOT_SOURCE: Final = re.compile(
+    r"(?:\.d\.[cm]?ts|\.(?:test|spec)\.\w+|\.config\.\w+)$"
 )
 _SERVING_DEPS: Final = frozenset(
     {"vllm", "sglang", "tensorrt-llm", "llama-cpp-python", "lmdeploy"}
@@ -194,6 +291,15 @@ _CLASS_QUESTION: Final[Mapping[str, str]] = {
     "llm_serving": (
         "Which model, server command and benchmark command represent "
         "real use of the serving setup?"
+    ),
+    "node": (
+        "Which Node command represents real use of the code? Confirm "
+        "that the project is Node code and not a web service."
+    ),
+    "jvm": (
+        "Which command, started with `java`, represents real use of the "
+        "JVM code? Confirm that the project is JVM code and not a web "
+        "service."
     ),
     "gpu_kernel": (
         "Which script or kernel benchmark represents real use of the GPU code?"
@@ -308,7 +414,7 @@ class _Tree:
         return data.decode("utf-8", errors="replace")
 
 
-def _walk(root: Path) -> _Tree:
+def _walk(root: Path, max_depth: int = MAX_DEPTH) -> _Tree:
     """List files under ``root``, sorted, within the walk's bounds."""
     files: list[str] = []
     truncated = False
@@ -328,7 +434,7 @@ def _walk(root: Path) -> _Tree:
             if entry.is_dir(follow_symlinks=False):
                 if entry.name in SKIP_DIRS or entry.name.endswith(".egg-info"):
                     continue
-                if depth >= MAX_DEPTH:
+                if depth >= max_depth:
                     truncated = True
                     continue
                 visit(Path(entry.path), path + "/", depth + 1)
@@ -442,6 +548,131 @@ def _dependencies(tree: _Tree) -> dict[str, list[str]]:
     return found
 
 
+def _is_source_path(pure: PurePosixPath) -> bool:
+    """Whether a path is outside every directory that is not source."""
+    parts = pure.parts[:-1]
+    return _NOT_SOURCE_DIRS.isdisjoint(parts) and not any(
+        part.startswith(".") for part in parts
+    )
+
+
+def _source_files(tree: _Tree) -> dict[str, list[str]]:
+    """Group the walk's non-test source files by language.
+
+    The one rule `node` and `jvm` share: a manifest alone does not make
+    a project that language (Python, Ruby, Go and C++ repositories ship
+    a ``package.json``, ``pom.xml`` or ``build.gradle`` for tooling), so
+    each is proposed only when its language has the most files here.
+    Tests, declaration files, tool configs and files under
+    `_NOT_SOURCE_DIRS` or dot directories are not counted. The walk is
+    the bounded one `detect` already did.
+    """
+    found: dict[str, list[str]] = defaultdict(list)
+    for path in tree.files:
+        pure = PurePosixPath(path)
+        language = (
+            "js" if pure.suffix in _JS_EXT else _LANGUAGE.get(pure.suffix)
+        )
+        if language is None or not _is_source_path(pure):
+            continue
+        name = pure.name
+        if language == "js" and _JS_NOT_SOURCE.search(name):
+            continue
+        if language == "go" and name.endswith("_test.go"):
+            continue
+        if language == "python" and (
+            name.startswith("test_") or name.endswith("_test.py")
+        ):
+            continue
+        found[language].append(path)
+    return found
+
+
+def _share(files: Mapping[str, list[str]], language: str) -> tuple[int, int]:
+    """Return a language's count and the count of all source files."""
+    return (
+        len(files.get(language, ())),
+        sum(len(v) for v in files.values()),
+    )
+
+
+def _majority(files: Mapping[str, list[str]], language: str) -> bool:
+    """Whether a language is more than half of all counted source files.
+
+    Every language of `_LANGUAGE` counts in the total, so a few JS
+    files beside hundreds of PHP, Swift or Elixir files never win.
+    """
+    own, total = _share(files, language)
+    return own * 2 > total
+
+
+def _go_web(
+    tree: _Tree, go_files: Sequence[str]
+) -> tuple[list[str], list[str]]:
+    """Return Go web evidence lines and the files that carry them."""
+    lines: list[str] = []
+    paths: list[str] = []
+    for path in tree.named("go.mod"):
+        text = tree.read(path) or ""
+        mods = sorted(
+            {
+                m
+                for m in _GO_REQUIRE.findall(text)
+                if m.startswith(_GO_WEB_MODULES)
+            }
+        )
+        if mods:
+            lines.append(f"Go web framework in {path}: {', '.join(mods)}")
+            paths.append(path)
+    listen: list[str] = []
+    for path in go_files[:MAX_SCANNED_PY]:
+        text = tree.read(path)
+        if text is None:
+            continue
+        line_no = _first_live_match(text, _GO_LISTEN)
+        if line_no is not None:
+            listen.append(f"{path}:{line_no}")
+    if listen:
+        lines.append(
+            f"{len(listen)} non-test Go files call http.ListenAndServe, "
+            f"first: {', '.join(listen[:3])}"
+        )
+        paths += [p.split(":")[0] for p in listen[:3]]
+    return lines, paths
+
+
+def _first_live_match(text: str, pattern: re.Pattern[str]) -> int | None:
+    """Return the line of the first match outside Go comments."""
+    in_block = False
+    for number, raw in enumerate(text.splitlines(), start=1):
+        line = raw
+        if in_block:
+            end = line.find("*/")
+            if end < 0:
+                continue
+            line, in_block = line[end + 2 :], False
+        line = re.sub(r"^\s*/\*.*?\*/", "", line)
+        if re.match(r"^\s*/\*", line):
+            line, in_block = "", True
+        line = line.split("//", 1)[0]
+        if pattern.search(line):
+            return number
+    return None
+
+
+def _ruby_web(tree: _Tree) -> tuple[list[str], list[str]]:
+    """Return Ruby web evidence lines and the Gemfiles behind them."""
+    lines: list[str] = []
+    paths: list[str] = []
+    for path in tree.named("Gemfile"):
+        gems = sorted(set(_GEM_LINE.findall(tree.read(path) or "")))
+        web = [g for g in gems if g in _RUBY_WEB_GEMS]
+        if web:
+            lines.append(f"Ruby web framework in {path}: {', '.join(web)}")
+            paths.append(path)
+    return lines, paths
+
+
 def _scan_python(tree: _Tree) -> tuple[list[str], list[str], list[str]]:
     """Scan Python files for routes, GPU kernels and test-looking files.
 
@@ -485,6 +716,14 @@ class _Builder:
         self.notes: list[str] = []
         self.used_ids: set[str] = set()
         self.uv = tree.has("uv.lock")
+        self._source_tree: _Tree | None = None
+
+    @property
+    def source_tree(self) -> _Tree:
+        """The deeper walk that counts source files per language."""
+        if self._source_tree is None:
+            self._source_tree = _walk(self.tree.root, COUNT_DEPTH)
+        return self._source_tree
 
     def unique(self, base: str) -> str:
         candidate, n = base, 2
@@ -626,7 +865,11 @@ def _detect_targets(b: _Builder) -> dict[str, list[str]]:
         b.add_target("native", evidence, native)
         facts["native_manifests"] = native
     web = sorted(n for n in deps if n in _WEB_DEPS)
-    if web or routes:
+    counted = b.source_tree
+    sources = _source_files(counted)
+    go_lines, go_paths = _go_web(tree, sources.get("go", []))
+    ruby_lines, ruby_paths = _ruby_web(tree)
+    if web or routes or go_lines or ruby_lines:
         evidence: list[str] = []
         if web:
             evidence.append(
@@ -638,11 +881,56 @@ def _detect_targets(b: _Builder) -> dict[str, list[str]]:
                 f"{len(routes)} route declarations, first: "
                 + ", ".join(routes[:3])
             )
+        evidence += go_lines + ruby_lines
         paths = sorted(
             {p for n in web for p in deps[n]}
             | {r.split(":")[0] for r in routes[:5]}
+            | set(go_paths)
+            | set(ruby_paths)
         )
         b.add_target("web_service", evidence, paths)
+    node_manifests = [
+        m
+        for m in tree.named("package.json")
+        if _is_source_path(PurePosixPath(m))
+        and not any(m in deps.get(n, ()) for n in _WEB_DEPS)
+    ]
+    jvm_manifests = sorted(
+        f
+        for f in counted.files
+        if PurePosixPath(f).name in _JVM_MANIFESTS
+        and _is_source_path(PurePosixPath(f))
+    )
+    if counted.truncated and (node_manifests or jvm_manifests):
+        b.notes.append(
+            "the file walk stopped early, so the language counts that "
+            "node and jvm need are incomplete: neither was proposed"
+        )
+    else:
+        if node_manifests and _majority(sources, "js"):
+            own, total = _share(sources, "js")
+            b.add_target(
+                "node",
+                [
+                    f"package.json: {', '.join(node_manifests)}",
+                    f"{own} of {total} source files ({own / total:.0%}) "
+                    f"are JavaScript or TypeScript (first: "
+                    f"{sources['js'][0]}), more than half, and no web "
+                    "framework dependency",
+                ],
+                node_manifests,
+            )
+        if jvm_manifests and _majority(sources, "jvm"):
+            own, total = _share(sources, "jvm")
+            b.add_target(
+                "jvm",
+                [
+                    f"build manifests: {', '.join(jvm_manifests)}",
+                    f"{own} of {total} source files ({own / total:.0%}) "
+                    "are Java, Kotlin, Scala or Groovy, more than half",
+                ],
+                jvm_manifests,
+            )
     serving_deps = sorted(n for n in deps if n in _SERVING_DEPS)
     serving_files: list[str] = []
     for path in tree.files:

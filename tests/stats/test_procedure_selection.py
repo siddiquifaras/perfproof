@@ -77,10 +77,12 @@ def test_only_the_exact_default_tuples_get_hac_lf() -> None:
 def test_the_class_schedule_map_is_exactly_the_documented_one() -> None:
     # "Defaults per target class" in docs/method.md, row by row. A map
     # edit that gives a class another class's schedule (gpu_kernel the
-    # python one, say) would make its KEEPs calibrated: pin all six.
+    # python one, say) would make its KEEPs calibrated: pin all eight.
     assert dict(CLASS_SCHEDULES) == {
         "python_cpu": (10, 10, 6, 60),
         "native": (10, 10, 6, 60),
+        "node": (10, 10, 6, 60),
+        "jvm": (10, 10, 6, 60),
         "web_service": (10, 10, 3, 30),
         "agentic": (10, 10, 3, 30),
         "llm_serving": (10, 6, 3, 22),
@@ -187,3 +189,23 @@ def test_the_domain_is_exactly_the_three_schedules_at_the_default_alpha() -> (
         if in_calibrated_domain(schedule(n0, k, looks), max_rounds, alpha)
     }
     assert inside == {(*key, 0.05) for key in HAC}
+
+
+@pytest.mark.parametrize("target_class", ["node", "jvm"])
+def test_node_and_jvm_are_calibrated_on_the_python_native_schedule(
+    target_class: TargetClass,
+) -> None:
+    # Owner decision of 2026-10-29: the 5 Node and 2 Java traces are
+    # in-class for these two, and they passed under (10, 10, 6, 60).
+    assert CLASS_SCHEDULES[target_class] == (10, 10, 6, 60)
+    assert target_class not in CALIBRATION_PENDING
+    assert target_class in TRACE_BASIS
+    assert in_calibrated_domain(schedule(10, 10, 6), 60)
+    assert not in_calibrated_domain(schedule(10, 10, 3), 60)
+    assert procedure_for_schedule(schedule(10, 10, 6), 60) == "hac_lf"
+
+
+def test_trace_basis_names_the_real_trace_counts() -> None:
+    assert TRACE_BASIS["node"].startswith("5 real traces")
+    assert TRACE_BASIS["jvm"].startswith("3 real traces")
+    assert TRACE_BASIS["web_service"].startswith("4 real traces")

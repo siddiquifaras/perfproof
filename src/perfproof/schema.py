@@ -37,7 +37,7 @@ import json
 import math
 import re
 import sys
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from types import MappingProxyType
 from typing import (
     Annotated,
@@ -77,6 +77,8 @@ __all__ = [
     "HYPOTHESIS_EVENT",
     "MODELS",
     "SCHEMA_VERSION",
+    "WALL_ONLY_CLASSES",
+    "WALL_ONLY_FAMILIES",
     "AbsoluteLimit",
     "AllowanceSource",
     "Anchors",
@@ -161,6 +163,7 @@ __all__ = [
     "WorkloadEntry",
     "json_schema",
     "json_schema_text",
+    "metric_in_calibrated_domain",
 ]
 
 SCHEMA_VERSION: Final = 4
@@ -257,12 +260,14 @@ decision")."""
 TargetClass = Literal[
     "python_cpu",
     "native",
+    "node",
+    "jvm",
     "web_service",
     "llm_serving",
     "gpu_kernel",
     "agentic",
 ]
-"""The six release target classes of ``docs/targets.md``."""
+"""The eight release target classes of ``docs/targets.md``."""
 CalibrationStatus = Literal["calibrated", "uncalibrated"]
 ResolutionSource = Literal["clock", "count", "declared", "printed"]
 """Where a value's resolution came from, per "Resolution" in
@@ -314,8 +319,8 @@ _NOT_APPLICABLE: Final[Mapping[RuntimeKind | None, frozenset[str]]] = (
     MappingProxyType(
         {
             "interpreter": frozenset({"linked_libraries"}),
-            "native_build": frozenset({"runtime_version"}),
-            None: frozenset(),
+            "native_build": frozenset({"runtime_version", "runtime_family"}),
+            None: frozenset({"runtime_family"}),
         }
     )
 )
@@ -330,6 +335,7 @@ KEEP_BLOCKING_WARNINGS: Final = frozenset(
         "resolution_unknown",
         "schedule_uncalibrated",
         "schedule_not_class_own",
+        "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
     }
@@ -338,8 +344,9 @@ KEEP_BLOCKING_WARNINGS: Final = frozenset(
 neither a gate nor a guardrail: a counter metric measured as wall time,
 a value of unknown resolution, a look schedule outside the calibrated
 ones, a look schedule that is not the declared target class's own, a
-spec that declares no target class or one the project model does
-not confirm. A KEEP cannot carry one, and a
+metric kind the class's traces did not cover
+(``metric_not_calibrated``), a spec that declares no target class or
+one the project model does not confirm. A KEEP cannot carry one, and a
 rule 2 INCONCLUSIVE may rest on one."""
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
 _OBJECTIVE_KINDS: Final[Mapping[str, frozenset[MetricKind]]] = (
@@ -389,6 +396,8 @@ CLASS_SCHEDULES: Final[Mapping[TargetClass, tuple[int, int, int, int]]] = (
         {
             "python_cpu": (10, 10, 6, 60),
             "native": (10, 10, 6, 60),
+            "node": (10, 10, 6, 60),
+            "jvm": (10, 10, 6, 60),
             "web_service": (10, 10, 3, 30),
             "agentic": (10, 10, 3, 30),
             "llm_serving": (10, 6, 3, 22),
@@ -398,14 +407,56 @@ CLASS_SCHEDULES: Final[Mapping[TargetClass, tuple[int, int, int, int]]] = (
 )
 """Each target class's own default schedule, ``(n0, k, K,
 max_rounds)``: "Defaults per target class" in ``docs/method.md``
-(Python, CPU-bound and Native `(10, 10, 6, 60)`; Web services and
-Agentic apps `(10, 10, 3, 30)`; LLM serving `(10, 6, 3, 22)`; GPU
-kernels `(20, 20, 6, 120)`), and the class lists of the three hac_lf
-schedules under "The T1.11 decision". A verdict is calibrated for a
-class only on its own schedule."""
+(Python, CPU-bound, Native, Node and JVM `(10, 10, 6, 60)`; Web
+services and Agentic apps `(10, 10, 3, 30)`; LLM serving `(10, 6, 3,
+22)`; GPU kernels `(20, 20, 6, 120)`), and the class lists of the
+three hac_lf schedules under "The T1.11 decision". A verdict is
+calibrated for a class only on its own schedule."""
 CALIBRATION_PENDING: Final[frozenset[TargetClass]] = frozenset({"gpu_kernel"})
 """Classes with no real traces yet, so no verdict is calibrated for
 them ("The calibrated domain" in ``docs/method.md``)."""
+WALL_ONLY_FAMILIES: Final = frozenset({"node", "java"})
+"""Runtime families (`TreeEnvironment.runtime_family`) whose runs are
+calibrated only on a ``wall`` primary metric, whatever class the spec
+declares: the identified runtime, not the declared class, decides."""
+WALL_ONLY_CLASSES: Final[frozenset[TargetClass]] = frozenset({"node", "jvm"})
+"""Classes whose real traces are all fresh-process ``wall`` timings, so
+a verdict is calibrated for them only on a ``wall`` primary metric
+("Named limits" in ``docs/method.md``)."""
+
+
+def metric_in_calibrated_domain(
+    target_class: TargetClass,
+    kind: MetricKind,
+    families: Iterable[str | None] = (),
+) -> bool:
+    """Whether a primary metric kind is covered by the traces.
+
+    Parameters
+    ----------
+    target_class : TargetClass
+        The spec's class.
+    kind : MetricKind
+        The primary metric's kind.
+    families : iterable of str or None, optional
+        ``TreeEnvironment.runtime_family`` of each tree's identified
+        runtime.
+
+    Returns
+    -------
+    bool
+        False for a kind other than ``wall`` when the class is a
+        `WALL_ONLY_CLASSES` one or an identified runtime is in
+        `WALL_ONLY_FAMILIES` (Node or a JVM), whatever class the spec
+        declares; True otherwise.
+    """
+    if kind == "wall":
+        return True
+    if target_class in WALL_ONLY_CLASSES:
+        return False
+    return WALL_ONLY_FAMILIES.isdisjoint(f for f in families if f)
+
+
 CALIBRATED_ALPHA: Final = 0.05
 """The only ``alpha`` the acceptance rule was run at."""
 
@@ -414,6 +465,8 @@ DEFAULT_GUARDRAILS: Final[Mapping[TargetClass | None, tuple[str, ...]]] = (
         {
             "python_cpu": ("peak_memory",),
             "native": ("peak_memory",),
+            "node": ("peak_memory",),
+            "jvm": ("peak_memory",),
             "web_service": ("peak_memory", "p99_latency"),
             "llm_serving": ("peak_memory", "peak_gpu_memory", "p99_latency"),
             "gpu_kernel": ("peak_memory", "peak_gpu_memory"),
@@ -2254,6 +2307,12 @@ class TreeEnvironment(_Model):
     benchmark, such as the absolute path of the tree's Python."""
     runtime_version: Text | None = None
     """Version the interpreter reports; an interpreter only."""
+    runtime_family: Text | None = None
+    """What the probe identified the interpreter as (``node``, ``java``,
+    ``ruby``, ``go``, ``dotnet``, ``cc``); ``None`` for a Python
+    interpreter, which the probe does not name, and for any runtime not
+    identified. An interpreter only. The calibration rule for Node and
+    JVM runs reads this, never the command."""
     linked_libraries: tuple[LinkedLibrary, ...] | None = None
     """For a native build, the libraries from outside the tree that it
     loads, sorted by name; empty when it loads none. Doesn't apply to an
@@ -2329,7 +2388,13 @@ class TreeEnvironment(_Model):
         if kind == "interpreter" and self.runtime_version is None:
             msg = "an interpreter is identified with its version"
             raise ValueError(msg)
-        _check_reasons(self, self.missing, not_applicable)
+        # A derived field, never probed on its own: an unnamed family is
+        # known (a Python interpreter has none), so it takes no reason
+        # and is never listed in `missing`.
+        if "runtime_family" in self.missing:
+            msg = "runtime_family is derived and is never listed in missing"
+            raise ValueError(msg)
+        _check_reasons(self, self.missing, not_applicable | {"runtime_family"})
         unlisted = set(self.env_values) - set(self.env_names or ())
         if unlisted:
             msg = f"env_values for variables not in env_names: {unlisted}"
@@ -2821,6 +2886,15 @@ class RunRecord(_Model):
             msg = (
                 f"a calibrated verdict is at alpha {CALIBRATED_ALPHA}, "
                 f"not {spec.alpha}"
+            )
+        elif not metric_in_calibrated_domain(
+            cls,
+            spec.metric.kind,
+            (e.runtime_family for e in self.environments),
+        ):
+            msg = (
+                f"a calibrated {cls} verdict on a Node or Java runtime or "
+                f"class needs a wall primary metric, not {spec.metric.kind}"
             )
         else:
             return
