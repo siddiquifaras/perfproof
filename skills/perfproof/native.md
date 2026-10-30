@@ -158,6 +158,36 @@ changed line that no test ran is reported by the gate, not rejected:
 offer a test that reaches it. Coverage builds change the code, so the
 timed build is a separate one.
 
+**A C or C++ extension built by a Python package** (setuptools, `setup.py`
+or a `build_ext`): the declared `correctness.coverage_command` is one
+`bash -c` that builds a coverage copy outside the tree's own build, runs
+the project's tests against it, and converts. On macOS `llvm-profdata` and
+`llvm-cov` come with the command line tools (`xcrun -f llvm-cov`); the
+steps, with `<python>` the Python perfproof runs in and `.venv/bin/python`
+the version's own environment from `setup`:
+
+```
+set -e; D=build/perfproof-cov; rm -rf $D; mkdir -p $D/raw
+CC=clang CFLAGS='-fprofile-instr-generate -fcoverage-mapping -O0' \
+  LDFLAGS=-fprofile-instr-generate \
+  .venv/bin/python setup.py -q build --build-lib $D/lib build_ext <the same
+  --disable-x options the timed build uses> >/dev/null
+PYTHONPATH=$PWD/$D/lib LLVM_PROFILE_FILE=$PWD/$D/raw/%p.profraw \
+  .venv/bin/python -m pytest -q -p no:cacheprovider <the project's tests>
+OBJ=; for f in $(find "$D/lib" -name "*.so"); do OBJ="$OBJ --object $f"; done
+<python> -m perfproof.bench.native_coverage llvm --root . \
+  --output "$PERFPROOF_COVERAGE_REPORT" $OBJ $D/raw/
+```
+
+`--build-lib` keeps the instrumented `.so` out of the tree, and
+`PYTHONPATH` makes the tests import it instead of the timed build. The
+tests must exit 0 (the gate ignores the report otherwise), so pick a
+test selection that passes in this build. Give the command in the spec
+as `["bash", "-c", "<the script on one line>"]` with
+`coverage_timeout_seconds` generous (900). A gcc build with
+`--coverage` and the `gcov` subcommand is the other route; it was not
+run for this recipe.
+
 ## What usually goes wrong
 
 Cheap tests first: a profile, then a counter or a one-line experiment.

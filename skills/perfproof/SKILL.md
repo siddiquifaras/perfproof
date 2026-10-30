@@ -191,9 +191,11 @@ Without a confirmed class, `compare` measures but cannot keep.
 
 Unless no calibrated class fits, for non-Python code the change touches,
 take its playbook's coverage command and probe the tool (`--version`). If
-missing, add the install to that question ("to check which changed lines
-your tests run it needs `cargo-llvm-cov`, a dev tool; ok?"). Yes: install,
-declare `correctness.coverage_command`. No: say KEEP can't be checked.
+missing, add the install to the question you are already asking (find:
+step 1, before any work; prove: before the first `compare`): "to check which
+changed lines your tests run it needs `cargo-llvm-cov`, a dev tool; ok?".
+Yes: install, declare `correctness.coverage_command`. No: say KEEP can't be
+checked.
 
 You write only to `.perfproof/`, a coverage tool the user agreed to, and,
 once the checks pass and the user agrees, to one branch `perfproof/<name>` for kept changes. Never commit
@@ -303,7 +305,9 @@ No discovery. One candidate at a time, against its parent.
    `.perfproof/benchmarks/`), and the branch `perfproof/<name>` where
    attempts will go. Then ask in one message, your suggestion first for
    each: the workload and answers, the spec in one paragraph, permission
-   for the branch, and any machine warning from the checks above. This
+   for the branch, any machine warning from the checks above, and, when the
+   map puts the likely change in non-Python code of a calibrated class, its
+   coverage tool install (probe it first; see the pre-compare paragraph). This
    message is a question you will go on from, so it has no `Result:` line.
    On their yes, confirm in this order, since each needs the one before:
    `perfproof project confirm <target id> <workload id> --json`, then
