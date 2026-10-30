@@ -208,7 +208,7 @@ and `reason`, with exactly one of them set.
 
 **Names.** `Part.id` is the part's root relative to the repository, with `/`
 replaced by `.`; the root itself is `root`. Characters outside `[A-Za-z0-9._-]`
-become `-`, so it matches `Name`. When two roots map to the same id, the later
+become `-`, and an id that doesn't start with a letter or digit (`.github`, `_internal`) gets the prefix `p`, so it matches `Name`. When two roots map to the same id, the later
 one in sorted order gets `-2`, `-3`, and so on. Spec names:
 
 - `find-tests-<part.id>`
