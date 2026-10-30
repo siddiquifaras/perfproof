@@ -888,3 +888,129 @@ def test_an_oracle_that_passes_leaves_setup_clean(
     )
     realrepo.run_setup(spec, dest, [], check_oracle=True)
     assert _git(dest, "status", "--porcelain") == ""
+
+
+def test_a_seeded_repo_has_a_hooks_directory(
+    tmp_path: Path, remote: tuple[str, str, str]
+) -> None:
+    # The sandbox's empty GIT_TEMPLATE_DIR leaves none, and a build
+    # script that writes there (cargo-husky) then fails.
+    host, second, third = remote
+    for name, real in (
+        ("find", taskset.RealRepo(manifest="x")),
+        ("prove", taskset.RealRepo(manifest="x", branch="pr")),
+    ):
+        dest = tmp_path / name
+        realrepo.seed_repo(
+            _spec(second, third), real, dest, tmp_path / "cache", host
+        )
+        assert (dest / ".git" / "hooks").is_dir(), name
+
+
+_GO_STEPS = [
+    "go mod init example.org/m",
+    "go get example.org/dep@v1.0.0",
+    "cp a b",
+    "go test -count 1 .",
+]
+
+
+def _no_mod_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "work" / "repos" / "t"
+    repo.mkdir(parents=True)
+    (repo / "a").write_text("x")
+    return repo
+
+
+def test_a_go_tree_with_no_go_mod_runs_the_module_steps_in_a_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _no_mod_repo(tmp_path)
+    log = tmp_path / "go.log"
+    native = _fake_go(
+        tmp_path / "native",
+        'echo "$(pwd)|$*|$GOFLAGS|$GOPROXY|$GOTOOLCHAIN|$GOPATH|$HOME" '
+        f">> {log}",
+    )
+    monkeypatch.setenv("PATH", f"{native.parent}{os.pathsep}/usr/bin:/bin")
+    spec = _spec("a", "b").model_copy(update={"setup": _GO_STEPS})
+    assert realrepo.go_module_steps(spec) == _GO_STEPS[:2]
+    realrepo.prefill_go_modcache(spec, repo, [native.parent])
+    lines = [ln.split("|") for ln in log.read_text().splitlines()]
+    assert [ln[1] for ln in lines] == [
+        "mod init example.org/m",
+        "get example.org/dep@v1.0.0",
+    ]
+    copy = tmp_path / "work" / "sandbox" / "t" / "modtree"
+    for cwd, _args, flags, proxy, toolchain, gopath, home in lines:
+        assert Path(cwd).resolve() == copy.resolve(), "not the tree itself"
+        assert flags == "-modcacherw -mod=mod"
+        assert proxy == "https://proxy.golang.org"
+        assert toolchain == "local"
+        assert gopath == f"{home}/go", "the agent's private cache"
+    assert sorted(p.name for p in repo.iterdir()) == ["a"], "tree untouched"
+    assert not copy.exists(), "the copy is removed after use"
+
+
+def test_a_failed_module_step_with_no_go_mod_is_a_setup_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _no_mod_repo(tmp_path)
+    native = _fake_go(tmp_path / "native", "echo no network >&2; exit 1")
+    monkeypatch.setenv("PATH", f"{native.parent}{os.pathsep}/usr/bin:/bin")
+    spec = _spec("a", "b").model_copy(update={"setup": _GO_STEPS})
+    with pytest.raises(realrepo.SetupError, match="no network"):
+        realrepo.prefill_go_modcache(spec, repo, [native.parent])
+    copy = tmp_path / "work" / "sandbox" / "t" / "modtree"
+    assert not copy.exists(), "removed after a failure too"
+
+
+def test_a_tree_with_no_go_mod_and_no_module_steps_needs_no_download(
+    tmp_path: Path,
+) -> None:
+    repo = _no_mod_repo(tmp_path)
+    spec = _spec("a", "b").model_copy(update={"setup": ["cp a b"]})
+    realrepo.prefill_go_modcache(spec, repo, [])
+    assert not (tmp_path / "work" / "sandbox" / "t" / "modtree").exists()
+
+
+@pytest.mark.parametrize(
+    ("confine", "has_mod", "offline"),
+    [
+        (True, False, True),
+        (True, True, False),
+        (False, False, False),
+    ],
+)
+def test_confined_go_setup_without_go_mod_runs_offline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    confine: bool,
+    has_mod: bool,
+    offline: bool,
+) -> None:
+    repo = _no_mod_repo(tmp_path)
+    _git(repo, "init", "-q", "-b", "main")
+    if has_mod:
+        (repo / "go.mod").write_text("module m\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "a")
+    seen: list[dict[str, str]] = []
+
+    def fake(
+        _command: str,
+        _cwd: Path,
+        env: dict[str, str],
+        *_args: object,
+        **_kwargs: object,
+    ) -> tuple[int, str]:
+        seen.append(env)
+        return 0, ""
+
+    monkeypatch.setattr(realrepo, "_run", fake)
+    spec = _spec("a", "b").model_copy(update={"setup": _GO_STEPS})
+    realrepo.run_setup(spec, repo, [], confine=confine)
+    assert len(seen) == len(_GO_STEPS)
+    for env in seen:
+        assert (env.get("GOPROXY") == "off") is offline
+        assert (env.get("GOFLAGS") == "-mod=mod") is offline

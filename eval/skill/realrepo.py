@@ -417,6 +417,10 @@ def seed_repo(
         if done.returncode != 0:
             msg = f"git submodule update failed: {done.stderr[-500:]}"
             raise SetupError(msg)
+    # The sandbox's empty GIT_TEMPLATE_DIR leaves no .git/hooks, and a
+    # build script that writes there (cargo-husky) fails on the missing
+    # directory.
+    (dest / ".git" / "hooks").mkdir(exist_ok=True)
     tips: dict[str, str] = {}
     out = _git(
         dest,
@@ -630,11 +634,17 @@ def run_setup(
         tail or the paths.
     """
     env = task_env(spec, repo, extra_path)
+    # A Go tree with no go.mod makes its module here, from modules
+    # `prefill_go_modcache` already put in the cache: offline, since the
+    # profile closes the certificate service a download needs.
+    offline: dict[str, str] = {}
+    if confine and not (repo / "go.mod").is_file() and go_module_steps(spec):
+        offline = {"GOFLAGS": "-mod=mod", "GOPROXY": "off"}
     for command in spec.setup:
         code, tail = _run(
             command,
             repo,
-            env,
+            {**env, **offline},
             timeout,
             confine=confine,
             # The launchers on PATH sit in the run directory, which the
@@ -971,6 +981,26 @@ def toolchain_dirs(real: RealRepo) -> list[Path]:
     return found
 
 
+_GO_MODULE_STEP = re.compile(r"^go\s+(?:mod\s+(?:init|tidy)|get)\b")
+
+
+def go_module_steps(spec: RepoSpec) -> list[str]:
+    """List the setup steps that create a Go module and add its modules.
+
+    Parameters
+    ----------
+    spec : RepoSpec
+        The manifest's build commands.
+
+    Returns
+    -------
+    list of str
+        The ``go mod init``, ``go mod tidy`` and ``go get`` steps, in
+        order. A tree with no ``go.mod`` gets its module from them.
+    """
+    return [c for c in spec.setup if _GO_MODULE_STEP.match(c.strip())]
+
+
 def prefill_go_modcache(
     spec: RepoSpec,
     repo: Path,
@@ -1007,10 +1037,37 @@ def prefill_go_modcache(
     ------
     SetupError
         If a download fails; the message holds its tail.
+
+    Notes
+    -----
+    A tree with no ``go.mod`` (an old project) gets its module from the
+    manifest's own steps (`go_module_steps`). They run here, unconfined,
+    in a copy of the tree under the task's sandbox directory, so the
+    modules land in the private ``GOMODCACHE`` and the tree stays
+    untouched; the confined steps then run offline (see `run_setup`).
     """
-    if not (repo / "go.mod").is_file():
-        return
     env = task_env(spec, repo, extra_path)
+    if not (repo / "go.mod").is_file():
+        steps = go_module_steps(spec)
+        if not steps:
+            return
+        env["GOFLAGS"] = "-modcacherw -mod=mod"
+        env["GOPROXY"] = "https://proxy.golang.org"
+        env["GOTOOLCHAIN"] = "local"
+        env["GOPATH"] = str(Path(env["HOME"]) / "go")
+        copy = repo.parents[1] / "sandbox" / repo.name / "modtree"
+        if copy.exists():
+            shutil.rmtree(copy)
+        shutil.copytree(repo, copy, ignore=shutil.ignore_patterns(".git"))
+        try:
+            for command in steps:
+                code, tail = _run(command, copy, env, timeout)
+                if code != 0:
+                    msg = f"`{command[:80]}` exited {code}: {tail}"
+                    raise SetupError(msg)
+        finally:
+            shutil.rmtree(copy, ignore_errors=True)
+        return
     # The proxy only (no ``direct``: a module path could name any
     # host) and no edit of ``go.mod``/``go.sum``; this runs unconfined.
     env["GOFLAGS"] = "-modcacherw -mod=readonly"

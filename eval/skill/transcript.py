@@ -891,8 +891,53 @@ def _redirect_targets(line: str) -> list[str]:
     return targets
 
 
-def _git_edit(line: str) -> bool:
-    """Tell whether a command line changes files through ``git``."""
+_GIT_GLOBALS = re.compile(
+    r"\bgit\s+((?:(?:-C|-c|--git-dir|--work-tree|--namespace)(?:\s+|=)"
+    r"(?:\"[^\"]*\"|'[^']*'|\S+)|--no-pager|--bare|-P|--no-replace-objects)"
+    r"\s+)+"
+)
+
+
+def _scratch_dir(path: str, root: str | None) -> bool:
+    """Tell whether a directory is one of the root's scratch ones.
+
+    Anything else, an unknown or outside path included, is not.
+    """
+    if root is not None and path.startswith(root + "/"):
+        path = path[len(root) + 1 :]
+    return path.split("/")[0] in _SCRATCH_DIRS and not path.startswith(
+        ("/", "~", "$")
+    )
+
+
+_GIT_DIR_OPT = re.compile(
+    r"(?:-C\s+|--work-tree[=\s])(\"[^\"]*\"|'[^']*'|\S+)"
+)
+
+
+def _git_edit(
+    line: str, root: str | None = None, cwd: str | None = "."
+) -> bool:
+    """Tell whether a command line changes files through ``git``.
+
+    ``git -C <dir>`` (and ``--work-tree``) is read like the same command
+    run there: it is no edit only when every such directory is under
+    ``.perfproof/`` (or ``.claude/``), judged against ``root`` and the
+    tracked ``cwd``. Other global options are skipped.
+    """
+    found_globals = _GIT_GLOBALS.search(line)
+    if found_globals is not None:
+        dirs = [
+            posixpath.normpath(_resolve(m.group(1).strip("'\""), cwd))
+            for m in _GIT_DIR_OPT.finditer(found_globals.group(0))
+        ]
+        if dirs and all(_scratch_dir(d, root) for d in dirs):
+            return False
+        line = (
+            line[: found_globals.start()]
+            + "git "
+            + line[found_globals.end() :]
+        )
     if _GIT_NO_EDIT.search(line):
         return False
     if _GIT_EDIT.search(line):
@@ -1376,7 +1421,48 @@ def _python_write_targets(segment: str) -> list[str] | None:
     return paths
 
 
-def _segment_edits(segment: str, root: str | None) -> bool:
+_UNTRACKED_SHELL = re.compile(r"[|(){}`]|\$\(|&")
+_QUOTED_OR_ESCAPED = re.compile(r"\\.|'[^']*'|\"(?:[^\"\\]|\\.)*\"")
+
+
+def _cd_target(words: list[str], cwd: str) -> str | None:
+    """Return the directory a ``cd`` moves to, or ``None`` if unknown.
+
+    ``cwd`` is the directory before it: relative to the project root, or
+    absolute. A bare ``cd``, ``cd -``, a home or variable path, a glob
+    or more than one argument is unknown.
+    """
+    args = [w for w in words[1:] if w not in {"-L", "-P", "--"}]
+    if len(args) != 1:
+        return None
+    target = args[0]
+    if not target or target[0] in "~$-" or re.search(r"[*?\[`$]", target):
+        return None
+    return posixpath.normpath(posixpath.join(cwd, target))
+
+
+def _parses(segment: str) -> bool:
+    """Tell whether a shell line splits into words (quotes balance)."""
+    try:
+        shlex.split(segment, posix=True)
+    except ValueError:
+        return False
+    return True
+
+
+def _resolve(path: str, cwd: str | None) -> str:
+    """Re-express a relative target against the tracked directory."""
+    bare = path.strip().strip("'\"")
+    if cwd is None or cwd == "." or path == "unknown":
+        return path
+    if not bare or bare[0] in "/~$&-":
+        return path
+    return posixpath.normpath(posixpath.join(cwd, bare))
+
+
+def _segment_edits(
+    segment: str, root: str | None, cwd: str | None = "."
+) -> bool:
     # Redirections and options are read from the command line itself; a
     # here-document body (the rest) is only the python rule's text.
     line = segment.split("\n", 1)[0]
@@ -1400,19 +1486,21 @@ def _segment_edits(segment: str, root: str | None) -> bool:
         targets += args[1:]
     elif head == "patch":
         targets += [a for a in args if "." in a] or ["patch"]
-    if any(_is_project_path(t, root) for t in targets):
+    if any(_is_project_path(_resolve(t, cwd), root) for t in targets):
         return True
-    if _git_edit(line):
+    if _git_edit(line, root, cwd):
         return True
     if head.startswith(("python", "pypy")) or "python" in segment[:40]:
         proven = _python_write_targets(segment)
         if proven is not None:
-            return any(_is_project_path(p, root) for p in proven)
+            return any(
+                _is_project_path(_resolve(p, cwd), root) for p in proven
+            )
         paths = [m.group("path") for m in _WRITE_OPEN.finditer(segment)]
         paths += [m.group("path") for m in _WRITE_PATH.finditer(segment)]
         if not paths and _PY_WRITES.search(segment):
             paths = _PY_STRING.findall(segment) or ["unknown"]
-        return any(_is_project_path(p, root) for p in paths)
+        return any(_is_project_path(_resolve(p, cwd), root) for p in paths)
     return False
 
 
@@ -1452,11 +1540,47 @@ def is_code_edit(
         path = str(args.get("file_path") or args.get("notebook_path") or "")
         return _is_project_path(path, root)
     if name == "Bash":
-        return any(
-            _segment_edits(s, root)
-            for s in _segments(str(args.get("command", "")))
-        )
+        command = str(args.get("command", ""))
+        segments = _segments(command)
+        if not any(_segment_edits(seg, root) for seg in segments):
+            return False
+        return not _scratch_by_cd(command, segments, root)
     return False
+
+
+def _scratch_by_cd(
+    command: str, segments: list[str], root: str | None
+) -> bool:
+    """Tell whether tracking ``cd`` proves a flagged command is scratch.
+
+    This only ever clears a verdict of "edit"; it never makes one. It
+    clears only a plain ``a && b`` / ``a; b`` list that has at least one
+    ``cd``, every ``cd`` of which parses and moves into ``.perfproof``
+    or ``.claude`` (the root's own), and in which no write, judged from
+    the tracked directory, lands outside them. A command with ``ln``
+    never clears: a link can point out of scratch under a scratch name.
+    A subshell, pipe, background job or ``||`` may or may not have moved
+    the shell, so those never clear either.
+    """
+    plain = not _UNTRACKED_SHELL.search(
+        _QUOTED_OR_ESCAPED.sub("", command).replace("&&", "")
+    )
+    if not plain or re.search(r"\bln\b", command):
+        return False
+    cwd = "."
+    moved_once = False
+    for seg in segments:
+        if _segment_edits(seg, root, cwd):
+            return False
+        words = _words(seg.split("\n", 1)[0])
+        if words and words[0] in {"cd", "pushd", "popd"}:
+            if words[0] != "cd" or not _parses(seg):
+                return False
+            moved = _cd_target(words, cwd)
+            if moved is None or not _scratch_dir(moved, root):
+                return False
+            cwd, moved_once = moved, True
+    return moved_once
 
 
 def infer_project_root(turns: list[Turn], task_id: str) -> str | None:

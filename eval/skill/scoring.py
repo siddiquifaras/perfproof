@@ -84,6 +84,16 @@ _OWN_TIMING = re.compile(
     r"timeit|perf_counter|time\.time\(|hyperfine|/usr/bin/time"
     r"|(?:^|[;&|(]\s*)time\s",
 )
+# Tokens in a timing command's output that are not a time in seconds: a
+# file descriptor redirection (``2>&1``, ``1>``, ``>&2``), a percentage,
+# a version, a time in a smaller unit ("2ms") and digits glued to a
+# name ("jp2", "heldout2"). ``time``'s own ``0m2.5s`` is kept, so its
+# seconds count.
+_NOT_A_TIME = re.compile(
+    r"\d*[<>]+&?\d*-?|\d+(?:\.\d+)?%|\d+(?:\.\d+){2,}"
+    r"|\d+(?:\.\d+)?\s*(?:ms|\u00b5s|us|ns)\b"
+    r"|(?<!\dm)(?<=[A-Za-z_])\d+(?:\.\d+)*"
+)
 _RESULT_PREFIX = re.compile(r"^Result:\s*(.+)$")
 _VERDICT_LINE = re.compile(
     r"^(KEEP|REJECT|INCONCLUSIVE) \((\w+)(?:, gate (\w+))?\)$"
@@ -313,7 +323,9 @@ def cheap_timing_violations(
         return []
     numbers: set[str] = set()
     for call in own:
-        numbers.update(re.findall(r"\d+(?:\.\d+)?", call.output))
+        numbers.update(
+            re.findall(r"\d+(?:\.\d+)?", _NOT_A_TIME.sub(" ", call.output))
+        )
     found: list[Violation] = []
     for text in texts:
         for sentence in _sentences(text):
@@ -930,6 +942,23 @@ def _call_text(call: transcript.ToolCall) -> str:
     return json.dumps(call.input, default=str) + "\n" + call.output
 
 
+_DATA_HEREDOC = re.compile(
+    r"(?:^|[;&]\s*)(?:cat|tee)\b[^|;&<\n]*<<-?\s*(['\"]?)(\w+)\1"
+    r"[^|;&\n]*\n.*?^\s*\2\s*$",
+    re.DOTALL | re.MULTILINE,
+)
+
+
+def _without_data_heredocs(command: str) -> str:
+    """Drop the body of a here-document that ``cat`` or ``tee`` reads.
+
+    Such a body is data being written (a generated script or config),
+    not commands run. A here-document read by anything else (a shell, an
+    interpreter) is kept, and so is a ``cat`` piped or chained on.
+    """
+    return _DATA_HEREDOC.sub(" ", command)
+
+
 def leak_violations(
     calls: list[transcript.ToolCall],
     reference: str,
@@ -977,7 +1006,7 @@ def leak_violations(
         else None
     )
     fetch = re.compile(
-        r"\bgit\s+(?:fetch|pull|ls-remote|clone)\b|\bgh\s|\bcurl\b"
+        r"\bgit\s+(?:fetch|pull|ls-remote|clone)\b|\bgh\s"
         r"|\bwget\b|\bpip\s+download\b|github\.com|githubusercontent"
     )
     found: list[Violation] = []
@@ -988,13 +1017,19 @@ def leak_violations(
         # The skill's own documented install fallback is not a lookup.
         looked = command.replace(_SELF_URL, "")
         text = _call_text(call)
+        ran_curl = re.search(r"\bcurl\b", _without_data_heredocs(looked))
         pulled = bool(
             project
             and any(
                 project.search(m.group(0)) for m in installs.finditer(looked)
             )
         )
-        if fetch.search(looked) or pulled or any(n in text for n in needles):
+        if (
+            fetch.search(looked)
+            or ran_curl
+            or pulled
+            or any(n in text for n in needles)
+        ):
             found.append(Violation(rule="leak", text=_clip(text.strip())))
     return found
 
