@@ -112,7 +112,8 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
 4. **Map.** `profile show --rank` with the **explicit list of user-workload
    names**, so no `find-*` run is included. With no user workload, there is no
    rank call: `map` is empty and every `find-*` function is a lead. The rows are `MapRow`s, each with
-   its part and layer.
+   its part and layer: the top 50 by cap, with wrapper rows dropped as `rank`
+   lists them last.
    - **Function leads:** the result of `--rank` over the `find-*` names,
      minus any function that has a `seen_in` row in the user ranking. Test
      files (as `coverage` excludes them) and harness frames are excluded. Order
@@ -134,7 +135,11 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
   `--no-tests` skips it, and its next steps are then waived with the reason
   `no_tests`.
 - **Tree check.** `git status --porcelain` is taken before and after every
-  probe, with ignored paths and `.perfproof/` excluded. Lines **added** by the
+  probe, with ignored paths and `.perfproof/` excluded. Tool caches are not counted when new and untracked:
+  `__pycache__`, `.pytest_cache`, `.mypy_cache` and `.ruff_cache` anywhere,
+  plus `*.pyc`; `.coverage*` and `htmlcov/` at a part root; `target/` at a
+  Cargo part root; `.gradle/` at a Gradle part root; `node_modules/.cache/`.
+  Python probes also run with `PYTHONDONTWRITEBYTECODE=1`. Lines **added** by the
   probe (a tracked file modified or deleted, or a new non-ignored file) count,
   and lines already present before the probe don't. If any count, `find`
   records `tests_modified_tree` with those paths, never runs that probe again,
