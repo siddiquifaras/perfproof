@@ -30,10 +30,14 @@ from perfproof.bench.detach import (
     Identity,
     Job,
     default_timeout,
+    deliver,
     find_run,
+    format_start,
     kill_tree,
+    libproc_table,
     machine_differences,
     process_table,
+    ps_table,
     run_status,
 )
 from perfproof.bench.journal import (
@@ -1115,3 +1119,137 @@ def test_a_resume_is_killed_at_the_deadline_of_the_whole_run(
     )
     for pid in pids_of(project.pids):
         assert not alive(pid)
+
+
+needs_mac = pytest.mark.skipif(
+    sys.platform != "darwin", reason="libproc and sandbox-exec are macOS"
+)
+
+
+def test_a_one_figure_day_start_reads_the_same_both_ways() -> None:
+    # 2026-10-03 12:00:00 local time: ps pads the day, %e does too.
+    stamp = time.mktime((2026, 10, 3, 12, 0, 0, 0, 0, -1))
+    padded = time.strftime("%a %b %e %H:%M:%S %Y", time.localtime(stamp))
+    assert "  " in padded
+    assert format_start(int(stamp)) == " ".join(padded.split())
+    assert format_start(int(stamp)).split()[2] == "3"
+
+
+@needs_mac
+def test_the_libproc_table_reads_what_ps_reads() -> None:
+    mine = os.getpid()
+    try:
+        ps_all = ps_table(None)
+    except OSError:
+        pytest.skip("ps can't run here")
+    everyone = libproc_table(None)
+    assert everyone is not None
+    shared = sorted(set(everyone) & set(ps_all))
+    assert len(shared) > 10
+    assert mine in shared
+    for pid in shared:
+        assert everyone[pid] == ps_all[pid], pid
+    assert libproc_table(mine) == {mine: ps_all[mine]}
+    assert libproc_table(2**22 - 1) == {}
+
+
+@needs_mac
+def test_a_denied_libproc_is_not_taken_as_gone(tmp_path: Path) -> None:
+    profile = tmp_path / "deny.sb"
+    profile.write_text(
+        "(version 1)\n(allow default)\n(deny process-info-pidinfo)\n"
+    )
+    code = (
+        "import os\n"
+        "from perfproof.bench.detach import libproc_table, process_table\n"
+        "me = os.getpid()\n"
+        "assert libproc_table(me) is None\n"
+        "assert libproc_table(None) is None\n"
+        "try:\n"
+        "    process_table(me)\n"
+        "except OSError as exc:\n"
+        "    print('OSError', exc)\n"
+        "else:\n"
+        "    print('table')\n"
+    )
+    done = subprocess.run(
+        ["sandbox-exec", "-f", str(profile), PY, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.startswith(("OSError", "table")), done.stdout
+
+
+@needs_mac
+def test_detach_starts_where_the_sandbox_refuses_to_run_ps(
+    project: Project, tmp_path: Path
+) -> None:
+    # A confined agent (the eval's profile, Claude Code's sandbox) can't
+    # exec a setuid program such as ps, even under `allow default`.
+    profile = tmp_path / "allow.sb"
+    profile.write_text("(version 1)\n(allow default)\n")
+    confined = ["sandbox-exec", "-f", str(profile)]
+    probe = subprocess.run(
+        [*confined, "ps", "-p", "1"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if probe.returncode == 0:
+        pytest.skip("this sandbox runs ps")
+    done = subprocess.run(
+        [
+            *confined,
+            PY,
+            "-m",
+            "perfproof",
+            "compare",
+            "work",
+            "--candidate",
+            str(project.candidate),
+            "--repo",
+            str(project.root),
+            "--detach",
+            "--json",
+        ],
+        cwd=project.root,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    run_id = json.loads(done.stdout)["result"]["run_id"]
+    assert project.status(run_id)["state"] == "running"
+    status, doc = project.cli("cancel", run_id, "--repo", str(project.root))
+    assert status == 0, doc
+
+
+def refused(pid: int, sig: int) -> None:
+    raise PermissionError(1, "Operation not permitted")
+
+
+def test_eperm_for_a_process_that_is_gone_is_taken_as_exiting() -> None:
+    child = subprocess.Popen([PY, "-c", "pass"])
+    start = process_table(child.pid)[child.pid].start
+    child.wait()
+    deliver(refused, child.pid, signal.SIGTERM, start)
+
+
+def test_eperm_for_a_reused_pid_is_taken_as_exiting() -> None:
+    deliver(refused, os.getpid(), signal.SIGTERM, "Mon Jan 1 00:00:00 1990")
+
+
+def test_eperm_for_a_live_process_is_raised() -> None:
+    child = subprocess.Popen([PY, "-c", "import time; time.sleep(60)"])
+    try:
+        start = process_table(child.pid)[child.pid].start
+        with pytest.raises(PermissionError):
+            deliver(refused, child.pid, signal.SIGTERM, start)
+    finally:
+        child.kill()
+        child.wait()

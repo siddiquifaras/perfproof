@@ -68,6 +68,8 @@ deadline arrives is killed, with no verdict.
 """
 
 import contextlib
+import ctypes
+import errno
 import fcntl
 import hashlib
 import math
@@ -78,7 +80,7 @@ import sys
 import time
 import traceback
 import warnings
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -117,10 +119,14 @@ __all__ = [
     "Tree",
     "cancel_run",
     "default_timeout",
+    "deliver",
     "find_run",
+    "format_start",
     "kill_tree",
+    "libproc_table",
     "machine_differences",
     "process_table",
+    "ps_table",
     "resume_run",
     "run_detached",
     "run_status",
@@ -398,14 +404,29 @@ def process_table(only: int | None = None) -> dict[int, Proc]:
     dict of int to Proc
         Keyed by PID. A process that vanishes while the table is read
         is left out. On Linux each row comes from ``/proc/<pid>/stat``
-        and the start time is its ``starttime`` field; elsewhere from
-        ``ps``, with ``lstart`` as the start time. O(processes).
+        and the start time is its ``starttime`` field. On macOS it
+        comes from ``libproc`` (no child process: ``ps`` is setuid, and
+        a sandbox, such as an agent's, refuses to run it), written as
+        ``ps`` writes ``lstart``; if ``libproc`` can't be loaded, and
+        elsewhere, from ``ps``. O(processes).
 
     Raises
     ------
     OSError
         If ``ps`` can't run or fails where it is needed.
     """
+    if sys.platform == "darwin":
+        table = libproc_table(only)
+        if table is not None:
+            return table
+        try:
+            return ps_table(only)
+        except OSError as exc:
+            msg = (
+                "neither libproc nor ps can read the process table here "
+                f"(a sandbox may deny both): {exc}"
+            )
+            raise OSError(msg) from exc
     if Path("/proc/self/stat").exists():
         pids = (
             [only]
@@ -414,7 +435,7 @@ def process_table(only: int | None = None) -> dict[int, Proc]:
         )
         rows = (_linux_row(pid) for pid in pids)
         return {p.pid: p for p in rows if p is not None}
-    return _ps_table(only)
+    return ps_table(only)
 
 
 def _linux_row(pid: int) -> Proc | None:
@@ -435,7 +456,171 @@ def _linux_row(pid: int) -> Proc | None:
         return None
 
 
-def _ps_table(only: int | None) -> dict[int, Proc]:
+class _BsdInfo(ctypes.Structure):
+    """``struct proc_bsdinfo`` of ``<sys/proc_info.h>``."""
+
+    _fields_ = (
+        ("flags", ctypes.c_uint32),
+        ("status", ctypes.c_uint32),
+        ("xstatus", ctypes.c_uint32),
+        ("pid", ctypes.c_uint32),
+        ("ppid", ctypes.c_uint32),
+        ("ids", ctypes.c_uint32 * 7),
+        ("comm", ctypes.c_char * 16),
+        ("name", ctypes.c_char * 32),
+        ("nfiles", ctypes.c_uint32),
+        ("pgid", ctypes.c_uint32),
+        ("pjobc", ctypes.c_uint32),
+        ("e_tdev", ctypes.c_uint32),
+        ("e_tpgid", ctypes.c_uint32),
+        ("nice", ctypes.c_int32),
+        ("start_sec", ctypes.c_uint64),
+        ("start_usec", ctypes.c_uint64),
+    )
+
+
+_PROC_PIDTBSDINFO: Final = 3
+_SZOMB: Final = 5
+
+
+def _libproc() -> ctypes.CDLL | None:
+    try:
+        lib = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+        lib.proc_pidinfo.argtypes = (
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_uint64,
+            ctypes.c_void_p,
+            ctypes.c_int,
+        )
+        lib.proc_pidinfo.restype = ctypes.c_int
+        lib.proc_listallpids.argtypes = (ctypes.c_void_p, ctypes.c_int)
+        lib.proc_listallpids.restype = ctypes.c_int
+    except (OSError, AttributeError):
+        return None
+    return lib
+
+
+def format_start(seconds: int) -> str:
+    """Write a start time as ``ps`` writes ``lstart``, spaces collapsed.
+
+    Parameters
+    ----------
+    seconds : int
+        Seconds since the epoch.
+
+    Returns
+    -------
+    str
+        For example ``Fri Oct 3 11:59:54 2026``. ``ps`` pads a one-digit
+        day with a space and `ps_table` collapses runs of spaces, so
+        this does too; a start time is only ever compared in this form.
+    """
+    text = time.strftime("%a %b %e %H:%M:%S %Y", time.localtime(seconds))
+    return " ".join(text.split())
+
+
+class _UnreadableError(Exception):
+    """``libproc`` refused for a reason other than "no such process"."""
+
+
+def _libproc_row(lib: ctypes.CDLL, pid: int) -> Proc | None:
+    """Read one row; ``None`` if the process is gone.
+
+    Raises
+    ------
+    _UnreadableError
+        If the call failed for any other reason (a sandbox denying it).
+    """
+    info = _BsdInfo()
+    ctypes.set_errno(0)
+    got = lib.proc_pidinfo(
+        pid, _PROC_PIDTBSDINFO, 0, ctypes.byref(info), ctypes.sizeof(info)
+    )
+    if got != ctypes.sizeof(info):
+        if got <= 0 and ctypes.get_errno() == errno.ESRCH:
+            return None
+        raise _UnreadableError(pid)
+    if info.pid != pid:
+        return None
+    return Proc(
+        pid=pid,
+        ppid=info.ppid,
+        pgid=info.pgid,
+        start=format_start(info.start_sec),
+        zombie=info.status == _SZOMB,
+    )
+
+
+def libproc_table(only: int | None) -> dict[int, Proc] | None:
+    """Read the process table through ``libproc`` (macOS).
+
+    Parameters
+    ----------
+    only : int or None
+        Read just this PID, or every process.
+
+    Returns
+    -------
+    dict of int to Proc or None
+        Keyed by PID; a process that is gone is left out, and so is
+        one this user may not inspect (a root process). ``None`` if
+        ``libproc`` can't be used or is denied here (a failed listing,
+        a failed read of this process, or any refusal for a single
+        PID other than "no such process"): an empty answer would read
+        as "gone". O(processes).
+    """
+    lib = _libproc()
+    if lib is None:
+        return None
+    try:
+        if only is not None:
+            row = _libproc_row(lib, only)
+            return {} if row is None else {only: row}
+        room = 4096
+        while True:
+            pids = (ctypes.c_int * room)()
+            count = lib.proc_listallpids(pids, ctypes.sizeof(pids))
+            if count <= 0:
+                return None
+            if count < room:
+                break
+            room *= 4
+        table: dict[int, Proc] = {}
+        for i in range(count):
+            try:
+                row = _libproc_row(lib, pids[i])
+            except _UnreadableError:
+                if pids[i] == os.getpid():
+                    raise
+                continue
+            if row is not None:
+                table[row.pid] = row
+    except _UnreadableError:
+        return None
+    if os.getpid() not in table:
+        return None
+    return table
+
+
+def ps_table(only: int | None) -> dict[int, Proc]:
+    """Read the process table from ``ps``.
+
+    Parameters
+    ----------
+    only : int or None
+        Read just this PID, or every process.
+
+    Returns
+    -------
+    dict of int to Proc
+        Keyed by PID. O(processes).
+
+    Raises
+    ------
+    OSError
+        If ``ps`` can't run, times out or fails.
+    """
     argv = ["ps", "-o", "pid=,ppid=,pgid=,stat=,lstart="]
     argv += ["-p", str(only)] if only is not None else ["-A"]
     env = {**os.environ, "LC_ALL": "C"}
@@ -634,6 +819,47 @@ def _live(
     ]
 
 
+def deliver(
+    send: Callable[[int, int], None], pid: int, sig: int, start: str
+) -> None:
+    """Send a signal to a process that is meant to be ours to signal.
+
+    macOS answers ``EPERM`` for a process, or a group, whose members
+    are exiting or are zombies. That is read as "already exiting" only
+    after the process table shows the process is gone, is a zombie, or
+    is no longer the one that started at ``start``.
+
+    Parameters
+    ----------
+    send : callable
+        ``os.kill`` or ``os.killpg``.
+    pid : int
+        The process, or the group leader for ``os.killpg``.
+    sig : int
+        The signal.
+    start : str
+        The process's start time as found, to tell it from a reused PID.
+
+    Raises
+    ------
+    PermissionError
+        If the process is alive and the signal was refused, or the
+        table can't be read to tell.
+    """
+    try:
+        send(pid, sig)
+    except ProcessLookupError:
+        return
+    except PermissionError:
+        try:
+            row = process_table(pid).get(pid)
+        except OSError:
+            row = Proc(pid, 0, 0, start, zombie=False)
+        if row is None or row.zombie or row.start != start:
+            return
+        raise
+
+
 def kill_tree(
     root: Identity,
     *,
@@ -680,11 +906,10 @@ def kill_tree(
     roots = [root.pid] if _alive(root, table) else []
     _grow(table, tree, roots, _session_of(root, table))
     if kill_root and roots:
-        with contextlib.suppress(ProcessLookupError):
-            if table[root.pid].pgid == root.pid:
-                os.killpg(root.pid, signal.SIGTERM)
-            else:
-                os.kill(root.pid, signal.SIGTERM)
+        if table[root.pid].pgid == root.pid:
+            deliver(os.killpg, root.pid, signal.SIGTERM, root.start)
+        else:
+            deliver(os.kill, root.pid, signal.SIGTERM, root.start)
         deadline = time.monotonic() + grace_seconds
         while time.monotonic() < deadline and _probe(root) is not False:
             time.sleep(_POLL_SECONDS)
@@ -697,8 +922,7 @@ def kill_tree(
         if not live:
             return []
         for pid in live:
-            with contextlib.suppress(ProcessLookupError):
-                os.kill(pid, signal.SIGKILL)
+            deliver(os.kill, pid, signal.SIGKILL, tree.starts[pid])
         time.sleep(_POLL_SECONDS)
     return _live(process_table(), tree, skip)
 
