@@ -28,6 +28,7 @@ mechanical discovery step that the method requires.*
 perfproof find [--depth light|medium|deep] [--budget SECONDS]
                [--size-arg WORKLOAD:FLAG=BASE | --size-env WORKLOAD:NAME=BASE]...
                [--no-tests] [--test-timeout SECONDS] [--confirm-tests PART]...
+               [--test-command PART=JSON]...
                [--waive CODE=REASON]... [--json]
 ```
 
@@ -43,6 +44,10 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
   must not change.
 - `--no-tests`: never run test suites. `--test-timeout`: the cap per test
   probe, 300 s by default.
+- `--test-command PART=JSON`: the part's test command as a JSON array of
+  strings, for when none was detected (a compound npm script). It is kept
+  in `.perfproof/find/test-commands.json`, replaces the detected command, and
+  is still run only after `--confirm-tests` for exactly that argv.
 - `--confirm-tests PART`: record the user's yes to running that part's test
   command. It is stored in `FindState.confirmed_tests`, keyed by `Part.id`, with
   the argv confirmed. A changed argv needs a new confirmation.
@@ -60,9 +65,9 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
 |---|---|---|---|
 | Understand, tooling | yes | yes | yes |
 | Test probe per part | no | yes | yes |
-| Native recorder on tests / workloads | no | when native or leaf ≥ `min_effect` | always for native parts |
+| Native recorder on tests / workloads | no | for a part with native code; for a Python part, also when a builtin or extension leaf in the workload's first profile is ≥ `min_effect` | always for parts with native code |
 | Existing benchmarks | no | yes | yes |
-| User workloads asked for | 1 | 3, ≥2 entry points or kinds | 1 per entry point |
+| User workloads asked for | 1 | 3, covering ≥ min(2, detected entry points) entry points; with fewer than 2 detected, ≥2 distinct functions at the top of the workloads' rankings | 1 per entry point |
 | Size knob asked for | no | 1 workload | every workload with a size |
 
 ## What one call does

@@ -61,7 +61,8 @@ back to wall time), else null; paths are absolute.
 
 Error codes
 -----------
-``not_a_repository``, ``not_found`` (no such benchmark, spec or
+``not_a_repository``, ``find_spec_not_comparable`` (a ``find-*`` probe
+spec), ``not_found`` (no such benchmark, spec or
 candidate), ``ambiguous_hash``, ``invalid_record``, ``invalid_revision``
 (a revision that names no commit, or a worktree that can't be made),
 ``usage`` (``--resume`` with a name or candidate, or neither without
@@ -201,8 +202,15 @@ def run(args: argparse.Namespace) -> Output:
         raise CommandError("usage", msg)
     if args.timeout is not None and not args.detach:
         raise CommandError("usage", "--timeout applies to --detach only")
-    root = _repo_root(cast("Path", args.repo))
     name = cast("str", args.name)
+    if name.startswith("find-"):
+        msg = (
+            f"{name} is a perfproof find probe spec: it is profile-only "
+            "and cannot be compared; define your own workload with "
+            "`perfproof bench define`"
+        )
+        raise CommandError("find_spec_not_comparable", msg, {"name": name})
+    root = _repo_root(cast("Path", args.repo))
     spec, lock = _spec(root, name, cast("str | None", args.spec_hash))
     try:
         exclude_state_dir(root)

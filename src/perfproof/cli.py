@@ -91,6 +91,9 @@ Understand
                    entries; check which entries are stale
 
 Discover
+  find             Run the mechanical discovery steps: tooling, test and
+                   workload probes, a map, leads, one question and the
+                   next steps
   profile          Run a profiler on a workload and summarise the top
                    frames with file:line and share of time
   measure          Measure one version: scaling runs (--sizes), a stage
@@ -134,6 +137,7 @@ that isn't available on this target blocks KEEP; it never passes."""
 COMMANDS: Final = (
     "init",
     "project",
+    "find",
     "profile",
     "measure",
     "log",

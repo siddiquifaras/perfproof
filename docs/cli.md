@@ -20,6 +20,9 @@ Understand
                    entries; check which entries are stale
 
 Discover
+  find             Run the mechanical discovery steps: tooling, test and
+                   workload probes, a map, leads, one question and the
+                   next steps
   profile          Run a profiler on a workload and summarise the top
                    frames with file:line and share of time
   measure          Measure one version: scaling runs (--sizes), a stage
@@ -331,6 +334,83 @@ files' suffixes alone.
 Errors: `not_a_repository`, `invalid_name`, `not_found` (no readable
 saved profile) and `state_read_failed`.
 
+## `perfproof find`
+
+```
+perfproof find [--depth light|medium|deep] [--budget SECONDS]
+               [--size-arg WORKLOAD:FLAG=BASE | --size-env WORKLOAD:NAME=BASE]...
+               [--no-tests] [--test-timeout SECONDS] [--confirm-tests PART]...
+               [--test-command PART=JSON]...
+               [--waive CODE=REASON]... [--json]
+```
+
+Runs the mechanical discovery steps and says where they stand. The design
+is `docs/find.md`; this is the interface. Each call advances one plan as
+far as the budget allows; calling it again resumes from
+`.perfproof/find/state.json` (written to a temporary file and renamed).
+`find` writes only under `.perfproof/`, apart from what the profiled
+commands themselves do.
+
+- `--depth` (default `medium`) sets the probes: light runs none; medium
+  and deep run each part's test command, its existing benchmarks and every
+  user workload; the native recorder runs on parts with native code (at
+  medium also when a leaf frame reaches `min_effect`).
+- `--budget` is wall-clock seconds for probes in this call (300 light,
+  900 medium, 2400 deep). A probe's time limit, per run, is the smaller
+  of what is left and its own (`--test-timeout`, 300 s by default, for
+  tests; 300 s for benchmarks; the spec's for a workload). `profile` runs
+  the command twice, so a probe can take up to twice that. A probe the
+  budget ended is not recorded and stays pending.
+- `--size-arg` / `--size-env` store the size knob of a defined workload
+  (`not_found` when it is not defined). A workload with a knob is
+  profiled with `--sizes 1,2,4` under the key `<name>@sizes`.
+- `--test-command PART=JSON` gives a part's test command as a JSON array
+  of strings when none was detected; it is kept in
+  `.perfproof/find/test-commands.json` and is still run only after
+  `--confirm-tests` for that argv.
+- `--confirm-tests PART` records the user's yes to that part's test
+  command, with the argv. Tests run only after it, and a changed argv
+  needs a new confirmation. `--no-tests` runs none.
+- `--waive CODE=REASON` records why `define_workloads`, `add_size_knob`
+  or `reach_lead` cannot be met; `done` accepts it.
+
+`find` runs `init` when there is no project model, otherwise its stale
+check. `--json` result: the `FindResult` of `docs/find.md`: `done`,
+`depth`, `parts`, `question`, `next_steps`, `map`, `leads`,
+`not_reached`, `skipped` and `budget`, plus `profilers`, each part's
+`--profiler-command` template (an empty list: the default profiler).
+
+- **Probes**, in order: the tests of each part (`find-tests-<part>`),
+  then its native re-profile (`@native`); the existing benchmarks
+  (`find-bench-<part>-<name>`); then every user workload. A probe is
+  current when its spec hash and the `tree_id` match; a stale probe's
+  old runs are deleted before it runs again. A failed or timed-out probe
+  leaves no profile; it is in `skipped` with the reason and the log tail.
+- **Tree check**: `git status --porcelain` before and after every probe.
+  Entries the probe added make it `tree_modified` (reason
+  `tests_modified_tree: <paths>`), its profile is deleted, and it never
+  runs again; the other probes go on.
+- **Map**: `profile show --rank` over the user workloads' names (none:
+  `map` is empty). At most 50 rows; wrappers (such as `main`) are left
+  out. **Leads**: functions the `find-*` probes reached that no user
+  workload did, test files excluded, at most 20, then files the probes
+  sampled that no user workload did. `via_test` is
+  `<file>::<function>` of the heaviest test frame above the lead.
+  `not_reached` is the files no saved profile sampled.
+- **`question`**: confirm each unconfirmed class, each test command, and
+  install each missing coverage tool that could lead to a KEEP.
+- **`next_steps`**, in order: `install_or_confirm`, `define_workloads`,
+  `add_size_knob`, `reach_lead`, `continue_find`. `reach_lead` is advice:
+  `done` does not wait for it.
+- **`done`** is true when the depth's probes are done or waived (by
+  `no_tests`, `recorder_unavailable`, `tests_modified_tree`, `timeout`
+  or `failed`), the workload and size-knob asks are met or waived with
+  `--waive`, and no question or pending probe is left.
+
+`compare` refuses a `find-*` spec with `find_spec_not_comparable`.
+Exit status is 0 whether or not `done`; errors are in the error-code
+table below.
+
 ## Long runs
 
 `compare` runs in the foreground by default. When a comparison may
@@ -551,6 +631,12 @@ the run was cancelled. For a run that had already `timed_out` or
 | `invalid_record` | `status` | The record of a `finished` run does not read back |
 | `invalid_record` | `compare` | The spec directory can't be read or a spec does not load, foreground or `--detach` |
 | `ambiguous_hash` | `compare` | More than one spec of the benchmark matches |
+| `find_spec_not_comparable` | `compare` | The name starts with `find-`: a probe spec of `perfproof find`, profile-only |
+| `unknown_part` | `find` | `--confirm-tests` or `--test-command` names no part |
+| `no_test_command` | `find` | `--confirm-tests` names a part with no test command |
+| `not_found` | `find` | `--size-arg` or `--size-env` names a workload that is not defined |
+| `tree_check_failed` | `find` | The version control state could not be read for `tree_id` or the before/after status |
+| `state_read_failed`, `state_write_failed` | `find` | `.perfproof/find/state.json` cannot be read, is not a valid state, or cannot be written |
 | `invalid_revision` | `compare` | A revision names no commit, or a worktree can't be made |
 | `already_finished` | `cancel` | The run has a record |
 | `cancel_incomplete` | `cancel` | A process of the run survived SIGKILL (`details.pids`), or the marker or process table could not be written or read |
