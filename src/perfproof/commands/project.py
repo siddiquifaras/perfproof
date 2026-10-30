@@ -4,10 +4,26 @@ Actions
 -------
 ``show [ID]``
     The model: every entry with its status, and per workload whether it
-    may be measured now (the same test ``compare`` applies). Unknowns
+    is backed now (the guard ``compare`` applies; ``compare`` measures
+    either way and withholds only a KEEP). Unknowns
     come back as ``questions``.
+``add-workload NAME --target TARGET_ID [--evidence TEXT] [--replace]``
+    Register a benchmark the agent defined (``bench define NAME``) as a
+    ``proposed`` workload of source ``agent_defined``, so ``confirm``
+    and ``goal --confirm`` work for it as for a workload ``init``
+    found. The same spec twice changes nothing; another spec or
+    target under the same name is refused (``duplicate``) unless
+    ``--replace`` is given.
 ``confirm ID [ID ...]``
-    Record the developer's confirmation, in the order given. A goal
+    Record the developer's confirmation, in the order given. A
+    confirmed workload that has a stored benchmark spec of its name
+    and no ``spec_hash`` is bound to it (a second ``confirmed`` line),
+    so confirm again after ``bench define``, even when the workload is
+    already confirmed. With several stored specs, ``--spec-hash HASH``
+    picks one; without it the command refuses (``ambiguous_hash``,
+    the hashes in the details) and writes nothing. A hash other than
+    the one a workload is already bound to is refused
+    (``spec_already_bound``); the same hash changes nothing. A goal
     whose metric, direction, unit or guardrails are unknown is refused
     with the questions to ask (``goal_unknown``); a goal is confirmed
     only after its workload (``workload_not_confirmed``).
@@ -17,7 +33,7 @@ Actions
     filled (and shown) when the metric is known, as ``proposed``; add
     ``--confirm`` to confirm the goal in the same step. ``--bar`` is
     ``ratio:1.2`` or ``absolute:0.5``; without one the default bar
-    applies and is named so (see `perfproof.project.goals`).
+    is named in reports (see `perfproof.project.goals`).
 ``constraint add --kind K --subject S``
     State a constraint (``public_api``, ``numeric_tolerance`` with
     ``--rtol`` and ``--atol``, ``target_hardware``,
@@ -35,8 +51,8 @@ Actions
 ``--json`` result
 -----------------
 Every action returns ``{"action", ...}``. Entries are the JSON dumps of
-the `perfproof.schema` entry models. ``confirm``, ``goal``,
-``constraint`` and ``retire`` return ``{"action", "records",
+the `perfproof.schema` entry models. ``add-workload``, ``confirm``,
+``goal``, ``constraint`` and ``retire`` return ``{"action", "records",
 "entries"}``: the history events written (``{"event", "id",
 "version", "status"}``) and the entries as they now are. ``check``
 returns ``{"action", "marked_stale", "revalidated", "reproposed",
@@ -52,7 +68,9 @@ Error codes
 ``already_retired``, ``has_dependents``,
 ``guardrail_conflict``, ``duplicate``, ``inconsistent_model``,
 ``host_unknown``, ``not_a_repository``, ``state_write_failed``,
-``lock_timeout``.
+``lock_timeout``; ``add-workload`` and ``confirm`` also
+``ambiguous_hash`` and ``invalid_record`` (the benchmark's stored spec),
+and ``confirm`` ``spec_already_bound``.
 """
 
 import argparse
@@ -64,12 +82,13 @@ from typing import cast, get_args
 from pydantic import ValidationError
 
 from perfproof import __version__
-from perfproof.commands import JsonValue, Output
+from perfproof.commands import CommandError, JsonValue, Output
 from perfproof.commands._project import (
     as_command_error,
     default_session,
     repo_root,
 )
+from perfproof.commands._spec import select_spec
 from perfproof.project.entries import all_entries, check_consistency, find
 from perfproof.project.errors import NotConfirmedError, ProjectError
 from perfproof.project.goals import (
@@ -81,6 +100,8 @@ from perfproof.project.guard import current_host_id, require_confirmed
 from perfproof.project.lifecycle import (
     GoalUpdate,
     add_constraint,
+    add_workload,
+    bind_spec,
     confirm,
     retire,
     set_goal,
@@ -99,6 +120,7 @@ from perfproof.schema import (
     ProjectHistoryRecord,
     ProjectModel,
     Provenance,
+    WorkloadEntry,
 )
 
 __all__ = ["add_arguments", "run"]
@@ -134,8 +156,32 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     show = add("show", "show the model")
     show.add_argument("entry", nargs="?", help="one entry ID")
+    adw = add("add-workload", "register a benchmark the agent defined")
+    adw.add_argument("name", metavar="NAME", help="a defined benchmark")
+    adw.add_argument(
+        "--target", required=True, metavar="TARGET_ID", help="a target ID"
+    )
+    adw.add_argument(
+        "--evidence", help="where the workload came from, in words"
+    )
+    adw.add_argument(
+        "--spec-hash",
+        metavar="HASH",
+        help="the spec version, when the benchmark has several",
+    )
+    adw.add_argument(
+        "--replace",
+        action="store_true",
+        help="replace a workload of this name with another spec or target",
+    )
     conf = add("confirm", "confirm entries the developer accepted")
     conf.add_argument("ids", nargs="+", metavar="ID")
+    conf.add_argument(
+        "--spec-hash",
+        metavar="HASH",
+        help="the spec version a workload is bound to, when its benchmark "
+        "has several",
+    )
     _session(conf)
     goal = add("goal", "say what faster means for a workload")
     goal.add_argument("workload")
@@ -512,13 +558,17 @@ def _apply(
     now: datetime,
 ) -> Mutation:
     if action == "confirm":
-        return confirm(
+        ids = cast("list[str]", args.ids)
+        new, records = confirm(
             model,
-            cast("list[str]", args.ids),
+            ids,
             session,
             now,
             reprovenance=lambda e: _protected(root, e, now),
         )
+        return _bind_specs(new, records, root, args, session, now)
+    if action == "add-workload":
+        return _add_workload(model, root, args, now)
     if action == "retire":
         return retire(
             model,
@@ -530,6 +580,83 @@ def _apply(
     if action == "goal":
         return _goal(model, args, session, now)
     return _constraint(model, root, args, session, now)
+
+
+def _bind_specs(
+    model: ProjectModel,
+    records: list[ProjectHistoryRecord],
+    root: Path,
+    args: argparse.Namespace,
+    session: str,
+    now: datetime,
+) -> Mutation:
+    """Bind each confirmed, unbound workload named to its spec.
+
+    A workload whose benchmark has no stored spec has nothing to bind.
+    Several specs without ``--spec-hash``, or a hash that matches none,
+    refuse the whole confirmation (nothing is written): a silent no-op
+    would leave `compare` asking for a confirmation that never binds.
+    """
+    prefix = cast("str | None", args.spec_hash)
+    for entry_id in dict.fromkeys(cast("list[str]", args.ids)):
+        entry = find(model, entry_id)
+        if not isinstance(entry, WorkloadEntry) or entry.status != "confirmed":
+            continue
+        if entry.spec_hash is not None and prefix is None:
+            continue
+        try:
+            spec, _ = select_spec(root, entry.id, prefix)
+        except CommandError as exc:
+            if exc.code == "not_found" and prefix is None:
+                continue
+            raise ProjectError(exc.code, exc.message, exc.details) from exc
+        if entry.spec_hash is not None:
+            if spec.spec_hash != entry.spec_hash:
+                raise ProjectError(
+                    "spec_already_bound",
+                    f"workload {entry.id} is bound to spec "
+                    f"{entry.spec_hash}, not {spec.spec_hash}: register the "
+                    f"other spec with `perfproof project add-workload "
+                    f"{entry.id} --target {entry.target_id} --spec-hash "
+                    f"{spec.spec_hash} --replace`, then confirm it",
+                    {
+                        "entry": entry.id,
+                        "bound": entry.spec_hash,
+                        "requested": spec.spec_hash,
+                    },
+                )
+            continue
+        model, more = bind_spec(model, entry.id, spec.spec_hash, session, now)
+        records = [*records, *more]
+    return model, records
+
+
+def _add_workload(
+    model: ProjectModel,
+    root: Path,
+    args: argparse.Namespace,
+    now: datetime,
+) -> Mutation:
+    name = cast("str", args.name)
+    try:
+        spec, _ = select_spec(root, name, cast("str | None", args.spec_hash))
+    except CommandError as exc:
+        raise ProjectError(exc.code, exc.message, exc.details) from exc
+    evidence = cast("str | None", args.evidence) or (
+        f"defined by the agent from spec {spec.spec_hash[:12]} of {name}"
+    )
+    return add_workload(
+        model,
+        name=name,
+        target_id=cast("str", args.target),
+        command=spec.command,
+        cwd=spec.cwd,
+        spec_hash=spec.spec_hash,
+        evidence=evidence,
+        replace=cast("bool", args.replace),
+        version=__version__,
+        now=now,
+    )
 
 
 def _goal(

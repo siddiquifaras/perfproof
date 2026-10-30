@@ -55,7 +55,7 @@ mechanisms above.
 
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
-| 17 | Measuring an unrepresentative workload | The developer confirms every workload, goal and constraint; no comparison runs on an unconfirmed or stale one; the report states where the workload came from | Code (refusal), skill (proposal) | Refusal tests; evaluation | A developer confirming a poor workload |
+| 17 | Measuring an unrepresentative workload | The developer confirms every workload, goal and constraint; no KEEP stands on an unconfirmed, stale, retired, missing or other-machine workload, goal or constraint: `compare` still measures and withholds the KEEP with `workload_not_confirmed` (measure anyway, withhold only KEEP; a REJECT on evidence is unchanged); the report states where the workload came from | Code (refusal), skill (proposal) | Refusal tests; evaluation | A developer confirming a poor workload |
 | 18 | Guessing the hotspot instead of measuring | Every hypothesis carries its evidence by path and hash; profiles summarised by code | Code (log), skill (reasoning) | Log tests; evaluation of discovery | A plausible but wrong reading of good evidence |
 | 19 | Retrying ideas that already failed | The hypothesis log, anchored to code, shown with every opportunity | Code (log), skill (judgment) | Log tests; repeat rate in the evaluation | Two ideas that look different but aren't |
 | 20 | Claiming more than was shown | Reports render only recorded fields; caps labelled as bounds; claims name the repository | Code (report), skill (wording) | Report snapshot tests; evaluation review | Over-reading by the person reading the report |

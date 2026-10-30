@@ -6233,7 +6233,8 @@
             "entry_point",
             "route_list",
             "recorded_traffic",
-            "recorded_agent_run"
+            "recorded_agent_run",
+            "agent_defined"
           ],
           "title": "Source",
           "type": "string"

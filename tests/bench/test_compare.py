@@ -41,9 +41,12 @@ from perfproof.schema import (
     KEEP_BLOCKING_WARNINGS,
     BenchmarkSpec,
     Confirmation,
+    Direction,
     EntryStatus,
     FileHash,
     GateResult,
+    GoalBar,
+    GoalEntry,
     Interval,
     Invalidation,
     MachineFingerprint,
@@ -52,6 +55,7 @@ from perfproof.schema import (
     RunRecord,
     TargetClass,
     TargetEntry,
+    WorkloadEntry,
 )
 from perfproof.stats.intervals import hac_lf_interval, t_interval
 from perfproof.stats.sequential import BATCH_BLOCK, Look, look_confidence
@@ -233,12 +237,23 @@ def write_model(
     root: Path,
     targets: tuple[tuple[TargetClass, str], ...],
     evidence: Mapping[str, str] | None = None,
+    *,
+    workload: BenchmarkSpec | None = None,
+    workload_status: Literal["confirmed", "proposed"] = "confirmed",
+    goal: tuple[str, str, str] = ("wall_time", "lower_is_better", "s"),
+    workload_on: TargetClass | None = None,
+    bound: bool = True,
 ) -> None:
     """Write a project model holding ``targets`` under ``root``.
 
     ``evidence`` maps file paths to contents: each is written under
     ``root`` and recorded in every target's provenance with its hash, as
-    the files the target was derived from.
+    the files the target was derived from. ``workload``, when given,
+    adds a workload named like that spec, on the target of the spec's
+    class (else the first) and frozen at its hash, with a goal; both are
+    in ``workload_status``, which is what `compare` requires of the
+    benchmark's workload. ``workload_on`` puts it on the target of that
+    class instead; ``bound=False`` leaves it with no ``spec_hash``.
     """
     when = datetime(2026, 10, 28, 12, 0, tzinfo=UTC)
     files = tuple(
@@ -278,7 +293,55 @@ def write_model(
         )
         for i, (cls, status) in enumerate(targets)
     )
-    model = ProjectModel(updated_at=when, targets=entries)
+    workloads: tuple[WorkloadEntry, ...] = ()
+    goals: tuple[GoalEntry, ...] = ()
+    if workload is not None and entries:
+        provenance = Provenance(
+            files=(), commands=(), perfproof_version="0.1.0", derived_at=when
+        )
+        confirmation = (
+            Confirmation(session="test", confirmed_at=when)
+            if workload_status == "confirmed"
+            else None
+        )
+        own = next(
+            (
+                t
+                for t in entries
+                if t.target_class == (workload_on or workload.target_class)
+            ),
+            entries[0],
+        )
+        workloads = (
+            WorkloadEntry(
+                id=workload.name,
+                target_id=own.id,
+                source="agent_defined",
+                command=workload.command,
+                cwd=workload.cwd,
+                spec_hash=workload.spec_hash if bound else None,
+                status=workload_status,
+                provenance=provenance,
+                confirmation=confirmation,
+            ),
+        )
+        goals = (
+            GoalEntry(
+                id=f"goal-{workload.name}",
+                workload_id=workload.name,
+                metric=goal[0],
+                direction=cast("Direction", goal[1]),
+                unit=goal[2],
+                bar=GoalBar(kind="ratio", value=1.05),
+                guardrails=(),
+                status=workload_status,
+                provenance=provenance,
+                confirmation=confirmation,
+            ),
+        )
+    model = ProjectModel(
+        updated_at=when, targets=entries, workloads=workloads, goals=goals
+    )
     path = model_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(model.model_dump_json(), encoding="utf-8")
@@ -316,10 +379,12 @@ class Project:
         if targets == "spec":
             if spec.target_class is not None:
                 write_model(
-                    self.model_root, ((spec.target_class, "confirmed"),)
+                    self.model_root,
+                    ((spec.target_class, "confirmed"),),
+                    workload=spec,
                 )
         elif targets not in ("none", "keep"):
-            write_model(self.model_root, targets)
+            write_model(self.model_root, targets, workload=spec)
         return compare(
             spec,
             build_manifest(spec, self.root),
@@ -1772,6 +1837,337 @@ def test_no_project_root_withholds_keep(
         faster_candidate(project), web_spec(), project_root="none"
     )
     withheld_for(result, "no project root was given")
+
+
+def workload_warnings(result: CompareResult) -> list[str]:
+    return [
+        w.message
+        for w in result.record.warnings
+        if w.code == "workload_not_confirmed"
+    ]
+
+
+def withheld_for_workload(result: CompareResult, why: str) -> None:
+    """KEEP withheld as ``workload_not_confirmed``, naming ``why``.
+
+    The class is confirmed and the verdict stays ``calibrated``: the
+    workload is a separate condition of a KEEP.
+    """
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == (
+        "INCONCLUSIVE",
+        "insufficient_evidence",
+        2,
+    )
+    assert v.calibration == "calibrated"
+    assert v.interval is not None
+    assert v.interval.lower > 1.03
+    warned = workload_warnings(result)
+    assert len(warned) == 1
+    assert why in warned[0]
+    assert not [
+        w
+        for w in result.record.warnings
+        if w.code == "target_class_unverified"
+    ]
+    assert read_record(result.record_path) == result.record
+
+
+def test_a_confirmed_workload_can_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    result = project.run(faster_candidate(project), web_spec())
+    v = result.record.verdict
+    assert (v.outcome, v.rule) == ("KEEP", 2)
+    assert workload_warnings(result) == []
+
+
+def test_an_unconfirmed_workload_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=spec,
+        workload_status="proposed",
+    )
+    result = project.run(faster_candidate(project), spec, targets="keep")
+    withheld_for_workload(result, "proposed")
+
+
+def test_a_workload_missing_from_the_model_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    write_model(project.model_root, (("web_service", "confirmed"),))
+    result = project.run(faster_candidate(project), web_spec(), targets="keep")
+    withheld_for_workload(result, "no such workload")
+
+
+def test_a_spec_changed_after_confirmation_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=web_spec(),
+    )
+    # Same name, another spec: the confirmation was of the first.
+    result = project.run(
+        faster_candidate(project), web_spec(min_effect=0.05), targets="keep"
+    )
+    withheld_for_workload(result, "spec_changed")
+
+
+def test_a_goal_reset_to_another_metric_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=spec,
+        goal=("throughput", "higher_is_better", "ops/s"),
+    )
+    result = project.run(faster_candidate(project), spec, targets="keep")
+    withheld_for_workload(result, "metric is wall_time in the spec")
+    message = workload_warnings(result)[0]
+    assert "direction is lower_is_better in the spec" in message
+    assert "unit is s in the spec" in message
+
+
+def test_a_workload_confirmed_before_its_spec_existed_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=spec,
+        bound=False,
+    )
+    result = project.run(faster_candidate(project), spec, targets="keep")
+    withheld_for_workload(
+        result, "confirmed before its benchmark was defined: confirm again"
+    )
+
+
+def test_a_spec_of_another_class_than_the_workload_target_withholds_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"), ("python_cpu", "confirmed")),
+        workload=spec,
+        workload_on="python_cpu",
+    )
+    result = project.run(faster_candidate(project), spec, targets="keep")
+    withheld_for_workload(result, "of class python_cpu")
+    assert "declares web_service" in workload_warnings(result)[0]
+
+
+def goal_entry(metric: str, direction: str, unit: str) -> GoalEntry:
+    when = datetime(2026, 10, 28, 12, 0, tzinfo=UTC)
+    return GoalEntry(
+        id="goal-work",
+        workload_id="work",
+        metric=metric,
+        direction=cast("Direction", direction),
+        unit=unit,
+        bar=None,
+        guardrails=(),
+        missing={"bar": "the developer has not said"},
+        status="proposed",
+        provenance=Provenance(
+            files=(), commands=(), perfproof_version="0.1.0", derived_at=when
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("goal", "reported"),
+    [
+        (("wall_time", "lower_is_better", "s"), None),
+        (("cpu_time", "lower_is_better", "s"), "metric is wall_time"),
+        (("wall_time", "lower_is_better", "ms"), "unit is s"),
+        (("tokens_per_s", "higher_is_better", "s"), "direction is lower"),
+    ],
+    ids=["match", "metric", "unit", "direction"],
+)
+def test_each_goal_field_that_differs_from_the_spec_is_reported(
+    goal: tuple[str, str, str], reported: str | None
+) -> None:
+    found = compare_module._goal_mismatch(  # pyright: ignore[reportPrivateUsage]
+        web_spec(), goal_entry(*goal)
+    )
+    if reported is None:
+        assert found is None
+    else:
+        assert found is not None
+        assert reported in found
+        # Only the fields that differ are named.
+        assert found.count(" in the spec, ") == (
+            2 if goal[0] == "tokens_per_s" else 1
+        )
+
+
+PEND_BENCH = """\
+import os
+
+from work import A, P99, SCALE, STEP, run
+
+n = int(open("n.txt").read()) if os.path.exists("n.txt") else 0
+open("n.txt", "w").write(str(n + 1))
+wobble = 1 + 0.004 * ((n * 37) % 31 - 15)
+p99w = 1 + A * ((n * STEP) % 31 - 15) / 15.0
+with open("out.txt", "w") as f:
+    f.write(f"{run()}\\n")
+print(
+    "PERFPROOF {"
+    + '"value": %.6f, "p99_latency": %.6f' % (SCALE * wobble, P99 * p99w)
+    + "}"
+)
+"""
+"""Reports a wall value and a p99 that cycle through 31 values each."""
+
+
+def pend_work(scale: float, p99: float, step: int, amp: float) -> str:
+    return (
+        f"SCALE = {scale}\nP99 = {p99}\nSTEP = {step}\nA = {amp}\n\n\n"
+        "def run():\n    return 42\n"
+    )
+
+
+def run_scenario(
+    tmp_path: Path, name: str, scenario: str, confirmed: bool
+) -> CompareResult:
+    """Run one scenario with the workload confirmed or only proposed."""
+    root = tmp_path / name
+    root.mkdir()
+    if scenario == "pending":
+        project = make_project(
+            root, bench=PEND_BENCH, baseline=pend_work(1.0, 1.0, 37, 0.1)
+        )
+        spec = web_spec(guardrails=P99_GUARDRAILS)
+        candidate = project.candidate(
+            "c", {"work.py": pend_work(0.5, 1.1, 11, 0.1)}
+        )
+    else:
+        project = web_project(root)
+        spec = web_spec()
+        candidate = (
+            faster_candidate(project)
+            if scenario == "faster"
+            else project.candidate("slow", {"work.py": det_work(2.0)})
+        )
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=spec,
+        workload_status="confirmed" if confirmed else "proposed",
+    )
+    return project.run(candidate, spec, targets="keep")
+
+
+def test_an_unconfirmed_workload_does_not_end_a_run_early(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A guardrail not established at look 2 is breached at look 3.
+
+    Confirmed or not, the run goes on to 30 rounds and ends REJECT on
+    the guardrail: the workload only ever relabels a KEEP.
+    """
+    watch_looks(monkeypatch)
+    seen: dict[bool, CompareResult] = {
+        flag: run_scenario(tmp_path, f"p{flag}", "pending", flag)
+        for flag in (True, False)
+    }
+    for result in seen.values():
+        v = result.record.verdict
+        assert (v.outcome, v.reason, v.rule) == ("REJECT", "guardrail", 2)
+        assert (v.rounds, v.looks) == (30, 3)
+    assert len(workload_warnings(seen[False])) == 1
+    assert workload_warnings(seen[True]) == []
+
+
+@pytest.mark.parametrize("scenario", ["faster", "slower", "pending"])
+def test_an_unconfirmed_workload_changes_only_a_keep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str
+) -> None:
+    watch_looks(monkeypatch)
+    yes = run_scenario(tmp_path, "yes", scenario, True).record.verdict
+    no = run_scenario(tmp_path, "no", scenario, False).record.verdict
+    if yes.outcome == "KEEP":
+        assert (no.outcome, no.reason) == (
+            "INCONCLUSIVE",
+            "insufficient_evidence",
+        )
+    else:
+        assert (no.outcome, no.reason) == (yes.outcome, yes.reason)
+    assert (no.rule, no.rounds, no.looks) == (yes.rule, yes.rounds, yes.looks)
+    assert (no.estimate, no.interval) == (yes.estimate, yes.interval)
+    assert no.calibration == yes.calibration
+
+
+def test_every_workload_problem_is_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    watch_looks(monkeypatch)
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"), ("python_cpu", "confirmed")),
+        workload=spec,
+        workload_on="python_cpu",
+        bound=False,
+        goal=("throughput", "higher_is_better", "ops/s"),
+    )
+    result = project.run(faster_candidate(project), spec, targets="keep")
+    message = workload_warnings(result)[0]
+    for part in (
+        "confirmed before its benchmark was defined",
+        "of class python_cpu",
+        "metric is wall_time in the spec",
+        "direction is lower_is_better in the spec",
+        "unit is s in the spec",
+    ):
+        assert part in message
+
+
+def test_a_reject_on_evidence_does_not_need_a_confirmed_workload(
+    tmp_path: Path,
+) -> None:
+    project = web_project(tmp_path)
+    spec = web_spec()
+    write_model(
+        project.model_root,
+        (("web_service", "confirmed"),),
+        workload=spec,
+        workload_status="proposed",
+    )
+    slower = project.candidate("slow", {"work.py": det_work(2.0)})
+    result = project.run(slower, spec, targets="keep")
+    v = result.record.verdict
+    assert (v.outcome, v.reason, v.rule) == ("REJECT", "performance", 3)
+    assert v.calibration == "calibrated"
+    assert len(workload_warnings(result)) == 1
+    assert read_record(result.record_path) == result.record
 
 
 def test_a_reject_on_evidence_does_not_need_a_confirmed_class(

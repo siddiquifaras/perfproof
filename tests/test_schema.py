@@ -4572,6 +4572,7 @@ def withheld_keep() -> Verdict:
         "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
+        "workload_not_confirmed",
     ],
 )
 def test_a_keep_cannot_carry_a_warning_that_withholds_it(code: str) -> None:

@@ -78,7 +78,6 @@ it; a bad ``--timeout``), the codes of
 import argparse
 import math
 import os
-import re
 import secrets
 import subprocess
 from datetime import UTC, datetime
@@ -103,9 +102,6 @@ from perfproof.bench.snapshot import (
 )
 from perfproof.bench.spec import (
     STATE_DIR,
-    SpecRecordError,
-    load_spec,
-    spec_record_path,
 )
 from perfproof.commands import CommandError, JsonValue, Output
 from perfproof.commands._runs import (
@@ -114,13 +110,11 @@ from perfproof.commands._runs import (
     run_directory,
     warnings_json,
 )
-from perfproof.schema import BenchmarkSpec, LockManifest, RunRecord
+from perfproof.commands._spec import select_spec
+from perfproof.schema import RunRecord
 
 __all__ = ["add_arguments", "run"]
 
-_HASH_FILE: Final = re.compile(r"^[0-9a-f]{64}\.json$")
-_HEX: Final = re.compile(r"^[0-9a-f]+$")
-_ZERO_HASH: Final = "0" * 64
 _SHORT_SHA: Final = 12
 
 
@@ -211,7 +205,7 @@ def run(args: argparse.Namespace) -> Output:
         )
         raise CommandError("find_spec_not_comparable", msg, {"name": name})
     root = _repo_root(cast("Path", args.repo))
-    spec, lock = _spec(root, name, cast("str | None", args.spec_hash))
+    spec, lock = select_spec(root, name, cast("str | None", args.spec_hash))
     try:
         exclude_state_dir(root)
         baseline_commit = resolve_commit(root, cast("str", args.baseline))
@@ -355,48 +349,6 @@ def _repo_root(repo: Path) -> Path:
         msg = f"{repo} is not in a git working tree: {done.stderr.strip()}"
         raise CommandError("not_a_repository", msg, {"repo": str(repo)})
     return Path(done.stdout.strip())
-
-
-def _spec(
-    root: Path, name: str, prefix: str | None
-) -> tuple[BenchmarkSpec, LockManifest]:
-    """Load the one spec version of ``name`` that ``prefix`` selects."""
-    try:
-        directory = spec_record_path(root, name, _ZERO_HASH).parent
-    except ValueError as exc:
-        raise CommandError("not_found", str(exc), {"name": name}) from exc
-    if prefix is not None and not _HEX.fullmatch(prefix):
-        msg = f"{prefix!r} is not a spec hash or a prefix of one"
-        raise CommandError("not_found", msg, {"name": name})
-    try:
-        found = (
-            sorted(
-                p.stem for p in directory.iterdir() if _HASH_FILE.match(p.name)
-            )
-            if directory.is_dir()
-            else []
-        )
-    except OSError as exc:
-        raise CommandError("invalid_record", str(exc)) from exc
-    matches = [h for h in found if prefix is None or h.startswith(prefix)]
-    if not matches:
-        msg = f"no spec of benchmark {name!r} matches in {root}" + (
-            "" if prefix is None else f" hash {prefix}"
-        )
-        raise CommandError("not_found", msg, {"name": name})
-    if len(matches) > 1:
-        listed: list[JsonValue] = list(matches)
-        msg = (
-            f"benchmark {name!r} has {len(matches)} matching specs; pick "
-            "one with --spec-hash"
-        )
-        raise CommandError(
-            "ambiguous_hash", msg, {"name": name, "matches": listed}
-        )
-    try:
-        return load_spec(root, name, matches[0])
-    except (SpecRecordError, OSError) as exc:
-        raise CommandError("invalid_record", str(exc)) from exc
 
 
 def _candidate(root: Path, value: str) -> Path:

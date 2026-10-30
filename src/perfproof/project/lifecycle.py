@@ -64,6 +64,8 @@ __all__ = [
     "GoalUpdate",
     "Merge",
     "add_constraint",
+    "add_workload",
+    "bind_spec",
     "claim_changed",
     "confirm",
     "propagate",
@@ -169,6 +171,181 @@ def propose(model: ProjectModel, proposal: Proposal, now: datetime) -> Merge:
         added.append(entry.id)
     check_consistency(model)
     return Merge(model, records, tuple(added), tuple(skipped))
+
+
+def add_workload(
+    model: ProjectModel,
+    *,
+    name: str,
+    target_id: str,
+    command: tuple[str, ...],
+    cwd: str,
+    spec_hash: str,
+    evidence: str,
+    replace: bool,
+    version: str,
+    now: datetime,
+) -> Change:
+    """Register a workload the agent defined as a benchmark spec.
+
+    The entry is ``proposed`` with source ``agent_defined``: the
+    developer confirms it like any other (`confirm`). It records the
+    spec's command, working directory and ``spec_hash``, and no files
+    (the spec's lock manifest pins the harness), so a changed spec is
+    caught by the guard's spec check, not by a file hash.
+
+    Parameters
+    ----------
+    model : ProjectModel
+        Current model.
+    name : str
+        The benchmark name, which becomes the workload ID.
+    target_id : str
+        A live target.
+    command : tuple of str
+        The spec's command, as an argv list.
+    cwd : str
+        The spec's working directory, relative to the project.
+    spec_hash : str
+        `BenchmarkSpec.spec_hash` of the spec being registered.
+    evidence : str
+        Where the workload came from, in words; kept in the history
+        line's note.
+    replace : bool
+        Allow replacing a workload of this name that has another spec
+        or target, or that was retired.
+    version : str
+        Perfproof version, recorded in the provenance.
+    now : datetime
+        Time of the change.
+
+    Returns
+    -------
+    tuple of ProjectModel and list of ProjectHistoryRecord
+        No line when the same spec is already registered for the same
+        target. A replacement is an ``edited`` line, and makes the
+        confirmed goal that depends on it stale.
+
+    Raises
+    ------
+    ProjectError
+        ``not_found`` for a missing target, ``retired_entry`` for a
+        retired one, ``duplicate`` for another kind of entry with this
+        ID, or a workload that needs ``replace``.
+    """
+    target = find(model, target_id)
+    if not isinstance(target, TargetEntry):
+        raise ProjectError(
+            "not_found",
+            f"no target {target_id!r} in the project model",
+            {"target": target_id},
+        )
+    if target.status == "retired":
+        raise ProjectError(
+            "retired_entry",
+            f"target {target_id} is retired",
+            {"entry": target_id},
+        )
+    existing = find(model, name)
+    if existing is not None and not isinstance(existing, WorkloadEntry):
+        raise ProjectError(
+            "duplicate",
+            f"{name!r} is already a {existing.kind} in the project model",
+            {"entry": name},
+        )
+    if (
+        existing is not None
+        and existing.status != "retired"
+        and existing.spec_hash == spec_hash
+        and existing.target_id == target_id
+    ):
+        return model, []
+    if existing is not None and not replace:
+        why = (
+            "retired"
+            if existing.status == "retired"
+            else "a workload with another spec or target"
+        )
+        raise ProjectError(
+            "duplicate",
+            f"{name!r} is already {why}: pass --replace to register this "
+            "spec instead",
+            {"entry": name},
+        )
+    try:
+        entry = WorkloadEntry(
+            id=name,
+            version=1 if existing is None else existing.version + 1,
+            status="proposed",
+            provenance=make_provenance((), (command,), version, now),
+            target_id=target_id,
+            source="agent_defined",
+            command=command,
+            cwd=cwd,
+            spec_hash=spec_hash,
+        )
+    except ValidationError as exc:
+        raise _refuse_invalid(exc, f"workload {name}") from exc
+    model = put(model, entry)
+    records = [
+        record(
+            "created" if existing is None else "edited", entry, now, evidence
+        )
+    ]
+    model, extra = propagate(model, entry, now, "was replaced")
+    check_consistency(model)
+    return model, [*records, *extra]
+
+
+def bind_spec(
+    model: ProjectModel,
+    workload_id: str,
+    spec_hash: str,
+    session: str,
+    now: datetime,
+) -> Change:
+    """Bind a confirmed workload with no frozen spec to its benchmark.
+
+    ``compare`` keeps a KEEP for a workload confirmed on a spec, so a
+    workload confirmed before its benchmark was defined is confirmed
+    again here, now naming the spec: a new revision (the claim gains
+    ``spec_hash``) with a new ``confirmed`` line. Its dependents are not
+    made stale: nothing they were derived from changed.
+
+    Parameters
+    ----------
+    model : ProjectModel
+        Current model.
+    workload_id : str
+        A ``confirmed`` workload with no ``spec_hash``.
+    spec_hash : str
+        `BenchmarkSpec.spec_hash` of its benchmark.
+    session : str
+        Session the developer confirmed in.
+    now : datetime
+        Time of the confirmation.
+
+    Returns
+    -------
+    tuple of ProjectModel and list of ProjectHistoryRecord
+        No line when the entry is not a confirmed, unbound workload.
+    """
+    entry = find(model, workload_id)
+    if (
+        not isinstance(entry, WorkloadEntry)
+        or entry.status != "confirmed"
+        or entry.spec_hash is not None
+    ):
+        return model, []
+    bound = with_fields(
+        entry,
+        spec_hash=spec_hash,
+        version=entry.version + 1,
+        confirmation=Confirmation(session=session, confirmed_at=now),
+    )
+    return put(model, bound), [
+        record("confirmed", bound, now, f"bound to spec {spec_hash[:12]}")
+    ]
 
 
 def propagate(

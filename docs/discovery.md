@@ -108,7 +108,11 @@ doesn't depend on.
   and a refreshed provenance do not bump it.
 - *Dependencies.* A workload depends on its target; a goal and a
   workload-bound how-to-run on their workload; a workload with a frozen
-  spec (`spec_hash`) on its goals and on every constraint. A claim
+  spec (`spec_hash`) on its goals and on every constraint, except one
+  the agent defined (source `agent_defined`, registered by
+  `project add-workload`): its spec exists before its goal and does not
+  change with it, and `compare` checks its `spec_hash` against the spec
+  it measures. A claim
   change to an entry makes its confirmed dependents `stale` with
   `dependency_edited`. A frozen spec is carried through
   revalidation except for that trigger, where the re-derived workload
@@ -142,10 +146,12 @@ doesn't depend on.
   goal. A goal with an unknown metric, direction, unit or guardrails
   cannot be confirmed.
 - *The default bar.* A goal's `bar` stays `None` until the developer
-  states one. A comparison that finds `None` applies the spec's
-  `min_effect` and calls it the **default bar** (`default bar
-  (min_effect 0.03)`); a stated bar is the **goal bar**. The default
-  is never written into the goal.
+  states one. A report that finds `None` names the spec's `min_effect`
+  the **default bar** (`default bar (min_effect 0.03)`); a stated bar
+  is the **goal bar**. The default is never written into the goal. A
+  KEEP does not depend on the bar: it rests on `min_effect` and the
+  spec's guardrails (`method.md`); the bar is what a result is
+  reported against.
 - *Triggers.* `file_changed`: a provenance file's hash differs or the
   file is gone. `lockfile_changed`: only a dependency lockfile
   (`uv.lock`, `poetry.lock`, `Cargo.lock`, ...) differs. If both,

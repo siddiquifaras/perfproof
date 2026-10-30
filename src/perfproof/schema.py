@@ -365,6 +365,7 @@ KEEP_BLOCKING_WARNINGS: Final = frozenset(
         "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
+        "workload_not_confirmed",
     }
 )
 """`RunWarning` codes naming a reason a KEEP is withheld that is
@@ -373,8 +374,9 @@ a value of unknown resolution, a look schedule outside the calibrated
 ones, a look schedule that is not the declared target class's own, a
 metric kind the class's traces did not cover
 (``metric_not_calibrated``), a spec that declares no target class or
-one the project model does not confirm. A KEEP cannot carry one, and a
-rule 2 INCONCLUSIVE may rest on one."""
+one the project model does not confirm, a workload the project model
+does not confirm (``workload_not_confirmed``). A KEEP cannot carry one,
+and a rule 2 INCONCLUSIVE may rest on one."""
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
 _OBJECTIVE_KINDS: Final[Mapping[str, frozenset[MetricKind]]] = (
     MappingProxyType(
@@ -2999,6 +3001,7 @@ WorkloadSource = Literal[
     "route_list",
     "recorded_traffic",
     "recorded_agent_run",
+    "agent_defined",
 ]
 ConstraintKind = Literal[
     "public_api",

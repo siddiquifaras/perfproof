@@ -893,6 +893,26 @@ def test_guardrail_blockers_are_named() -> None:
     ]
 
 
+def test_an_unconfirmed_workload_is_named_as_the_sole_blocker() -> None:
+    message = (
+        "the project model does not back workload sum-loop: goal-sum-loop "
+        "(goal) not_confirmed: proposed. The comparison runs"
+    )
+    withheld = record(
+        verdict=keep_verdict(
+            outcome="INCONCLUSIVE", reason="insufficient_evidence"
+        ),
+        warnings=[{"code": "workload_not_confirmed", "message": message}],
+    )
+    text = render(withheld)
+    blocked = text.split("Blocked by:\n\n", 1)[1].split("\n\n", 1)[0]
+    lines = blocked.splitlines()
+    assert len(lines) == 1
+    assert lines[0].startswith("- ")
+    assert "goal-sum-loop" in lines[0]
+    assert "`workload_not_confirmed`" in lines[0]
+
+
 def test_a_regression_within_its_allowance_is_reported_with_how_much() -> None:
     text = render(keep())
     assert (

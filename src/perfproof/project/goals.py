@@ -7,12 +7,12 @@ not be followed by a direction; a metric whose unit the name does not
 fix (``throughput``) stays unknown until the developer gives it.
 
 **The default bar.** A goal's ``bar`` is ``None`` until the developer
-states one, and is never filled. When a comparison finds ``None`` it
-applies the benchmark spec's ``min_effect`` (``0.03`` unless the spec
-says otherwise, so a bar of ``1.03``) and calls it the *default bar*;
-a stated bar is the *goal bar*. `bar_label` is the one place that
-builds those names, so a report cannot present the default as the
-developer's choice.
+states one, and is never filled. When a report finds ``None`` it names
+the benchmark spec's ``min_effect`` (``0.03`` unless the spec says
+otherwise, so a bar of ``1.03``) the *default bar*; a stated bar is
+the *goal bar*. A KEEP does not depend on the bar (``docs/method.md``).
+`bar_label` is the one place that builds those names, so a report
+cannot present the default as the developer's choice.
 """
 
 import math
@@ -182,7 +182,7 @@ def parse_bar(text: str) -> GoalBar:
 
 
 def bar_label(bar: GoalBar | None, min_effect: float) -> str:
-    """Name the bar a comparison applies.
+    """Name the bar a result is reported against.
 
     Parameters
     ----------
