@@ -196,6 +196,52 @@ vaguest asks against a plain agent. It was built without the people who
 edit `skills/` seeing it. It is a development check, not a
 pre-registered held-out set.
 
+**Mixed held-out set (fixed 2026-10-30, before any task is built for
+it).** The final launch claim is "bare `/perfproof` beats a plain coding
+agent". It is measured on a fresh held-out set of 12 mixed-language
+hidden-fix tasks. The mixed-stack set above and every earlier draw are
+spent: people who edit `skills/` or the `perfproof find` code have read
+them.
+
+1. **Pool.** Every mined hidden-fix candidate from a public repository
+   with at least 2000 stars whose user path mixes at least two languages
+   (Python over C, C++, Rust or Cython; JS/TS over native code or a back
+   end; Go with cgo; JVM with native code; and similar). Step 1 of the
+   held-out rule applies. The pool skips every task named in any
+   existing task file or draw record, and every task the earlier draws
+   examined, whether they took it or not.
+2. **Ordering.** By `sha256(salt + task id)` with the salt
+   `perfproof-mixed-heldout-2026-10-30`.
+3. **Selection.** The first 12, in that order, that build and run on
+   this Mac under the eval's sandboxed setup (the path
+   `skill_eval.py run` uses for setup, including its network-dependent
+   steps), with the oracle passing on the untouched tree, and:
+   - at most 3 per primary language;
+   - at least 3 whose hidden fix is in JS/TS or another non-Python
+     language;
+   - at least 4 whose fix is in the lower layer reached through the
+     upper one.
+
+   A task whose oracle needs the network at test time (data downloaded
+   during the test) is excluded, or given a cached copy, because such
+   oracles flake. Steps 4 and 5 of the held-out rule apply. If the pool
+   is too small, more candidates may be mined before the draw by the
+   same mining rules in `eval/mine`.
+4. **Prompts.** Each task has a vague and a detailed prompt for both
+   arms, as in `tasks-mixed.json`. The detailed text gives the symptom
+   from the user's side and never the cause.
+5. **Runs.** The skill is frozen at a recorded commit before the first
+   run. The set is run twice per arm and level, and nobody who edits
+   `skills/` or the `perfproof find` code reads the tasks before then.
+6. **Scoring.** Found, correct, backed and unbacked claims, the harness
+   speed check, and wrong KEEP. The primary metric is found, plus the
+   harness-measured speedup with tests passing, skill against baseline
+   per level.
+7. **File.** `eval/skill/tasks-mixed-heldout.json`, drawn by
+   `eval/mine/draw_mixed_heldout.py` into
+   `eval/mine/heldout-mixed-draw.json`. It never becomes development
+   data.
+
 ## What we publish
 
 `eval/` holds every task manifest (repository, commit, workload,
