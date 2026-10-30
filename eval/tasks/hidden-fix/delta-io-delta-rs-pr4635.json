@@ -1,0 +1,53 @@
+{
+  "id": "delta-io-delta-rs-pr4635",
+  "repository": "delta-io/delta-rs",
+  "stars": 3351,
+  "pushed_at": "2026-10-28T14:17:35Z",
+  "task_commit": "cee6f9ea9d1deab2f70d23221abb5386b60f3a9a",
+  "task_commit_basis": "7 first parents back from https://github.com/delta-io/delta-rs/commit/2c996fa9bc1a765f6d829ce3b40008710a4888d7: a rebase merge whose commits carry the pull request's commit headlines; gh api compare cee6f9ea9d1d...2c996fa9bc1a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/delta-io/delta-rs/pull/4635",
+    "title": "fix: speed up full vacuum listing on multi-level partitions (#4634)",
+    "commit": "2c996fa9bc1a765f6d829ce3b40008710a4888d7",
+    "merged_at": "2026-08-22T20:08:39Z",
+    "files": [
+      "crates/benchmarks/Cargo.toml",
+      "crates/benchmarks/README.md",
+      "crates/benchmarks/benches/vacuum.rs",
+      "crates/benchmarks/src/latency_store.rs",
+      "crates/benchmarks/src/lib.rs",
+      "crates/benchmarks/src/main.rs",
+      "crates/benchmarks/src/vacuum.rs",
+      "crates/core/src/operations/vacuum.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p delta-benchmarks --bench vacuum -- --fixture ./crates/benchmarks/data/vacuum_bench/d1095_g5001 --list-latency-ms 100 --sample-count 2",
+    "source": "quoted in the description of https://github.com/delta-io/delta-rs/pull/4635",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/delta-io/delta-rs/pull/4635",
+      "note": "description, as matched by the miner: speedup claims: 7.98 x; 7.43 x; 7.19 x; 7.15 x; 8.47 x | timings: 1 s; 500 ms; 300 ms; 200 ms; 100 ms; 50 ms; 10 ms; 1 ms | benchmark files changed: crates/benchmarks/Cargo.toml, crates/benchmarks/README.md, crates/benchmarks/benches/vacuum.rs, crates/benchmarks/src/latency_store.rs, crates/benchmarks/src/lib.rs, crates/benchmarks/src/main.rs, crates/benchmarks/src/vacuum.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:54:14+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

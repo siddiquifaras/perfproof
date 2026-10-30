@@ -1,0 +1,48 @@
+{
+  "id": "yarnpkg-berry-pr4813",
+  "repository": "yarnpkg/berry",
+  "stars": 8121,
+  "pushed_at": "2026-10-27T07:32:03Z",
+  "task_commit": "4c8ab43e331d3ab83e4f81ef0f734c6c671b976e",
+  "task_commit_basis": "first parent of https://github.com/yarnpkg/berry/commit/3be76eebc248ca02ff85e5ef9c4e2b448b1e4925; gh api compare 4c8ab43e331d...3be76eebc248 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/yarnpkg/berry/pull/4813",
+    "title": "perf(pnp): enable strict mode in `.pnp.cjs`",
+    "commit": "3be76eebc248ca02ff85e5ef9c4e2b448b1e4925",
+    "merged_at": "2022-09-03T16:30:50Z",
+    "files": [
+      ".pnp.cjs",
+      ".yarn/versions/67cdb4e6.yml",
+      "packages/yarnpkg-pnp/sources/generatePnpScript.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "hyperfine \"node -r ./.pnp-before.cjs -e 1\" \"node -r ./.pnp-after.cjs -e 1\"",
+    "source": "quoted in the description of https://github.com/yarnpkg/berry/pull/4813",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/yarnpkg/berry/pull/4813",
+      "note": "description, as matched by the miner: timings: 91.7 ms; 2.7 ms; 1.9 ms; 3.9 ms; 89.6 ms; 99.7 ms; 91.0 ms; 1.1 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:55:21+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

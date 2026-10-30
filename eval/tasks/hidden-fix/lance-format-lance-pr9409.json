@@ -1,0 +1,48 @@
+{
+  "id": "lance-format-lance-pr9409",
+  "repository": "lance-format/lance",
+  "stars": 7234,
+  "pushed_at": "2026-10-30T18:25:29Z",
+  "task_commit": "927e791f07409bc8a182156556d6b99d168d62cd",
+  "task_commit_basis": "first parent of https://github.com/lance-format/lance/commit/493f82a0f6e854cc36af425077e86a26f886aef6 (squash merge); gh api compare 927e791f0740...493f82a0f6e8 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/lance-format/lance/pull/9409",
+    "title": "perf: prune CDF fragments using row-version metadata",
+    "commit": "493f82a0f6e854cc36af425077e86a26f886aef6",
+    "merged_at": "2026-10-13T17:36:30Z",
+    "files": [
+      "rust/lance/Cargo.toml",
+      "rust/lance/benches/cdf.rs",
+      "rust/lance/src/dataset/delta.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p lance --bench cdf --profile release-with-debug",
+    "source": "quoted in the description of https://github.com/lance-format/lance/pull/9409",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/lance-format/lance/pull/9409",
+      "note": "description, as matched by the miner: speedup claims: 222x faster; 230x faster; 166x faster | timings: 577.59 ms; 2.60 ms; 607.56 ms; 2.64 ms; 654.25 ms; 3.93 ms; 638.73 ms; 641.42 ms | benchmark files changed: rust/lance/benches/cdf.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:00+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

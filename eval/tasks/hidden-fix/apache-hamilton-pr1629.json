@@ -1,0 +1,78 @@
+{
+  "id": "apache-hamilton-pr1629",
+  "repository": "apache/hamilton",
+  "stars": 2622,
+  "pushed_at": "2026-10-27T18:32:47Z",
+  "task_commit": "86f9f417fae726261706ecba7b2d1c31dc93c52f",
+  "task_commit_basis": "first parent of https://github.com/apache/hamilton/commit/6c05041d687db55f773b2d059e4ff794d0ec9118; gh api compare 86f9f417fae7...6c05041d687d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/hamilton/pull/1629",
+    "title": "Vectorize pandas and polars DataFrame hashing",
+    "commit": "6c05041d687db55f773b2d059e4ff794d0ec9118",
+    "merged_at": "2026-06-10T19:33:07Z",
+    "files": [
+      "hamilton/caching/fingerprinting.py",
+      "tests/caching/test_fingerprinting.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import timeit, numpy as np, pandas as pd; from hamilton.caching import fingerprinting as fp; rng = np.random.default_rng(0); df = pd.DataFrame({c: rng.random(20000) for c in 'abcde'}); f = lambda: fp.hash_value(df); print(min(timeit.repeat(f, number=3, repeat=3)))\"",
+    "source": "written here from the description of https://github.com/apache/hamilton/pull/1629 (fingerprinting of DataFrames for the cache): a pandas frame of 20000 rows and 5 float columns",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider tests/caching/test_fingerprinting.py",
+    "source": "Hamilton's fingerprinting tests, which https://github.com/apache/hamilton/pull/1629 edits; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/hamilton/pull/1629",
+      "note": "description, as matched by the miner: timings: 4.3 ms; 1.0 ms; 1.6 ms; 0.1 ms; 33.0 ms; 3.0 ms; 14.2 ms; 0.2 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2026-06-11 pytest numpy pandas polars pyarrow; uv pip install --exclude-newer 2026-06-11 -e .",
+      "exit_code": 0,
+      "duration_s": 134.8,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider tests/caching/test_fingerprinting.py",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit, numpy as np, pandas as pd; from hamilton.caching import fingerprinting as fp; rng = np.random.default_rng(0); df = pd.DataFrame({c: rng.random(20000) for c in 'abcde'}); f = lambda: fp.hash_value(df); print(min(timeit.repeat(f, number=3, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.10569279099581763"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-30T21:14:45+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

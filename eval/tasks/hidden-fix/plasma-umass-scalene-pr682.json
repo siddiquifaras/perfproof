@@ -1,0 +1,46 @@
+{
+  "id": "plasma-umass-scalene-pr682",
+  "repository": "plasma-umass/scalene",
+  "stars": 13537,
+  "pushed_at": "2026-10-26T22:11:07Z",
+  "task_commit": "7a5ce4046d9da73fdaf19dbe5f6f9fa732f112da",
+  "task_commit_basis": "first parent of https://github.com/plasma-umass/scalene/commit/2099d70f3d1b0dbddf19ff93157752edd8fe8947; gh api compare 7a5ce4046d9d...2099d70f3d1b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/plasma-umass/scalene/pull/682",
+    "title": "[perf] Speed up spark creation in sparkline.",
+    "commit": "2099d70f3d1b0dbddf19ff93157752edd8fe8947",
+    "merged_at": "2023-09-04T17:35:58Z",
+    "files": [
+      "scalene/sparkline.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit min([1, 2])",
+    "source": "quoted in the description of https://github.com/plasma-umass/scalene/pull/682",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/plasma-umass/scalene/pull/682",
+      "note": "description, as matched by the miner: timings: 121 ns ± 0.0535 ns; 96.2 ns ± 0.245 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:06+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "flashinfer-ai-flashinfer-pr7130",
+  "repository": "flashinfer-ai/flashinfer",
+  "stars": 6821,
+  "pushed_at": "2026-10-30T18:22:44Z",
+  "task_commit": "c56cd4fb72220a2c52e168e2c86525ec37b5ee1e",
+  "task_commit_basis": "first parent of https://github.com/flashinfer-ai/flashinfer/commit/b27f6cae7da4b63a3c355a48fb3fb0de13673cc1; gh api compare c56cd4fb7222...b27f6cae7da4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/flashinfer-ai/flashinfer/pull/7130",
+    "title": "perf: reuse unchanged cuDNN prefill plan descriptors",
+    "commit": "b27f6cae7da4b63a3c355a48fb3fb0de13673cc1",
+    "merged_at": "2026-10-23T20:59:50Z",
+    "files": [
+      "flashinfer/cudnn/prefill.py",
+      "tests/attention/test_cudnn_wrapper_regressions.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "python benchmarks/bench_cudnn_wrapper_host.py --kind ragged --layout NHD --batch 1 --q 128 --kv 8192 --replan --output prefix.json",
+    "source": "quoted in the description of https://github.com/flashinfer-ai/flashinfer/pull/7130",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/flashinfer-ai/flashinfer/pull/7130",
+      "note": "description, as matched by the miner: timings: 68.12 µs; 126.12 µs; 1341.93 µs; 65.83 µs; 122.01 µs; 1207.11 µs; 40 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:37+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

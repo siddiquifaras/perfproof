@@ -1,0 +1,47 @@
+{
+  "id": "shapely-shapely-pr1547",
+  "repository": "shapely/shapely",
+  "stars": 4533,
+  "pushed_at": "2026-10-27T07:41:43Z",
+  "task_commit": "f0b140ba41138a7e883bcbd8095add279df78cff",
+  "task_commit_basis": "first parent of https://github.com/shapely/shapely/commit/bd2526e853b0ac7264f068cc5bfae821c3ea5f26; gh api compare f0b140ba4113...bd2526e853b0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/shapely/shapely/pull/1547",
+    "title": "PERF: improve performance of Point(x, y) constructor",
+    "commit": "bd2526e853b0ac7264f068cc5bfae821c3ea5f26",
+    "merged_at": "2022-09-27T13:11:44Z",
+    "files": [
+      "benchmarks/benchmarks.py",
+      "shapely/geometry/point.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/shapely/shapely/pull/1547 (the Point constructor): 20000 Point(x, y) objects",
+    "verified": false
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
+    "source": "shapely's Point tests, for the module https://github.com/shapely/shapely/pull/1547 changes (it changes no test file); targeted tests only",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/shapely/shapely/pull/1547",
+      "note": "description, as matched by the miner: timings: 12.6 µs ± 442 ns; 4.34 µs ± 60.5 ns | benchmark files changed: benchmarks/benchmarks.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:55:46+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

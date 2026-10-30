@@ -152,7 +152,8 @@ def test_the_naming_check_still_applies_in_the_wide_window() -> None:
 HELD_OUT_FILE = HERE / "tasks-heldout-discovery.json"
 """Held-out tasks: ``load_spec`` refuses them by design."""
 HELD_OUT_FILE_2 = HERE / "tasks-heldout-discovery-2.json"
-HELD_OUT_FILES = (HELD_OUT_FILE, HELD_OUT_FILE_2)
+HELD_OUT_FILE_3 = HERE / "tasks-mixed-heldout.json"
+HELD_OUT_FILES = (HELD_OUT_FILE, HELD_OUT_FILE_2, HELD_OUT_FILE_3)
 
 
 def _held_out_tasks() -> list[Task]:

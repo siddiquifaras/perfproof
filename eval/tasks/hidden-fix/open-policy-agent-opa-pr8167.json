@@ -1,0 +1,46 @@
+{
+  "id": "open-policy-agent-opa-pr8167",
+  "repository": "open-policy-agent/opa",
+  "stars": 12417,
+  "pushed_at": "2026-10-30T13:35:02Z",
+  "task_commit": "5f9325e150ce9dd2ae6c41dbd6040417547a70d7",
+  "task_commit_basis": "first parent of https://github.com/open-policy-agent/opa/commit/3d49f4506bdfeed1e9f90db991a823b6b347ac69 (squash merge); gh api compare 5f9325e150ce...3d49f4506bdf touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/open-policy-agent/opa/pull/8167",
+    "title": "perf(ast): optimize Set.Intersect and Set.Diff",
+    "commit": "3d49f4506bdfeed1e9f90db991a823b6b347ac69",
+    "merged_at": "2026-01-06T18:08:01Z",
+    "files": [
+      "v1/ast/term.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -bench=\"BenchmarkSetIntersection\" -benchmem -run=^$ -count=10 ./v1/ast/...",
+    "source": "quoted in the description of https://github.com/open-policy-agent/opa/pull/8167",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/open-policy-agent/opa/pull/8167",
+      "note": "description, as matched by the miner: speedup claims: 20% less"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:14:59+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

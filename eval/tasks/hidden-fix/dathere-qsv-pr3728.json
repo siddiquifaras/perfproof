@@ -1,0 +1,46 @@
+{
+  "id": "dathere-qsv-pr3728",
+  "repository": "dathere/qsv",
+  "stars": 3816,
+  "pushed_at": "2026-10-30T18:20:00Z",
+  "task_commit": "7b8164c79cba311999a8e0b47c0d35399de20896",
+  "task_commit_basis": "first parent of https://github.com/dathere/qsv/commit/624d0a937333bbc7e209e920418749cd05471e54 (squash merge); gh api compare 7b8164c79cba...624d0a937333 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dathere/qsv/pull/3728",
+    "title": "perf(frequency): parallel tree-reduce of partial FTables (~1.3x speedup)",
+    "commit": "624d0a937333bbc7e209e920418749cd05471e54",
+    "merged_at": "2026-04-22T12:03:47Z",
+    "files": [
+      "src/cmd/frequency.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "hyperfine, 10 runs, warmup 3, M4 Max 16 cores, 1M-row × 41-col NYC 311 CSV:",
+    "source": "quoted in the description of https://github.com/dathere/qsv/pull/3728",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dathere/qsv/pull/3728",
+      "note": "description, as matched by the miner: speedup claims: 3.5×; 5.3×; 1.29× | timings: 924.0 ms; 3187 ms; 716.7 ms; 3782 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:33+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

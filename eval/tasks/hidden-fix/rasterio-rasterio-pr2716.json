@@ -1,0 +1,46 @@
+{
+  "id": "rasterio-rasterio-pr2716",
+  "repository": "rasterio/rasterio",
+  "stars": 2588,
+  "pushed_at": "2026-10-26T19:55:47Z",
+  "task_commit": "652e6154ef538b93d33c138aa303f95a2df0eda8",
+  "task_commit_basis": "first parent of https://github.com/rasterio/rasterio/commit/e46cc0374b2b14ecfda547ec9b0b60b5bb7eb774 (squash merge); gh api compare 652e6154ef53...e46cc0374b2b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rasterio/rasterio/pull/2716",
+    "title": "PERF: Minor performance improvements to dtypes",
+    "commit": "e46cc0374b2b14ecfda547ec9b0b60b5bb7eb774",
+    "merged_at": "2023-01-20T17:22:21Z",
+    "files": [
+      "rasterio/dtypes.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit dtypes.get_minimum_dtype(range(266))",
+    "source": "quoted in the description of https://github.com/rasterio/rasterio/pull/2716",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rasterio/rasterio/pull/2716",
+      "note": "description, as matched by the miner: timings: 140ns; 950ns; 35.3 µs ± 651 ns; 13.3 µs ± 172 ns; 90ns; 336ns; 870us"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:31+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

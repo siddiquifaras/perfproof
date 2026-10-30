@@ -1,0 +1,46 @@
+{
+  "id": "xtensor-stack-xtensor-pr2088",
+  "repository": "xtensor-stack/xtensor",
+  "stars": 3771,
+  "pushed_at": "2026-10-20T14:59:53Z",
+  "task_commit": "d03043befd9764195d24caab31444690ea45917a",
+  "task_commit_basis": "first parent of https://github.com/xtensor-stack/xtensor/commit/591fbb58673c61271490ba025cdddb38d9745418; gh api compare d03043befd97...591fbb58673c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/xtensor-stack/xtensor/pull/2088",
+    "title": "Improve histogram performance with equal bin sizes",
+    "commit": "591fbb58673c61271490ba025cdddb38d9745418",
+    "merged_at": "2020-12-09T14:20:45Z",
+    "files": [
+      "include/xtensor/xhistogram.hpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "%timeit np.histogram(x, 100)",
+    "source": "quoted in the description of https://github.com/xtensor-stack/xtensor/pull/2088",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/xtensor-stack/xtensor/pull/2088",
+      "note": "description, as matched by the miner: timings: 17.3 ms ± 1.44 ms; 11 ms; 40 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:37+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

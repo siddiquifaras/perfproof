@@ -1,0 +1,49 @@
+{
+  "id": "dgraph-io-ristretto-pr32",
+  "repository": "dgraph-io/ristretto",
+  "stars": 7005,
+  "pushed_at": "2026-09-21T18:43:34Z",
+  "task_commit": "3fdb0628bc33cc72ce2fba0a4c03a81a592c39d2",
+  "task_commit_basis": "first parent of https://github.com/dgraph-io/ristretto/commit/18ba08fdea8018bdcaf22be9635215328067e587 (squash merge); gh api compare 3fdb0628bc33...18ba08fdea80 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/dgraph-io/ristretto/pull/32",
+    "title": "Optimize cache.Set operation",
+    "commit": "18ba08fdea8018bdcaf22be9635215328067e587",
+    "merged_at": "2019-08-01T02:42:11Z",
+    "files": [
+      "cache.go",
+      "policy.go",
+      "store.go",
+      "store_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -count=1 -cpu=4,8,16,32,64 -v -bench=BenchmarkCaches",
+    "source": "quoted in the description of https://github.com/dgraph-io/ristretto/pull/32",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/dgraph-io/ristretto/pull/32",
+      "note": "description, as matched by the miner: timings: 334 ns; 209 ns; 137 ns; 107 ns; 157 ns; 173 ns; 103 ns; 69.7 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:16+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

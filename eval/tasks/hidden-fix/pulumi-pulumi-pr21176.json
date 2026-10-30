@@ -1,0 +1,50 @@
+{
+  "id": "pulumi-pulumi-pr21176",
+  "repository": "pulumi/pulumi",
+  "stars": 25837,
+  "pushed_at": "2026-10-30T18:18:19Z",
+  "task_commit": "cdd6ef6baecdd593977263215e64d1374abb9aae",
+  "task_commit_basis": "first parent of https://github.com/pulumi/pulumi/commit/971ed9c76da7ea1359e5b6380be75d1eaacdf44a (squash merge); gh api compare cdd6ef6baecd...971ed9c76da7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/pulumi/pulumi/pull/21176",
+    "title": "startup perf: get user info and default org async",
+    "commit": "971ed9c76da7ea1359e5b6380be75d1eaacdf44a",
+    "merged_at": "2025-12-10T14:31:40Z",
+    "files": [
+      "changelog/pending/20251209--backend-service--improve-startup-performance-with-the-service-as-backend.yaml",
+      "pkg/backend/httpstate/backend.go",
+      "pkg/backend/httpstate/backend_test.go",
+      "pkg/backend/httpstate/snapshot_test.go",
+      "tests/login/login_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine -- 'pulumi up --skip-preview -s another'",
+    "source": "quoted in the description of https://github.com/pulumi/pulumi/pull/21176",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/pulumi/pulumi/pull/21176",
+      "note": "description, as matched by the miner: timings: 600ms; 6.616 s; 0.853 s; 1.730 s; 0.256 s; 5.895 s; 8.720 s; 6.065 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:14+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

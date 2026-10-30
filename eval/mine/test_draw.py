@@ -16,6 +16,7 @@ import check
 import draw
 import draw_discovery
 import draw_discovery2
+import draw_mixed_heldout
 from draw import Review, Selection, draw_splits, order_key
 from task import Run, Status, Task, load_tasks
 
@@ -227,6 +228,7 @@ def test_salts_are_the_documented_ones() -> None:
         sel.salts["development"],
         draw_discovery.SALT,
         draw_discovery2.SALT,
+        draw_mixed_heldout.SALT,
     ]
     readme = (root / "eval" / "README.md").read_text()
     assert f"`{sel.salts['development']}`" in readme

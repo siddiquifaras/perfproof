@@ -1,0 +1,48 @@
+{
+  "id": "oracle-graal-pr12814",
+  "repository": "oracle/graal",
+  "stars": 21748,
+  "pushed_at": "2026-10-30T15:27:37Z",
+  "task_commit": "8e812026b848ae6d05ccc16d5a5337b607c5b514",
+  "task_commit_basis": "first parent of https://github.com/oracle/graal/commit/580a1399077dbbf799693db74b21dadfb33608e5; gh api compare 8e812026b848...580a1399077d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/oracle/graal/pull/12814",
+    "title": "[GR-72512] Speed up `native-image --version`, `--help`, and `--help-extra`.",
+    "commit": "580a1399077dbbf799693db74b21dadfb33608e5",
+    "merged_at": "2026-01-15T10:48:58Z",
+    "files": [
+      "substratevm/src/com.oracle.svm.driver/src/com/oracle/svm/driver/BundleSupport.java",
+      "substratevm/src/com.oracle.svm.driver/src/com/oracle/svm/driver/CmdLineOptionHandler.java",
+      "substratevm/src/com.oracle.svm.driver/src/com/oracle/svm/driver/NativeImage.java"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "java",
+  "workload": {
+    "command": "hyperfine 'native-image --version'",
+    "source": "quoted in the description of https://github.com/oracle/graal/pull/12814",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/oracle/graal/pull/12814",
+      "note": "description, as matched by the miner: timings: 69.3 ms; 3.4 ms; 55.0 ms; 32.8 ms; 56.8 ms; 78.7 ms; 6.4 ms; 2.7 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:25+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

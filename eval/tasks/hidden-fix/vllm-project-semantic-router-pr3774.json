@@ -1,0 +1,55 @@
+{
+  "id": "vllm-project-semantic-router-pr3774",
+  "repository": "vllm-project/semantic-router",
+  "stars": 6344,
+  "pushed_at": "2026-10-30T13:24:55Z",
+  "task_commit": "9d6b0af5e67ab699990c0b93eb074e13c025c946",
+  "task_commit_basis": "first parent of https://github.com/vllm-project/semantic-router/commit/648ae9855fcc4eb91b36110033a7cc445683fbc4 (squash merge); gh api compare 9d6b0af5e67a...648ae9855fcc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/vllm-project/semantic-router/pull/3774",
+    "title": "[CI/Build] Build the perf module against current router APIs and guard its go.mod in check-go-mod-tidy",
+    "commit": "648ae9855fcc4eb91b36110033a7cc445683fbc4",
+    "merged_at": "2026-09-13T13:38:23Z",
+    "files": [
+      "perf/benchmarks/cache_bench_test.go",
+      "perf/go.mod",
+      "perf/go.sum",
+      "perf/pkg/benchmark/alloc_gate_test.go",
+      "perf/pkg/benchmark/baseline.go",
+      "perf/pkg/benchmark/report.go",
+      "perf/pkg/benchmark/threshold_test.go",
+      "perf/pkg/profiler/profiler.go",
+      "tools/linter/codespell/.codespell.ignorewords",
+      "tools/make/golang.mk"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -run NONE -bench BenchmarkCacheSearch_1000Entries -benchtime 1x ./benchmarks/",
+    "source": "quoted in the description of https://github.com/vllm-project/semantic-router/pull/3774",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/vllm-project/semantic-router/pull/3774",
+      "note": "description, as matched by the miner: speedup claims: 1x | benchmark files changed: perf/benchmarks/cache_bench_test.go, perf/go.mod, perf/go.sum, perf/pkg/benchmark/alloc_gate_test.go, perf/pkg/benchmark/baseline.go, perf/pkg/benchmark/report.go, perf/pkg/benchmark/threshold_test.go, perf/pkg/profiler/profiler.go"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:14:31+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

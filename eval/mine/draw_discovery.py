@@ -280,14 +280,17 @@ def mined_ids(path: Path = RECORD) -> list[str]:
 
 
 def later_mined() -> list[str]:
-    """Return the ids the second discovery draw mined (none before it).
+    """Return the ids the later draws mined (none before they exist).
 
-    This draw was fixed before they existed, so `derive` leaves them
-    out of its manifests.
+    The second discovery draw and the mixed held-out set were fixed
+    after this one, so `derive` leaves what they mined out of its
+    manifests.
     """
-    if not draw.DISCOVERY_2.exists():
-        return []
-    return list(json.loads(draw.DISCOVERY_2.read_text())["mined"]["ids"])
+    ids: list[str] = []
+    for path in (draw.DISCOVERY_2, draw.MIXED):
+        if path.exists():
+            ids += json.loads(path.read_text())["mined"]["ids"]
+    return ids
 
 
 def pick_ids(path: Path = RECORD) -> list[str]:

@@ -1,0 +1,51 @@
+{
+  "id": "nandhakishorm-laya-pr615",
+  "repository": "NandhaKishorM/laya",
+  "stars": 34699,
+  "pushed_at": "2026-10-30T09:35:04Z",
+  "task_commit": "0b1374f405303282a5e13f13d602a8752f48e267",
+  "task_commit_basis": "first parent of https://github.com/NandhaKishorM/laya/commit/008deb86a47cfafd0d60aefc2240ca46401871fb; gh api compare 0b1374f40530...008deb86a47c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/NandhaKishorM/laya/pull/615",
+    "title": "perf(agent): reuse question tokenization within prediction batches",
+    "commit": "008deb86a47cfafd0d60aefc2240ca46401871fb",
+    "merged_at": "2026-09-27T19:29:03Z",
+    "files": [
+      ".github/workflows/ci.yml",
+      "laya/agent.py",
+      "laya/common.py",
+      "research/results/question_token_reuse_cuda.json",
+      "research/scripts/bench_question_token_reuse.py",
+      "tests/test_question_token_reuse.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python research/scripts/bench_question_token_reuse.py --model /path/to/english/checkpoint --revision 55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851 --baseline-ref 4066d5d5fbf08b66c6757ddeedbd797bd7655bc0 --device cuda --repeats 16 --out /tmp/question_token_reuse.json",
+    "source": "quoted in the description of https://github.com/NandhaKishorM/laya/pull/615",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/test_question_token_reuse.py",
+    "source": "test files changed by https://github.com/NandhaKishorM/laya/pull/615 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/NandhaKishorM/laya/pull/615",
+      "note": "description, as matched by the miner: timings: 770.72 ms; 741.80 ms; 772.41 ms; 742.81 ms; 543.41 ms; 539.23 ms; 27.63 ms; 27.79 ms | benchmark files changed: research/scripts/bench_question_token_reuse.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:11:45+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

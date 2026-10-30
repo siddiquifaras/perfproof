@@ -65,11 +65,13 @@ from task import (
 SELECTION = TASKS_DIR / "selection.json"
 SKILL_DIR = TASKS_DIR.parent / "skill"
 REPORT = TASKS_DIR / "SPLITS.md"
-HELD_OUT_TASK_FILES = "tasks-heldout"
-"""Task files named with this prefix hold held-out tasks, not
+HELD_OUT_TASK_FILES = ("tasks-heldout", "tasks-mixed-heldout")
+"""Task files named with one of these prefixes hold held-out tasks, not
 development ones, so the held-out draw's skip does not read them."""
-DISCOVERY = Path(__file__).resolve().parent / "heldout-discovery-draw.json"
-DISCOVERY_2 = Path(__file__).resolve().parent / "heldout-discovery-2-draw.json"
+MINE_DIR = Path(__file__).resolve().parent
+DISCOVERY = MINE_DIR / "heldout-discovery-draw.json"
+DISCOVERY_2 = MINE_DIR / "heldout-discovery-2-draw.json"
+MIXED = MINE_DIR / "heldout-mixed-draw.json"
 CLASSES: tuple[TargetClass, ...] = (
     "python",
     "native",
@@ -209,14 +211,15 @@ def load_selection(path: Path = SELECTION) -> Selection:
 
 
 def discovery_record(
-    paths: tuple[Path, ...] = (DISCOVERY, DISCOVERY_2),
+    paths: tuple[Path, ...] = (DISCOVERY, DISCOVERY_2, MIXED),
 ) -> dict[str, Any]:
     """Read the held-out discovery draws' records, merged.
 
     The discovery supplements (``draw_discovery.py`` and
-    ``draw_discovery2.py``) mine candidates after this draw was fixed
-    and pick their own tasks. This draw must not see the mined ones,
-    and its ``--write`` must keep the picks held-out.
+    ``draw_discovery2.py``) and the mixed held-out set
+    (``draw_mixed_heldout.py``) mine candidates after this draw was
+    fixed and pick their own tasks. This draw must not see the mined
+    ones, and its ``--write`` must keep the picks held-out.
 
     Parameters
     ----------

@@ -1,0 +1,77 @@
+{
+  "id": "msgspec-msgspec-pr237",
+  "repository": "msgspec/msgspec",
+  "stars": 4194,
+  "pushed_at": "2026-10-28T07:35:29Z",
+  "task_commit": "26b31d8877b912864d168438b261965fc4742918",
+  "task_commit_basis": "first parent of https://github.com/msgspec/msgspec/commit/10e17f803ef3a0c058af6b8b25f760e28eaae14c; gh api compare 26b31d8877b9...10e17f803ef3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/msgspec/msgspec/pull/237",
+    "title": "Optimize Struct __init__ with kwargs",
+    "commit": "10e17f803ef3a0c058af6b8b25f760e28eaae14c",
+    "merged_at": "2022-12-12T16:39:16Z",
+    "files": [
+      "msgspec/_core.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import timeit, typing, msgspec; Bench = msgspec.defstruct('Bench', [(f'field_{c}', typing.Optional[int], None) for c in 'abcdefghij']); f = lambda: [Bench(0, 1, 2, 3, 4, field_f=5, field_g=6, field_h=7, field_i=8, field_j=9) for _ in range(100000)]; print(min(timeit.repeat(f, number=5, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/jcrist/msgspec/pull/237 (Struct construction with keyword arguments): a ten-field Struct built with five positional and five keyword arguments, 100000 times",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider tests/test_struct.py",
+    "source": "msgspec's Struct tests, for the module https://github.com/jcrist/msgspec/pull/237 changes (it changes no test file); targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/msgspec/msgspec/pull/237",
+      "note": "description, as matched by the miner: timings: 93.9 ns ± 0.794 ns; 79 ns ± 0.188 ns; 247 ns ± 0.75 ns; 250 ns ± 1.66 ns; 85.9 ns ± 0.158 ns; 68.6 ns ± 0.34 ns; 78.3 ns ± 1.84 ns; 96.5 ns ± 0.253 ns"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.11 .venv; uv pip install --exclude-newer 2022-12-13 pytest setuptools wheel; uv pip install --exclude-newer 2022-12-13 -e .",
+      "exit_code": 0,
+      "duration_s": 24.0,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider tests/test_struct.py",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit, typing, msgspec; Bench = msgspec.defstruct('Bench', [(f'field_{c}', typing.Optional[int], None) for c in 'abcdefghij']); f = lambda: [Bench(0, 1, 2, 3, 4, field_f=5, field_g=6, field_h=7, field_i=8, field_j=9) for _ in range(100000)]; print(min(timeit.repeat(f, number=5, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.12100279104197398"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-30T17:56:55+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "osgeo-gdal-pr12442",
+  "repository": "OSGeo/gdal",
+  "stars": 6127,
+  "pushed_at": "2026-10-30T15:51:23Z",
+  "task_commit": "bc54bbba03826bf58ee6b3a9affed68ced7a3cb1",
+  "task_commit_basis": "first parent of https://github.com/OSGeo/gdal/commit/4e44cbb6428f2790a74965c9257e7e588befe4a7; gh api compare bc54bbba0382...4e44cbb6428f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/OSGeo/gdal/pull/12442",
+    "title": "Internal libtiff/LIBERTIFF: speed-up Predictor decompression",
+    "commit": "4e44cbb6428f2790a74965c9257e7e588befe4a7",
+    "merged_at": "2025-05-25T20:12:16Z",
+    "files": [
+      "autotest/gcore/tiff_write.py",
+      "frmts/gtiff/libtiff/tif_predict.c",
+      "frmts/libertiff/libertiffdataset.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine --warmup 2 -- \"gdal raster convert hillshade_predict.tif foo --of mem -q\"",
+    "source": "quoted in the description of https://github.com/OSGeo/gdal/pull/12442",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/OSGeo/gdal/pull/12442",
+      "note": "description, as matched by the miner: timings: 512.1 ms; 2.0 ms; 413.1 ms; 98.3 ms; 509.6 ms; 516.4 ms; 2.126 s; 0.027 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:54:00+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

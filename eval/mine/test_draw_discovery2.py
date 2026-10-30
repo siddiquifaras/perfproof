@@ -23,7 +23,7 @@ def _first() -> dict[str, Any]:
 def test_the_salt_is_the_one_the_spec_fixes() -> None:
     spec = " ".join((ROOT / "docs" / "evaluation.md").read_text().split())
     start = spec.index("**Discovery supplement 2")
-    section = spec[start : spec.index("## What we publish")]
+    section = spec[start : spec.index("**Mixed-stack set")]
     assert re.findall(r"salt (?:is )?`([^`]+)`", section) == [
         draw_discovery2.SALT
     ]
@@ -74,6 +74,7 @@ def test_examined_tasks_are_dropped_from_the_pool_in_a_synthetic_draw() -> (
         reviews,
         record.get("passed_over"),
         salt=draw_discovery2.SALT,
+        later_mined=draw_discovery2.mixed_mined(),
     )
     victim = kept.order[0]["id"] if kept.order else None
     assert victim is not None
@@ -83,6 +84,7 @@ def test_examined_tasks_are_dropped_from_the_pool_in_a_synthetic_draw() -> (
         reviews,
         record.get("passed_over"),
         salt=draw_discovery2.SALT,
+        later_mined=draw_discovery2.mixed_mined(),
         examined={victim: "examined"},
     )
     assert out.skipped[victim] == "examined"

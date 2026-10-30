@@ -1,0 +1,776 @@
+{
+ "rule": "docs/evaluation.md, Mixed held-out set",
+ "salt": "perfproof-mixed-heldout-2026-10-30",
+ "mined": {
+  "ids": [
+   "apache-hamilton-pr1629",
+   "cupy-cupy-pr8017",
+   "dathere-qsv-pr3728",
+   "delta-io-delta-rs-pr4635",
+   "dgraph-io-ristretto-pr32",
+   "flashinfer-ai-flashinfer-pr7130",
+   "geopandas-geopandas-pr2353",
+   "go-gitea-gitea-pr38573",
+   "lance-format-lance-pr9409",
+   "libvips-libvips-pr4974",
+   "man-group-arcticdb-pr3055",
+   "msgspec-msgspec-pr237",
+   "mw00-project-maya-pr452",
+   "nandhakishorm-laya-pr615",
+   "nvidia-transformerengine-pr3068",
+   "open-policy-agent-opa-pr8167",
+   "oracle-graal-pr12814",
+   "osgeo-gdal-pr12442",
+   "petercorke-robotics-toolbox-python-pr889",
+   "plasma-umass-scalene-pr682",
+   "pulumi-pulumi-pr21176",
+   "pyvista-pyvista-pr7714",
+   "rasterio-rasterio-pr2716",
+   "sgl-project-sglang-pr46500",
+   "shapely-shapely-pr1547",
+   "vllm-project-semantic-router-pr3774",
+   "xtensor-stack-xtensor-pr2088",
+   "yarnpkg-berry-pr4813"
+  ],
+  "seeds": [
+   "eval/mine/seeds-heldout-mixed.json",
+   "eval/mine/seeds-heldout-mixed-2.json"
+  ],
+  "note": "Hidden-fix candidates the miner kept from the two seed files, by mine._select and mine._pr_task; the known-change and nothing-to-keep output was not written."
+ },
+ "reviews": {
+  "capsoftware-cap-pr2656": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "dathere-qsv-pr3728": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "delta-io-delta-rs-pr4635": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "easytier-easytier-pr2397": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "gitbutlerapp-gitbutler-pr13367": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "lance-format-lance-pr9409": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "nautechsystems-nautilus-trader-pr4150": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
+   "read": []
+  },
+  "screenpipe-screenpipe-pr6254": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "tokio-rs-tokio-pr5829": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "read": []
+  },
+  "dgraph-io-ristretto-pr32": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "gin-gonic-gin-pr2365": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "go-gitea-gitea-pr38573": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "golang-jwt-jwt-pr33": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "grafana-loki-pr23949": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "hashicorp-hcl-pr490": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "nats-io-nats-go-pr2083": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "open-policy-agent-opa-pr8167": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "open-telemetry-opentelemetry-go-pr8740": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "pulumi-pulumi-pr21176": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "vllm-project-semantic-router-pr3774": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Go",
+   "read": []
+  },
+  "oracle-graal-pr12814": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Java",
+   "read": []
+  },
+  "libvips-libvips-pr4974": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in C (the vips command line)",
+   "read": []
+  },
+  "osgeo-gdal-pr12442": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in C and C++ (the gdal command line)",
+   "read": []
+  },
+  "mw00-project-maya-pr452": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in C++ (a C++ benchmark binary)",
+   "read": []
+  },
+  "xtensor-stack-xtensor-pr2088": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in C++ (a header-only library)",
+   "read": []
+  },
+  "pinojs-pino-pr420": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in JavaScript",
+   "read": []
+  },
+  "yarnpkg-berry-pr4813": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in JavaScript and TypeScript (node is the runtime)",
+   "read": []
+  },
+  "cupy-cupy-pr8017": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (environment probing)",
+   "read": []
+  },
+  "networkx-networkx-pr7810": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python",
+   "read": []
+  },
+  "petercorke-robotics-toolbox-python-pr889": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (graph planners)",
+   "read": []
+  },
+  "plasma-umass-scalene-pr682": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (sparkline text)",
+   "read": []
+  },
+  "python-pendulum-pendulum-pr172": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (pre-Rust Pendulum)",
+   "read": []
+  },
+  "rasterio-rasterio-pr2716": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (dtype helpers)",
+   "read": []
+  },
+  "scikit-image-scikit-image-pr6441": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python and NumPy",
+   "read": []
+  },
+  "vllm-project-vllm-pr60753": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (a GPU kernel benchmark)",
+   "read": []
+  },
+  "nandhakishorm-laya-pr615": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (agent logic; the workload needs a model checkpoint)",
+   "read": []
+  },
+  "msgspec-msgspec-pr237": {
+   "keep": true,
+   "reason": "Struct construction from Python, implemented in the C extension; the change is in the C",
+   "read": [],
+   "pair": [
+    "Python",
+    "C"
+   ],
+   "layer": "lower"
+  },
+  "geopandas-geopandas-pr2353": {
+   "keep": true,
+   "reason": "a spatial join in Python whose spatial index query runs in shapely's C and pandas' compiled code; the change is in the Python join",
+   "read": [],
+   "pair": [
+    "Python",
+    "C"
+   ],
+   "layer": "upper"
+  },
+  "pyvista-pyvista-pr7714": {
+   "keep": true,
+   "reason": "a pyvista image filter that runs VTK (C++) filters; the change is in the Python that picks the filter",
+   "read": [],
+   "pair": [
+    "Python",
+    "C++"
+   ],
+   "layer": "upper"
+  },
+  "shapely-shapely-pr1547": {
+   "keep": true,
+   "reason": "Point construction in Python that calls shapely's C ufuncs over GEOS; the change is in the Python constructor",
+   "read": [],
+   "pair": [
+    "Python",
+    "C"
+   ],
+   "layer": "upper"
+  },
+  "scipy-scipy-pr26368": {
+   "keep": true,
+   "reason": "BSpline.design_matrix, Python over a C++ routine; the change is the Python bounds check",
+   "read": [],
+   "pair": [
+    "Python",
+    "C++"
+   ],
+   "layer": "upper"
+  },
+  "apache-hamilton-pr1629": {
+   "keep": true,
+   "reason": "fingerprinting of pandas and polars frames; the hot path runs in pandas and polars' compiled code; the change is in the Python",
+   "read": [],
+   "pair": [
+    "Python",
+    "Rust"
+   ],
+   "layer": "upper"
+  },
+  "man-group-arcticdb-pr3055": {
+   "keep": true,
+   "reason": "reading a column through the Python API into the C++ engine; the change is in the C++ handler",
+   "read": [],
+   "pair": [
+    "Python",
+    "C++"
+   ],
+   "layer": "lower"
+  },
+  "nvidia-transformerengine-pr3068": {
+   "keep": true,
+   "reason": "PyTorch quantization calling a CUDA kernel; the change is in the CUDA header and its Python reference",
+   "read": [],
+   "pair": [
+    "Python",
+    "CUDA"
+   ],
+   "layer": "lower"
+  },
+  "flashinfer-ai-flashinfer-pr7130": {
+   "keep": true,
+   "reason": "a Python wrapper over cuDNN plans; the change is in the Python wrapper",
+   "read": [],
+   "pair": [
+    "Python",
+    "CUDA"
+   ],
+   "layer": "upper"
+  },
+  "sgl-project-sglang-pr46500": {
+   "keep": true,
+   "reason": "a Python serving scheduler driving CUDA kernels; the change is in the Python",
+   "read": [],
+   "pair": [
+    "Python",
+    "CUDA"
+   ],
+   "layer": "upper"
+  }
+ },
+ "builds": {
+  "msgspec-msgspec-pr237": {
+   "ok": true,
+   "reason": ""
+  },
+  "geopandas-geopandas-pr2353": {
+   "ok": true,
+   "reason": ""
+  },
+  "pyvista-pyvista-pr7714": {
+   "ok": true,
+   "reason": ""
+  },
+  "apache-hamilton-pr1629": {
+   "ok": true,
+   "reason": ""
+  },
+  "man-group-arcticdb-pr3055": {
+   "ok": false,
+   "reason": "setup `uv pip install -e .` exited 1: the C++ build's cmake configure (preset macos-release) failed under the eval user's sandboxed setup"
+  },
+  "shapely-shapely-pr1547": {
+   "ok": false,
+   "reason": "setup `uv pip install --no-build-isolation -e .` exited 1: the 2022 tree's editable build fails, and its C extension needs GEOS, which this Mac does not have"
+  },
+  "scipy-scipy-pr26368": {
+   "ok": false,
+   "reason": "setup `uv pip install --no-build-isolation -e .` exited 1: meson reports the missing array_api_compat submodule; a shallow checkout without scipy's submodules, and no Fortran compiler is installed"
+  },
+  "nvidia-transformerengine-pr3068": {
+   "ok": false,
+   "reason": "not run: the change is a CUDA kernel and its workload needs an NVIDIA GPU, and this Mac has none"
+  },
+  "flashinfer-ai-flashinfer-pr7130": {
+   "ok": false,
+   "reason": "not run: the workload builds cuDNN plans and needs an NVIDIA GPU, and this Mac has none"
+  },
+  "sgl-project-sglang-pr46500": {
+   "ok": false,
+   "reason": "not run: the workload serves a model on an NVIDIA GPU, and this Mac has none"
+  }
+ },
+ "notes": {},
+ "pool": [
+  "apache-arrow-rs-pr11143",
+  "apache-datafusion-pr26790",
+  "apache-hamilton-pr1629",
+  "astral-sh-ruff-pr26565",
+  "astropy-astropy-pr20107",
+  "atuinsh-atuin-pr3577",
+  "axios-axios-pr11208",
+  "capsoftware-cap-pr2656",
+  "cupy-cupy-pr8017",
+  "dask-dask-pr11899",
+  "dathere-qsv-pr3728",
+  "delta-io-delta-rs-pr4635",
+  "dgraph-io-badger-pr2269",
+  "dgraph-io-ristretto-pr32",
+  "django-django-pr21460",
+  "easytier-easytier-pr2397",
+  "fasterxml-jackson-core-pr1674",
+  "fastfloat-fast-float-pr356",
+  "fastify-fast-json-stringify-pr900",
+  "flashinfer-ai-flashinfer-pr7130",
+  "geopandas-geopandas-pr2353",
+  "gin-gonic-gin-pr2365",
+  "gitbutlerapp-gitbutler-pr13367",
+  "go-gitea-gitea-pr38573",
+  "golang-jwt-jwt-pr33",
+  "grafana-loki-pr23949",
+  "grpc-grpc-go-pr8204",
+  "hashicorp-hcl-pr490",
+  "huggingface-tokenizers-pr1413",
+  "image-rs-image-pr2894",
+  "karpathy-llm-c-adamw-97e61e2258",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8",
+  "karpathy-llm-c-classifier-fused-dcff5613c6",
+  "karpathy-llm-c-encoder-forward-cfccd821e6",
+  "karpathy-llm-c-gelu-forward-45252d434c",
+  "karpathy-llm-c-global-norm-0f6853d399",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639",
+  "karpathy-llm-c-layernorm-forward-466723bb06",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad",
+  "karpathy-llm-c-matmul-forward-8822e7803e",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a",
+  "karpathy-llm-c-softmax-forward-8386e5393c",
+  "labstack-echo-pr1799",
+  "lance-format-lance-pr9409",
+  "libvips-libvips-pr4974",
+  "man-group-arcticdb-pr3055",
+  "mitmproxy-mitmproxy-pr8055",
+  "more-itertools-more-itertools-pr773",
+  "msgspec-msgspec-pr237",
+  "mw00-project-maya-pr452",
+  "nandhakishorm-laya-pr615",
+  "nats-io-nats-go-pr2083",
+  "nautechsystems-nautilus-trader-pr4150",
+  "networkx-networkx-pr7810",
+  "numpy-numpy-pr30810",
+  "nvidia-transformerengine-pr3068",
+  "open-policy-agent-opa-pr8167",
+  "open-telemetry-opentelemetry-go-pr8740",
+  "openai-tiktoken-pr31",
+  "oracle-graal-pr12814",
+  "osgeo-gdal-pr12442",
+  "pandas-dev-pandas-pr70972",
+  "petercorke-robotics-toolbox-python-pr889",
+  "pinojs-pino-pr420",
+  "plasma-umass-scalene-pr682",
+  "pulumi-pulumi-pr21176",
+  "pydata-xarray-pr6107",
+  "python-pendulum-pendulum-pr172",
+  "python-pillow-pillow-pr10293",
+  "python-pillow-pillow-pr8194",
+  "pytoolz-toolz-pr376",
+  "pyvista-pyvista-pr7714",
+  "rasterio-rasterio-pr2716",
+  "ratatui-ratatui-pr601",
+  "rolldown-rolldown-pr10678",
+  "rubocop-rubocop-pr13248",
+  "scikit-image-scikit-image-pr6441",
+  "scikit-learn-scikit-learn-pr34386",
+  "scipy-scipy-pr26368",
+  "screenpipe-screenpipe-pr6254",
+  "serenityos-serenity-pr25008",
+  "sgl-project-sglang-pr41223",
+  "sgl-project-sglang-pr46500",
+  "shapely-shapely-pr1547",
+  "sharkdp-fd-pr853",
+  "simdjson-simdjson-pr2805",
+  "sirupsen-logrus-pr370",
+  "tokio-rs-tokio-pr5829",
+  "tornadoweb-tornado-pr1729",
+  "uuidjs-uuid-pr677",
+  "uutils-coreutils-pr9171",
+  "valyala-fasthttp-pr1945",
+  "vercel-labs-skills-pr164",
+  "vllm-project-semantic-router-pr3774",
+  "vllm-project-vllm-pr60753",
+  "xoofx-markdig-pr922",
+  "xtensor-stack-xtensor-pr2088",
+  "yarnpkg-berry-pr4813"
+ ],
+ "removed": {
+  "capsoftware-cap-pr2656": "not mixed: the change and the workload it names stay in Rust",
+  "cupy-cupy-pr8017": "not mixed: the change and the workload it names stay in Python (environment probing)",
+  "dathere-qsv-pr3728": "not mixed: the change and the workload it names stay in Rust",
+  "delta-io-delta-rs-pr4635": "not mixed: the change and the workload it names stay in Rust",
+  "dgraph-io-ristretto-pr32": "not mixed: the change and the workload it names stay in Go",
+  "easytier-easytier-pr2397": "not mixed: the change and the workload it names stay in Rust",
+  "gitbutlerapp-gitbutler-pr13367": "not mixed: the change and the workload it names stay in Rust",
+  "go-gitea-gitea-pr38573": "not mixed: the change and the workload it names stay in Go",
+  "golang-jwt-jwt-pr33": "not mixed: the change and the workload it names stay in Go",
+  "grafana-loki-pr23949": "not mixed: the change and the workload it names stay in Go",
+  "hashicorp-hcl-pr490": "not mixed: the change and the workload it names stay in Go",
+  "lance-format-lance-pr9409": "not mixed: the change and the workload it names stay in Rust",
+  "libvips-libvips-pr4974": "not mixed: the change and the workload it names stay in C (the vips command line)",
+  "mw00-project-maya-pr452": "not mixed: the change and the workload it names stay in C++ (a C++ benchmark binary)",
+  "nandhakishorm-laya-pr615": "not mixed: the change and the workload it names stay in Python (agent logic; the workload needs a model checkpoint)",
+  "nats-io-nats-go-pr2083": "not mixed: the change and the workload it names stay in Go",
+  "nautechsystems-nautilus-trader-pr4150": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
+  "open-policy-agent-opa-pr8167": "not mixed: the change and the workload it names stay in Go",
+  "open-telemetry-opentelemetry-go-pr8740": "not mixed: the change and the workload it names stay in Go",
+  "oracle-graal-pr12814": "not mixed: the change and the workload it names stay in Java",
+  "osgeo-gdal-pr12442": "not mixed: the change and the workload it names stay in C and C++ (the gdal command line)",
+  "petercorke-robotics-toolbox-python-pr889": "not mixed: the change and the workload it names stay in Python (graph planners)",
+  "pinojs-pino-pr420": "not mixed: the change and the workload it names stay in JavaScript",
+  "plasma-umass-scalene-pr682": "not mixed: the change and the workload it names stay in Python (sparkline text)",
+  "pulumi-pulumi-pr21176": "not mixed: the change and the workload it names stay in Go",
+  "python-pendulum-pendulum-pr172": "not mixed: the change and the workload it names stay in Python (pre-Rust Pendulum)",
+  "rasterio-rasterio-pr2716": "not mixed: the change and the workload it names stay in Python (dtype helpers)",
+  "scikit-image-scikit-image-pr6441": "not mixed: the change and the workload it names stay in Python and NumPy",
+  "screenpipe-screenpipe-pr6254": "not mixed: the change and the workload it names stay in Rust",
+  "vllm-project-semantic-router-pr3774": "not mixed: the change and the workload it names stay in Go",
+  "vllm-project-vllm-pr60753": "not mixed: the change and the workload it names stay in Python (a GPU kernel benchmark)",
+  "xtensor-stack-xtensor-pr2088": "not mixed: the change and the workload it names stay in C++ (a header-only library)",
+  "yarnpkg-berry-pr4813": "not mixed: the change and the workload it names stay in JavaScript and TypeScript (node is the runtime)"
+ },
+ "skipped": {
+  "apache-arrow-rs-pr11143": "named in eval/skill/tasks-heldout-discovery.json",
+  "apache-datafusion-pr26790": "named in eval/skill/tasks-heldout-discovery.json",
+  "astral-sh-ruff-pr26565": "examined by the first discovery draw (passed)",
+  "astropy-astropy-pr20107": "examined by the first discovery draw (passed)",
+  "atuinsh-atuin-pr3577": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "axios-axios-pr11208": "examined by the first discovery draw (passed)",
+  "dask-dask-pr11899": "named in eval/skill/tasks-heldout-discovery.json",
+  "dgraph-io-badger-pr2269": "named in eval/skill/tasks-heldout-discovery.json",
+  "django-django-pr21460": "named in eval/skill/tasks-real.json",
+  "fasterxml-jackson-core-pr1674": "named in eval/skill/tasks-java.json",
+  "fastfloat-fast-float-pr356": "examined by the second discovery draw (passed)",
+  "fastify-fast-json-stringify-pr900": "named in eval/skill/tasks-heldout-discovery.json",
+  "gin-gonic-gin-pr2365": "examined by a per-class draw",
+  "grpc-grpc-go-pr8204": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "huggingface-tokenizers-pr1413": "named in eval/skill/tasks-mixed.json",
+  "image-rs-image-pr2894": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-adamw-97e61e2258": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "examined by a per-class draw",
+  "karpathy-llm-c-classifier-fused-dcff5613c6": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-encoder-forward-cfccd821e6": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-gelu-forward-45252d434c": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-global-norm-0f6853d399": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-layernorm-forward-466723bb06": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "examined by a per-class draw",
+  "karpathy-llm-c-matmul-forward-8822e7803e": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-softmax-forward-8386e5393c": "examined by the first discovery draw (passed)",
+  "labstack-echo-pr1799": "named in eval/skill/tasks-go.json",
+  "mitmproxy-mitmproxy-pr8055": "named in eval/skill/tasks-mixed.json",
+  "more-itertools-more-itertools-pr773": "examined by the first discovery draw (passed)",
+  "networkx-networkx-pr7810": "examined by a per-class draw",
+  "numpy-numpy-pr30810": "named in eval/skill/tasks-heldout-discovery.json",
+  "openai-tiktoken-pr31": "named in eval/skill/tasks-mixed.json",
+  "pandas-dev-pandas-pr70972": "examined by the first discovery draw (passed)",
+  "pydata-xarray-pr6107": "named in eval/skill/tasks-real.json",
+  "python-pillow-pillow-pr10293": "named in eval/skill/tasks-mixed.json",
+  "python-pillow-pillow-pr8194": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "pytoolz-toolz-pr376": "examined by the second discovery draw (passed)",
+  "ratatui-ratatui-pr601": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "rolldown-rolldown-pr10678": "examined by the first discovery draw (passed)",
+  "rubocop-rubocop-pr13248": "examined by the first discovery draw (passed)",
+  "scikit-learn-scikit-learn-pr34386": "examined by the first discovery draw (passed)",
+  "serenityos-serenity-pr25008": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "sgl-project-sglang-pr41223": "examined by a per-class draw",
+  "sharkdp-fd-pr853": "named in eval/skill/tasks-real.json",
+  "simdjson-simdjson-pr2805": "named in eval/skill/tasks-native.json",
+  "sirupsen-logrus-pr370": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "tokio-rs-tokio-pr5829": "examined by a per-class draw",
+  "tornadoweb-tornado-pr1729": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "uuidjs-uuid-pr677": "named in eval/skill/tasks-heldout-discovery.json",
+  "uutils-coreutils-pr9171": "examined by the first discovery draw (passed)",
+  "valyala-fasthttp-pr1945": "named in eval/skill/tasks-heldout-discovery.json",
+  "vercel-labs-skills-pr164": "named in eval/skill/tasks-heldout-discovery-2.json",
+  "xoofx-markdig-pr922": "named in eval/skill/tasks-dotnet.json"
+ },
+ "languages": {
+  "apache-arrow-rs-pr11143": "Rust",
+  "apache-datafusion-pr26790": "Rust",
+  "apache-hamilton-pr1629": "Python",
+  "astral-sh-ruff-pr26565": "Rust",
+  "astropy-astropy-pr20107": "Python",
+  "atuinsh-atuin-pr3577": "Rust",
+  "axios-axios-pr11208": "JavaScript/TypeScript",
+  "capsoftware-cap-pr2656": "Rust",
+  "cupy-cupy-pr8017": "Python",
+  "dask-dask-pr11899": "Python",
+  "dathere-qsv-pr3728": "Rust",
+  "delta-io-delta-rs-pr4635": "Rust",
+  "dgraph-io-badger-pr2269": "Go",
+  "dgraph-io-ristretto-pr32": "Go",
+  "django-django-pr21460": "Python",
+  "easytier-easytier-pr2397": "unknown",
+  "fasterxml-jackson-core-pr1674": "Java",
+  "fastfloat-fast-float-pr356": "C/C++",
+  "fastify-fast-json-stringify-pr900": "JavaScript/TypeScript",
+  "flashinfer-ai-flashinfer-pr7130": "Python",
+  "geopandas-geopandas-pr2353": "Python",
+  "gin-gonic-gin-pr2365": "Go",
+  "gitbutlerapp-gitbutler-pr13367": "Rust",
+  "go-gitea-gitea-pr38573": "Go",
+  "golang-jwt-jwt-pr33": "Go",
+  "grafana-loki-pr23949": "Go",
+  "grpc-grpc-go-pr8204": "Go",
+  "hashicorp-hcl-pr490": "Go",
+  "huggingface-tokenizers-pr1413": "Rust",
+  "image-rs-image-pr2894": "Rust",
+  "karpathy-llm-c-adamw-97e61e2258": "CUDA",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "CUDA",
+  "karpathy-llm-c-classifier-fused-dcff5613c6": "CUDA",
+  "karpathy-llm-c-encoder-forward-cfccd821e6": "CUDA",
+  "karpathy-llm-c-gelu-forward-45252d434c": "CUDA",
+  "karpathy-llm-c-global-norm-0f6853d399": "C/C++",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": "CUDA",
+  "karpathy-llm-c-layernorm-forward-466723bb06": "CUDA",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "CUDA",
+  "karpathy-llm-c-matmul-forward-8822e7803e": "CUDA",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": "CUDA",
+  "karpathy-llm-c-softmax-forward-8386e5393c": "CUDA",
+  "labstack-echo-pr1799": "Go",
+  "lance-format-lance-pr9409": "Rust",
+  "libvips-libvips-pr4974": "C/C++",
+  "man-group-arcticdb-pr3055": "C/C++",
+  "mitmproxy-mitmproxy-pr8055": "Python",
+  "more-itertools-more-itertools-pr773": "Python",
+  "msgspec-msgspec-pr237": "C/C++",
+  "mw00-project-maya-pr452": "C/C++",
+  "nandhakishorm-laya-pr615": "Python",
+  "nats-io-nats-go-pr2083": "Go",
+  "nautechsystems-nautilus-trader-pr4150": "Rust",
+  "networkx-networkx-pr7810": "Python",
+  "numpy-numpy-pr30810": "Python",
+  "nvidia-transformerengine-pr3068": "CUDA",
+  "open-policy-agent-opa-pr8167": "Go",
+  "open-telemetry-opentelemetry-go-pr8740": "Go",
+  "openai-tiktoken-pr31": "Rust",
+  "oracle-graal-pr12814": "Java",
+  "osgeo-gdal-pr12442": "C/C++",
+  "pandas-dev-pandas-pr70972": "Python",
+  "petercorke-robotics-toolbox-python-pr889": "Python",
+  "pinojs-pino-pr420": "JavaScript/TypeScript",
+  "plasma-umass-scalene-pr682": "Python",
+  "pulumi-pulumi-pr21176": "Go",
+  "pydata-xarray-pr6107": "Python",
+  "python-pendulum-pendulum-pr172": "Python",
+  "python-pillow-pillow-pr10293": "C/C++",
+  "python-pillow-pillow-pr8194": "C/C++",
+  "pytoolz-toolz-pr376": "Python",
+  "pyvista-pyvista-pr7714": "Python",
+  "rasterio-rasterio-pr2716": "Python",
+  "ratatui-ratatui-pr601": "Rust",
+  "rolldown-rolldown-pr10678": "JavaScript/TypeScript",
+  "rubocop-rubocop-pr13248": "Ruby",
+  "scikit-image-scikit-image-pr6441": "Python",
+  "scikit-learn-scikit-learn-pr34386": "Python",
+  "scipy-scipy-pr26368": "Python",
+  "screenpipe-screenpipe-pr6254": "unknown",
+  "serenityos-serenity-pr25008": "C/C++",
+  "sgl-project-sglang-pr41223": "Python",
+  "sgl-project-sglang-pr46500": "Python",
+  "shapely-shapely-pr1547": "Python",
+  "sharkdp-fd-pr853": "Rust",
+  "simdjson-simdjson-pr2805": "C/C++",
+  "sirupsen-logrus-pr370": "Go",
+  "tokio-rs-tokio-pr5829": "Rust",
+  "tornadoweb-tornado-pr1729": "Python",
+  "uuidjs-uuid-pr677": "JavaScript/TypeScript",
+  "uutils-coreutils-pr9171": "Rust",
+  "valyala-fasthttp-pr1945": "Go",
+  "vercel-labs-skills-pr164": "JavaScript/TypeScript",
+  "vllm-project-semantic-router-pr3774": "unknown",
+  "vllm-project-vllm-pr60753": "Python",
+  "xoofx-markdig-pr922": "C#",
+  "xtensor-stack-xtensor-pr2088": "C/C++",
+  "yarnpkg-berry-pr4813": "JavaScript/TypeScript"
+ },
+ "order": [
+  {
+   "id": "man-group-arcticdb-pr3055",
+   "key": "0edbe4cc007a747ea23a2d254758c3e65a71ed5d66b9ebcb164ccd9c14514fdc"
+  },
+  {
+   "id": "shapely-shapely-pr1547",
+   "key": "25e6898a2e56a09fa6d9740307b0d6978b66c23072d5147850a2351942487eb9"
+  },
+  {
+   "id": "pyvista-pyvista-pr7714",
+   "key": "3af5ec2735e8a58b726ae2b24afe7cbf2ac895b4e00aff9402ae1a3d60bdabed"
+  },
+  {
+   "id": "apache-hamilton-pr1629",
+   "key": "42b1cc4e22c50baca55d8abbe08e32150513710cd0987e833d85d7499ff82f8a"
+  },
+  {
+   "id": "scipy-scipy-pr26368",
+   "key": "58afc2e6b3b7449a7b9cbe92d157238d2b77583c1b3bffb457b75e55bed349c0"
+  },
+  {
+   "id": "sgl-project-sglang-pr46500",
+   "key": "5aaa6a821a7016787337d4f965066ac0d08b93249e1615516684d85f6cfa78c7"
+  },
+  {
+   "id": "flashinfer-ai-flashinfer-pr7130",
+   "key": "91d21e46e5ac0bd7663cf2eb9ed2809c035874ca58316fc2f2017c64b89e425f"
+  },
+  {
+   "id": "nvidia-transformerengine-pr3068",
+   "key": "a1eb33d9d1dd24aae5f98c5b9d1f2d07ced8a94604275becd765d2123babf9d8"
+  },
+  {
+   "id": "msgspec-msgspec-pr237",
+   "key": "c0fd0c9604332ea7348c8953a9e304469cc1935159b4a2d4963e7b0ac7eeade9"
+  },
+  {
+   "id": "geopandas-geopandas-pr2353",
+   "key": "ea298090f024dd39191c710807c831de72f4b18c31f83e6e0d400be52209214d"
+  }
+ ],
+ "walk": [
+  {
+   "id": "man-group-arcticdb-pr3055",
+   "language": "C/C++",
+   "outcome": "passed",
+   "reason": "did not build: setup `uv pip install -e .` exited 1: the C++ build's cmake configure (preset macos-release) failed under the eval user's sandboxed setup"
+  },
+  {
+   "id": "shapely-shapely-pr1547",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: setup `uv pip install --no-build-isolation -e .` exited 1: the 2022 tree's editable build fails, and its C extension needs GEOS, which this Mac does not have"
+  },
+  {
+   "id": "pyvista-pyvista-pr7714",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
+  },
+  {
+   "id": "apache-hamilton-pr1629",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
+  },
+  {
+   "id": "scipy-scipy-pr26368",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: setup `uv pip install --no-build-isolation -e .` exited 1: meson reports the missing array_api_compat submodule; a shallow checkout without scipy's submodules, and no Fortran compiler is installed"
+  },
+  {
+   "id": "sgl-project-sglang-pr46500",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: not run: the workload serves a model on an NVIDIA GPU, and this Mac has none"
+  },
+  {
+   "id": "flashinfer-ai-flashinfer-pr7130",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: not run: the workload builds cuDNN plans and needs an NVIDIA GPU, and this Mac has none"
+  },
+  {
+   "id": "nvidia-transformerengine-pr3068",
+   "language": "CUDA",
+   "outcome": "passed",
+   "reason": "did not build: not run: the change is a CUDA kernel and its workload needs an NVIDIA GPU, and this Mac has none"
+  },
+  {
+   "id": "msgspec-msgspec-pr237",
+   "language": "C/C++",
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
+  },
+  {
+   "id": "geopandas-geopandas-pr2353",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
+  }
+ ],
+ "picks": [
+  "pyvista-pyvista-pr7714",
+  "apache-hamilton-pr1629",
+  "msgspec-msgspec-pr237",
+  "geopandas-geopandas-pr2353"
+ ],
+ "quotas": {
+  "picks": 4,
+  "non_python": 1,
+  "lower": 1,
+  "max_per_language": 3,
+  "met": false
+ },
+ "stopped": null
+}

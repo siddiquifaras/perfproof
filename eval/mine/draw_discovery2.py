@@ -70,6 +70,17 @@ def first_record() -> dict[str, Any]:
     return draw_discovery.load_record(FIRST)
 
 
+def mixed_mined() -> list[str]:
+    """Return the ids the mixed held-out draw mined (none before it).
+
+    That draw was fixed after this one, so `derive` leaves them out of
+    its manifests.
+    """
+    if not draw.MIXED.exists():
+        return []
+    return list(json.loads(draw.MIXED.read_text())["mined"]["ids"])
+
+
 def derive_second(
     record: dict[str, Any], tasks: list[Any] | None = None
 ) -> Derived:
@@ -96,6 +107,7 @@ def derive_second(
         salt=SALT,
         examined=examined_by_first(),
         earlier_mined=first["mined"]["ids"],
+        later_mined=mixed_mined(),
     )
 
 

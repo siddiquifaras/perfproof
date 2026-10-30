@@ -1,0 +1,49 @@
+{
+  "id": "nvidia-transformerengine-pr3068",
+  "repository": "NVIDIA/TransformerEngine",
+  "stars": 3597,
+  "pushed_at": "2026-10-30T17:11:27Z",
+  "task_commit": "da115df1333f5881f79334d21f05dfeb26af5456",
+  "task_commit_basis": "first parent of https://github.com/NVIDIA/TransformerEngine/commit/b972fa899eddf69fa7812736d24e479e23a83d3d (squash merge); gh api compare da115df1333f...b972fa899edd touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/NVIDIA/TransformerEngine/pull/3068",
+    "title": "Optimize NVFP4 4over6 candidate error path",
+    "commit": "b972fa899eddf69fa7812736d24e479e23a83d3d",
+    "merged_at": "2026-06-09T20:33:18Z",
+    "files": [
+      "docs/envvars.rst",
+      "tests/pytorch/nvfp4/test_nvfp4_quantize_exact.py",
+      "transformer_engine/common/cast/nvfp4/quantize_4over6_nvfp4.cuh",
+      "transformer_engine/pytorch/custom_recipes/quantization_ref_nvfp4.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python3 benchmarks/linear/benchmark_grouped_linear.py --recipe nvfp4",
+    "source": "quoted in the description of https://github.com/NVIDIA/TransformerEngine/pull/3068",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/pytorch/nvfp4/test_nvfp4_quantize_exact.py",
+    "source": "test files changed by https://github.com/NVIDIA/TransformerEngine/pull/3068 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/NVIDIA/TransformerEngine/pull/3068",
+      "note": "description, as matched by the miner: speedup claims: 7.756x; 2.800x; 2.770x; 8.035x; 2.869x"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:11:42+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

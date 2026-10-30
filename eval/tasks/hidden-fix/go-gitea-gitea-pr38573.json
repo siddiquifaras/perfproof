@@ -1,0 +1,49 @@
+{
+  "id": "go-gitea-gitea-pr38573",
+  "repository": "go-gitea/gitea",
+  "stars": 58788,
+  "pushed_at": "2026-10-30T18:16:23Z",
+  "task_commit": "acbdc44d005cea63d1e2c45ca3b958364298ffc9",
+  "task_commit_basis": "first parent of https://github.com/go-gitea/gitea/commit/ee10ae168c4161013df2f988c4e556efbea99ff8 (squash merge); gh api compare acbdc44d005c...ee10ae168c41 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/go-gitea/gitea/pull/38573",
+    "title": "perf(emoji): optimize FindEmojiSubmatchIndex using slice-based Trie",
+    "commit": "ee10ae168c4161013df2f988c4e556efbea99ff8",
+    "merged_at": "2026-07-23T08:29:28Z",
+    "files": [
+      "modules/emoji/emoji.go",
+      "modules/emoji/emoji_test.go",
+      "modules/util/trie.go",
+      "modules/util/trie_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -bench=. -benchmem ./modules/emoji/...",
+    "source": "quoted in the description of https://github.com/go-gitea/gitea/pull/38573",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/go-gitea/gitea/pull/38573",
+      "note": "description, as matched by the miner: timings: 168.3 ns; 85.78 ns; 239.8 ns; 105.1 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:40+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

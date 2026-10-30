@@ -517,6 +517,7 @@ def bundle_files(checkout: Path, skill_dir: Path) -> dict[str, Path]:
         "draw.py",
         "heldout-discovery-2-draw.json",
         "heldout-discovery-draw.json",
+        "heldout-mixed-draw.json",
         "task.py",
     ):
         extra = checkout / "eval" / "mine" / name

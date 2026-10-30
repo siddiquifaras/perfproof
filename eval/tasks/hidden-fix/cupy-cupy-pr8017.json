@@ -1,0 +1,46 @@
+{
+  "id": "cupy-cupy-pr8017",
+  "repository": "cupy/cupy",
+  "stars": 12389,
+  "pushed_at": "2026-10-29T02:39:23Z",
+  "task_commit": "90a566cf133fa62decc48aa9b19024d5be92d807",
+  "task_commit_basis": "first parent of https://github.com/cupy/cupy/commit/891869e28bc06f139405e18bb2587e4d51951b9d; gh api compare 90a566cf133f...891869e28bc0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/cupy/cupy/pull/8017",
+    "title": "Speed up cupy environment duplicate detection",
+    "commit": "891869e28bc06f139405e18bb2587e4d51951b9d",
+    "merged_at": "2023-12-20T14:08:58Z",
+    "files": [
+      "cupy/_environment.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit cupy._environment._detect_duplicate_installation()",
+    "source": "quoted in the description of https://github.com/cupy/cupy/pull/8017",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/cupy/cupy/pull/8017",
+      "note": "description, as matched by the miner: speedup claims: 1.5x faster | timings: 740ms; 300ms; 274 ms ± 1.6 ms; 272 ms ± 1.19 ms; 179 ms ± 265 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:46+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

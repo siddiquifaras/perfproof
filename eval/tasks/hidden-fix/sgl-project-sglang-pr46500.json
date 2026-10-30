@@ -1,0 +1,52 @@
+{
+  "id": "sgl-project-sglang-pr46500",
+  "repository": "sgl-project/sglang",
+  "stars": 38307,
+  "pushed_at": "2026-10-30T18:20:34Z",
+  "task_commit": "3a3a8611a45f5a81fd07ffa6b0ed3ba33e7a4db9",
+  "task_commit_basis": "first parent of https://github.com/sgl-project/sglang/commit/259f0131c926c31a82afa165e2079e37e8f1f998 (squash merge); gh api compare 3a3a8611a45f...259f0131c926 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sgl-project/sglang/pull/46500",
+    "title": "[Feat] LoRA: revamp LoRADrainer for better performance",
+    "commit": "259f0131c926c31a82afa165e2079e37e8f1f998",
+    "merged_at": "2026-10-29T20:42:45Z",
+    "files": [
+      "docs/docs/advanced_features/lora.mdx",
+      "docs/docs/advanced_features/server_arguments.mdx",
+      "python/sglang/srt/arg_groups/fields/lora.py",
+      "python/sglang/srt/lora/lora_drainer.py",
+      "python/sglang/srt/managers/scheduler.py",
+      "test/registered/lora/test_lora_drainer.py",
+      "test/registered/unit/lora/test_lora_drainer.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python3 -m sglang.bench_serving --backend sglang --dataset-name random --num-prompts 800 --request-rate 4 --random-input-len 512 --random-output-len 512 --lora-request-distribution uniform --lora-name adapter0 adapter1 adapter2 adapter3",
+    "source": "quoted in the description of https://github.com/sgl-project/sglang/pull/46500",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest test/registered/lora/test_lora_drainer.py test/registered/unit/lora/test_lora_drainer.py",
+    "source": "test files changed by https://github.com/sgl-project/sglang/pull/46500 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sgl-project/sglang/pull/46500",
+      "note": "description, as matched by the miner: timings: 90 seconds; 77 ms; 3 s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:13:00+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

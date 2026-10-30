@@ -1,0 +1,81 @@
+{
+  "id": "geopandas-geopandas-pr2353",
+  "repository": "geopandas/geopandas",
+  "stars": 5289,
+  "pushed_at": "2026-10-29T09:31:40Z",
+  "task_commit": "912f1cd85c747f4be68123852566a0917fcd3c4f",
+  "task_commit_basis": "first parent of https://github.com/geopandas/geopandas/commit/4143488e64b33cbcf1599507a22b76a94d91e754 (squash merge); gh api compare 912f1cd85c74...4143488e64b3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/geopandas/geopandas/pull/2353",
+    "title": "PERF: improve frame_join part of spatial join",
+    "commit": "4143488e64b33cbcf1599507a22b76a94d91e754",
+    "merged_at": "2024-03-28T16:47:58Z",
+    "files": [
+      "geopandas/array.py",
+      "geopandas/geodataframe.py",
+      "geopandas/tests/test_pandas_methods.py",
+      "geopandas/tools/sjoin.py",
+      "geopandas/tools/tests/test_sjoin.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
+    "source": "written here from the description of https://github.com/geopandas/geopandas/pull/2353 (point-in-polygon spatial join): 1000000 points joined to 10000 square polygons, each with attribute columns",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
+    "source": "geopandas's spatial join tests, which https://github.com/geopandas/geopandas/pull/2353 edits; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/geopandas/geopandas/pull/2353",
+      "note": "description, as matched by the miner: timings: 2.4 s ± 69.2 ms; 1.52 s ± 7.93 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2024-03-29 pytest numpy pandas shapely pyproj pyogrio packaging; uv pip install --exclude-newer 2024-03-29 --no-deps -e .",
+      "exit_code": 0,
+      "duration_s": 56.9,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.4558212500414811"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-30T17:55:30+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

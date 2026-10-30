@@ -627,6 +627,33 @@ a stalled download of that toolchain, and the second found the
 half-installed toolchain, which was removed and installed again before
 the third.
 
+## Mixed held-out set
+
+"Mixed held-out set" of docs/evaluation.md draws hidden-fix tasks whose
+user path mixes languages, with `mine/draw_mixed_heldout.py` into
+`mine/heldout-mixed-draw.json` (the script re-derives it and exits 1 on
+a difference). Salt `perfproof-mixed-heldout-2026-10-30`; the walk
+skips every task a task file names and every task a per-class or
+discovery draw examined or took. Besides the committed pool, the miner
+ran on two seed lists fixed before they were searched:
+`mine/seeds-heldout-mixed.json` (hand-picked, 431 repositories) and
+`mine/seeds-heldout-mixed-2.json` (905 repositories found by topic and
+language-bytes rules the file's note records). Only the hidden-fix
+manifests were written (28 new ids, the record's `mined`); they are kept
+out of the other draws, which read the record through
+`draw.discovery_record`, `draw_discovery.later_mined` and
+`draw_discovery2.mixed_mined`.
+
+The readings (mixed or not, upper or lower layer) are the record's
+`reviews`. The build judgement is not `mine/check.py`, which runs
+unconfined: it is the setup path `skill_eval.py run` uses for the eval
+user (`runner.build_real_repo` run in the guest, behind the sandbox
+profile, planted files removed, the oracle run on the untouched tree,
+the task's speed check run once), with no model call. The record's
+`builds` holds each outcome. The picks are `held-out` and named in
+`skill/tasks-mixed-heldout.json`. The pool gave fewer than 12 picks and
+met neither quota; the record's `quotas` says so.
+
 ## Published benchmarks
 
 | | GSO | SWE-Perf | SWE-fficiency |

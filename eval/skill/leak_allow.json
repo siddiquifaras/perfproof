@@ -16,5 +16,11 @@
     "task": "fasterxml-jackson-core-pr1706",
     "line": "or `bytes` otherwise. Make the benchmark write its result to a file",
     "reason": "The task's change writes number text as ASCII bytes straight into UTF8JsonGenerator's output buffer. This line is spec-authoring advice on the benchmark's output files ('bytes' is a comparison mode, 'write' is the benchmark writing its result); it predates the task and has nothing to do with a JSON generator."
+  },
+  {
+    "file": "perfproof/node.md",
+    "task": "libvips-libvips-pr4974",
+    "line": "| **Closures and objects built in a hot loop** (`arr.map(x => ...)` with a new inner function per call, a fresh options object per call, spread copies `{...o}`, an array rebuilt per item) | Anonymous `(anonymous)` frames from the same file, `(garbage collector)` above, many allocations per call | Hoist the closure or object out of the loop in a scratch copy and time both on one input in the harness; or count allocations per call with `--heap-prof`. If the hoisted version allocates no more than before and the inner share is small, drop it |",
+    "reason": "The task's change moves a y-invariant computation out of the inner loop of a Perlin noise generator in C (libvips/create/perlin.c). This line is the Node playbook row on closures and objects rebuilt in a hot JavaScript loop; 'hoist' and 'inner' are shared words only, and the line names no libvips file, no Perlin noise and no C code."
   }
 ]

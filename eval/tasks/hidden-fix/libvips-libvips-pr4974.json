@@ -1,0 +1,46 @@
+{
+  "id": "libvips-libvips-pr4974",
+  "repository": "libvips/libvips",
+  "stars": 11773,
+  "pushed_at": "2026-10-29T16:40:33Z",
+  "task_commit": "345f371790f033b64038d03060676d849b17a66a",
+  "task_commit_basis": "first parent of https://github.com/libvips/libvips/commit/ea8ef3e64effbd1749278bb0600f663bfa282f1c; gh api compare 345f371790f0...ea8ef3e64eff touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/libvips/libvips/pull/4974",
+    "title": "perf: hoist y-invariant computation out of perlin inner loop",
+    "commit": "ea8ef3e64effbd1749278bb0600f663bfa282f1c",
+    "merged_at": "2026-03-27T09:47:08Z",
+    "files": [
+      "libvips/create/perlin.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine --warmup 10 --runs 20 -n master 'VIPS_CONCURRENCY=1 vips perlin output.v 4000 4000' -n branch 'VIPS_CONCURRENCY=1 vips perlin output.v 4000 4000'",
+    "source": "quoted in the description of https://github.com/libvips/libvips/pull/4974",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/libvips/libvips/pull/4974",
+      "note": "description, as matched by the miner: speedup claims: 1.16x | timings: 78.6 ms; 67.6 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T17:56:52+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "mw00-project-maya-pr452",
+  "repository": "mw00/project-maya",
+  "stars": 2265,
+  "pushed_at": "2026-10-30T09:20:01Z",
+  "task_commit": "77cb420fcb0b2e85a08b0289ef0e00067d543390",
+  "task_commit_basis": "first parent of https://github.com/mw00/project-maya/commit/32a4d85a605ffbc5d4b82b4dc5432584e7254a78; gh api compare 77cb420fcb0b...32a4d85a605f touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/mw00/project-maya/pull/452",
+    "title": "CPU: accelerate IQ1_M expert rows with exact AVX2 decoding",
+    "commit": "32a4d85a605ffbc5d4b82b4dc5432584e7254a78",
+    "merged_at": "2026-10-24T19:31:22Z",
+    "files": [
+      "include/strata/kernels/cpu/iq_avx2.hpp",
+      "src/kernels/cpu/iq_avx2.cpp",
+      "src/kernels/cpu/native_expert.cpp",
+      "src/kernels/cpu/native_rows_exact_test.cpp"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "./build/ds4_lane_bench --threads 12 --formats iq1_m,iq2_xxs",
+    "source": "quoted in the description of https://github.com/mw00/project-maya/pull/452",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/mw00/project-maya/pull/452",
+      "note": "description, as matched by the miner: speedup claims: 14.34×; 0.96× | timings: 8.044 ms; 0.561 ms; 0.348 ms; 0.363 ms; 3090s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:14:07+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

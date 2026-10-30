@@ -1,0 +1,48 @@
+{
+  "id": "man-group-arcticdb-pr3055",
+  "repository": "man-group/ArcticDB",
+  "stars": 2583,
+  "pushed_at": "2026-10-30T17:51:52Z",
+  "task_commit": "7e9cc0ed2156e66206104d76c4dc74750adbab27",
+  "task_commit_basis": "first parent of https://github.com/man-group/ArcticDB/commit/b48a2b0b84d0b7e6e14fe9f281fa9c04e89328fe (squash merge); gh api compare 7e9cc0ed2156...b48a2b0b84d0 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/man-group/ArcticDB/pull/3055",
+    "title": "Fix small performance regression reading None / NaN columns after Folly upgrade",
+    "commit": "b48a2b0b84d0b7e6e14fe9f281fa9c04e89328fe",
+    "merged_at": "2026-04-28T10:20:51Z",
+    "files": [
+      "cpp/arcticdb/python/python_handler_data.hpp",
+      "python/.asv/results/benchmarks.json",
+      "python/benchmarks/nonreg_random_read.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "python -I -c \"import timeit, numpy as np, pandas as pd; from arcticdb import Arctic; ac = Arctic('lmdb:///tmp/pp_arctic'); lib = ac.get_library('l', create_if_missing=True); n = 1000000; lib.write('s', pd.DataFrame({'a': [None] * n, 'b': [np.nan] * n}, dtype=object)); f = lambda: lib.read('s'); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/man-group/ArcticDB/pull/3055 (reading None and NaN columns): a frame of one million rows with an all-None and an all-NaN object column",
+    "verified": false
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider python/tests/unit/arcticdb/version_store/test_nan_none_read.py",
+    "source": "none found by name; ArcticDB's own tests are not run without its C++ build",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/man-group/ArcticDB/pull/3055",
+      "note": "description, as matched by the miner: timings: 0.060s; 0.631s; 0.077s; 0.870s; 0.0635s; 0.0034s; 0.0630s; 0.0593s | benchmark files changed: python/.asv/results/benchmarks.json, python/benchmarks/nonreg_random_read.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:12:43+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

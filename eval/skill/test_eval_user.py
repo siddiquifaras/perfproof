@@ -127,6 +127,7 @@ def test_the_bundle_holds_the_harness_without_its_tests() -> None:
     assert "eval/mine/checks.json" in files
     assert "eval/mine/heldout-discovery-draw.json" in files
     assert "eval/mine/heldout-discovery-2-draw.json" in files
+    assert "eval/mine/heldout-mixed-draw.json" in files
     assert "examples/materialize.py" in files
     assert "skills/perfproof/SKILL.md" in files
     # Workloads and the examples' own tests are task content; the

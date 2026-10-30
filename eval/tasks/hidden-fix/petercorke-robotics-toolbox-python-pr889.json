@@ -1,0 +1,49 @@
+{
+  "id": "petercorke-robotics-toolbox-python-pr889",
+  "repository": "petercorke/robotics-toolbox-python",
+  "stars": 3557,
+  "pushed_at": "2026-10-25T07:02:02Z",
+  "task_commit": "78f5c5ff745ddcd1a5da9903450937db0dc3a80f",
+  "task_commit_basis": "first parent of https://github.com/petercorke/robotics-toolbox-python/commit/0e8d604048519999c2a080bd9d33231fc60cc4b2 (squash merge); gh api compare 78f5c5ff745d...0e8d60404851 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/petercorke/robotics-toolbox-python/pull/889",
+    "title": "perf(mobile): index completed PRM roadmaps and benchmark queries",
+    "commit": "0e8d604048519999c2a080bd9d33231fc60cc4b2",
+    "merged_at": "2026-10-23T05:05:41Z",
+    "files": [
+      "examples/benchmark_roadmap.py",
+      "src/roboticstoolbox/mobile/LatticePlanner.py",
+      "src/roboticstoolbox/mobile/PRMPlanner.py",
+      "tests/test_graph_planners.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "python examples/benchmark_roadmap.py",
+    "source": "quoted in the description of https://github.com/petercorke/robotics-toolbox-python/pull/889",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/petercorke/robotics-toolbox-python/pull/889",
+      "note": "description, as matched by the miner: speedup claims: 2.79x; 2.87x | timings: 3.713 ms; 1.330 ms; 0.336 ms; 7.063 ms; 2.461 ms; 0.592 ms | benchmark files changed: examples/benchmark_roadmap.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-30T21:15:05+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
+}
