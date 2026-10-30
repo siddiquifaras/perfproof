@@ -37,6 +37,7 @@ BOOTSTRAP = 2000
 CONFIDENCE = 0.95
 SEED = 20261029
 
+_STATE_DIR = ".perfproof/"
 Run = Callable[[str, Path], tuple[int, float]]
 """Run a command line in a directory: exit code and wall seconds."""
 Git = Callable[..., str]
@@ -118,6 +119,42 @@ def ratio_interval(
         float(low),
         float(high),
     )
+
+
+def snapshot_working_tree(repo: Path, git: Git) -> None:
+    """Commit the working tree on a detached HEAD, minus ``.perfproof``.
+
+    perfproof's own state never belongs to the measured tree, and it
+    must not decide whether the snapshot works: a pathspec exclusion
+    such as ``:!.perfproof`` makes ``git add`` fail when the repository
+    already ignores that directory. So the directory goes into the
+    repository's private exclude file (``info/exclude``, never
+    committed), ``git add -A`` then skips it whether the repository
+    ignores it or not, and a tracked ``.perfproof`` path the agent
+    changed is reset in the index before the commit.
+
+    Parameters
+    ----------
+    repo : Path
+        The task repository.
+    git : callable
+        Runs git in ``repo``.
+
+    Raises
+    ------
+    RuntimeError
+        If a git call fails (as the caller's ``git`` raises).
+    """
+    exclude = repo / git("rev-parse", "--git-path", "info/exclude").strip()
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    held = exclude.read_text(encoding="utf-8") if exclude.exists() else ""
+    if _STATE_DIR not in held.split():
+        lead = "" if not held or held.endswith("\n") else "\n"
+        exclude.write_text(f"{held}{lead}{_STATE_DIR}\n", encoding="utf-8")
+    git("checkout", "-q", "--detach")
+    git("add", "-A")
+    git("reset", "-q", "--", ".perfproof")
+    git("commit", "-q", "--allow-empty", "-m", "ppeval final tree")
 
 
 def _unknown(reason: str, ref: str) -> SpeedResult:

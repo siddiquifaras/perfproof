@@ -60,6 +60,8 @@ def venv_dir() -> Path:
     return Path(named) if named else REPO_ROOT / ".venv"
 
 
+STDERR_TAIL_CHARS = 2000
+"""Most of a call's stderr kept in ``meta.json``."""
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 """Tools allowed without a prompt; nobody is there to answer one."""
 TURN_TIMEOUT_SECONDS = 1500.0
@@ -195,6 +197,10 @@ class TurnMeta(_Model):
         Process exit code; ``None`` if it was killed on timeout.
     session_id : str or None
         Session id read from the stream.
+    stderr_tail : str
+        Last `STDERR_TAIL_CHARS` characters of the call's stderr, after
+        redaction. A call that never started (``sandbox-exec`` cannot
+        find ``claude``: exit 71) says why only here.
     """
 
     prompt: str
@@ -202,6 +208,7 @@ class TurnMeta(_Model):
     seconds: float
     exit_code: int | None
     session_id: str | None
+    stderr_tail: str = ""
 
 
 class Meta(_Model):
@@ -773,6 +780,7 @@ def run_turn(
     timeout: float,
     prefix: list[str] | None = None,
     redact: list[str] | None = None,
+    executable: str | None = None,
 ) -> tuple[TurnMeta, dict[str, object] | None]:
     """Run one ``claude`` call, stream its events to ``out``.
 
@@ -796,6 +804,12 @@ def run_turn(
         ``<redacted>`` in every recorded event and in the stderr file,
         so a transcript that kept the agent's ``env`` output holds no
         secret.
+    executable : str, optional
+        Absolute path of ``claude``, run in place of ``argv[0]``. The
+        agent's ``PATH`` may not hold it (the baseline's drops every
+        directory with a ``perfproof`` command, which is where a
+        user-local ``claude`` lives too), and ``sandbox-exec`` looks the
+        command up on that ``PATH``. ``argv`` is still what is recorded.
 
     Returns
     -------
@@ -814,7 +828,7 @@ def run_turn(
         err.open("w", encoding="utf-8") as errsink,
     ):
         proc = subprocess.Popen(
-            [*(prefix or []), *argv],
+            [*(prefix or []), executable or argv[0], *argv[1:]],
             cwd=repo,
             env=env,
             stdin=subprocess.DEVNULL,
@@ -868,7 +882,9 @@ def run_turn(
         )
     session = state["session"]
     result = state["result"]
+    tail = err.read_text(encoding="utf-8", errors="replace")
     meta = TurnMeta(
+        stderr_tail=tail[-STDERR_TAIL_CHARS:],
         prompt=argv[2],
         argv=argv,
         seconds=round(time.monotonic() - started, 2),
@@ -1495,6 +1511,7 @@ def _speed_check(
     env: dict[str, str],
     extra_path: list[Path],
     spec: realrepo.RepoSpec | None,
+    final_sha: str | None = None,
 ) -> speedcheck.SpeedResult:
     """Time the run's final tree against its base, in the repo itself.
 
@@ -1502,23 +1519,23 @@ def _speed_check(
     the two trees are checked out in turn there. The working tree is
     first committed on a detached HEAD; the state was captured before.
     The command runs behind the sandbox profile, without the sign-in.
+    ``final_sha``, when given, is the already identified commit of a
+    ``working`` final tree: nothing is snapshotted then.
     """
     del spec
     try:
         base = state.seeded["main"]
         ref = state.final_ref
-        if ref == "working":
-            _git(repo, "checkout", "-q", "--detach")
-            _git(repo, "add", "-A", "--", ".", ":!.perfproof")
-            _git(
-                repo,
-                "commit",
-                "-q",
-                "--allow-empty",
-                "-m",
-                "ppeval final tree",
+        if final_sha is not None:
+            final = _git(repo, "rev-parse", final_sha)
+        else:
+            if ref == "working":
+                speedcheck.snapshot_working_tree(
+                    repo, lambda *args: _git(repo, *args).stdout
+                )
+            final = _git(
+                repo, "rev-parse", ref if ref != "working" else "HEAD"
             )
-        final = _git(repo, "rev-parse", ref if ref != "working" else "HEAD")
         quiet = {
             k: v for k, v in env.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"
         }
@@ -1548,6 +1565,171 @@ def _speed_check(
         return speedcheck.SpeedResult(
             status="unknown", reason=f"harness error: {exc}"[:300]
         )
+
+
+def task_paths(
+    task: Task, work: Path, path_dir: Path, held_out: bool
+) -> tuple[list[Path], list[Path], realrepo.RepoSpec | None]:
+    """Work out the ``PATH`` directories and manifest of a task.
+
+    Parameters
+    ----------
+    task : Task
+        The task.
+    work : Path
+        The run's work directory (``<work_root>/<run id>``).
+    path_dir : Path
+        The run's launcher directory.
+    held_out : bool
+        Load the manifest as a held-out one.
+
+    Returns
+    -------
+    tuple of (list of Path, list of Path, RepoSpec or None)
+        The ``PATH`` directories, the native toolchain directories
+        among them, and the manifest (``None`` for a task without a
+        real repository).
+
+    Raises
+    ------
+    realrepo.SetupError
+        If the machine lacks a toolchain the task needs.
+    """
+    if task.repo is None:
+        return [path_dir], [], None
+    # Native toolchains first, so a launcher that runs the same one in a
+    # container (Linux binaries) never shadows them.
+    toolchains = realrepo.toolchain_dirs(task.repo)
+    extra_path = [*toolchains, path_dir]
+    missing = realrepo.missing_requirements(task.repo)
+    if missing:
+        msg = (
+            f"skipped: {realrepo.NEEDS_DOCKER}"
+            if missing == [realrepo.NEEDS_DOCKER]
+            else "missing on this machine: " + ", ".join(missing)
+        )
+        raise realrepo.SetupError(msg)
+    if task.repo.shim is not None:
+        shims = work / "shims" / task.repo.shim
+        realrepo.write_shims(shims, task.repo.shim)
+        extra_path.append(shims)
+    spec = realrepo.load_spec(task.repo.manifest, held_out=held_out)
+    return extra_path, toolchains, spec
+
+
+def _recorded_final(repo: Path, state: State) -> tuple[str | None, str]:
+    """Identify the final tree of a finished run exactly.
+
+    A first speed check leaves the repository on whichever tree it
+    timed last (the base), so what is checked out says nothing about the
+    final tree. A branch is named by the state. A ``working`` tree was
+    committed as ``ppeval final tree`` if that check got that far: the
+    newest such commit in the reflog is it. Otherwise the working tree
+    is still the agent's only if it differs from the base; when the
+    state says the agent changed files and the tree shows none, the
+    change is lost.
+
+    Returns
+    -------
+    tuple of (str or None, str)
+        The commit to time (``None``: the branch named by the state, or
+        a snapshot to be taken) and a reason, non-empty when the final
+        tree cannot be identified.
+    """
+    if state.final_ref != "working":
+        return None, ""
+    base = state.seeded["main"]
+    log = _git(repo, "reflog", "--format=%H %gs").stdout.splitlines()
+    for line in log:
+        sha, _, subject = line.partition(" ")
+        if subject == "commit: ppeval final tree":
+            return sha, ""
+    changed = [t.changed for t in state.trees if t.ref == "working"]
+    if not any(changed):
+        return None, ""
+    speedcheck.snapshot_working_tree(
+        repo, lambda *args: _git(repo, *args).stdout
+    )
+    head = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    differs = _git(repo, "diff", "--name-only", base, head).stdout.strip()
+    if differs:
+        return head, ""
+    return None, (
+        "final tree not identifiable: the run's working-tree change is no "
+        "longer in the repository (state.json lists changed paths; the "
+        "checkout equals the base)"
+    )
+
+
+def remeasure_speed(
+    task: Task,
+    run_dir: Path,
+    path_dir: Path,
+    work_root: Path,
+    held_out: bool = False,
+) -> speedcheck.SpeedResult | None:
+    """Time a finished run's final tree again, with no agent.
+
+    The task repository the run left under ``work_root`` is used as it
+    is: the same checkout `_speed_check` ran in, in the same
+    environment but for the agent-only parts (no sign-in, no config
+    directory). The result replaces ``speed.json``.
+
+    Parameters
+    ----------
+    task : Task
+        The task; it must have a ``speed_check``.
+    run_dir : Path
+        The run directory (it holds ``<task id>/state.json``).
+    path_dir : Path
+        The run's launcher directory.
+    work_root : Path
+        Where the run's task repositories live.
+    held_out : bool, optional
+        The run was a held-out one.
+
+    Returns
+    -------
+    SpeedResult or None
+        The new measurement, also written to ``speed.json``; ``None``
+        if the task has no ``speed_check``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the run's ``state.json`` or the task repository is gone.
+    """
+    if task.speed_check is None:
+        return None
+    work = work_root / run_dir.name
+    repo = work / "repos" / task.id
+    if not repo.is_dir():
+        msg = f"no task repository at {repo}"
+        raise FileNotFoundError(msg)
+    state = State.model_validate_json(
+        (run_dir / task.id / "state.json").read_text(encoding="utf-8")
+    )
+    extra_path, _, spec = task_paths(task, work, path_dir, held_out)
+    env = (
+        realrepo.task_env(spec, repo, extra_path)
+        if spec is not None
+        else sandbox.agent_env(
+            os.environ, work / "sandbox" / task.id, [path_dir]
+        )
+    )
+    final_sha, why = _recorded_final(repo, state)
+    if why:
+        speed = speedcheck.SpeedResult(
+            status="unknown", reason=why, final_ref=state.final_ref
+        )
+    else:
+        speed = _speed_check(
+            task.speed_check, repo, state, env, extra_path, spec, final_sha
+        )
+    (run_dir / task.id / speedcheck.SPEED_FILE).write_text(
+        speed.model_dump_json(indent=2), encoding="utf-8"
+    )
+    return speed
 
 
 def run_task(
@@ -1619,27 +1801,8 @@ def run_task(
     # The task's temp directory is outside the run tree: empty it once,
     # before any build step uses it and the agent starts.
     sandbox.reset_tmp(work / "sandbox" / task.id / "private")
-    extra_path = [path_dir]
-    spec: realrepo.RepoSpec | None = None
-    toolchains: list[Path] = []
-    if task.repo is not None:
-        # Native toolchains first, so a launcher that runs the same one
-        # in a container (Linux binaries) never shadows them.
-        toolchains = realrepo.toolchain_dirs(task.repo)
-        extra_path = [*toolchains, path_dir]
-        missing = realrepo.missing_requirements(task.repo)
-        if missing:
-            msg = (
-                f"skipped: {realrepo.NEEDS_DOCKER}"
-                if missing == [realrepo.NEEDS_DOCKER]
-                else "missing on this machine: " + ", ".join(missing)
-            )
-            raise realrepo.SetupError(msg)
-        if task.repo.shim is not None:
-            shims = work / "shims" / task.repo.shim
-            realrepo.write_shims(shims, task.repo.shim)
-            extra_path.append(shims)
-        spec = realrepo.load_spec(task.repo.manifest, held_out=held_out)
+    extra_path, toolchains, spec = task_paths(task, work, path_dir, held_out)
+    if task.repo is not None and spec is not None:
         seeded = build_real_repo(
             task,
             spec,
@@ -1669,6 +1832,7 @@ def run_task(
     secrets = sandbox.env_secrets(env)
     SECRETS_USED.extend(s for s in secrets if s not in SECRETS_USED)
     forms = sandbox.secret_forms(secrets)
+    claude_bin = shutil.which("claude", path=env.get("PATH", ""))
     if arm == "baseline":
         env["PATH"] = path_without_cli(env.get("PATH", ""))
         leaks = baseline_leaks(repo, env)
@@ -1712,6 +1876,7 @@ def run_task(
             call_timeout(task),
             launch,
             forms,
+            claude_bin,
         )
         if auth_failed(result):
             # Not a task failure: the sign-in is dead, so this task and

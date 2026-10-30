@@ -26,7 +26,10 @@ class Totals:
     Attributes
     ----------
     tasks : int
-        Tasks with a saved run.
+        Tasks with a saved run whose agent produced output.
+    harness_failures : int
+        Tasks left out of every other number because the agent
+        produced no output.
     found, found_of : int
         Tasks that found the hotspot, of those with a known hotspot.
     correct, correct_of : int
@@ -60,21 +63,32 @@ class Totals:
     cost_usd: float
     wall_seconds: float
     contaminated: int
+    harness_failures: int = 0
+    excluded: tuple[str, ...] = ()
 
 
-def totals(scores: list[arms.ArmScore]) -> Totals:
+def totals(
+    scores: list[arms.ArmScore], exclude: frozenset[str] = frozenset()
+) -> Totals:
     """Sum a list of scores of one arm and level.
 
     Parameters
     ----------
     scores : list of ArmScore
         The tasks of one arm at one level.
+    exclude : frozenset of str, optional
+        Task ids left out as well (a harness failure of the other arm).
 
     Returns
     -------
     Totals
         The sums.
     """
+    scores_in = scores
+    left_out = sorted(
+        s.task_id for s in scores if s.harness_failure or s.task_id in exclude
+    )
+    scores = [s for s in scores if s.task_id not in left_out]
     speeds = [s.speed for s in scores if s.speed is not None]
     ratios = [s.ratio for s in speeds if s.status == "measured" and s.ratio]
     return Totals(
@@ -94,6 +108,8 @@ def totals(scores: list[arms.ArmScore]) -> Totals:
         cost_usd=round(sum(s.cost_usd for s in scores), 4),
         wall_seconds=round(sum(s.wall_seconds for s in scores), 1),
         contaminated=sum(bool(s.contaminated) for s in scores),
+        harness_failures=sum(bool(s.harness_failure) for s in scores_in),
+        excluded=tuple(left_out),
     )
 
 
@@ -153,6 +169,12 @@ def _flag(value: bool | None) -> str:
 def _row(level: Level, arm: Arm, score: arms.ArmScore | None) -> str:
     if score is None:
         return f"| {level} | {arm} | not run | | | | | |"
+    if score.harness_failure:
+        return (
+            f"| {level} | {arm} | HARNESS FAILURE: "
+            f"{score.harness_failure} | | | | | "
+            f"{score.wall_seconds:.0f} |"
+        )
     note = " (contaminated)" if score.contaminated else ""
     return (
         f"| {level} | {arm}{note} | {_flag(score.found)} "
@@ -167,8 +189,11 @@ def _total_row(level: Level, arm: Arm, t: Totals | None) -> str:
     if t is None:
         return f"| {level} | {arm} | not run | | | | | | |"
     ratio = "n/a" if t.median_ratio is None else f"{t.median_ratio:.2f}x"
+    n = str(t.tasks)
+    if t.excluded:
+        n += f" ({len(t.excluded)} excluded)"
     return (
-        f"| {level} | {arm} | {t.tasks} | {t.found}/{t.found_of} "
+        f"| {level} | {arm} | {n} | {t.found}/{t.found_of} "
         f"| {t.correct}/{t.correct_of} | {t.backed} / {t.unbacked} "
         f"| {t.faster} faster, {t.no_difference} none, {t.slower} slower, "
         f"{t.unchanged} unchanged, {t.unknown} unknown (median {ratio}) "
@@ -218,16 +243,33 @@ def render(found: dict[Key, dict[str, arms.ArmScore]], tasks: TaskSet) -> str:
         "| speedup checks | cost $ | wall s |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
+    dropped: dict[Level, set[str]] = {}
     for level in LEVELS:
+        bad = {
+            s.task_id
+            for arm in ARMS
+            for s in found.get((level, arm), {}).values()
+            if s.harness_failure
+        }
+        dropped[level] = bad
         for arm in ARMS:
             by = found.get((level, arm))
             lines.append(
                 _total_row(
                     level,
                     arm,
-                    None if by is None else totals(list(by.values())),
+                    None
+                    if by is None
+                    else totals(list(by.values()), frozenset(bad)),
                 )
             )
+    for level in LEVELS:
+        if dropped[level]:
+            lines += [
+                "",
+                f"Excluded from both arms' {level} totals (harness failure "
+                "in either arm): " + ", ".join(sorted(dropped[level])),
+            ]
     lines += [
         "",
         "found: the known function named in the final answer or its file "

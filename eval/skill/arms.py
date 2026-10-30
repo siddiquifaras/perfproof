@@ -127,6 +127,8 @@ _USES_PERFPROOF = re.compile(
     r"|\b(?:import|from)\s+perfproof\b"
 )
 _PERFPROOF_PATH = re.compile(r"perfproof/|SKILL\.md")
+_CODE_SPAN = re.compile(r"`([^`\n]+)`")
+_IDENTIFIER = re.compile(r"[\w./:@\\-]+")
 _TIMING = re.compile(
     r"timeit|perf_counter|process_time|monotonic\(|time\.time\(|hyperfine"
     r"|/usr/bin/time|(?:^|[;&|(]\s*)time\s|--benchmark|go test[^\n]*-bench"
@@ -190,6 +192,12 @@ class ArmScore(_Model):
         Sum of the calls' wall times.
     calls : int
         ``claude`` calls, follow-ups included.
+    harness_failure : str
+        Non-empty when the agent produced no output at all (it never
+        started, or died before its first event): why, from the exit
+        code and stderr. Such a task is a harness failure, not a result
+        of the arm; its other fields are empty and `compare` leaves it
+        out of the totals.
     """
 
     task_id: str
@@ -207,6 +215,27 @@ class ArmScore(_Model):
     cost_usd: float
     wall_seconds: float
     calls: int
+    harness_failure: str = ""
+
+
+def _no_output(meta: Meta, turns: list[transcript.Turn]) -> str:
+    """Say why a task has no agent output, or return ``""``."""
+    if any(t.events for t in turns):
+        return ""
+    last = meta.turns[-1] if meta.turns else None
+    if last is None:
+        return "no claude call recorded"
+    tail = last.stderr_tail.strip().splitlines()
+    why = tail[-1] if tail else "no stderr recorded"
+    return f"agent produced no output (exit {last.exit_code}): {why}"
+
+
+def _mask_identifier(m: re.Match[str]) -> str:
+    """Blank a code span that is one identifier or path."""
+    inner = m[1]
+    if _IDENTIFIER.fullmatch(inner):
+        return "`" + "_" * len(inner) + "`"
+    return m[0]
 
 
 def extract_claims(final: str) -> list[str]:
@@ -223,17 +252,28 @@ def extract_claims(final: str) -> list[str]:
         The claim sentences, in order, per the module rules.
     """
     text = _FENCE.sub(" ", final)
-    parts = re.split(r"(?<=[.!?])\s+|\n+", text)
+    # An identifier or path in `code` (a branch name like
+    # perfproof/speedups) is not a claim; a span with spaces ("3.2x
+    # faster") can be one. Match on a copy with identifier spans
+    # blanked (same length); report the original sentence.
+    masked = _CODE_SPAN.sub(_mask_identifier, text)
     found: list[str] = []
-    for part in parts:
-        sentence = part.strip(" -*#>|`")
+    start = 0
+    for end in [
+        *(m.end() for m in re.finditer(r"(?<=[.!?])\s+|\n+", masked)),
+        len(masked),
+    ]:
+        part, seen = text[start:end], masked[start:end]
+        start = end
+        sentence = part.strip(" \t\n-*#>|`")
+        probe = seen.strip(" \t\n-*#>|`")
         if (
-            sentence
-            and not sentence.endswith("?")
-            and not _NOT_A_CLAIM.search(sentence)
+            probe
+            and not probe.endswith("?")
+            and not _NOT_A_CLAIM.search(probe)
             and any(
-                not _NEGATES_PHRASE.search(sentence[: m.start()][-40:])
-                for m in _CLAIM.finditer(sentence)
+                not _NEGATES_PHRASE.search(probe[: m.start()][-40:])
+                for m in _CLAIM.finditer(probe)
             )
         ):
             found.append(
@@ -398,6 +438,26 @@ def score_arm(task: TaskSpec, task_dir: Path) -> ArmScore:
     meta = Meta.model_validate_json(
         (task_dir / "meta.json").read_text(encoding="utf-8")
     )
+    failure = _no_output(meta, turns)
+    if failure:
+        return ArmScore(
+            task_id=task.id,
+            arm=meta.arm,
+            level=meta.level,
+            found=None,
+            found_detail="",
+            correct=None,
+            correct_detail="",
+            claims=[],
+            claims_backed=0,
+            claims_unbacked=0,
+            speed=None,
+            contaminated=[],
+            cost_usd=0.0,
+            wall_seconds=round(sum(t.seconds for t in meta.turns), 1),
+            calls=0,
+            harness_failure=failure,
+        )
     calls = transcript.tool_calls(turns)
     final = transcript.final_text(turns)
     cost, _, _ = transcript.result_metrics(turns)

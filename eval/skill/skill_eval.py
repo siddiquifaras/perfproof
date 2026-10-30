@@ -582,6 +582,119 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def needs_remeasure(task_dir: Path) -> bool:
+    """Tell whether a task's saved speed check could not be measured.
+
+    Parameters
+    ----------
+    task_dir : Path
+        ``<run>/<task id>/``.
+
+    Returns
+    -------
+    bool
+        True when ``speed.json`` exists and says ``unknown``.
+    """
+    speed = arms.load_speed(task_dir)
+    return speed is not None and speed.status == "unknown"
+
+
+def _remeasure_here(args: argparse.Namespace) -> int:
+    """Time the final trees of a run again, in this account."""
+    tasks = taskset.load(args.tasks_file)
+    run_dir = Path(args.run_dir)
+    arm, _ = arms.read_run_marker(run_dir)
+    path_dir = runner.shim_dir(run_dir, with_cli=arm == "skill")
+    work_root = args.work_root or _DEFAULT_WORK_ROOT
+    code = 0
+    for task in _select(tasks.tasks, args.only):
+        if not args.only and not needs_remeasure(run_dir / task.id):
+            continue
+        try:
+            speed = runner.remeasure_speed(
+                task, run_dir, path_dir, work_root, args.held_out
+            )
+        except (FileNotFoundError, realrepo.SetupError) as exc:
+            sys.stdout.write(f"{task.id}: NOT REMEASURED, {exc}\n")
+            code = 1
+            continue
+        if speed is None:
+            continue
+        if args.copy_to is not None:
+            (args.copy_to / task.id).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(
+                run_dir / task.id / "speed.json",
+                args.copy_to / task.id / "speed.json",
+            )
+        sys.stdout.write(f"{task.id}: {speed.status} {speed.reason[:120]}\n")
+        sys.stdout.flush()
+    return code
+
+
+def _remeasure_locked(
+    args: argparse.Namespace, user: eval_user.EvalUser
+) -> int:
+    eval_user.sweep(user)
+    run_dir = Path(args.run_dir)
+    label = eval_user.check_label(args.label or run_dir.name)
+    staged = eval_user.stage(
+        user,
+        runner.REPO_ROOT,
+        runner.SKILL_SOURCE,
+        args.tasks_file,
+        DEFAULT_OUT / ".stage" / f"{label}-remeasure",
+    )
+    remote = user.archives / f"{label}-remeasure"
+    eval_user.remove(user, remote)
+    eval_user.verify_bundle(user, staged)
+    done = eval_user.run_guest(
+        user,
+        [
+            user.tool_venv / "bin" / "python",
+            user.bundle / "eval" / "skill" / "skill_eval.py",
+            "--tasks-file",
+            user.bundle / "tasks-file.json",
+            "remeasure",
+            user.runs / label,
+            "--no-eval-user",
+            *(["--held-out"] if args.held_out else []),
+            "--work-root",
+            user.work / "work",
+            "--copy-to",
+            remote,
+            *(["--only", *args.only] if args.only else []),
+        ],
+    )
+    eval_user.verify_bundle(user, staged)
+    if done.returncode not in (0, 1):
+        return done.returncode
+    pulled = DEFAULT_OUT / ".stage" / f"{label}-remeasured"
+    shutil.rmtree(pulled, ignore_errors=True)
+    eval_user.pull(user, remote, pulled)
+    count = 0
+    for speed in sorted(pulled.glob("*/speed.json")):
+        for target in (run_dir, args.also):
+            if target is not None:
+                (target / speed.parent.name).mkdir(parents=True, exist_ok=True)
+                shutil.copy2(speed, target / speed.parent.name / speed.name)
+        count += 1
+    sys.stdout.write(f"{count} speed.json replaced in {run_dir}\n")
+    _score_and_report(run_dir, args.tasks_file, None)
+    return done.returncode
+
+
+def _cmd_remeasure(args: argparse.Namespace) -> int:
+    if args.no_eval_user:
+        return _remeasure_here(args)
+    for given, name in ((args.work_root, "--work-root"),):
+        if given is not None:
+            msg = f"{name} applies to --no-eval-user runs only"
+            raise eval_user.EvalUserUnavailableError(msg)
+    user = eval_user.require()
+    with eval_user.exclusive():
+        return _remeasure_locked(args, user)
+
+
 def _cmd_score(args: argparse.Namespace) -> int:
     return _score_and_report(
         Path(args.run_dir), args.tasks_file, args.previous
@@ -829,6 +942,25 @@ def main(argv: list[str] | None = None) -> int:
     cmp.add_argument("run_dirs", type=Path, nargs="+")
     cmp.add_argument("--out", type=Path, help="write the report here")
     cmp.set_defaults(func=_cmd_compare)
+    rem = sub.add_parser(
+        "remeasure",
+        help="time the final trees of a finished run again, with no agent "
+        "(the speed checks that were unknown, or --only tasks), replace "
+        "their speed.json and score again",
+    )
+    rem.add_argument("run_dir", type=Path)
+    rem.add_argument("--only", nargs="+", help="task id patterns")
+    rem.add_argument("--label", help="the run's id in the eval user's home")
+    rem.add_argument(
+        "--also",
+        type=Path,
+        help="a second directory (an archive) to put the new speed.json in",
+    )
+    rem.add_argument("--held-out", action="store_true")
+    rem.add_argument("--no-eval-user", action="store_true")
+    rem.add_argument("--work-root", type=Path)
+    rem.add_argument("--copy-to", type=Path, help="internal: guest output")
+    rem.set_defaults(func=_cmd_remeasure)
     score = sub.add_parser("score", help="score a saved run, no re-run")
     score.add_argument("run_dir", type=Path)
     score.add_argument("--previous", type=Path)

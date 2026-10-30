@@ -222,7 +222,7 @@ class _Recorder:
 
     def __call__(self, argv: list[str], **kwargs: Any) -> Any:
         self.calls.append((list(argv), kwargs))
-        if "claude" in argv:
+        if any(Path(a).name == "claude" for a in argv):
             body = self.body or (
                 "import json,sys;"
                 "print(json.dumps({'type':'result','session_id':'s',"
@@ -277,7 +277,7 @@ def test_run_task_reaches_claude_through_the_sandbox(
     argv, kwargs = launches[0]
     assert kwargs["env"]["CLAUDE_CODE_OAUTH_TOKEN"] == "fake-oauth"  # noqa: S105
     assert argv[0] == "sandbox-exec"
-    assert "claude" in argv
+    assert any(Path(a).name == "claude" for a in argv)
     _check_clean(kwargs["env"])
     config = Path(kwargs["env"]["CLAUDE_CONFIG_DIR"])
     assert config.is_relative_to(tmp_path / "work")
