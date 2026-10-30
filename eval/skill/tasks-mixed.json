@@ -1,0 +1,226 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "mixed-python-pillow-pillow-pr10293-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "python-pillow-pillow-pr10293",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "make the app faster"
+        },
+        "detailed": {
+          "skill": "/perfproof Resizing large photos down to thumbnails is slow in our image service. We push about 3,000 photos of roughly 1200 by 800 pixels through the resize step in one batch, and the batch takes much longer than we expect.",
+          "baseline": "Resizing large photos down to thumbnails is slow in our image service. We push about 3,000 photos of roughly 1200 by 800 pixels through the resize step in one batch, and the batch takes much longer than we expect."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import os, timeit; from PIL import Image; im = Image.frombytes('RGB', (1237, 811), bytes(i % 251 for i in range(1237 * 811 * 3))); f = lambda: [im.resize(s, Image.LANCZOS) for s in ((12, 8), (123, 81), (619, 405))]; print(min(timeit.repeat(f, number=20, repeat=5)))\"",
+        "metric": "wall",
+        "build": "uv pip install --exclude-newer 2026-10-24 -C jpeg=disable -e ."
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/libImaging/Resample.c",
+          "function": "_ImagingResampleHorizontal_8bpc",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "mixed-matplotlib-matplotlib-pr32064-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "matplotlib-matplotlib-pr32064",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "fix the slowness"
+        },
+        "detailed": {
+          "skill": "/perfproof Our nightly report job draws a few hundred small charts and saves each one as a PNG. Saving feels slower than it should even for a nearly empty chart, and the job takes far longer than the amount of data suggests.",
+          "baseline": "Our nightly report job draws a few hundred small charts and saves each one as a PNG. Saving feels slower than it should even for a nearly empty chart, and the job takes far longer than the amount of data suggests."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import os, time; import matplotlib; matplotlib.use('agg'); import matplotlib.pyplot as plt; t = time.perf_counter(); [(lambda fig: (fig.savefig(os.devnull, format='png'), plt.close(fig)))(plt.subplots()[0]) for _ in range(50)]; print(time.perf_counter() - t)\"",
+        "metric": "wall",
+        "build": "python -I -c 'import matplotlib.pyplot'"
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/ft2font_wrapper.cpp",
+          "function": "read_from_file_callback",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "mixed-huggingface-tokenizers-pr1413-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "huggingface-tokenizers-pr1413",
+        "requires": [
+          "uv",
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "speed up the app"
+        },
+        "detailed": {
+          "skill": "/perfproof Encoding text with our tokenizer is fast for short inputs but disproportionately slow for long documents. A document of about 300 KB (tens of thousands of words) takes many seconds to encode.",
+          "baseline": "Encoding text with our tokenizer is fast for short inputs but disproportionately slow for long documents. A document of about 300 KB (tens of thousands of words) takes many seconds to encode."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import random, timeit; from tokenizers import normalizers; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(5)) for _ in range(5000)]; text = ' '.join(rng.choice(words) for _ in range(60000)); norm = normalizers.Replace(' ', '\u2581'); print(min(timeit.repeat(lambda: norm.normalize_str(text), number=1, repeat=3)))\"",
+        "metric": "wall",
+        "build": "maturin develop --release -m bindings/python/Cargo.toml"
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "tokenizers/src/tokenizer/normalizer.rs",
+          "function": "NormalizedString::replace",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "mixed-openai-tiktoken-pr31-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "openai-tiktoken-pr31",
+        "requires": [
+          "uv",
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "it's slow, fix it"
+        },
+        "detailed": {
+          "skill": "/perfproof We count tokens in a large corpus of English documents before sending them to a language model. A single 1.5 MB document takes a few seconds to tokenize, and we have thousands of them per run, which is far slower than our budget allows.",
+          "baseline": "We count tokens in a large corpus of English documents before sending them to a language model. A single 1.5 MB document takes a few seconds to tokenize, and we have thousands of them per run, which is far slower than our budget allows."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import random, string, timeit, tiktoken; enc = tiktoken.get_encoding('r50k_base'); words = enc.decode(list(range(1000, 6000))).split(); rng = random.Random(0); text = ' '.join(rng.choice(words) if rng.random() < 0.5 else ''.join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 14))) for _ in range(200000)); print(min(timeit.repeat(lambda: enc.encode(text), number=1, repeat=3)))\"",
+        "metric": "wall",
+        "build": "uv pip install --exclude-newer 2023-02-27 --no-build-isolation -e ."
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/lib.rs",
+          "function": "byte_pair_merge",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "mixed-mitmproxy-mitmproxy-pr8055-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "mitmproxy-mitmproxy-pr8055",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "make this faster"
+        },
+        "detailed": {
+          "skill": "/perfproof We run mitmproxy with an addon that edits the bodies of responses in a test environment. When the pages are large text documents of a few MB the proxy gets sluggish, and clients time out waiting for the edited response.",
+          "baseline": "We run mitmproxy with an addon that edits the bodies of responses in a test environment. When the pages are large text documents of a few MB the proxy gets sluggish, and clients time out waiting for the edited response."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import random, time; from mitmproxy.net import encoding; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(6)) for _ in range(5000)]; data = ' '.join(rng.choice(words) for _ in range(400000)).encode(); t = time.perf_counter(); [encoding.encode(data, e) for e in ('br', 'gzip', 'deflate', 'zstd')]; print(time.perf_counter() - t)\"",
+        "metric": "wall"
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "mitmproxy/net/encoding.py",
+          "function": "encode_brotli",
+          "top_n": "skill"
+        }
+      }
+    }
+  ]
+}

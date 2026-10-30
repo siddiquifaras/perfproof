@@ -643,6 +643,7 @@ _LOADS = {
     "tasks-node.json",
     "tasks-dotnet.json",
     "tasks-rust.json",
+    "tasks-mixed.json",
 }
 _ALSO_LOADS: set[str] = set()
 

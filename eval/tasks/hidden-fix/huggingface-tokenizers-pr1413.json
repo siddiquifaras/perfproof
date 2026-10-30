@@ -1,0 +1,147 @@
+{
+  "id": "huggingface-tokenizers-pr1413",
+  "repository": "huggingface/tokenizers",
+  "stars": 11211,
+  "pushed_at": "2026-10-29T15:40:34Z",
+  "task_commit": "4a8105c36671ef46738d6e2799c55198139b87b2",
+  "task_commit_basis": "first parent of https://github.com/huggingface/tokenizers/commit/c893204c45d7f2cd66958731dd7779548ca54ad5 (squash merge); gh api compare 4a8105c36671...c893204c45d7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/huggingface/tokenizers/pull/1413",
+    "title": "Efficient Replace normalizer",
+    "commit": "c893204c45d7f2cd66958731dd7779548ca54ad5",
+    "merged_at": "2024-02-06T13:36:44Z",
+    "files": [
+      "tokenizers/src/tokenizer/normalizer.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import random, timeit; from tokenizers import normalizers; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(5)) for _ in range(5000)]; text = ' '.join(rng.choice(words) for _ in range(60000)); norm = normalizers.Replace(' ', '▁'); print(min(timeit.repeat(lambda: norm.normalize_str(text), number=1, repeat=3)))\"",
+    "source": "written here from the description of https://github.com/huggingface/tokenizers/pull/1413 (the Replace normalizer of the Llama and Mistral tokenizers on long input): Replace(' ', '▁') over 60000 words in one string",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider bindings/python/tests/bindings/test_normalizers.py bindings/python/tests/bindings/test_pre_tokenizers.py bindings/python/tests/bindings/test_decoders.py",
+    "source": "the Python binding's normalizer and pre-tokenizer unit tests, for the module https://github.com/huggingface/tokenizers/pull/1413 changes (it changes no test file); targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/huggingface/tokenizers/pull/1413",
+      "note": "description, as matched by the miner: no numbers or benchmark files found by the miner"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python 3.11 (3.12 was under six months old at the merge); the Rust crate is built by maturin develop, which the binding's pyproject names as its backend",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.11 .venv",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-29T17:15:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.11.14\nwarning: The requested interpreter resolved to Python 3.11.14, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2024-02-07 pytest numpy pip maturin==1.4.0 huggingface_hub requests",
+      "exit_code": 0,
+      "duration_s": 0.06,
+      "date": "2026-10-29T17:15:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + fsspec==2024.2.0\n + huggingface-hub==0.20.3\n + idna==3.6\n + iniconfig==2.0.0\n + maturin==1.4.0\n + numpy==1.26.4\n + packaging==23.2\n + pip==24.0\n + pluggy==1.4.0\n + pytest==8.0.0\n + pyyaml==6.0.1\n + requests==2.31.0\n + tqdm==4.66.1\n + typing-extensions==4.9.0\n + urllib3==2.2.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "maturin develop --release -m bindings/python/Cargo.toml",
+      "exit_code": 0,
+      "duration_s": 33.37,
+      "date": "2026-10-29T17:15:33+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "13 | impl PyRegex {\n   |      -------\n   |      |\n   |      `PyRegex` is not local\n   |      `PyRegex` is not local\n   |\n   = note: the attribute macro `pymethods` defines the non-local `impl`, and may need to be changed\n   = note: the attribute macro `pymethods` may come from an old version of the `pyo3_macros` crate, try updating your dependency with `cargo update -p pyo3_macros`\n   = note: an `impl` is never scoped, even when it is nested inside an item, as it may impact type checking outside of that item, which can be the case if neither the trait or the self type are at the same nesting level as the `impl`\n   = note: this warning originates in the attribute macro `pymethods` (in Nightly builds, run with -Z macro-backtrace for more info)\n\nwarning: `tokenizers-python` (lib) generated 57 warnings (run `cargo fix --lib -p tokenizers-python` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 27.66s\n📦 Built wheel for CPython 3.11 to /var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/.tmpe7aGAN/tokenizers-0.15.2.dev0-cp311-cp311-macosx_11_0_arm64.whl\n🛠 Installed tokenizers-0.15.2.dev0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider bindings/python/tests/bindings/test_normalizers.py bindings/python/tests/bindings/test_pre_tokenizers.py bindings/python/tests/bindings/test_decoders.py",
+      "exit_code": 0,
+      "duration_s": 0.59,
+      "date": "2026-10-29T17:16:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".................................................................        [100%]\n65 passed in 0.24s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import random, timeit; from tokenizers import normalizers; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(5)) for _ in range(5000)]; text = ' '.join(rng.choice(words) for _ in range(60000)); norm = normalizers.Replace(' ', '▁'); print(min(timeit.repeat(lambda: norm.normalize_str(text), number=1, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": 8.67,
+      "date": "2026-10-29T17:16:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "2.7383531669911463"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.11 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T17:16:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.11.14\nwarning: The requested interpreter resolved to Python 3.11.14, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2024-02-07 pytest numpy pip maturin==1.4.0 huggingface_hub requests",
+      "exit_code": 0,
+      "duration_s": 0.07,
+      "date": "2026-10-29T17:16:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + fsspec==2024.2.0\n + huggingface-hub==0.20.3\n + idna==3.6\n + iniconfig==2.0.0\n + maturin==1.4.0\n + numpy==1.26.4\n + packaging==23.2\n + pip==24.0\n + pluggy==1.4.0\n + pytest==8.0.0\n + pyyaml==6.0.1\n + requests==2.31.0\n + tqdm==4.66.1\n + typing-extensions==4.9.0\n + urllib3==2.2.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "maturin develop --release -m bindings/python/Cargo.toml",
+      "exit_code": 0,
+      "duration_s": 35.54,
+      "date": "2026-10-29T17:16:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "13 | impl PyRegex {\n   |      -------\n   |      |\n   |      `PyRegex` is not local\n   |      `PyRegex` is not local\n   |\n   = note: the attribute macro `pymethods` defines the non-local `impl`, and may need to be changed\n   = note: the attribute macro `pymethods` may come from an old version of the `pyo3_macros` crate, try updating your dependency with `cargo update -p pyo3_macros`\n   = note: an `impl` is never scoped, even when it is nested inside an item, as it may impact type checking outside of that item, which can be the case if neither the trait or the self type are at the same nesting level as the `impl`\n   = note: this warning originates in the attribute macro `pymethods` (in Nightly builds, run with -Z macro-backtrace for more info)\n\nwarning: `tokenizers-python` (lib) generated 57 warnings (run `cargo fix --lib -p tokenizers-python` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 27.54s\n📦 Built wheel for CPython 3.11 to /var/folders/5l/cq05cfts4ysgnv1ln1rxq_740000gn/T/.tmpDm85iA/tokenizers-0.15.2.dev0-cp311-cp311-macosx_11_0_arm64.whl\n🛠 Installed tokenizers-0.15.2.dev0"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider bindings/python/tests/bindings/test_normalizers.py bindings/python/tests/bindings/test_pre_tokenizers.py bindings/python/tests/bindings/test_decoders.py",
+      "exit_code": 0,
+      "duration_s": 0.62,
+      "date": "2026-10-29T17:16:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ".................................................................        [100%]\n65 passed in 0.25s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -I -c \"import random, timeit; from tokenizers import normalizers; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(5)) for _ in range(5000)]; text = ' '.join(rng.choice(words) for _ in range(60000)); norm = normalizers.Replace(' ', '▁'); print(min(timeit.repeat(lambda: norm.normalize_str(text), number=1, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": 0.07,
+      "date": "2026-10-29T17:16:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.010543082986259833"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T15:42:11+00:00",
+  "miner": "scratch/mk.py: gh pr view and mine.pr_base on a named pull request (mixed-stack set)"
+}

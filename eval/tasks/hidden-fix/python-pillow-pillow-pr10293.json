@@ -1,0 +1,147 @@
+{
+  "id": "python-pillow-pillow-pr10293",
+  "repository": "python-pillow/Pillow",
+  "stars": 13943,
+  "pushed_at": "2026-10-29T13:54:29Z",
+  "task_commit": "76a7d26e688bcaa4d24cd2d2ca5879604b39622a",
+  "task_commit_basis": "first parent of https://github.com/python-pillow/Pillow/commit/f6122d386afc7ed8eec1d1427cffa8f170b42b13 (squash merge); gh api compare 76a7d26e688b...f6122d386afc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-pillow/Pillow/pull/10293",
+    "title": "Speed up 8-bit horizontal resampling loops",
+    "commit": "f6122d386afc7ed8eec1d1427cffa8f170b42b13",
+    "merged_at": "2026-10-23T11:15:27Z",
+    "files": [
+      "src/libImaging/Resample.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import os, timeit; from PIL import Image; im = Image.frombytes('RGB', (1237, 811), bytes(i % 251 for i in range(1237 * 811 * 3))); f = lambda: [im.resize(s, Image.LANCZOS) for s in ((12, 8), (123, 81), (619, 405))]; print(min(timeit.repeat(f, number=20, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/python-pillow/Pillow/pull/10293 (8-bit horizontal resampling, strong downscaling with LANCZOS): Image.resize of a 1237x811 RGB image to three smaller sizes",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_resample.py Tests/test_image_resize.py --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_tiles --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_subsample",
+    "source": "Pillow's own resample and resize tests, for the module https://github.com/python-pillow/Pillow/pull/10293 changes (it changes no test file); targeted tests only; two tests that decode a JPEG are deselected, because this build has no libjpeg",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-pillow/Pillow/pull/10293",
+      "note": "description, as matched by the miner: speedup claims: 5% faster; 59% faster; 63% faster"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python 3.12; libjpeg is not installed on this Mac and no Homebrew, so the build disables JPEG",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-29T15:49:04+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-10-24 pytest pytest-timeout numpy packaging",
+      "exit_code": 0,
+      "duration_s": 0.08,
+      "date": "2026-10-29T15:49:04+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 3ms\nInstalled 7 packages in 36ms\n + iniconfig==2.3.1\n + numpy==2.5.4\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-timeout==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2026-10-24 -C jpeg=disable -e .",
+      "exit_code": 0,
+      "duration_s": 4.07,
+      "date": "2026-10-29T15:49:04+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 783ms\n   Building pillow @ file://eval/mine/work/python-pillow-pillow-pr10293/task\n      Built pillow @ file://eval/mine/work/python-pillow-pillow-pr10293/task\nPrepared 1 package in 3.20s\nInstalled 1 package in 2ms\n + pillow==13.1.0.dev0 (from file://eval/mine/work/python-pillow-pillow-pr10293/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_resample.py Tests/test_image_resize.py --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_tiles --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_subsample",
+      "exit_code": 0,
+      "duration_s": 4.2,
+      "date": "2026-10-29T15:49:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...............................................................xx....... [ 36%]\n........................................................................ [ 73%]\n.........................................s..........                     [100%]\n=========================== short test summary info ============================\nSKIPPED [1] Tests/test_image_resize.py:338: libtiff not available\nXFAIL Tests/test_image_resample.py::TestCoreResampleAlphaCorrect::test_levels_rgba - Current implementation isn't precise enough\nXFAIL Tests/test_image_resample.py::TestCoreResampleAlphaCorrect::test_levels_la - Current implementation isn't precise enough\n193 passed, 1 skipped, 2 deselected, 2 xfailed in 0.77s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import os, timeit; from PIL import Image; im = Image.frombytes('RGB', (1237, 811), bytes(i % 251 for i in range(1237 * 811 * 3))); f = lambda: [im.resize(s, Image.LANCZOS) for s in ((12, 8), (123, 81), (619, 405))]; print(min(timeit.repeat(f, number=20, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": 5.22,
+      "date": "2026-10-29T15:49:12+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.8191908329899888"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-29T15:49:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-10-24 pytest pytest-timeout numpy packaging",
+      "exit_code": 0,
+      "duration_s": 0.07,
+      "date": "2026-10-29T15:49:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 7 packages in 2ms\nInstalled 7 packages in 30ms\n + iniconfig==2.3.1\n + numpy==2.5.4\n + packaging==26.3\n + pluggy==1.7.0\n + pygments==2.21.0\n + pytest==9.1.1\n + pytest-timeout==2.4.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2026-10-24 -C jpeg=disable -e .",
+      "exit_code": 0,
+      "duration_s": 6.35,
+      "date": "2026-10-29T15:49:18+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 1.45s\n   Building pillow @ file://eval/mine/work/python-pillow-pillow-pr10293/reference\n      Built pillow @ file://eval/mine/work/python-pillow-pillow-pr10293/reference\nPrepared 1 package in 4.78s\nInstalled 1 package in 3ms\n + pillow==13.1.0.dev0 (from file://eval/mine/work/python-pillow-pillow-pr10293/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_resample.py Tests/test_image_resize.py --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_tiles --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_subsample",
+      "exit_code": 0,
+      "duration_s": 1.73,
+      "date": "2026-10-29T15:49:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "...............................................................xx....... [ 36%]\n........................................................................ [ 73%]\n.........................................s..........                     [100%]\n=========================== short test summary info ============================\nSKIPPED [1] Tests/test_image_resize.py:338: libtiff not available\nXFAIL Tests/test_image_resample.py::TestCoreResampleAlphaCorrect::test_levels_rgba - Current implementation isn't precise enough\nXFAIL Tests/test_image_resample.py::TestCoreResampleAlphaCorrect::test_levels_la - Current implementation isn't precise enough\n193 passed, 1 skipped, 2 deselected, 2 xfailed in 0.38s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -I -c \"import os, timeit; from PIL import Image; im = Image.frombytes('RGB', (1237, 811), bytes(i % 251 for i in range(1237 * 811 * 3))); f = lambda: [im.resize(s, Image.LANCZOS) for s in ((12, 8), (123, 81), (619, 405))]; print(min(timeit.repeat(f, number=20, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": 0.97,
+      "date": "2026-10-29T15:49:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.150455041002715"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T15:37:43+00:00",
+  "miner": "scratch/mk.py: gh pr view and mine.pr_base on a named pull request (mixed-stack set)"
+}

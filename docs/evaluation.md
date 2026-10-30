@@ -188,6 +188,14 @@ change, before the first run. These tasks live in
 `eval/skill/tasks-heldout-discovery-2.json`; they never become
 development tasks.
 
+**Mixed-stack set.** `eval/skill/tasks-mixed.json` holds five
+hidden-fix tasks on public repositories that mix languages in the path
+users run (a Python or Node front over C, C++ or Rust), each with a
+vague and a detailed prompt, to measure how the skill does on the
+vaguest asks against a plain agent. It was built without the people who
+edit `skills/` seeing it. It is a development check, not a
+pre-registered held-out set.
+
 ## What we publish
 
 `eval/` holds every task manifest (repository, commit, workload,

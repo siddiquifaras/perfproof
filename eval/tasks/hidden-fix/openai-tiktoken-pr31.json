@@ -1,0 +1,147 @@
+{
+  "id": "openai-tiktoken-pr31",
+  "repository": "openai/tiktoken",
+  "stars": 19550,
+  "pushed_at": "2026-08-17T05:25:57Z",
+  "task_commit": "7830ed537badecefb5a357448be722bfd58f9fca",
+  "task_commit_basis": "first parent of https://github.com/openai/tiktoken/commit/c4b8770184f72d5c4988a960bc15ca63e1fc34d6 (squash merge); gh api compare 7830ed537bad...c4b8770184f7 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/openai/tiktoken/pull/31",
+    "title": "Improve performance by 2x",
+    "commit": "c4b8770184f72d5c4988a960bc15ca63e1fc34d6",
+    "merged_at": "2023-02-26T04:37:35Z",
+    "files": [
+      "src/lib.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import random, string, timeit, tiktoken; enc = tiktoken.get_encoding('r50k_base'); words = enc.decode(list(range(1000, 6000))).split(); rng = random.Random(0); text = ' '.join(rng.choice(words) if rng.random() < 0.5 else ''.join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 14))) for _ in range(200000)); print(min(timeit.repeat(lambda: enc.encode(text), number=1, repeat=3)))\"",
+    "source": "written here from the description of https://github.com/openai/tiktoken/pull/31 (byte pair encoding speed): encode 200000 words, half drawn from the r50k_base vocabulary and half random letter strings",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider -c pyproject.toml --rootdir=. tests",
+    "source": "tiktoken's own tests; the vocabulary is downloaded by the tests",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/openai/tiktoken/pull/31",
+      "note": "description, as matched by the miner: speedup claims: 2x | timings: 24 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Python 3.11 (3.12 did not exist at the merge); the oracle names the tree's own pyproject.toml as pytest's config so pytest does not climb to a parent directory's",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.11 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T18:31:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.11.14\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2023-02-27 pytest hypothesis setuptools setuptools-rust wheel regex requests blobfile",
+      "exit_code": 0,
+      "duration_s": 0.81,
+      "date": "2026-10-29T18:31:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + iniconfig==2.0.0\n + lxml==4.9.2\n + packaging==23.0\n + pluggy==1.0.0\n + pycryptodomex==3.17\n + pytest==7.2.1\n + regex==2022.10.31\n + requests==2.28.2\n + semantic-version==2.10.0\n + setuptools==67.4.0\n + setuptools-rust==1.5.2\n + sortedcontainers==2.4.0\n + typing-extensions==4.5.0\n + urllib3==1.26.14\n + wheel==0.38.4"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2023-02-27 --no-build-isolation -e .",
+      "exit_code": 0,
+      "duration_s": 10.49,
+      "date": "2026-10-29T18:31:02+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 11 packages in 4ms\n   Building tiktoken @ file://eval/mine/work/openai-tiktoken-pr31/task\n      Built tiktoken @ file://eval/mine/work/openai-tiktoken-pr31/task\nPrepared 1 package in 10.41s\nInstalled 1 package in 0.92ms\n + tiktoken==0.2.0 (from file://eval/mine/work/openai-tiktoken-pr31/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider -c pyproject.toml --rootdir=. tests",
+      "exit_code": 0,
+      "duration_s": 3.32,
+      "date": "2026-10-29T18:31:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..                                                                       [100%]\n2 passed in 2.79s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import random, string, timeit, tiktoken; enc = tiktoken.get_encoding('r50k_base'); words = enc.decode(list(range(1000, 6000))).split(); rng = random.Random(0); text = ' '.join(rng.choice(words) if rng.random() < 0.5 else ''.join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 14))) for _ in range(200000)); print(min(timeit.repeat(lambda: enc.encode(text), number=1, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": 0.79,
+      "date": "2026-10-29T18:31:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.18540083299740218"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.11 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T18:31:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.11.14\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2023-02-27 pytest hypothesis setuptools setuptools-rust wheel regex requests blobfile",
+      "exit_code": 0,
+      "duration_s": 0.06,
+      "date": "2026-10-29T18:31:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": " + iniconfig==2.0.0\n + lxml==4.9.2\n + packaging==23.0\n + pluggy==1.0.0\n + pycryptodomex==3.17\n + pytest==7.2.1\n + regex==2022.10.31\n + requests==2.28.2\n + semantic-version==2.10.0\n + setuptools==67.4.0\n + setuptools-rust==1.5.2\n + sortedcontainers==2.4.0\n + typing-extensions==4.5.0\n + urllib3==1.26.14\n + wheel==0.38.4"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2023-02-27 --no-build-isolation -e .",
+      "exit_code": 0,
+      "duration_s": 9.86,
+      "date": "2026-10-29T18:31:17+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 11 packages in 3ms\n   Building tiktoken @ file://eval/mine/work/openai-tiktoken-pr31/reference\n      Built tiktoken @ file://eval/mine/work/openai-tiktoken-pr31/reference\nPrepared 1 package in 9.82s\nInstalled 1 package in 0.93ms\n + tiktoken==0.2.0 (from file://eval/mine/work/openai-tiktoken-pr31/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider -c pyproject.toml --rootdir=. tests",
+      "exit_code": 0,
+      "duration_s": 2.32,
+      "date": "2026-10-29T18:31:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "..                                                                       [100%]\n2 passed in 1.83s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -I -c \"import random, string, timeit, tiktoken; enc = tiktoken.get_encoding('r50k_base'); words = enc.decode(list(range(1000, 6000))).split(); rng = random.Random(0); text = ' '.join(rng.choice(words) if rng.random() < 0.5 else ''.join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 14))) for _ in range(200000)); print(min(timeit.repeat(lambda: enc.encode(text), number=1, repeat=3)))\"",
+      "exit_code": 0,
+      "duration_s": 0.61,
+      "date": "2026-10-29T18:31:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.13296354198246263"
+    }
+  ],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T18:12:17+00:00",
+  "miner": "scratch/mk.py: gh pr view and mine.pr_base on a named pull request (mixed-stack set)"
+}

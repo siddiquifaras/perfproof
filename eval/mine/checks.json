@@ -1196,6 +1196,81 @@
     "oracle_source": "the unit tests of src/stringify.js, the file https://github.com/uuidjs/uuid/pull/677 changes, run by the project's own jest; targeted tests only",
     "notes": "Dependencies installed with npm ci --ignore-scripts, from the lockfile at the task commit (an install without it picked newer Babel plugins that the pinned @babel/core cannot load). Node is v24 from nvm"
   },
+  "python-pillow-pillow-pr10293": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-10-24 pytest pytest-timeout numpy packaging",
+      "uv pip install --exclude-newer 2026-10-24 -C jpeg=disable -e ."
+    ],
+    "workload": "python -I -c \"import os, timeit; from PIL import Image; im = Image.frombytes('RGB', (1237, 811), bytes(i % 251 for i in range(1237 * 811 * 3))); f = lambda: [im.resize(s, Image.LANCZOS) for s in ((12, 8), (123, 81), (619, 405))]; print(min(timeit.repeat(f, number=20, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/python-pillow/Pillow/pull/10293 (8-bit horizontal resampling, strong downscaling with LANCZOS): Image.resize of a 1237x811 RGB image to three smaller sizes",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_resample.py Tests/test_image_resize.py --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_tiles --deselect Tests/test_image_resample.py::TestCoreResampleBox::test_subsample",
+    "oracle_source": "Pillow's own resample and resize tests, for the module https://github.com/python-pillow/Pillow/pull/10293 changes (it changes no test file); targeted tests only; two tests that decode a JPEG are deselected, because this build has no libjpeg",
+    "notes": "Python 3.12; libjpeg is not installed on this Mac and no Homebrew, so the build disables JPEG"
+  },
+  "parcel-bundler-lightningcss-pr1263": {
+    "setup": [
+      "npm install --no-save --no-package-lock --ignore-scripts @napi-rs/cli@2.18.4 uvu detect-libc",
+      "npm exec --no-install -- node scripts/build.js --release"
+    ],
+    "workload": "node -e \"const {transform} = require('./node'); const out = []; for (const n of [256, 512, 1024]) { let css = ''; for (let i = 0; i < n; i++) css += '@media (min-width: 768px) { .media-card-' + i + ' { color: hsl(' + ((i * 17) % 360) + 'deg 52% 28%); display: grid; gap: ' + (8 + (i % 12)) + 'px; grid-template-columns: repeat(3, minmax(0, 1fr)); } }\\n'; for (let i = 0; i < n; i++) css += '@supports (container-type: inline-size) { .supports-card-' + i + ' { container-type: inline-size; inline-size: min(100%, ' + (420 + (i % 24)) + 'px); } }\\n'; for (let i = 0; i < n; i++) css += '@container (min-width: 32rem) { .container-card-' + i + ' { padding: ' + (12 + (i % 10)) + 'px; } }\\n'; const code = Buffer.from(css); const t = process.hrtime.bigint(); const r = transform({filename: 'a.css', code, minify: true}); out.push(n + ':' + (Number(process.hrtime.bigint() - t) / 1e9).toFixed(3) + ':' + r.code.length); } console.log(out.join(' '));\"",
+    "workload_source": "written here from the description of https://github.com/parcel-bundler/lightningcss/pull/1263 (long runs of adjacent @media rules with the same condition, minified): 4000 adjacent @media blocks through the Node transform API",
+    "oracle": "npm exec --no-install -- uvu node/test",
+    "oracle_source": "the project's Node tests (npm test, uvu node/test)",
+    "notes": "Rust toolchain as pinned by the tree's rust-toolchain.toml"
+  },
+  "mitmproxy-mitmproxy-pr8055": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-01-31 pytest==8.4.2 pytest-asyncio==1.2.0 pytest-timeout==2.4.0 pytest-cov==7.0.0 hypothesis==6.130.6 requests==2.32.5",
+      "uv pip install --exclude-newer 2026-01-31 -e ."
+    ],
+    "workload": "python -I -c \"import random, time; from mitmproxy.net import encoding; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(6)) for _ in range(5000)]; data = ' '.join(rng.choice(words) for _ in range(400000)).encode(); t = time.perf_counter(); [encoding.encode(data, e) for e in ('br', 'gzip', 'deflate', 'zstd')]; print(time.perf_counter() - t)\"",
+    "workload_source": "written here from the description of https://github.com/mitmproxy/mitmproxy/pull/8055 (content encoding with brotli, gzip, deflate and zstd): encode 2.8 MB of text with each",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider test/mitmproxy/net/test_encoding.py",
+    "oracle_source": "mitmproxy's encoding tests, for the module https://github.com/mitmproxy/mitmproxy/pull/8055 changes (it changes no test file); targeted tests only",
+    "oracle_task_tree": true,
+    "notes": "pytest pinned to the tree's lock (8.4.2): pytest 9 rejects the tree's pyproject"
+  },
+  "huggingface-tokenizers-pr1413": {
+    "setup": [
+      "uv venv --python 3.11 .venv",
+      "uv pip install --exclude-newer 2024-02-07 pytest numpy pip maturin==1.4.0 huggingface_hub requests",
+      "maturin develop --release -m bindings/python/Cargo.toml"
+    ],
+    "workload": "python -I -c \"import random, timeit; from tokenizers import normalizers; rng = random.Random(0); words = [''.join(rng.choice('abcdefghij') for _ in range(5)) for _ in range(5000)]; text = ' '.join(rng.choice(words) for _ in range(60000)); norm = normalizers.Replace(' ', '\u2581'); print(min(timeit.repeat(lambda: norm.normalize_str(text), number=1, repeat=3)))\"",
+    "workload_source": "written here from the description of https://github.com/huggingface/tokenizers/pull/1413 (the Replace normalizer of the Llama and Mistral tokenizers on long input): Replace(' ', '\u2581') over 60000 words in one string",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider bindings/python/tests/bindings/test_normalizers.py bindings/python/tests/bindings/test_pre_tokenizers.py bindings/python/tests/bindings/test_decoders.py",
+    "oracle_source": "the Python binding's normalizer and pre-tokenizer unit tests, for the module https://github.com/huggingface/tokenizers/pull/1413 changes (it changes no test file); targeted tests only",
+    "notes": "Python 3.11 (3.12 was under six months old at the merge); the Rust crate is built by maturin develop, which the binding's pyproject names as its backend"
+  },
+  "matplotlib-matplotlib-pr32064": {
+    "env": {
+      "SETUPTOOLS_SCM_PRETEND_VERSION": "3.11.0.dev0"
+    },
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-08-08 pytest pytest-timeout meson-python meson ninja pybind11 setuptools-scm numpy",
+      "uv pip install --exclude-newer 2026-08-08 --no-build-isolation -e ."
+    ],
+    "workload": "python -I -c \"import os, time; import matplotlib; matplotlib.use('agg'); import matplotlib.pyplot as plt; t = time.perf_counter(); [(lambda fig: (fig.savefig(os.devnull, format='png'), plt.close(fig)))(plt.subplots()[0]) for _ in range(50)]; print(time.perf_counter() - t)\"",
+    "workload_source": "adapted from the loop in the description of https://github.com/matplotlib/matplotlib/pull/32064 (50 x subplots, savefig png, close)",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider --pyargs matplotlib.tests.test_ft2font",
+    "oracle_source": "the FT2Font tests of matplotlib, for the module https://github.com/matplotlib/matplotlib/pull/32064 changes, run against the editable install; targeted tests only",
+    "notes": "Python 3.12"
+  },
+  "openai-tiktoken-pr31": {
+    "setup": [
+      "uv venv --python 3.11 .venv",
+      "uv pip install --exclude-newer 2023-02-27 pytest hypothesis setuptools setuptools-rust wheel regex requests blobfile",
+      "uv pip install --exclude-newer 2023-02-27 --no-build-isolation -e ."
+    ],
+    "workload": "python -I -c \"import random, string, timeit, tiktoken; enc = tiktoken.get_encoding('r50k_base'); words = enc.decode(list(range(1000, 6000))).split(); rng = random.Random(0); text = ' '.join(rng.choice(words) if rng.random() < 0.5 else ''.join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 14))) for _ in range(200000)); print(min(timeit.repeat(lambda: enc.encode(text), number=1, repeat=3)))\"",
+    "workload_source": "written here from the description of https://github.com/openai/tiktoken/pull/31 (byte pair encoding speed): encode 200000 words, half drawn from the r50k_base vocabulary and half random letter strings",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider -c pyproject.toml --rootdir=. tests",
+    "oracle_source": "tiktoken's own tests; the vocabulary is downloaded by the tests",
+    "notes": "Python 3.11 (3.12 did not exist at the merge); the oracle names the tree's own pyproject.toml as pytest's config so pytest does not climb to a parent directory's"
+  },
   "python-pillow-pillow-pr8194": {
     "setup": [
       "uv venv --python 3.12 .venv",
