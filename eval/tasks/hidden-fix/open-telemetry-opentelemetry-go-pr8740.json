@@ -1,0 +1,47 @@
+{
+  "id": "open-telemetry-opentelemetry-go-pr8740",
+  "repository": "open-telemetry/opentelemetry-go",
+  "stars": 6585,
+  "pushed_at": "2026-10-29T09:31:00Z",
+  "task_commit": "fcb92edb6cf336584d9647cf3c35e8f08edc9438",
+  "task_commit_basis": "first parent of https://github.com/open-telemetry/opentelemetry-go/commit/7430d856c5cb42acf07385036965189ae18d70ab (squash merge); gh api compare fcb92edb6cf3...7430d856c5cb touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/open-telemetry/opentelemetry-go/pull/8740",
+    "title": "perf(trace): unroll hex decoders to drop bounds checks",
+    "commit": "7430d856c5cb42acf07385036965189ae18d70ab",
+    "merged_at": "2026-09-21T08:35:23Z",
+    "files": [
+      "CHANGELOG.md",
+      "trace/trace.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -run='xxxxMatchNothingxxxx' -bench='FromHex' -benchmem -count=12 ./trace/ > base.txt",
+    "source": "quoted in the description of https://github.com/open-telemetry/opentelemetry-go/pull/8740",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-go/pull/8740",
+      "note": "description, as matched by the miner: timings: 66s; 60s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "hashicorp-hcl-pr490",
+  "repository": "hashicorp/hcl",
+  "stars": 5827,
+  "pushed_at": "2026-10-28T22:40:36Z",
+  "task_commit": "0ffd64deae73e7bd14d0e8b1dbe9388d2e2e55c6",
+  "task_commit_basis": "3 first parents back from https://github.com/hashicorp/hcl/commit/895479c36704726eb8840c8d7ac82e3b23c6371c: a rebase merge whose commits carry the pull request's commit headlines; gh api compare 0ffd64deae73...895479c36704 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/hashicorp/hcl/pull/490",
+    "title": "Increase performance and reduce allocations in `hclsyntax.LexConfig`",
+    "commit": "895479c36704726eb8840c8d7ac82e3b23c6371c",
+    "merged_at": "2022-02-16T19:11:03Z",
+    "files": [
+      "hclsyntax/public_test.go",
+      "hclsyntax/token.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -benchmem -bench=. -benchtime=200000x -count=10 -memprofile=mem.pprof",
+    "source": "quoted in the description of https://github.com/hashicorp/hcl/pull/490",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/hashicorp/hcl/pull/490",
+      "note": "description, as matched by the miner: speedup claims: 32% less | timings: 9298 ns; 7799 ns; 9.27µs; 7.83µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

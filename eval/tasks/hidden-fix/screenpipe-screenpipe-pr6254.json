@@ -1,0 +1,47 @@
+{
+  "id": "screenpipe-screenpipe-pr6254",
+  "repository": "screenpipe/screenpipe",
+  "stars": 22151,
+  "pushed_at": "2026-10-29T02:57:58Z",
+  "task_commit": "1985c855ccf2738bb718dbdf3d1a3e0875d6cc8c",
+  "task_commit_basis": "first parent of https://github.com/screenpipe/screenpipe/commit/9064c3134d61bc3848ac3d84da24392f14d20ea5; gh api compare 1985c855ccf2...9064c3134d61 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/screenpipe/screenpipe/pull/6254",
+    "title": "perf: opt-level 3 for the capture hot path, halving frame-comparison cost",
+    "commit": "9064c3134d61bc3848ac3d84da24392f14d20ea5",
+    "merged_at": "2026-08-14T17:31:51Z",
+    "files": [
+      "Cargo.toml",
+      "apps/screenpipe-app-tauri/src-tauri/Cargo.toml"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p screenpipe-screen --bench frame_comparison_bench -- individual_operations",
+    "source": "quoted in the description of https://github.com/screenpipe/screenpipe/pull/6254",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/screenpipe/screenpipe/pull/6254",
+      "note": "description, as matched by the miner: timings: 5.38ms; 2.13ms; 3.34ms; 1.63ms; 22.88ms; 14.01ms; 1.148ms; 1.139ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:12+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

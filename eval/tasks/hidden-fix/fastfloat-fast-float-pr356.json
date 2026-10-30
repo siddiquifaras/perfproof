@@ -1,0 +1,47 @@
+{
+  "id": "fastfloat-fast-float-pr356",
+  "repository": "fastfloat/fast_float",
+  "stars": 2139,
+  "pushed_at": "2026-10-19T00:05:35Z",
+  "task_commit": "fd9cad9f0cefce4df64fcdb771aadf569e029b03",
+  "task_commit_basis": "first parent of https://github.com/fastfloat/fast_float/commit/babb1f33351a7c32549707c47b6e94a488fb24f4; gh api compare fd9cad9f0cef...babb1f33351a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/fastfloat/fast_float/pull/356",
+    "title": "optimize fastfloat_strncasecmp",
+    "commit": "babb1f33351a7c32549707c47b6e94a488fb24f4",
+    "merged_at": "2026-01-18T23:56:05Z",
+    "files": [
+      "include/fast_float/float_common.h",
+      "include/fast_float/parse_number.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "./bench --iterations=10000 --size=4000000",
+    "source": "quoted in the description of https://github.com/fastfloat/fast_float/pull/356",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/fastfloat/fast_float/pull/356",
+      "note": "description, as matched by the miner: timings: 7518891ns; 3753442ns; 23ns; 11ns; 18ns; 14ns; 13ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

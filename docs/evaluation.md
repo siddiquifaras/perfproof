@@ -177,6 +177,17 @@ hidden-fix tasks only:
 These tasks live in `eval/skill/tasks-heldout-discovery.json`; they
 never become development tasks.
 
+**Discovery supplement 2 (fixed 2026-10-29, before any task is built
+for it).** The first discovery set was spent: after its run, people who
+edit `skills/` read its hidden fixes. A second set is drawn by the four
+steps of the Discovery supplement, with three changes. The pool also
+skips every task the first discovery draw examined, whether it took it
+or not. The salt is `perfproof-heldout-discovery-2026-10-29`. The skill
+is frozen at a recorded commit that includes the test-suite workload
+change, before the first run. These tasks live in
+`eval/skill/tasks-heldout-discovery-2.json`; they never become
+development tasks.
+
 ## What we publish
 
 `eval/` holds every task manifest (repository, commit, workload,

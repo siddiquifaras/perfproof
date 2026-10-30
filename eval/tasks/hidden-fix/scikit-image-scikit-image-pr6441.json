@@ -1,0 +1,46 @@
+{
+  "id": "scikit-image-scikit-image-pr6441",
+  "repository": "scikit-image/scikit-image",
+  "stars": 6628,
+  "pushed_at": "2026-10-27T04:53:45Z",
+  "task_commit": "2663efb591b3c976fb8aa324b4d6a9eb8373a44a",
+  "task_commit_basis": "first parent of https://github.com/scikit-image/scikit-image/commit/38b595d60befe3a0b4c0742995b9737200a079c6 (squash merge); gh api compare 2663efb591b3...38b595d60bef touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/scikit-image/scikit-image/pull/6441",
+    "title": "Speedup ~2x hessian_matrix_eigvals and 2D structure_tensor_eigenvalues.",
+    "commit": "38b595d60befe3a0b4c0742995b9737200a079c6",
+    "merged_at": "2022-07-25T09:01:49Z",
+    "files": [
+      "skimage/feature/corner.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit _symmetric_compute_eigenvalues(h)",
+    "source": "quoted in the description of https://github.com/scikit-image/scikit-image/pull/6441",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/scikit-image/scikit-image/pull/6441",
+      "note": "description, as matched by the miner: speedup claims: 2x speedup | timings: 9.13 ms ± 56.7 µs; 5.44 ms ± 142 µs; 6.4 ms ± 3.96 µs; 5.22 ms ± 2.32 µs; 4.81 ms ± 1.91 µs; 4.58 ms ± 5.43 µs; 4.99 ms ± 246 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

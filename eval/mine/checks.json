@@ -1195,5 +1195,128 @@
     "oracle": "env BABEL_ENV=commonjsNode node_modules/.bin/jest test/unit/stringify.test.js",
     "oracle_source": "the unit tests of src/stringify.js, the file https://github.com/uuidjs/uuid/pull/677 changes, run by the project's own jest; targeted tests only",
     "notes": "Dependencies installed with npm ci --ignore-scripts, from the lockfile at the task commit (an install without it picked newer Babel plugins that the pinned @babel/core cannot load). Node is v24 from nvm"
+  },
+  "python-pillow-pillow-pr8194": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2024-09-09 pytest setuptools wheel",
+      "uv pip install --no-build-isolation -C jpeg=disable -C tiff=disable -C freetype=disable -C lcms=disable -C webp=disable -C jpeg2000=disable -C imagequant=disable -C xcb=disable -C raqm=disable -C fribidi=disable -C harfbuzz=disable ."
+    ],
+    "workload": "python -I -c \"import timeit; from PIL import Image; a = Image.new('L', (2048, 2048), 0); b = Image.open('Tests/images/hopper.png').convert('L').resize((2048, 2048)); c = b.convert('RGB').convert('RGBA'); print(sum(min(timeit.repeat(f, number=20, repeat=5)) for f in (a.getbbox, b.getbbox, c.getbbox, b.getextrema)))\"",
+    "workload_source": "adapted from the %timeit cases in the description of https://github.com/python-pillow/Pillow/pull/8194 (getbbox of an all-zero, a normal and an opaque image, and getextrema, all 2048 by 2048), with timeit in place of IPython's %timeit and a test image of the tree in place of the ones the description names",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_getbbox.py Tests/test_image_getextrema.py",
+    "oracle_source": "the getbbox and getextrema test modules, for GetBBox.c, the file https://github.com/python-pillow/Pillow/pull/8194 changes, run against the installed package; targeted tests only",
+    "notes": "Built from source without the optional image libraries (no jpeg, tiff, freetype and the like are installed here); the install is not editable, so the tests run against the built package"
+  },
+  "atuinsh-atuin-pr3577": {
+    "setup": [
+      "mkdir -p crates/atuin-client/examples",
+      "cp ../../../../tasks/workloads/atuinsh-atuin-pr3577/eval_push.rs crates/atuin-client/examples/eval_push.rs",
+      "cargo build --release -p atuin-client --example eval_push"
+    ],
+    "planted": [
+      "crates/atuin-client/examples/eval_push.rs"
+    ],
+    "workload": "cargo run --release -p atuin-client --example eval_push",
+    "workload_source": "written here from the description of https://github.com/atuinsh/atuin/pull/3577 (pushing batches of 1, 10 and 100 records into the record store's SQLite file; the divan benchmark it adds is not in the tree): eval/tasks/workloads/atuinsh-atuin-pr3577/eval_push.rs, copied into the tree as an example of the atuin-client crate",
+    "oracle": "cargo test --release -p atuin-client --lib record::sqlite_store",
+    "oracle_source": "the unit tests of the record store's SQLite module, for crates/atuin-client/src/record/sqlite_store.rs, the source file https://github.com/atuinsh/atuin/pull/3577 changes; targeted tests only",
+    "notes": "The tree's rust-toolchain.toml names the Rust release rustup fetches"
+  },
+  "pytoolz-toolz-pr376": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2017-07-04 pytest"
+    ],
+    "workload": "python -c \"import timeit; from toolz import interpose; big = min(timeit.repeat(lambda: tuple(interpose('\\\\n', range(1000000))), number=1, repeat=5)); small = min(timeit.repeat(lambda: [tuple(interpose('\\\\n', range(n))) for n in (1, 5) for _ in range(1000)], number=20, repeat=5)); print(big + small)\"",
+    "workload_source": "adapted from the %timeit cases in the description of https://github.com/pytoolz/toolz/pull/376 (interpose over range(1), range(5) and range(1000000)), with timeit in place of IPython's %timeit and the two short cases repeated 1000 times",
+    "oracle": "python -m pytest -q -p no:cacheprovider toolz/tests/test_itertoolz.py -k interpose",
+    "oracle_source": "the interpose tests in test_itertoolz.py, for toolz/itertoolz.py, the file https://github.com/pytoolz/toolz/pull/376 changes; targeted tests only",
+    "notes": "Dependencies are the newest releases before the pull request's merge date; run from the source tree, with nothing installed"
+  },
+  "tornadoweb-tornado-pr1729": {
+    "setup": [
+      "uv venv --python 3.9 .venv"
+    ],
+    "workload": "python -c \"import random, timeit; from tornado.ioloop import _Timeout, IOLoop; io = IOLoop.current(); rng = random.Random(0); ts = [_Timeout(rng.random(), None, io) for _ in range(15000)]; print(min(timeit.repeat(lambda: sorted(ts), number=5, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/tornadoweb/tornado/pull/1729 (comparing _Timeout objects, as an IOLoop with about 15000 callbacks does when it orders its timeout heap): sorting 15000 _Timeout objects with random deadlines, which makes about 200000 comparisons",
+    "oracle": "python -m unittest tornado.test.ioloop_test",
+    "oracle_source": "the IOLoop test module, for tornado/ioloop.py, the file https://github.com/tornadoweb/tornado/pull/1729 changes; targeted tests only",
+    "notes": "Runs on Python 3.9 from uv, the newest release this 2016 tree imports on; run from the source tree, with nothing installed"
+  },
+  "ratatui-ratatui-pr601": {
+    "setup": [
+      "cp ../../../../tasks/workloads/ratatui-ratatui-pr601/eval_buffer.rs examples/eval_buffer.rs",
+      "cargo build --release --example eval_buffer"
+    ],
+    "planted": [
+      "examples/eval_buffer.rs"
+    ],
+    "workload": "cargo run --release --example eval_buffer",
+    "workload_source": "written here from the description of https://github.com/ratatui/ratatui/pull/601 (allocating buffers and rendering through a TestBackend, as its modified demo example does; the example it modifies is not in the tree): eval/tasks/workloads/ratatui-ratatui-pr601/eval_buffer.rs, copied into the tree as an example",
+    "oracle": "cargo test --lib buffer:: -- --skip set_string_zero_width",
+    "oracle_source": "the unit tests of the buffer module (buffer.rs and cell.rs), in the test profile because two of them expect debug assertions, and without set_string_zero_width, which fails on both trees here (a control character comes back as a cell symbol), the files https://github.com/ratatui/ratatui/pull/601 changes; targeted tests only"
+  },
+  "vercel-labs-skills-pr164": {
+    "setup": [
+      "npx --yes pnpm@10.17.1 install --frozen-lockfile --ignore-scripts",
+      "npx --yes pnpm@10.17.1 run build"
+    ],
+    "workload": "node -e \"const {execFileSync} = require('child_process'); const entry = require('./package.json').bin.skills; const t = Date.now(); for (let i = 0; i < 30; i++) execFileSync('node', [entry, '--help'], {stdio: 'ignore'}); console.log(Date.now() - t, 'ms for 30 starts of', entry)\"",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/vercel-labs/skills/pull/164 (the CLI's start-up time, node ./bin/cli.mjs against node ./dist/cli.mjs), run 30 times by node itself with --help because hyperfine is not installed; it runs the entry point the tree's package.json names for the skills command, so it starts the same program on both trees by the route each tree gives it",
+    "oracle": "node_modules/.bin/vitest run tests/dist.test.ts",
+    "oracle_source": "the tests of the built CLI in tests/dist.test.ts, for the entry point https://github.com/vercel-labs/skills/pull/164 changes; targeted tests only",
+    "notes": "pnpm is the version the tree's packageManager field names, run through npx. Node is v24 from nvm"
+  },
+  "sirupsen-logrus-pr370": {
+    "setup": [
+      "go mod init github.com/sirupsen/logrus",
+      "go get github.com/stretchr/testify/assert@v1.8.4",
+      "cp ../../../../tasks/workloads/sirupsen-logrus-pr370/eval_log_bench_test.go .",
+      "go test -count 1 -run ^$ ."
+    ],
+    "planted": [
+      "eval_log_bench_test.go"
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalLogger$ -benchtime 100000x .",
+    "workload_source": "written here from the description of https://github.com/sirupsen/logrus/pull/370 (logging through a Logger that discards its output, as its BenchmarkDummyLogger does; that benchmark is not in the tree): a Go benchmark logging a line with fields and a plain line with the text and the JSON formatter, eval/tasks/workloads/sirupsen-logrus-pr370/eval_log_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 -run \"Entry|TextFormatter|Logger|Formatter|Quoting\" .",
+    "oracle_source": "the entry, formatter and logger tests of the root package, the package https://github.com/sirupsen/logrus/pull/370 changes (entry.go, logger.go and text_formatter.go); targeted tests only",
+    "notes": "Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local. The 2016 tree has no go.mod, so setup runs go mod init (the root package imports only the standard library, and its tests testify, added with go get at v1.8.4)",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
+  },
+  "serenityos-serenity-pr25008": {
+    "setup": [
+      "cmake -GNinja -S Meta/Lagom -B Build/lagom -DBUILD_LAGOM=ON -DCMAKE_BUILD_TYPE=Release",
+      "cmake --build Build/lagom --target unzip TestDeflate",
+      "python3 ../../../../tasks/workloads/serenityos-serenity-pr25008/mkzip.py eval_input.zip"
+    ],
+    "planted": [
+      "eval_input.zip"
+    ],
+    "workload": "sh -c \"rm -rf eval_unzipped && Build/lagom/bin/unzip -q -d eval_unzipped eval_input.zip\"",
+    "workload_source": "adapted from the hyperfine command in the description of https://github.com/SerenityOS/serenity/pull/25008 (unzip of a large zip file, enwik8.zip there); that file is not in the tree, so the setup writes a 40 MB zip of generated word text, eval/tasks/workloads/serenityos-serenity-pr25008/mkzip.py, and the workload extracts it with the built unzip",
+    "oracle": "ctest --test-dir Build/lagom -R TestDeflate --output-on-failure",
+    "oracle_source": "the project's TestDeflate, for LibCompress/Deflate.cpp, the file https://github.com/SerenityOS/serenity/pull/25008 changes; targeted tests only",
+    "notes": "Lagom build with the host compiler (Apple clang) and Ninja; only the unzip and TestDeflate targets are built"
+  },
+  "grpc-grpc-go-pr8204": {
+    "setup": [
+      "cp ../../../../tasks/workloads/grpc-grpc-go-pr8204/eval_conn_bench_test.go credentials/alts/internal/conn/eval_conn_bench_test.go",
+      "go test -count 1 -run ^$ ./credentials/alts/internal/conn"
+    ],
+    "planted": [
+      "credentials/alts/internal/conn/eval_conn_bench_test.go"
+    ],
+    "workload": "go test -count 1 -run ^$ -bench ^BenchmarkEvalRead$ -benchtime 20x ./credentials/alts/internal/conn",
+    "workload_source": "written here from the description of https://github.com/grpc/grpc-go/pull/8204 (reading large messages through an ALTS record connection with gRPC's 16 KiB read buffer; its BenchmarkLargeMessage is not in the tree): a Go benchmark that writes 4 MiB through one connection and reads it back from the peer, eval/tasks/workloads/grpc-grpc-go-pr8204/eval_conn_bench_test.go, copied into the tree",
+    "oracle": "go test -count 1 ./credentials/alts/internal/conn ./credentials/alts/internal/handshaker",
+    "oracle_source": "the tests of the ALTS conn and handshaker packages, the packages https://github.com/grpc/grpc-go/pull/8204 changes; targeted tests only",
+    "notes": "Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+    "env": {
+      "GOTOOLCHAIN": "local"
+    }
   }
 }

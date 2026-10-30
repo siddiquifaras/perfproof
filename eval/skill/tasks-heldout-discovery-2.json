@@ -1,0 +1,246 @@
+{
+  "model": "claude-sonnet-5-5",
+  "tasks": [
+    {
+      "id": "heldout-python-pillow-pillow-pr8194-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "python-pillow-pillow-pr8194",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/libImaging/GetBBox.c",
+          "function": "ImagingGetBBox",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-atuinsh-atuin-pr3577-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "atuinsh-atuin-pr3577",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "crates/atuin-client/src/record/sqlite_store.rs",
+          "function": "SqliteStore::new",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-tornadoweb-tornado-pr1729-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "tornadoweb-tornado-pr1729",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "tornado/ioloop.py",
+          "function": "_Timeout.__lt__",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-ratatui-ratatui-pr601-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "ratatui-ratatui-pr601",
+        "requires": [
+          "cargo"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/buffer/cell.rs",
+          "function": "Cell::default",
+          "top_n": "skill",
+          "accept": [
+            {
+              "file": "src/buffer/cell.rs",
+              "function": "Cell::reset",
+              "why": "every draw resets the cells of the buffer it reuses, which re-creates each symbol the same way Cell::default does for a new buffer"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "heldout-serenityos-serenity-pr25008-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "serenityos-serenity-pr25008",
+        "requires": [
+          "cmake",
+          "ninja"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "Userland/Libraries/LibCompress/Deflate.cpp",
+          "function": "CanonicalCode::read_symbol",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-vercel-labs-skills-pr164-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "vercel-labs-skills-pr164",
+        "requires": [
+          "node",
+          "npm"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "src/cli.ts",
+          "function": "main",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-sirupsen-logrus-pr370-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "sirupsen-logrus-pr370",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "entry.go",
+          "function": "Entry.log",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
+      "id": "heldout-grpc-grpc-go-pr8204-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "grpc-grpc-go-pr8204",
+        "requires": [
+          "go"
+        ]
+      },
+      "prompt": "/perfproof light",
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "credentials/alts/internal/conn/record.go",
+          "function": "conn.Read",
+          "top_n": "skill"
+        }
+      }
+    }
+  ]
+}

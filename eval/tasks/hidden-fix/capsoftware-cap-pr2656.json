@@ -1,0 +1,47 @@
+{
+  "id": "capsoftware-cap-pr2656",
+  "repository": "CapSoftware/Cap",
+  "stars": 24041,
+  "pushed_at": "2026-10-29T12:50:15Z",
+  "task_commit": "6ba5e2e159c06814b7e10ff2f6f7544af539272c",
+  "task_commit_basis": "first parent of https://github.com/CapSoftware/Cap/commit/6cf8477764dcc4bedaf68f163ec490e57a7285d5; gh api compare 6ba5e2e159c0...6cf8477764dc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/CapSoftware/Cap/pull/2656",
+    "title": "perf(gpui-kernels): specialise the blit for uniform backdrops",
+    "commit": "6cf8477764dcc4bedaf68f163ec490e57a7285d5",
+    "merged_at": "2026-10-18T03:37:18Z",
+    "files": [
+      "apps/desktop-gpui/kernels/benches/screenshot_blit.rs",
+      "apps/desktop-gpui/kernels/src/screenshot.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p cap-gpui-kernels --bench screenshot_blit",
+    "source": "quoted in the description of https://github.com/CapSoftware/Cap/pull/2656",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/CapSoftware/Cap/pull/2656",
+      "note": "description, as matched by the miner: speedup claims: 10x | timings: 26.60 ms; 2.58 ms; 26.74 ms; 9.04 ms; 25.02 ms; 2.60 ms; 24.99 ms; 9.01 ms | benchmark files changed: apps/desktop-gpui/kernels/benches/screenshot_blit.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

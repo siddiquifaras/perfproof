@@ -50,6 +50,7 @@ def test_the_committed_record_is_what_the_rule_derives() -> None:
         record["mined"]["ids"],
         record["reviews"],
         record.get("passed_over"),
+        later_mined=draw_discovery.later_mined(),
     )
     assert derived.stopped is None
     assert json.loads(

@@ -151,13 +151,19 @@ def test_the_naming_check_still_applies_in_the_wide_window() -> None:
 
 HELD_OUT_FILE = HERE / "tasks-heldout-discovery.json"
 """Held-out tasks: ``load_spec`` refuses them by design."""
+HELD_OUT_FILE_2 = HERE / "tasks-heldout-discovery-2.json"
+HELD_OUT_FILES = (HELD_OUT_FILE, HELD_OUT_FILE_2)
+
+
+def _held_out_tasks() -> list[Task]:
+    return [t for f in HELD_OUT_FILES for t in taskset.load(f).tasks]
 
 
 def _development_hidden_fix() -> list[Task]:
     return [
         t
         for f in TASK_FILES
-        if f != HELD_OUT_FILE
+        if f not in HELD_OUT_FILES
         for t in taskset.load(f).tasks
         if t.is_hidden_fix
     ]
@@ -173,7 +179,7 @@ def _hidden_specs() -> list[tuple[Task, realrepo.RepoSpec]]:
 
 def test_held_out_discovery_tasks_list_what_their_setup_plants() -> None:
     checks = realrepo.json.loads(realrepo.CHECKS_FILE.read_text())
-    tasks = taskset.load(HELD_OUT_FILE).tasks
+    tasks = _held_out_tasks()
     assert tasks
     for task in tasks:
         assert task.is_hidden_fix, task.id
@@ -293,7 +299,7 @@ def test_two_micro_win_tasks_are_excluded_with_reason_and_evidence() -> None:
     development = [
         t
         for f in TASK_FILES
-        if f != HELD_OUT_FILE
+        if f not in HELD_OUT_FILES
         for t in taskset.load(f).tasks
     ]
     excluded = {t.id: t.bar_exclusion for t in development if t.bar_exclusion}
@@ -607,7 +613,7 @@ def test_the_flag_refuses_a_development_task() -> None:
 
 def test_the_held_out_tasks_name_what_their_setup_plants() -> None:
     planting = 0
-    for task in taskset.load(HELD_OUT_FILE).tasks:
+    for task in _held_out_tasks():
         assert task.repo is not None
         spec = realrepo.load_spec(task.repo.manifest, held_out=True)
         assert task.is_hidden_fix

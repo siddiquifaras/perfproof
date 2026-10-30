@@ -1,0 +1,46 @@
+{
+  "id": "python-pendulum-pendulum-pr172",
+  "repository": "python-pendulum/pendulum",
+  "stars": 6680,
+  "pushed_at": "2026-10-26T03:47:45Z",
+  "task_commit": "4f84b55fcf8df415bf1bdd4112b9e2c5e4335854",
+  "task_commit_basis": "first parent of https://github.com/python-pendulum/pendulum/commit/f3a2cbe0eba574d71a8637b63111386e489fec0e; gh api compare 4f84b55fcf8d...f3a2cbe0eba5 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-pendulum/pendulum/pull/172",
+    "title": "Improve Pendulum.now and Pendulum.utcnow performance",
+    "commit": "f3a2cbe0eba574d71a8637b63111386e489fec0e",
+    "merged_at": "2018-01-19T17:43:15Z",
+    "files": [
+      "pendulum/pendulum.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "%timeit Pendulum.utcnow()",
+    "source": "quoted in the description of https://github.com/python-pendulum/pendulum/pull/172",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-pendulum/pendulum/pull/172",
+      "note": "description, as matched by the miner: timings: 11.4 µs; 11.3 µs; 18.7 µs; 11.1 µs; 33 µs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

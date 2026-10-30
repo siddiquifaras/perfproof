@@ -1,0 +1,152 @@
+{
+  "id": "atuinsh-atuin-pr3577",
+  "repository": "atuinsh/atuin",
+  "stars": 32127,
+  "pushed_at": "2026-10-29T01:47:38Z",
+  "task_commit": "a396157bee2130e83eb890faef99f4c911f6754e",
+  "task_commit_basis": "first parent of https://github.com/atuinsh/atuin/commit/4b462000bb5a00d444e804d655ec709cb36547a5 (squash merge); gh api compare a396157bee21...4b462000bb5a touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/atuinsh/atuin/pull/3577",
+    "title": "perf: add synchronous(Normal) + optimize_on_close to record store SQLite",
+    "commit": "4b462000bb5a00d444e804d655ec709cb36547a5",
+    "merged_at": "2026-07-07T23:55:11Z",
+    "files": [
+      "Cargo.lock",
+      "crates/atuin-client/Cargo.toml",
+      "crates/atuin-client/benches/record/mod.rs",
+      "crates/atuin-client/benches/record/sqlite_store.rs",
+      "crates/atuin-client/benches/record_store.rs",
+      "crates/atuin-client/src/record/sqlite_store.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo run --release -p atuin-client --example eval_push",
+    "source": "written here from the description of https://github.com/atuinsh/atuin/pull/3577 (pushing batches of 1, 10 and 100 records into the record store's SQLite file; the divan benchmark it adds is not in the tree): eval/tasks/workloads/atuinsh-atuin-pr3577/eval_push.rs, copied into the tree as an example of the atuin-client crate",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test --release -p atuin-client --lib record::sqlite_store",
+    "source": "the unit tests of the record store's SQLite module, for crates/atuin-client/src/record/sqlite_store.rs, the source file https://github.com/atuinsh/atuin/pull/3577 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/atuinsh/atuin/pull/3577",
+      "note": "description, as matched by the miner: timings: 138.6 µs; 5.801 ms; 247.8 µs; 280.1 µs; 177.7 µs; 5.204 ms; 200.4 µs; 215.3 µs | benchmark files changed: crates/atuin-client/benches/record/mod.rs, crates/atuin-client/benches/record/sqlite_store.rs, crates/atuin-client/benches/record_store.rs"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. The tree's rust-toolchain.toml names the Rust release rustup fetches",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "mkdir -p crates/atuin-client/examples",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T16:52:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/atuinsh-atuin-pr3577/eval_push.rs crates/atuin-client/examples/eval_push.rs",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T16:52:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release -p atuin-client --example eval_push",
+      "exit_code": 0,
+      "duration_s": 603.48,
+      "date": "2026-10-29T16:52:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling serde_regex v1.1.0\n   Compiling itertools v0.14.0\n   Compiling rmp v0.8.15\n   Compiling async-trait v0.1.89\n   Compiling minspan v0.1.5\n   Compiling yansi v1.0.1\n   Compiling humantime v2.3.0\n   Compiling urlencoding v2.1.3\n   Compiling diff v0.1.13\n   Compiling testing_logger v0.1.1\n   Compiling pretty_assertions v1.4.1\n   Compiling sqlx v0.8.6\n   Compiling atuin-common v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/task/crates/atuin-common)\n   Compiling atuin-client v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/task/crates/atuin-client)\n    Finished `release` profile [optimized] target(s) in 10m 03s"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --release -p atuin-client --lib record::sqlite_store",
+      "exit_code": 0,
+      "duration_s": 7.96,
+      "date": "2026-10-29T17:02:20+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test record::sqlite_store::tests::first ... ok\ntest record::sqlite_store::tests::last ... ok\ntest record::sqlite_store::tests::len_tag ... ok\ntest record::sqlite_store::tests::len ... ok\ntest record::sqlite_store::tests::get_record ... ok\ntest record::sqlite_store::tests::len_different_tags ... ok\ntest record::sqlite_store::tests::re_encrypt ... ok\ntest record::sqlite_store::tests::append_a_bunch ... ok\ntest record::sqlite_store::tests::append_a_big_bunch ... ok\n\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0.13s\n\n   Compiling atuin-client v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/task/crates/atuin-client)\n    Finished `release` profile [optimized] target(s) in 7.47s\n     Running unittests src/lib.rs (target/release/deps/atuin_client-8fe25e8486e3c810)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo run --release -p atuin-client --example eval_push",
+      "exit_code": 0,
+      "duration_s": 0.76,
+      "date": "2026-10-29T17:02:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "263 ms\n    Finished `release` profile [optimized] target(s) in 0.14s\n     Running `target/release/examples/eval_push`"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "mkdir -p crates/atuin-client/examples",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T17:02:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/atuinsh-atuin-pr3577/eval_push.rs crates/atuin-client/examples/eval_push.rs",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T17:02:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release -p atuin-client --example eval_push",
+      "exit_code": 0,
+      "duration_s": 58.86,
+      "date": "2026-10-29T17:02:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   Compiling fastrand v2.3.0\n   Compiling urlencoding v2.1.3\n   Compiling minspan v0.1.5\n   Compiling condtype v1.3.0\n   Compiling humantime v2.3.0\n   Compiling regex-lite v0.1.9\n   Compiling diff v0.1.13\n   Compiling pretty_assertions v1.4.1\n   Compiling tempfile v3.27.0\n   Compiling testing_logger v0.1.1\n   Compiling divan v0.1.21\n   Compiling sqlx v0.8.6\n   Compiling atuin-common v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/reference/crates/atuin-common)\n   Compiling atuin-client v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/reference/crates/atuin-client)\n    Finished `release` profile [optimized] target(s) in 58.83s"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --release -p atuin-client --lib record::sqlite_store",
+      "exit_code": 0,
+      "duration_s": 8.02,
+      "date": "2026-10-29T17:03:27+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "test record::sqlite_store::tests::first ... ok\ntest record::sqlite_store::tests::get_record ... ok\ntest record::sqlite_store::tests::last ... ok\ntest record::sqlite_store::tests::len_tag ... ok\ntest record::sqlite_store::tests::len ... ok\ntest record::sqlite_store::tests::len_different_tags ... ok\ntest record::sqlite_store::tests::re_encrypt ... ok\ntest record::sqlite_store::tests::append_a_bunch ... ok\ntest record::sqlite_store::tests::append_a_big_bunch ... ok\n\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0.13s\n\n   Compiling atuin-client v18.16.1 (eval/mine/work/atuinsh-atuin-pr3577/reference/crates/atuin-client)\n    Finished `release` profile [optimized] target(s) in 7.52s\n     Running unittests src/lib.rs (target/release/deps/atuin_client-c099d07e26cbdec6)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo run --release -p atuin-client --example eval_push",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T17:03:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:11:35+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

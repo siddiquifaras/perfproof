@@ -515,6 +515,7 @@ def bundle_files(checkout: Path, skill_dir: Path) -> dict[str, Path]:
     for name in (
         "checks.json",
         "draw.py",
+        "heldout-discovery-2-draw.json",
         "heldout-discovery-draw.json",
         "task.py",
     ):

@@ -593,6 +593,40 @@ does not read. The harness refuses held-out tasks unless
 `skill_eval.py run --held-out` is given, and with that flag it takes
 only held-out tasks that built.
 
+## Second held-out discovery set
+
+The first discovery set was spent, so "Discovery supplement 2" of
+docs/evaluation.md draws another with `mine/draw_discovery2.py` into
+`mine/heldout-discovery-2-draw.json` (same shape as the first record;
+the script re-derives it and exits 1 on a difference). It reuses
+`draw_discovery.derive` with the salt
+`perfproof-heldout-discovery-2026-10-29` and one more skip: every task
+in the first record's walk. The pool left only one unexamined candidate, so
+the miner was run on the repositories in
+`mine/seeds-heldout-discovery-2.json`, none of them a seed of the other
+two lists. The seed list was fixed in two parts before any candidate of
+its part was mined or built. The first part (346 hand-picked
+repositories) gave 12 hidden-fix candidates in three languages, too few
+for eight picks under the two-per-language cap. The extension (400
+repositories) is, for each of seven languages, the most-starred
+repositories not yet seeds, found by a GitHub repository search whose
+query the file's note records. The miner kept only its hidden-fix
+manifests: its known-change and nothing-to-keep output was deleted, and
+the manifests it would have removed were restored, so the per-class draw
+is unchanged. The 21 mined ids are the record's `mined`; they are kept out
+of the per-class draws, which also read this record through
+`draw.discovery_record`. `mine/draw_discovery.py` leaves them out of its
+own derivation, as it was fixed before they existed.
+
+The walk was judged by `mine/check.py` on the task tree alone, as for the
+first set; those runs are in the manifests, with the reference tree's
+workload recorded by exit status only. The picks are `held-out` and named
+in `skill/tasks-heldout-discovery-2.json`. A task whose setup fetches a
+Rust toolchain was retried once: its first attempt timed out at 1800 s on
+a stalled download of that toolchain, and the second found the
+half-installed toolchain, which was removed and installed again before
+the third.
+
 ## Published benchmarks
 
 | | GSO | SWE-Perf | SWE-fficiency |

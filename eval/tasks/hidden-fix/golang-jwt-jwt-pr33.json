@@ -1,0 +1,49 @@
+{
+  "id": "golang-jwt-jwt-pr33",
+  "repository": "golang-jwt/jwt",
+  "stars": 9257,
+  "pushed_at": "2026-10-25T09:30:15Z",
+  "task_commit": "3008b2bdeacbf196c7f52b174d9ab0c9d9276110",
+  "task_commit_basis": "first parent of https://github.com/golang-jwt/jwt/commit/860640e8862db5e9e96147c826d1aaca518fa27b (squash merge); gh api compare 3008b2bdeacb...860640e8862d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/golang-jwt/jwt/pull/33",
+    "title": "Allocation optimization",
+    "commit": "860640e8862db5e9e96147c826d1aaca518fa27b",
+    "merged_at": "2021-07-13T06:31:42Z",
+    "files": [
+      "ecdsa.go",
+      "ecdsa_test.go",
+      "parser_test.go",
+      "token.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test --bench=Bench --run=NONE .",
+    "source": "quoted in the description of https://github.com/golang-jwt/jwt/pull/33",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/golang-jwt/jwt/pull/33",
+      "note": "description, as matched by the miner: timings: 7499 ns; 26629 ns; 7830 ns; 1369 ns; 1628 ns; 1599 ns; 414766 ns; 388103 ns"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

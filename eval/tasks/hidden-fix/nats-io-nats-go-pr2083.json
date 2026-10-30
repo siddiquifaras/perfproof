@@ -1,0 +1,48 @@
+{
+  "id": "nats-io-nats-go-pr2083",
+  "repository": "nats-io/nats.go",
+  "stars": 6796,
+  "pushed_at": "2026-10-27T17:35:41Z",
+  "task_commit": "0c4fb627039a8f126eb768933e65982523a95734",
+  "task_commit_basis": "first parent of https://github.com/nats-io/nats.go/commit/ba84578bca4bcdf7be3b9118c806ad0bf0e3786f (squash merge); gh api compare 0c4fb627039a...ba84578bca4b touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nats-io/nats.go/pull/2083",
+    "title": "[IMPROVED] Performance enhancement when publishing core NATS messages with headers",
+    "commit": "ba84578bca4bcdf7be3b9118c806ad0bf0e3786f",
+    "merged_at": "2026-06-01T11:46:20Z",
+    "files": [
+      "nats.go",
+      "nats_test.go",
+      "test/bench_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -bench=. -benchmem -run=xxx",
+    "source": "quoted in the description of https://github.com/nats-io/nats.go/pull/2083",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nats-io/nats.go/pull/2083",
+      "note": "description, as matched by the miner: speedup claims: 1.7x; 1.5x faster | timings: 2902 ns; 1718 ns | benchmark files changed: test/bench_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

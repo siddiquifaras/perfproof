@@ -1,0 +1,49 @@
+{
+  "id": "easytier-easytier-pr2397",
+  "repository": "EasyTier/EasyTier",
+  "stars": 14431,
+  "pushed_at": "2026-10-29T04:31:41Z",
+  "task_commit": "13412895c57eab0bfe308889e6f6bc24bfec9700",
+  "task_commit_basis": "first parent of https://github.com/EasyTier/EasyTier/commit/741460e1e4df2fb1b3f52170bd48443fd382166e; gh api compare 13412895c57e...741460e1e4df touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/EasyTier/EasyTier/pull/2397",
+    "title": "bench: add Criterion TX throughput benchmark",
+    "commit": "741460e1e4df2fb1b3f52170bd48443fd382166e",
+    "merged_at": "2026-06-30T14:10:35Z",
+    "files": [
+      "Cargo.lock",
+      "easytier/Cargo.toml",
+      "easytier/benches/README.md",
+      "easytier/benches/tx_throughput.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench --bench tx_throughput",
+    "source": "quoted in the description of https://github.com/EasyTier/EasyTier/pull/2397",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/EasyTier/EasyTier/pull/2397",
+      "note": "description, as matched by the miner: timings: 4.63 µs; 4.82 µs | benchmark files changed: easytier/benches/README.md, easytier/benches/tx_throughput.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:12+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

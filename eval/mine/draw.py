@@ -69,6 +69,7 @@ HELD_OUT_TASK_FILES = "tasks-heldout"
 """Task files named with this prefix hold held-out tasks, not
 development ones, so the held-out draw's skip does not read them."""
 DISCOVERY = Path(__file__).resolve().parent / "heldout-discovery-draw.json"
+DISCOVERY_2 = Path(__file__).resolve().parent / "heldout-discovery-2-draw.json"
 CLASSES: tuple[TargetClass, ...] = (
     "python",
     "native",
@@ -207,27 +208,34 @@ def load_selection(path: Path = SELECTION) -> Selection:
     return Selection.model_validate_json(path.read_text())
 
 
-def discovery_record(path: Path = DISCOVERY) -> dict[str, Any]:
-    """Read the held-out discovery draw's record, if there is one.
+def discovery_record(
+    paths: tuple[Path, ...] = (DISCOVERY, DISCOVERY_2),
+) -> dict[str, Any]:
+    """Read the held-out discovery draws' records, merged.
 
-    The discovery supplement (``draw_discovery.py``) mines candidates
-    after this draw was fixed and picks its own tasks. This draw must
-    not see the mined ones, and its ``--write`` must keep the picks
-    held-out.
+    The discovery supplements (``draw_discovery.py`` and
+    ``draw_discovery2.py``) mine candidates after this draw was fixed
+    and pick their own tasks. This draw must not see the mined ones,
+    and its ``--write`` must keep the picks held-out.
 
     Parameters
     ----------
-    path : Path
-        The record.
+    paths : tuple of Path
+        The records; one that does not exist yet is skipped.
 
     Returns
     -------
     dict
-        The record, or one with no mined ids and no picks.
+        ``mined`` (``ids``) and ``picks`` over every record, both empty
+        when there is none.
     """
-    if not path.exists():
-        return {"mined": {"ids": []}, "picks": []}
-    return cast(dict[str, Any], json.loads(path.read_text()))
+    merged: dict[str, Any] = {"mined": {"ids": []}, "picks": []}
+    for path in paths:
+        if path.exists():
+            record = cast(dict[str, Any], json.loads(path.read_text()))
+            merged["mined"]["ids"] += record["mined"]["ids"]
+            merged["picks"] += record.get("picks", [])
+    return merged
 
 
 def development_named(skill_dir: Path = SKILL_DIR) -> dict[str, str]:

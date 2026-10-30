@@ -1,0 +1,171 @@
+{
+  "id": "sirupsen-logrus-pr370",
+  "repository": "sirupsen/logrus",
+  "stars": 25764,
+  "pushed_at": "2026-10-02T15:27:36Z",
+  "task_commit": "58d2a6a7038f260fc445685af4c2629e1c1eec5b",
+  "task_commit_basis": "first parent of https://github.com/sirupsen/logrus/commit/08a8a7c27e3d058a8989316a850daad1c10bf4ab; gh api compare 58d2a6a7038f...08a8a7c27e3d touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/sirupsen/logrus/pull/370",
+    "title": "Optimise speed",
+    "commit": "08a8a7c27e3d058a8989316a850daad1c10bf4ab",
+    "merged_at": "2016-08-13T15:40:05Z",
+    "files": [
+      "README.md",
+      "entry.go",
+      "logger.go",
+      "logger_bench_test.go",
+      "text_formatter.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalLogger$ -benchtime 100000x .",
+    "source": "written here from the description of https://github.com/sirupsen/logrus/pull/370 (logging through a Logger that discards its output, as its BenchmarkDummyLogger does; that benchmark is not in the tree): a Go benchmark logging a line with fields and a plain line with the text and the JSON formatter, eval/tasks/workloads/sirupsen-logrus-pr370/eval_log_bench_test.go, copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "go test -count 1 -run \"Entry|TextFormatter|Logger|Formatter|Quoting\" .",
+    "source": "the entry, formatter and logger tests of the root package, the package https://github.com/sirupsen/logrus/pull/370 changes (entry.go, logger.go and text_formatter.go); targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/sirupsen/logrus/pull/370",
+      "note": "description, as matched by the miner: timings: 4344 ns; 1.354s; 2828 ns; 1.449s; 3581 ns; 1.833s; 2195 ns; 2.224s | benchmark files changed: logger_bench_test.go"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local. The 2016 tree has no go.mod, so setup runs go mod init (the root package imports only the standard library, and its tests testify, added with go get at v1.8.4)",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go mod init github.com/sirupsen/logrus",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-29T15:40:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "go: creating new go.mod: module github.com/sirupsen/logrus\ngo: to add module requirements and sums:\n\tgo mod tidy"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go get github.com/stretchr/testify/assert@v1.8.4",
+      "exit_code": 0,
+      "duration_s": 6.94,
+      "date": "2026-10-29T15:40:58+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "go: downloading github.com/stretchr/testify v1.8.4\ngo: added github.com/davecgh/go-spew v1.1.1\ngo: added github.com/pmezard/go-difflib v1.0.0\ngo: added github.com/stretchr/testify v1.8.4\ngo: added gopkg.in/yaml.v3 v3.0.1"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/sirupsen-logrus-pr370/eval_log_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T15:41:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 1.13,
+      "date": "2026-10-29T15:41:05+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/sirupsen/logrus\t0.294s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"Entry|TextFormatter|Logger|Formatter|Quoting\" .",
+      "exit_code": 0,
+      "duration_s": 0.37,
+      "date": "2026-10-29T15:41:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/sirupsen/logrus\t0.179s"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalLogger$ -benchtime 100000x .",
+      "exit_code": 0,
+      "duration_s": 0.67,
+      "date": "2026-10-29T15:41:07+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: github.com/sirupsen/logrus\ncpu: Apple M4\nBenchmarkEvalLogger/text-10         \t  100000\t      1261 ns/op\t    1400 B/op\t      28 allocs/op\nBenchmarkEvalLogger/json-10         \t  100000\t      1599 ns/op\t    2298 B/op\t      43 allocs/op\nPASS\nok  \tgithub.com/sirupsen/logrus\t0.472s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go mod init github.com/sirupsen/logrus",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "go: creating new go.mod: module github.com/sirupsen/logrus\ngo: to add module requirements and sums:\n\tgo mod tidy"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go get github.com/stretchr/testify/assert@v1.8.4",
+      "exit_code": 0,
+      "duration_s": 0.91,
+      "date": "2026-10-29T15:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "go: added github.com/davecgh/go-spew v1.1.1\ngo: added github.com/pmezard/go-difflib v1.0.0\ngo: added github.com/stretchr/testify v1.8.4\ngo: added gopkg.in/yaml.v3 v3.0.1"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/sirupsen-logrus-pr370/eval_log_bench_test.go .",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T15:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ .",
+      "exit_code": 0,
+      "duration_s": 0.63,
+      "date": "2026-10-29T15:41:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/sirupsen/logrus\t0.292s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run \"Entry|TextFormatter|Logger|Formatter|Quoting\" .",
+      "exit_code": 0,
+      "duration_s": 0.41,
+      "date": "2026-10-29T15:41:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgithub.com/sirupsen/logrus\t0.178s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalLogger$ -benchtime 100000x .",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T15:41:09+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:01:49+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "gitbutlerapp-gitbutler-pr13367",
+  "repository": "gitbutlerapp/gitbutler",
+  "stars": 21884,
+  "pushed_at": "2026-10-29T12:22:53Z",
+  "task_commit": "4aeb96d8d247ab6fbedd0c8c06852c351c194aad",
+  "task_commit_basis": "first parent of https://github.com/gitbutlerapp/gitbutler/commit/6ffe003d2bfc416b024393b150870effa6a66390; gh api compare 4aeb96d8d247...6ffe003d2bfc touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/gitbutlerapp/gitbutler/pull/13367",
+    "title": "Make `but status` 5x faster in some scenarios",
+    "commit": "6ffe003d2bfc416b024393b150870effa6a66390",
+    "merged_at": "2026-04-18T09:16:43Z",
+    "files": [
+      "crates/but-api/src/legacy/forge.rs",
+      "crates/gitbutler-branch-actions/src/base.rs",
+      "crates/gitbutler-repo/src/lib.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "hyperfine --warmup 2 \"./target/release/but -C /Users/davidpdrsn/code/openclaw status\"",
+    "source": "quoted in the description of https://github.com/gitbutlerapp/gitbutler/pull/13367",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/gitbutlerapp/gitbutler/pull/13367",
+      "note": "description, as matched by the miner: speedup claims: 2x speed up; 3x speed up | timings: 455.4 ms; 1.2 ms; 443.3 ms; 162.3 ms; 453.5 ms; 457.3 ms; 30 ms; 90 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:12+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

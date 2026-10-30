@@ -1,0 +1,148 @@
+{
+  "id": "serenityos-serenity-pr25008",
+  "repository": "SerenityOS/serenity",
+  "stars": 33914,
+  "pushed_at": "2026-10-28T17:13:05Z",
+  "task_commit": "d933e0748922fa9d05e84ef0452121ab1cc2603a",
+  "task_commit_basis": "first parent of https://github.com/SerenityOS/serenity/commit/b61e67012264576da4d825c6d8f0d6930d127d08; gh api compare d933e0748922...b61e67012264 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/SerenityOS/serenity/pull/25008",
+    "title": "LibCompress: Speed up CanonicalCode::read_symbol() slow path",
+    "commit": "b61e67012264576da4d825c6d8f0d6930d127d08",
+    "merged_at": "2024-09-14T11:20:48Z",
+    "files": [
+      "Userland/Libraries/LibCompress/Deflate.cpp",
+      "Userland/Libraries/LibCompress/Deflate.h"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "sh -c \"rm -rf eval_unzipped && Build/lagom/bin/unzip -q -d eval_unzipped eval_input.zip\"",
+    "source": "adapted from the hyperfine command in the description of https://github.com/SerenityOS/serenity/pull/25008 (unzip of a large zip file, enwik8.zip there); that file is not in the tree, so the setup writes a 40 MB zip of generated word text, eval/tasks/workloads/serenityos-serenity-pr25008/mkzip.py, and the workload extracts it with the built unzip",
+    "verified": true
+  },
+  "oracle": {
+    "command": "ctest --test-dir Build/lagom -R TestDeflate --output-on-failure",
+    "source": "the project's TestDeflate, for LibCompress/Deflate.cpp, the file https://github.com/SerenityOS/serenity/pull/25008 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/SerenityOS/serenity/pull/25008",
+      "note": "description, as matched by the miner: speedup claims: 5% faster | timings: 1.008 s ± 0.016 s; 957.7 ms ± 3.9 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Lagom build with the host compiler (Apple clang) and Ninja; only the unzip and TestDeflate targets are built",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cmake -GNinja -S Meta/Lagom -B Build/lagom -DBUILD_LAGOM=ON -DCMAKE_BUILD_TYPE=Release",
+      "exit_code": 0,
+      "duration_s": 43.36,
+      "date": "2026-10-29T17:44:29+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "-- Downloading file emoji-test.txt from https://www.unicode.org/Public/emoji/15.1/emoji-test.txt\n-- Downloading file IdnaMappingTable.txt from https://www.unicode.org/Public/idna/15.1.0/IdnaMappingTable.txt\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/task/Build/lagom/../caches/TZDB for version 2024a\n-- Downloading file tzdb.tar.gz from https://data.iana.org/time-zones/releases/tzdata2024a.tar.gz\n-- Found Python3: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 (found version \"3.12.10\") found components: Interpreter\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/task/Build/lagom/../caches/CLDR for version 45.0.0\n-- Downloading file cldr.zip from https://github.com/unicode-org/cldr-json/releases/download/45.0.0/cldr-45.0.0-json-modern.zip\n-- Downloading file adobe-icc-profiles.zip from https://download.adobe.com/pub/adobe/iccprofiles/win/AdobeICCProfilesCS4Win_end-user.zip\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/task/Build/lagom/../caches/CACERT for version 2023-12-12\n-- Downloading file cacert-2023-12-12.pem from https://curl.se/ca/cacert-2023-12-12.pem\n-- Downloading file public_suffix_list.dat from https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat\n-- Downloading file commonmark.spec.json from https://spec.commonmark.org/0.30/spec.json\n-- Configuring done (42.2s)\n-- Generating done (0.9s)\n-- Build files have been written to: eval/mine/work/serenityos-serenity-pr25008/task/Build/lagom"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cmake --build Build/lagom --target unzip TestDeflate",
+      "exit_code": 0,
+      "duration_s": 12.87,
+      "date": "2026-10-29T17:45:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[176/191] Building CXX object Userland/Libraries/LibArchive/CMakeFiles/LibArchive.dir/Zip.cpp.o\n[177/191] Linking CXX shared library lib/liblagom-core.0.0.0.dylib\n[178/191] Creating library symlink lib/liblagom-core.0.dylib lib/liblagom-core.dylib\n[179/191] Linking CXX shared library lib/liblagom-test.dylib\n[180/191] Linking CXX shared library lib/liblagom-crypto.0.0.0.dylib\n[181/191] Creating library symlink lib/liblagom-crypto.0.dylib lib/liblagom-crypto.dylib\n[182/191] Building CXX object CMakeFiles/unzip.direval/mine/work/serenityos-serenity-pr25008/task/Userland/Utilities/unzip.cpp.o\n[183/191] Building CXX object Userland/Libraries/LibCompress/CMakeFiles/LibCompress.dir/Deflate.cpp.o\n[184/191] Linking CXX shared library lib/liblagom-compress.0.0.0.dylib\n[185/191] Creating library symlink lib/liblagom-compress.0.dylib lib/liblagom-compress.dylib\n[186/191] Building CXX object Tests/LibCompress/CMakeFiles/TestDeflate.dir/TestDeflate.cpp.o\n[187/191] Linking CXX shared library lib/liblagom-archive.0.0.0.dylib\n[188/191] Creating library symlink lib/liblagom-archive.0.dylib lib/liblagom-archive.dylib\n[189/191] Linking CXX executable bin/TestDeflate\n[190/191] Linking CXX executable bin/unzip"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "python3 ../../../../tasks/workloads/serenityos-serenity-pr25008/mkzip.py eval_input.zip",
+      "exit_code": 0,
+      "duration_s": 8.36,
+      "date": "2026-10-29T17:45:25+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "ctest --test-dir Build/lagom -R TestDeflate --output-on-failure",
+      "exit_code": 0,
+      "duration_s": 2.12,
+      "date": "2026-10-29T17:45:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Test project eval/mine/work/serenityos-serenity-pr25008/task/Build/lagom\n    Start 143: TestDeflate\n1/1 Test #143: TestDeflate ......................   Passed    1.92 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   1.93 sec"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "sh -c \"rm -rf eval_unzipped && Build/lagom/bin/unzip -q -d eval_unzipped eval_input.zip\"",
+      "exit_code": 0,
+      "duration_s": 0.92,
+      "date": "2026-10-29T17:45:36+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cmake -GNinja -S Meta/Lagom -B Build/lagom -DBUILD_LAGOM=ON -DCMAKE_BUILD_TYPE=Release",
+      "exit_code": 0,
+      "duration_s": 63.42,
+      "date": "2026-10-29T17:45:37+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "-- Downloading file emoji-test.txt from https://www.unicode.org/Public/emoji/15.1/emoji-test.txt\n-- Downloading file IdnaMappingTable.txt from https://www.unicode.org/Public/idna/15.1.0/IdnaMappingTable.txt\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/reference/Build/lagom/../caches/TZDB for version 2024a\n-- Downloading file tzdb.tar.gz from https://data.iana.org/time-zones/releases/tzdata2024a.tar.gz\n-- Found Python3: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 (found version \"3.12.10\") found components: Interpreter\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/reference/Build/lagom/../caches/CLDR for version 45.0.0\n-- Downloading file cldr.zip from https://github.com/unicode-org/cldr-json/releases/download/45.0.0/cldr-45.0.0-json-modern.zip\n-- Downloading file adobe-icc-profiles.zip from https://download.adobe.com/pub/adobe/iccprofiles/win/AdobeICCProfilesCS4Win_end-user.zip\n-- Removing outdated eval/mine/work/serenityos-serenity-pr25008/reference/Build/lagom/../caches/CACERT for version 2023-12-12\n-- Downloading file cacert-2023-12-12.pem from https://curl.se/ca/cacert-2023-12-12.pem\n-- Downloading file public_suffix_list.dat from https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat\n-- Downloading file commonmark.spec.json from https://spec.commonmark.org/0.30/spec.json\n-- Configuring done (62.5s)\n-- Generating done (0.7s)\n-- Build files have been written to: eval/mine/work/serenityos-serenity-pr25008/reference/Build/lagom"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cmake --build Build/lagom --target unzip TestDeflate",
+      "exit_code": 0,
+      "duration_s": 10.88,
+      "date": "2026-10-29T17:46:40+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[176/191] Building CXX object Userland/Libraries/LibArchive/CMakeFiles/LibArchive.dir/Zip.cpp.o\n[177/191] Linking CXX shared library lib/liblagom-core.0.0.0.dylib\n[178/191] Creating library symlink lib/liblagom-core.0.dylib lib/liblagom-core.dylib\n[179/191] Building CXX object CMakeFiles/unzip.direval/mine/work/serenityos-serenity-pr25008/reference/Userland/Utilities/unzip.cpp.o\n[180/191] Linking CXX shared library lib/liblagom-test.dylib\n[181/191] Linking CXX shared library lib/liblagom-crypto.0.0.0.dylib\n[182/191] Creating library symlink lib/liblagom-crypto.0.dylib lib/liblagom-crypto.dylib\n[183/191] Building CXX object Userland/Libraries/LibCompress/CMakeFiles/LibCompress.dir/Deflate.cpp.o\n[184/191] Building CXX object Tests/LibCompress/CMakeFiles/TestDeflate.dir/TestDeflate.cpp.o\n[185/191] Linking CXX shared library lib/liblagom-compress.0.0.0.dylib\n[186/191] Creating library symlink lib/liblagom-compress.0.dylib lib/liblagom-compress.dylib\n[187/191] Linking CXX shared library lib/liblagom-archive.0.0.0.dylib\n[188/191] Linking CXX executable bin/TestDeflate\n[189/191] Creating library symlink lib/liblagom-archive.0.dylib lib/liblagom-archive.dylib\n[190/191] Linking CXX executable bin/unzip"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "python3 ../../../../tasks/workloads/serenityos-serenity-pr25008/mkzip.py eval_input.zip",
+      "exit_code": 0,
+      "duration_s": 7.48,
+      "date": "2026-10-29T17:46:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "ctest --test-dir Build/lagom -R TestDeflate --output-on-failure",
+      "exit_code": 0,
+      "duration_s": 2.08,
+      "date": "2026-10-29T17:46:59+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Test project eval/mine/work/serenityos-serenity-pr25008/reference/Build/lagom\n    Start 143: TestDeflate\n1/1 Test #143: TestDeflate ......................   Passed    1.96 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   1.97 sec"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "sh -c \"rm -rf eval_unzipped && Build/lagom/bin/unzip -q -d eval_unzipped eval_input.zip\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T17:47:01+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:02:28+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

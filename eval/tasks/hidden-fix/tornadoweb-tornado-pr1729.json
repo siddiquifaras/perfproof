@@ -1,0 +1,107 @@
+{
+  "id": "tornadoweb-tornado-pr1729",
+  "repository": "tornadoweb/tornado",
+  "stars": 22167,
+  "pushed_at": "2026-10-26T21:18:33Z",
+  "task_commit": "dcc03a207d9c43b82f83ffba4725813f6b5ea29c",
+  "task_commit_basis": "first parent of https://github.com/tornadoweb/tornado/commit/c26ccd97af86c1901a8731973084ea9f7bbe61f0; gh api compare dcc03a207d9c...c26ccd97af86 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/tornadoweb/tornado/pull/1729",
+    "title": "_Timeout.__lt__ speedup",
+    "commit": "c26ccd97af86c1901a8731973084ea9f7bbe61f0",
+    "merged_at": "2016-05-28T17:01:37Z",
+    "files": [
+      "tornado/ioloop.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -c \"import random, timeit; from tornado.ioloop import _Timeout, IOLoop; io = IOLoop.current(); rng = random.Random(0); ts = [_Timeout(rng.random(), None, io) for _ in range(15000)]; print(min(timeit.repeat(lambda: sorted(ts), number=5, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/tornadoweb/tornado/pull/1729 (comparing _Timeout objects, as an IOLoop with about 15000 callbacks does when it orders its timeout heap): sorting 15000 _Timeout objects with random deadlines, which makes about 200000 comparisons",
+    "verified": true
+  },
+  "oracle": {
+    "command": "python -m unittest tornado.test.ioloop_test",
+    "source": "the IOLoop test module, for tornado/ioloop.py, the file https://github.com/tornadoweb/tornado/pull/1729 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/tornadoweb/tornado/pull/1729",
+      "note": "description, as matched by the miner: speedup claims: 40% faster | timings: 587 ns; 336 ns"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Runs on Python 3.9 from uv, the newest release this 2016 tree imports on; run from the source tree, with nothing installed",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.9 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:36:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nwarning: The requested interpreter resolved to Python 3.9.25, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "python -m unittest tornado.test.ioloop_test",
+      "exit_code": 0,
+      "duration_s": 0.33,
+      "date": "2026-10-29T15:36:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "............................................\n----------------------------------------------------------------------\nRan 44 tests in 0.190s\n\nOK"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -c \"import random, timeit; from tornado.ioloop import _Timeout, IOLoop; io = IOLoop.current(); rng = random.Random(0); ts = [_Timeout(rng.random(), None, io) for _ in range(15000)]; print(min(timeit.repeat(lambda: sorted(ts), number=5, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": 0.41,
+      "date": "2026-10-29T15:36:34+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.07364033299999997"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.9 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:36:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.9.25\nwarning: The requested interpreter resolved to Python 3.9.25, which is incompatible with the project's Python requirement: `>=3.12` (from `project.requires-python`)\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "python -m unittest tornado.test.ioloop_test",
+      "exit_code": 0,
+      "duration_s": 0.27,
+      "date": "2026-10-29T15:36:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "............................................\n----------------------------------------------------------------------\nRan 44 tests in 0.189s\n\nOK"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -c \"import random, timeit; from tornado.ioloop import _Timeout, IOLoop; io = IOLoop.current(); rng = random.Random(0); ts = [_Timeout(rng.random(), None, io) for _ in range(15000)]; print(min(timeit.repeat(lambda: sorted(ts), number=5, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T15:36:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:01:49+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

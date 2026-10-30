@@ -1,0 +1,130 @@
+{
+  "id": "grpc-grpc-go-pr8204",
+  "repository": "grpc/grpc-go",
+  "stars": 23096,
+  "pushed_at": "2026-10-29T07:48:21Z",
+  "task_commit": "4b5505d301760da42027554a5784ab55adad574d",
+  "task_commit_basis": "first parent of https://github.com/grpc/grpc-go/commit/b368379ef8f6fbe8b3b856d38dbb34a50fbfbe9a (squash merge); gh api compare 4b5505d30176...b368379ef8f6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/grpc/grpc-go/pull/8204",
+    "title": "credentials/alts: Optimize reads",
+    "commit": "b368379ef8f6fbe8b3b856d38dbb34a50fbfbe9a",
+    "merged_at": "2025-04-07T06:21:14Z",
+    "files": [
+      "credentials/alts/internal/conn/common.go",
+      "credentials/alts/internal/conn/record.go",
+      "credentials/alts/internal/conn/record_test.go",
+      "credentials/alts/internal/handshaker/handshaker.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -count 1 -run ^$ -bench ^BenchmarkEvalRead$ -benchtime 20x ./credentials/alts/internal/conn",
+    "source": "written here from the description of https://github.com/grpc/grpc-go/pull/8204 (reading large messages through an ALTS record connection with gRPC's 16 KiB read buffer; its BenchmarkLargeMessage is not in the tree): a Go benchmark that writes 4 MiB through one connection and reads it back from the peer, eval/tasks/workloads/grpc-grpc-go-pr8204/eval_conn_bench_test.go, copied into the tree",
+    "verified": true
+  },
+  "oracle": {
+    "command": "go test -count 1 ./credentials/alts/internal/conn ./credentials/alts/internal/handshaker",
+    "source": "the tests of the ALTS conn and handshaker packages, the packages https://github.com/grpc/grpc-go/pull/8204 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/grpc/grpc-go/pull/8204",
+      "note": "description, as matched by the miner: timings: 2s; 90139719 ns; 2.316s; 80422425 ns; 2.139s"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Needs native Go on the PATH (go1.25.14 darwin/arm64 from go.dev); GOTOOLCHAIN=local, so a go.mod that asks for a newer toolchain fails instead of downloading one",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/grpc-grpc-go-pr8204/eval_conn_bench_test.go credentials/alts/internal/conn/eval_conn_bench_test.go",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:47:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ ./credentials/alts/internal/conn",
+      "exit_code": 0,
+      "duration_s": 6.03,
+      "date": "2026-10-29T15:47:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgoogle.golang.org/grpc/credentials/alts/internal/conn\t0.298s [no tests to run]\ngo: downloading google.golang.org/protobuf v1.36.6\ngo: downloading golang.org/x/sys v0.31.0"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 ./credentials/alts/internal/conn ./credentials/alts/internal/handshaker",
+      "exit_code": 0,
+      "duration_s": 9.75,
+      "date": "2026-10-29T15:47:14+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgoogle.golang.org/grpc/credentials/alts/internal/conn\t0.198s\nok  \tgoogle.golang.org/grpc/credentials/alts/internal/handshaker\t0.511s\ngo: downloading golang.org/x/sync v0.12.0\ngo: downloading github.com/google/go-cmp v0.7.0\ngo: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463\ngo: downloading golang.org/x/net v0.38.0\ngo: downloading golang.org/x/text v0.23.0"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalRead$ -benchtime 20x ./credentials/alts/internal/conn",
+      "exit_code": 0,
+      "duration_s": 0.58,
+      "date": "2026-10-29T15:47:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "goos: darwin\ngoarch: arm64\npkg: google.golang.org/grpc/credentials/alts/internal/conn\ncpu: Apple M4\nBenchmarkEvalRead-10    \t      20\t   3844148 ns/op\t 9525821 B/op\t      26 allocs/op\nPASS\nok  \tgoogle.golang.org/grpc/credentials/alts/internal/conn\t0.286s"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local cp ../../../../tasks/workloads/grpc-grpc-go-pr8204/eval_conn_bench_test.go credentials/alts/internal/conn/eval_conn_bench_test.go",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:47:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ ./credentials/alts/internal/conn",
+      "exit_code": 0,
+      "duration_s": 1.16,
+      "date": "2026-10-29T15:47:24+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgoogle.golang.org/grpc/credentials/alts/internal/conn\t0.507s [no tests to run]"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 ./credentials/alts/internal/conn ./credentials/alts/internal/handshaker",
+      "exit_code": 0,
+      "duration_s": 2.07,
+      "date": "2026-10-29T15:47:26+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "ok  \tgoogle.golang.org/grpc/credentials/alts/internal/conn\t0.207s\nok  \tgoogle.golang.org/grpc/credentials/alts/internal/handshaker\t0.365s"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "GOTOOLCHAIN=local go test -count 1 -run ^$ -bench ^BenchmarkEvalRead$ -benchtime 20x ./credentials/alts/internal/conn",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T15:47:28+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:01:49+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

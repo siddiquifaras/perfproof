@@ -1,0 +1,523 @@
+{
+ "rule": "docs/evaluation.md, Discovery supplement 2",
+ "salt": "perfproof-heldout-discovery-2026-10-29",
+ "mined": {
+  "ids": [
+   "atuinsh-atuin-pr3577",
+   "capsoftware-cap-pr2656",
+   "easytier-easytier-pr2397",
+   "fastfloat-fast-float-pr356",
+   "gitbutlerapp-gitbutler-pr13367",
+   "golang-jwt-jwt-pr33",
+   "grpc-grpc-go-pr8204",
+   "hashicorp-hcl-pr490",
+   "nats-io-nats-go-pr2083",
+   "nautechsystems-nautilus-trader-pr4150",
+   "open-telemetry-opentelemetry-go-pr8740",
+   "python-pendulum-pendulum-pr172",
+   "python-pillow-pillow-pr8194",
+   "pytoolz-toolz-pr376",
+   "ratatui-ratatui-pr601",
+   "scikit-image-scikit-image-pr6441",
+   "screenpipe-screenpipe-pr6254",
+   "serenityos-serenity-pr25008",
+   "sirupsen-logrus-pr370",
+   "tornadoweb-tornado-pr1729",
+   "vercel-labs-skills-pr164"
+  ]
+ },
+ "reviews": {
+  "atuinsh-atuin-pr3577": {
+   "keep": true,
+   "reason": "Runtime optimization: the record store's SQLite connection prefers WAL over an immediate fsync and optimizes on close; the description adds a benchmark for it",
+   "read": [
+    "https://github.com/atuinsh/atuin/pull/3577"
+   ]
+  },
+  "capsoftware-cap-pr2656": {
+   "keep": true,
+   "reason": "Runtime optimization: the blit kernel is specialised for uniform backdrops; the description states the measured CPU cost of the kernel alone",
+   "read": [
+    "https://github.com/CapSoftware/Cap/pull/2656"
+   ]
+  },
+  "easytier-easytier-pr2397": {
+   "keep": false,
+   "reason": "Not an optimization: the change adds a Criterion throughput benchmark and an incidental refactor, and the description reports no speedup",
+   "read": [
+    "https://github.com/EasyTier/EasyTier/pull/2397"
+   ]
+  },
+  "fastfloat-fast-float-pr356": {
+   "keep": true,
+   "reason": "Runtime optimization: a case-insensitive compare is rewritten with SWAR; the description times old and new",
+   "read": [
+    "https://github.com/fastfloat/fast_float/pull/356"
+   ]
+  },
+  "gitbutlerapp-gitbutler-pr13367": {
+   "keep": true,
+   "reason": "Runtime optimization: a CLI command's slow path is removed; hyperfine in the description",
+   "read": [
+    "https://github.com/gitbutlerapp/gitbutler/pull/13367"
+   ]
+  },
+  "golang-jwt-jwt-pr33": {
+   "keep": true,
+   "reason": "Runtime optimization: fewer allocations in ECDSA signing; go test -bench output in the description",
+   "read": [
+    "https://github.com/golang-jwt/jwt/pull/33"
+   ]
+  },
+  "grpc-grpc-go-pr8204": {
+   "keep": true,
+   "reason": "Runtime optimization: fewer and larger reads in the ALTS connection; the description gives the cause and the optimizations",
+   "read": [
+    "https://github.com/grpc/grpc-go/pull/8204"
+   ]
+  },
+  "hashicorp-hcl-pr490": {
+   "keep": true,
+   "reason": "Runtime optimization: the HCL lexer's token check allocates less; benchmark results in the description",
+   "read": [
+    "https://github.com/hashicorp/hcl/pull/490"
+   ]
+  },
+  "nats-io-nats-go-pr2083": {
+   "keep": true,
+   "reason": "Runtime optimization: publishing messages with headers allocates less; benchmark results in the description",
+   "read": [
+    "https://github.com/nats-io/nats.go/pull/2083"
+   ]
+  },
+  "nautechsystems-nautilus-trader-pr4150": {
+   "keep": true,
+   "reason": "Runtime optimization: logging hot paths allocate and format less; the description reports benchmark results",
+   "read": [
+    "https://github.com/nautechsystems/nautilus_trader/pull/4150"
+   ]
+  },
+  "open-telemetry-opentelemetry-go-pr8740": {
+   "keep": true,
+   "reason": "Runtime optimization: hex decoders unrolled to drop bounds checks; the description shows the check output and timings",
+   "read": [
+    "https://github.com/open-telemetry/opentelemetry-go/pull/8740"
+   ]
+  },
+  "python-pendulum-pendulum-pr172": {
+   "keep": true,
+   "reason": "Runtime optimization: now and utcnow pass the tzinfo to datetime; %timeit in the description",
+   "read": [
+    "https://github.com/python-pendulum/pendulum/pull/172"
+   ]
+  },
+  "python-pillow-pillow-pr8194": {
+   "keep": true,
+   "reason": "Runtime optimization: getbbox and getextrema scan faster; %timeit before and after in the description",
+   "read": [
+    "https://github.com/python-pillow/Pillow/pull/8194"
+   ]
+  },
+  "pytoolz-toolz-pr376": {
+   "keep": true,
+   "reason": "Runtime optimization: interpose special-cases dropping the first element; %timeit in the description",
+   "read": [
+    "https://github.com/pytoolz/toolz/pull/376"
+   ]
+  },
+  "ratatui-ratatui-pr601": {
+   "keep": true,
+   "reason": "Runtime optimization: buffer cells store small strings inline instead of allocating; the description gives the reasoning and measurements",
+   "read": [
+    "https://github.com/ratatui/ratatui/pull/601"
+   ]
+  },
+  "scikit-image-scikit-image-pr6441": {
+   "keep": true,
+   "reason": "Runtime optimization: eigenvalue computation avoids a second sqrt and uses in-place operations; timings in the description",
+   "read": [
+    "https://github.com/scikit-image/scikit-image/pull/6441"
+   ]
+  },
+  "screenpipe-screenpipe-pr6254": {
+   "keep": false,
+   "reason": "Not a code optimization: the change only sets the release profile's opt-level in Cargo.toml and touches no source file, so the task tree has no slow function to find",
+   "read": [
+    "https://github.com/screenpipe/screenpipe/pull/6254"
+   ]
+  },
+  "serenityos-serenity-pr25008": {
+   "keep": true,
+   "reason": "Runtime optimization: the Huffman slow path reads a table instead of binary searching; hyperfine in the description",
+   "read": [
+    "https://github.com/SerenityOS/serenity/pull/25008"
+   ]
+  },
+  "sirupsen-logrus-pr370": {
+   "keep": true,
+   "reason": "Runtime optimization: buffers are pooled to cut allocations per log call; go test -bench output in the description",
+   "read": [
+    "https://github.com/sirupsen/logrus/pull/370"
+   ]
+  },
+  "tornadoweb-tornado-pr1729": {
+   "keep": true,
+   "reason": "Runtime optimization: the timeout ordering compares a prebuilt tuple; %timeit in the description",
+   "read": [
+    "https://github.com/tornadoweb/tornado/pull/1729"
+   ]
+  },
+  "vercel-labs-skills-pr164": {
+   "keep": true,
+   "reason": "Runtime optimization: the CLI enables Node's module compile cache; hyperfine in the description",
+   "read": [
+    "https://github.com/vercel-labs/skills/pull/164"
+   ]
+  }
+ },
+ "passed_over": {},
+ "notes": {
+  "atuinsh-atuin-pr3577": "2026-10-29: the first check timed out at 1800 s in `cargo build` while rustup fetched the tree's pinned toolchain (a stalled download); the retry then hit that half-installed toolchain (\"Missing manifest\"). The toolchain was removed and installed again, and the third check built and ran. The walk's outcome uses that check."
+ },
+ "pool": [
+  "apache-arrow-rs-pr11143",
+  "apache-datafusion-pr26790",
+  "astral-sh-ruff-pr26565",
+  "astropy-astropy-pr20107",
+  "atuinsh-atuin-pr3577",
+  "axios-axios-pr11208",
+  "capsoftware-cap-pr2656",
+  "dask-dask-pr11899",
+  "dgraph-io-badger-pr2269",
+  "django-django-pr21460",
+  "easytier-easytier-pr2397",
+  "fasterxml-jackson-core-pr1674",
+  "fastfloat-fast-float-pr356",
+  "fastify-fast-json-stringify-pr900",
+  "gin-gonic-gin-pr2365",
+  "gitbutlerapp-gitbutler-pr13367",
+  "golang-jwt-jwt-pr33",
+  "grafana-loki-pr23949",
+  "grpc-grpc-go-pr8204",
+  "hashicorp-hcl-pr490",
+  "image-rs-image-pr2894",
+  "karpathy-llm-c-adamw-97e61e2258",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8",
+  "karpathy-llm-c-classifier-fused-dcff5613c6",
+  "karpathy-llm-c-encoder-forward-cfccd821e6",
+  "karpathy-llm-c-gelu-forward-45252d434c",
+  "karpathy-llm-c-global-norm-0f6853d399",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639",
+  "karpathy-llm-c-layernorm-forward-466723bb06",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad",
+  "karpathy-llm-c-matmul-forward-8822e7803e",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a",
+  "karpathy-llm-c-softmax-forward-8386e5393c",
+  "labstack-echo-pr1799",
+  "more-itertools-more-itertools-pr773",
+  "nats-io-nats-go-pr2083",
+  "nautechsystems-nautilus-trader-pr4150",
+  "networkx-networkx-pr7810",
+  "numpy-numpy-pr30810",
+  "open-telemetry-opentelemetry-go-pr8740",
+  "pandas-dev-pandas-pr70972",
+  "pinojs-pino-pr420",
+  "pydata-xarray-pr6107",
+  "python-pendulum-pendulum-pr172",
+  "python-pillow-pillow-pr8194",
+  "pytoolz-toolz-pr376",
+  "ratatui-ratatui-pr601",
+  "rolldown-rolldown-pr10678",
+  "rubocop-rubocop-pr13248",
+  "scikit-image-scikit-image-pr6441",
+  "scikit-learn-scikit-learn-pr34386",
+  "scipy-scipy-pr26368",
+  "screenpipe-screenpipe-pr6254",
+  "serenityos-serenity-pr25008",
+  "sgl-project-sglang-pr41223",
+  "sharkdp-fd-pr853",
+  "simdjson-simdjson-pr2805",
+  "sirupsen-logrus-pr370",
+  "tokio-rs-tokio-pr5829",
+  "tornadoweb-tornado-pr1729",
+  "uuidjs-uuid-pr677",
+  "uutils-coreutils-pr9171",
+  "valyala-fasthttp-pr1945",
+  "vercel-labs-skills-pr164",
+  "vllm-project-vllm-pr60753",
+  "xoofx-markdig-pr922"
+ ],
+ "removed": {
+  "easytier-easytier-pr2397": "Not an optimization: the change adds a Criterion throughput benchmark and an incidental refactor, and the description reports no speedup",
+  "grafana-loki-pr23949": "Not a speed optimization: replaces Drain prefix-tree maps with slices to cut retained heap; the description says train cost is unchanged in practice, and its benchmarks are tests the change adds",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "Not an optimization: the version this commit adds is a naive flash attention, and the file's own header at this commit says it \"seems about 3X slower than the naive version\"",
+  "pinojs-pino-pr420": "Not an optimization: adds a redact option and API to pino by integrating a new module; the speed claim compares against a different module, so there is no slow code in the task tree to speed up",
+  "screenpipe-screenpipe-pr6254": "Not a code optimization: the change only sets the release profile's opt-level in Cargo.toml and touches no source file, so the task tree has no slow function to find",
+  "vllm-project-vllm-pr60753": "Class wrong: switches GLM-5.3-Flash's prefill indexer top-k to an AITER kernel that \"only runs on gfx950\" (AMD). docs/targets.md puts AMD GPUs outside the serving class"
+ },
+ "skipped": {
+  "apache-arrow-rs-pr11143": "examined by the first discovery draw (taken)",
+  "apache-datafusion-pr26790": "examined by the first discovery draw (taken)",
+  "astral-sh-ruff-pr26565": "examined by the first discovery draw (passed)",
+  "astropy-astropy-pr20107": "examined by the first discovery draw (passed)",
+  "axios-axios-pr11208": "examined by the first discovery draw (passed)",
+  "dask-dask-pr11899": "examined by the first discovery draw (taken)",
+  "dgraph-io-badger-pr2269": "examined by the first discovery draw (taken)",
+  "django-django-pr21460": "named in eval/skill/tasks-real.json (development)",
+  "fasterxml-jackson-core-pr1674": "named in eval/skill/tasks-java.json (development)",
+  "fastify-fast-json-stringify-pr900": "examined by the first discovery draw (taken)",
+  "gin-gonic-gin-pr2365": "taken by the per-class held-out draw",
+  "image-rs-image-pr2894": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-adamw-97e61e2258": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-classifier-fused-dcff5613c6": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-encoder-forward-cfccd821e6": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-gelu-forward-45252d434c": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-global-norm-0f6853d399": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-layernorm-forward-466723bb06": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "taken by the per-class held-out draw",
+  "karpathy-llm-c-matmul-forward-8822e7803e": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": "examined by the first discovery draw (passed)",
+  "karpathy-llm-c-softmax-forward-8386e5393c": "examined by the first discovery draw (passed)",
+  "labstack-echo-pr1799": "named in eval/skill/tasks-go.json (development)",
+  "more-itertools-more-itertools-pr773": "examined by the first discovery draw (passed)",
+  "networkx-networkx-pr7810": "taken by the per-class held-out draw",
+  "numpy-numpy-pr30810": "examined by the first discovery draw (taken)",
+  "pandas-dev-pandas-pr70972": "examined by the first discovery draw (passed)",
+  "pydata-xarray-pr6107": "named in eval/skill/tasks-real.json (development)",
+  "rolldown-rolldown-pr10678": "examined by the first discovery draw (passed)",
+  "rubocop-rubocop-pr13248": "examined by the first discovery draw (passed)",
+  "scikit-learn-scikit-learn-pr34386": "examined by the first discovery draw (passed)",
+  "sgl-project-sglang-pr41223": "taken by the per-class held-out draw",
+  "sharkdp-fd-pr853": "named in eval/skill/tasks-real.json (development)",
+  "simdjson-simdjson-pr2805": "named in eval/skill/tasks-native.json (development)",
+  "tokio-rs-tokio-pr5829": "taken by the per-class held-out draw",
+  "uuidjs-uuid-pr677": "examined by the first discovery draw (taken)",
+  "uutils-coreutils-pr9171": "examined by the first discovery draw (passed)",
+  "valyala-fasthttp-pr1945": "examined by the first discovery draw (taken)",
+  "xoofx-markdig-pr922": "named in eval/skill/tasks-dotnet.json (development)"
+ },
+ "languages": {
+  "apache-arrow-rs-pr11143": "Rust",
+  "apache-datafusion-pr26790": "Rust",
+  "astral-sh-ruff-pr26565": "Rust",
+  "astropy-astropy-pr20107": "Python",
+  "atuinsh-atuin-pr3577": "Rust",
+  "axios-axios-pr11208": "JavaScript/TypeScript",
+  "capsoftware-cap-pr2656": "Rust",
+  "dask-dask-pr11899": "Python",
+  "dgraph-io-badger-pr2269": "Go",
+  "django-django-pr21460": "Python",
+  "easytier-easytier-pr2397": "unknown",
+  "fasterxml-jackson-core-pr1674": "Java",
+  "fastfloat-fast-float-pr356": "C/C++",
+  "fastify-fast-json-stringify-pr900": "JavaScript/TypeScript",
+  "gin-gonic-gin-pr2365": "Go",
+  "gitbutlerapp-gitbutler-pr13367": "Rust",
+  "golang-jwt-jwt-pr33": "Go",
+  "grafana-loki-pr23949": "Go",
+  "grpc-grpc-go-pr8204": "Go",
+  "hashicorp-hcl-pr490": "Go",
+  "image-rs-image-pr2894": "Rust",
+  "karpathy-llm-c-adamw-97e61e2258": "CUDA",
+  "karpathy-llm-c-attention-forward-bb4f04bdf8": "CUDA",
+  "karpathy-llm-c-classifier-fused-dcff5613c6": "CUDA",
+  "karpathy-llm-c-encoder-forward-cfccd821e6": "CUDA",
+  "karpathy-llm-c-gelu-forward-45252d434c": "CUDA",
+  "karpathy-llm-c-global-norm-0f6853d399": "C/C++",
+  "karpathy-llm-c-layernorm-backward-c1bfe4a639": "CUDA",
+  "karpathy-llm-c-layernorm-forward-466723bb06": "CUDA",
+  "karpathy-llm-c-matmul-backward-bias-55fbd7e6ad": "CUDA",
+  "karpathy-llm-c-matmul-forward-8822e7803e": "CUDA",
+  "karpathy-llm-c-residual-forward-4ffcf5b90a": "CUDA",
+  "karpathy-llm-c-softmax-forward-8386e5393c": "CUDA",
+  "labstack-echo-pr1799": "Go",
+  "more-itertools-more-itertools-pr773": "Python",
+  "nats-io-nats-go-pr2083": "Go",
+  "nautechsystems-nautilus-trader-pr4150": "Rust",
+  "networkx-networkx-pr7810": "Python",
+  "numpy-numpy-pr30810": "Python",
+  "open-telemetry-opentelemetry-go-pr8740": "Go",
+  "pandas-dev-pandas-pr70972": "Python",
+  "pinojs-pino-pr420": "JavaScript/TypeScript",
+  "pydata-xarray-pr6107": "Python",
+  "python-pendulum-pendulum-pr172": "Python",
+  "python-pillow-pillow-pr8194": "C/C++",
+  "pytoolz-toolz-pr376": "Python",
+  "ratatui-ratatui-pr601": "Rust",
+  "rolldown-rolldown-pr10678": "JavaScript/TypeScript",
+  "rubocop-rubocop-pr13248": "Ruby",
+  "scikit-image-scikit-image-pr6441": "Python",
+  "scikit-learn-scikit-learn-pr34386": "Python",
+  "scipy-scipy-pr26368": "Python",
+  "screenpipe-screenpipe-pr6254": "unknown",
+  "serenityos-serenity-pr25008": "C/C++",
+  "sgl-project-sglang-pr41223": "Python",
+  "sharkdp-fd-pr853": "Rust",
+  "simdjson-simdjson-pr2805": "C/C++",
+  "sirupsen-logrus-pr370": "Go",
+  "tokio-rs-tokio-pr5829": "Rust",
+  "tornadoweb-tornado-pr1729": "Python",
+  "uuidjs-uuid-pr677": "JavaScript/TypeScript",
+  "uutils-coreutils-pr9171": "Rust",
+  "valyala-fasthttp-pr1945": "Go",
+  "vercel-labs-skills-pr164": "JavaScript/TypeScript",
+  "vllm-project-vllm-pr60753": "Python",
+  "xoofx-markdig-pr922": "C#"
+ },
+ "order": [
+  {
+   "id": "python-pillow-pillow-pr8194",
+   "key": "1fd1c622b5f8592672d63cdc5f410b82ecb58b54d162a093309fcd2b7bd93ef4"
+  },
+  {
+   "id": "atuinsh-atuin-pr3577",
+   "key": "331e56fb393695916719c1930e20fa29b3abcc83eeaf5fbce7ce3cb65fc99d6e"
+  },
+  {
+   "id": "tornadoweb-tornado-pr1729",
+   "key": "47865fd795b5fea23ba8b397adb05a4e0bf82fd00bd97db8e48c9a6e86037fc3"
+  },
+  {
+   "id": "ratatui-ratatui-pr601",
+   "key": "49ec5a42e8d7c4a1080a8ad8dd51c396adab56f1cb772780693109c57b34cb24"
+  },
+  {
+   "id": "serenityos-serenity-pr25008",
+   "key": "4d150f25b866bdebddb4d97abf5069f507cf3bc1beff3039903b2e6a89263cae"
+  },
+  {
+   "id": "vercel-labs-skills-pr164",
+   "key": "5206966061936c1ea57911f44d03db63842fc1285740aba8e10b9de502d0bdb7"
+  },
+  {
+   "id": "sirupsen-logrus-pr370",
+   "key": "98eebbf30f18d2720cc9a14b489232a220fda6c6583a49a2b51b4fe2df38167a"
+  },
+  {
+   "id": "pytoolz-toolz-pr376",
+   "key": "9ab28ba65e50519a97646b898bba264804b734ee91b13b8aef2693993ac9990d"
+  },
+  {
+   "id": "fastfloat-fast-float-pr356",
+   "key": "9ff3cc3afa8b9880fb17d06a68cc78da60f1988b2e694587d18372016f07eeb1"
+  },
+  {
+   "id": "grpc-grpc-go-pr8204",
+   "key": "aa4285df5b19a34b88777c34775da1aa73be7e822991bc4904360c8501d8a51a"
+  },
+  {
+   "id": "hashicorp-hcl-pr490",
+   "key": "b8f2472387b43745696ae69f0ad9d58ddeeefbc02e67e01f6cce6a655cfeef90"
+  },
+  {
+   "id": "scikit-image-scikit-image-pr6441",
+   "key": "baf941c5fd88e9f01603b24223a5ff9f4f50c087948f97416d7535955043c9df"
+  },
+  {
+   "id": "capsoftware-cap-pr2656",
+   "key": "bbaf265e9b65f8bc1cdbb2fa6ee0a60f805aba2782365be5737758c0d5486f6c"
+  },
+  {
+   "id": "scipy-scipy-pr26368",
+   "key": "bce888136ddec68a0c60436f0e1c296dd00a4a21f86faf6873275cce5746e7dd"
+  },
+  {
+   "id": "nats-io-nats-go-pr2083",
+   "key": "c7c45e8451e213984e96588af03d62f95a759e366500f087702a990f15eb5a1f"
+  },
+  {
+   "id": "gitbutlerapp-gitbutler-pr13367",
+   "key": "cc2d9a0b640037eedca0d8eb443b3876ce138208e27e88642520b6cab056a74a"
+  },
+  {
+   "id": "open-telemetry-opentelemetry-go-pr8740",
+   "key": "d32669466f76129b43478c0c5e9a47addb08d76b9e495519e5a8db23a3303c91"
+  },
+  {
+   "id": "python-pendulum-pendulum-pr172",
+   "key": "eca3c149dbea1439981cbc2b1bbceb4997df27bb9c0bfeb562c9e46134557c60"
+  },
+  {
+   "id": "golang-jwt-jwt-pr33",
+   "key": "ed5b420f191d55f0a9483dbdad53ab3062e98b9d52650fcb48aa7560813e5d75"
+  },
+  {
+   "id": "nautechsystems-nautilus-trader-pr4150",
+   "key": "f5b2ed099f100455cb6a74ea62d381d3017935ec6fe89d115f65a2689f3cd6f5"
+  }
+ ],
+ "walk": [
+  {
+   "id": "python-pillow-pillow-pr8194",
+   "language": "C/C++",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "atuinsh-atuin-pr3577",
+   "language": "Rust",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "tornadoweb-tornado-pr1729",
+   "language": "Python",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "ratatui-ratatui-pr601",
+   "language": "Rust",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "serenityos-serenity-pr25008",
+   "language": "C/C++",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "vercel-labs-skills-pr164",
+   "language": "JavaScript/TypeScript",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "sirupsen-logrus-pr370",
+   "language": "Go",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  },
+  {
+   "id": "pytoolz-toolz-pr376",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: oracle `python -m pytest -q -p no:cacheprovider toolz/tests/test_itertoolz.py -k interpose` exited 1"
+  },
+  {
+   "id": "fastfloat-fast-float-pr356",
+   "language": "C/C++",
+   "outcome": "passed",
+   "reason": "language cap: 2 C/C++ tasks already taken; not built"
+  },
+  {
+   "id": "grpc-grpc-go-pr8204",
+   "language": "Go",
+   "outcome": "taken",
+   "reason": "built and ran on the task tree"
+  }
+ ],
+ "picks": [
+  "python-pillow-pillow-pr8194",
+  "atuinsh-atuin-pr3577",
+  "tornadoweb-tornado-pr1729",
+  "ratatui-ratatui-pr601",
+  "serenityos-serenity-pr25008",
+  "vercel-labs-skills-pr164",
+  "sirupsen-logrus-pr370",
+  "grpc-grpc-go-pr8204"
+ ],
+ "stopped": null
+}

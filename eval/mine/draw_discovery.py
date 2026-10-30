@@ -152,6 +152,11 @@ def derive(
     mined: list[str],
     reviews: dict[str, dict[str, Any]],
     passed_over: dict[str, str] | None = None,
+    *,
+    salt: str = SALT,
+    examined: dict[str, str] | None = None,
+    earlier_mined: list[str] | None = None,
+    later_mined: list[str] | None = None,
 ) -> Derived:
     """Apply the rule to the manifests.
 
@@ -165,6 +170,19 @@ def derive(
     reviews : dict
         Step-1 readings of the candidates ``selection.json`` has none
         for: id to ``{"keep": bool, "reason": str, "read": [...]}``.
+    passed_over : dict, optional
+        Candidates passed over after a failed build, id to reason.
+    salt : str, optional
+        The draw's salt; defaults to the first discovery draw's.
+    examined : dict, optional
+        Id to reason for each task an earlier discovery draw examined;
+        the pool skips them.
+    earlier_mined : list of str, optional
+        Ids an earlier discovery draw mined; like `mined` they are not
+        in the per-class draw's pool.
+    later_mined : list of str, optional
+        Ids a later discovery draw mined. This draw was fixed before
+        they existed, so they are left out of its manifests.
 
     Returns
     -------
@@ -174,10 +192,14 @@ def derive(
     """
     sel = draw.load_selection()
     named = draw.development_named()
-    base = [t for t in tasks if t.id not in mined]
+    later = set(later_mined or [])
+    tasks = [t for t in tasks if t.id not in later]
+    earlier = set(earlier_mined or [])
+    base = [t for t in tasks if t.id not in mined and t.id not in earlier]
     per_class = draw.draw_splits(base, sel, named)["held-out"]
     taken = {v.task_id for d in per_class.values() for v in d.picks}
     passed_over = passed_over or {}
+    examined = examined or {}
     out = Derived()
     out.pool = sorted(t.id for t in tasks if t.family == "hidden-fix")
     kept: list[Task] = []
@@ -190,7 +212,9 @@ def derive(
             review = {"keep": r.keep, "reason": r.reason}
         else:
             review = reviews.get(task.id)
-        if task.id in named:
+        if task.id in examined:
+            out.skipped[task.id] = examined[task.id]
+        elif task.id in named:
             out.skipped[task.id] = (
                 f"named in eval/skill/{named[task.id]} (development)"
             )
@@ -203,8 +227,8 @@ def derive(
             out.removed[task.id] = review["reason"]
         else:
             kept.append(task)
-    kept.sort(key=lambda t: draw.order_key(SALT, t.id))
-    out.order = [{"id": t.id, "key": draw.order_key(SALT, t.id)} for t in kept]
+    kept.sort(key=lambda t: draw.order_key(salt, t.id))
+    out.order = [{"id": t.id, "key": draw.order_key(salt, t.id)} for t in kept]
     per_language: Counter[str] = Counter()
     for task in kept:
         if len(out.picks) == PICKS:
@@ -255,17 +279,34 @@ def mined_ids(path: Path = RECORD) -> list[str]:
     return list(load_record(path)["mined"]["ids"])
 
 
+def later_mined() -> list[str]:
+    """Return the ids the second discovery draw mined (none before it).
+
+    This draw was fixed before they existed, so `derive` leaves them
+    out of its manifests.
+    """
+    if not draw.DISCOVERY_2.exists():
+        return []
+    return list(json.loads(draw.DISCOVERY_2.read_text())["mined"]["ids"])
+
+
 def pick_ids(path: Path = RECORD) -> list[str]:
     """Return the recorded picks (empty before the record)."""
     return list(load_record(path).get("picks", []))
 
 
-def render(record: dict[str, Any], derived: Derived) -> dict[str, Any]:
+def render(
+    record: dict[str, Any],
+    derived: Derived,
+    *,
+    rule: str = "docs/evaluation.md, Discovery supplement",
+    salt: str = SALT,
+) -> dict[str, Any]:
     """Return the record with its derived part set from `derived`."""
     tasks = {t.id: t for t in load_tasks()}
     return {
-        "rule": "docs/evaluation.md, Discovery supplement",
-        "salt": SALT,
+        "rule": rule,
+        "salt": salt,
         "mined": record["mined"],
         "reviews": record["reviews"],
         "passed_over": record.get("passed_over", {}),
@@ -314,6 +355,7 @@ def main(argv: list[str] | None = None) -> int:
         record["mined"]["ids"],
         record["reviews"],
         record.get("passed_over"),
+        later_mined=later_mined(),
     )
     new = render(record, derived)
     text = json.dumps(new, indent=1) + "\n"

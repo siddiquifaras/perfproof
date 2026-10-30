@@ -1,0 +1,129 @@
+{
+  "id": "ratatui-ratatui-pr601",
+  "repository": "ratatui/ratatui",
+  "stars": 23119,
+  "pushed_at": "2026-10-28T08:34:24Z",
+  "task_commit": "330a899eacb1f7d2d6dc19856f2bbb782e2c53b0",
+  "task_commit_basis": "first parent of https://github.com/ratatui/ratatui/commit/1d3fbc1b15c619f571b9981b841986a7947a4195; gh api compare 330a899eacb1...1d3fbc1b15c6 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/ratatui/ratatui/pull/601",
+    "title": "perf(buffer)!: apply SSO technique to text buffer in `buffer::Cell`",
+    "commit": "1d3fbc1b15c619f571b9981b841986a7947a4195",
+    "merged_at": "2024-01-19T12:50:42Z",
+    "files": [
+      "Cargo.toml",
+      "src/buffer/buffer.rs",
+      "src/buffer/cell.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo run --release --example eval_buffer",
+    "source": "written here from the description of https://github.com/ratatui/ratatui/pull/601 (allocating buffers and rendering through a TestBackend, as its modified demo example does; the example it modifies is not in the tree): eval/tasks/workloads/ratatui-ratatui-pr601/eval_buffer.rs, copied into the tree as an example",
+    "verified": true
+  },
+  "oracle": {
+    "command": "cargo test --lib buffer:: -- --skip set_string_zero_width",
+    "source": "the unit tests of the buffer module (buffer.rs and cell.rs), in the test profile because two of them expect debug assertions, and without set_string_zero_width, which fails on both trees here (a control character comes back as a cell symbol), the files https://github.com/ratatui/ratatui/pull/601 changes; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/ratatui/ratatui/pull/601",
+      "note": "description, as matched by the miner: speedup claims: 1.77x faster; 1.14x faster | timings: 8.8 ms; 0.4 ms; 6.4 ms; 1.5 ms; 8.4 ms; 11.4 ms; 5.0 ms; 0.1 ms"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cp ../../../../tasks/workloads/ratatui-ratatui-pr601/eval_buffer.rs examples/eval_buffer.rs",
+      "exit_code": 0,
+      "duration_s": 0.02,
+      "date": "2026-10-29T15:51:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "cargo build --release --example eval_buffer",
+      "exit_code": 0,
+      "duration_s": 45.51,
+      "date": "2026-10-29T15:51:08+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   --> src/terminal/terminal.rs:256:20\n    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame>\n    |                    ^^^^^^^^^                      ^^^^^^^^^^^^^^ the same lifetime is hidden here\n    |                    |\n    |                    the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\nhelp: use `'_` for type paths\n    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame<'_>>\n    |                                                                 ++++\n\nwarning: `ratatui` (lib) generated 3 warnings (run `cargo fix --lib -p ratatui` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 45.41s"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": "cargo test --lib buffer:: -- --skip set_string_zero_width",
+      "exit_code": 0,
+      "duration_s": 21.72,
+      "date": "2026-10-29T15:51:54+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "     |\n1106 |     fn list_items(items: Vec<&str>) -> Vec<ListItem> {\n     |                              ^^^^          ^^^^^^^^ the same lifetime is hidden here\n     |                              |\n     |                              the lifetime is elided here\n     |\n     = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\nhelp: use `'_` for type paths\n     |\n1106 |     fn list_items(items: Vec<&str>) -> Vec<ListItem<'_>> {\n     |                                                    ++++\n\nwarning: `ratatui` (lib test) generated 4 warnings (run `cargo fix --lib -p ratatui --tests` to apply 3 suggestions)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.39s\n     Running unittests src/lib.rs (target/debug/deps/ratatui-1cf20629a3e29dc2)"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "cargo run --release --example eval_buffer",
+      "exit_code": 0,
+      "duration_s": 0.94,
+      "date": "2026-10-29T15:52:15+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame>\n    |                    ^^^^^^^^^                      ^^^^^^^^^^^^^^ the same lifetime is hidden here\n    |                    |\n    |                    the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\nhelp: use `'_` for type paths\n    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame<'_>>\n    |                                                                 ++++\n\nwarning: `ratatui` (lib) generated 3 warnings (run `cargo fix --lib -p ratatui` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 0.22s\n     Running `target/release/examples/eval_buffer`"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cp ../../../../tasks/workloads/ratatui-ratatui-pr601/eval_buffer.rs examples/eval_buffer.rs",
+      "exit_code": 0,
+      "duration_s": 0.0,
+      "date": "2026-10-29T15:52:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": ""
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "cargo build --release --example eval_buffer",
+      "exit_code": 0,
+      "duration_s": 26.14,
+      "date": "2026-10-29T15:52:16+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "   --> src/terminal/terminal.rs:256:20\n    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame>\n    |                    ^^^^^^^^^                      ^^^^^^^^^^^^^^ the same lifetime is hidden here\n    |                    |\n    |                    the lifetime is elided here\n    |\n    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\nhelp: use `'_` for type paths\n    |\n256 |     pub fn draw<F>(&mut self, f: F) -> io::Result<CompletedFrame<'_>>\n    |                                                                 ++++\n\nwarning: `ratatui` (lib) generated 3 warnings (run `cargo fix --lib -p ratatui` to apply 2 suggestions)\n    Finished `release` profile [optimized] target(s) in 26.10s"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": "cargo test --lib buffer:: -- --skip set_string_zero_width",
+      "exit_code": 0,
+      "duration_s": 24.14,
+      "date": "2026-10-29T15:52:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "     |\n1106 |     fn list_items(items: Vec<&str>) -> Vec<ListItem> {\n     |                              ^^^^          ^^^^^^^^ the same lifetime is hidden here\n     |                              |\n     |                              the lifetime is elided here\n     |\n     = help: the same lifetime is referred to in inconsistent ways, making the signature confusing\nhelp: use `'_` for type paths\n     |\n1106 |     fn list_items(items: Vec<&str>) -> Vec<ListItem<'_>> {\n     |                                                    ++++\n\nwarning: `ratatui` (lib test) generated 4 warnings (run `cargo fix --lib -p ratatui --tests` to apply 3 suggestions)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 23.67s\n     Running unittests src/lib.rs (target/debug/deps/ratatui-2c3a27779b5eefd3)"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "cargo run --release --example eval_buffer",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T15:53:06+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:14:32+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

@@ -1,0 +1,147 @@
+{
+  "id": "python-pillow-pillow-pr8194",
+  "repository": "python-pillow/Pillow",
+  "stars": 13941,
+  "pushed_at": "2026-10-29T07:28:49Z",
+  "task_commit": "c9dc34ae8d90e632d90a685857c80c516b1668f9",
+  "task_commit_basis": "first parent of https://github.com/python-pillow/Pillow/commit/63f398bc12beb321b269b44cd57e5a5e23a29843; gh api compare c9dc34ae8d90...63f398bc12be touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/python-pillow/Pillow/pull/8194",
+    "title": "Optimize getbbox() and getextrema() routines",
+    "commit": "63f398bc12beb321b269b44cd57e5a5e23a29843",
+    "merged_at": "2024-09-09T05:08:12Z",
+    "files": [
+      "src/libImaging/GetBBox.c"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python -I -c \"import timeit; from PIL import Image; a = Image.new('L', (2048, 2048), 0); b = Image.open('Tests/images/hopper.png').convert('L').resize((2048, 2048)); c = b.convert('RGB').convert('RGBA'); print(sum(min(timeit.repeat(f, number=20, repeat=5)) for f in (a.getbbox, b.getbbox, c.getbbox, b.getextrema)))\"",
+    "source": "adapted from the %timeit cases in the description of https://github.com/python-pillow/Pillow/pull/8194 (getbbox of an all-zero, a normal and an opaque image, and getextrema, all 2048 by 2048), with timeit in place of IPython's %timeit and a test image of the tree in place of the ones the description names",
+    "verified": true
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_getbbox.py Tests/test_image_getextrema.py",
+    "source": "the getbbox and getextrema test modules, for GetBBox.c, the file https://github.com/python-pillow/Pillow/pull/8194 changes, run against the installed package; targeted tests only",
+    "verified": true
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/python-pillow/Pillow/pull/8194",
+      "note": "description, as matched by the miner: speedup claims: 1.99x speedup; 5.5x speedup; 4.4x speedup; 1833x speedup; 23.5x speedup | timings: 2.31 ms ± 3.29 μs; 3.97 ms ± 519 ns; 3.86 ms ± 461 ns; 4.6 ms ± 464 ns; 2.3 ms ± 468 ns; 1.16 ms ± 1.65 μs; 722 μs ± 161 ns; 874 μs ± 260 ns"
+    }
+  ],
+  "audit": null,
+  "status": "runs",
+  "status_reason": "built here and ran workload and oracle on the task and reference trees; see runs. Built from source without the optional image libraries (no jpeg, tiff, freetype and the like are installed here); the install is not editable, so the tests run against the built package",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.03,
+      "date": "2026-10-29T15:34:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --exclude-newer 2024-09-09 pytest setuptools wheel",
+      "exit_code": 0,
+      "duration_s": 21.55,
+      "date": "2026-10-29T15:34:13+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 916ms\nDownloading setuptools (1.2MiB)\n Downloaded setuptools\nPrepared 5 packages in 20.54s\nInstalled 6 packages in 8ms\n + iniconfig==2.0.0\n + packaging==24.1\n + pluggy==1.5.0\n + pytest==8.3.2\n + setuptools==74.1.2\n + wheel==0.44.0"
+    },
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv pip install --no-build-isolation -C jpeg=disable -C tiff=disable -C freetype=disable -C lcms=disable -C webp=disable -C jpeg2000=disable -C imagequant=disable -C xcb=disable -C raqm=disable -C fribidi=disable -C harfbuzz=disable .",
+      "exit_code": 0,
+      "duration_s": 6.89,
+      "date": "2026-10-29T15:34:35+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 292ms\n   Building pillow @ file://eval/mine/work/python-pillow-pillow-pr8194/task\n      Built pillow @ file://eval/mine/work/python-pillow-pillow-pr8194/task\nPrepared 1 package in 6.55s\nInstalled 1 package in 1ms\n + pillow==11.0.0.dev0 (from file://eval/mine/work/python-pillow-pillow-pr8194/task)"
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_getbbox.py Tests/test_image_getextrema.py",
+      "exit_code": 0,
+      "duration_s": 1.19,
+      "date": "2026-10-29T15:34:42+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m                                                                [100%]\u001b[0m\n\u001b[32m\u001b[32m\u001b[1m9 passed\u001b[0m\u001b[32m in 0.11s\u001b[0m\u001b[0m"
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit; from PIL import Image; a = Image.new('L', (2048, 2048), 0); b = Image.open('Tests/images/hopper.png').convert('L').resize((2048, 2048)); c = b.convert('RGB').convert('RGBA'); print(sum(min(timeit.repeat(f, number=20, repeat=5)) for f in (a.getbbox, b.getbbox, c.getbbox, b.getextrema)))\"",
+      "exit_code": 0,
+      "duration_s": 0.79,
+      "date": "2026-10-29T15:34:43+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "0.14823950003483333"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv venv --python 3.12 .venv",
+      "exit_code": 0,
+      "duration_s": 0.01,
+      "date": "2026-10-29T15:34:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Using CPython 3.12.12\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --exclude-newer 2024-09-09 pytest setuptools wheel",
+      "exit_code": 0,
+      "duration_s": 0.04,
+      "date": "2026-10-29T15:34:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 6 packages in 0.68ms\nInstalled 6 packages in 7ms\n + iniconfig==2.0.0\n + packaging==24.1\n + pluggy==1.5.0\n + pytest==8.3.2\n + setuptools==74.1.2\n + wheel==0.44.0"
+    },
+    {
+      "step": "setup",
+      "tree": "reference",
+      "command": "uv pip install --no-build-isolation -C jpeg=disable -C tiff=disable -C freetype=disable -C lcms=disable -C webp=disable -C jpeg2000=disable -C imagequant=disable -C xcb=disable -C raqm=disable -C fribidi=disable -C harfbuzz=disable .",
+      "exit_code": 0,
+      "duration_s": 7.06,
+      "date": "2026-10-29T15:34:44+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "Resolved 1 package in 292ms\n   Building pillow @ file://eval/mine/work/python-pillow-pillow-pr8194/reference\n      Built pillow @ file://eval/mine/work/python-pillow-pillow-pr8194/reference\nPrepared 1 package in 6.72s\nInstalled 1 package in 3ms\n + pillow==11.0.0.dev0 (from file://eval/mine/work/python-pillow-pillow-pr8194/reference)"
+    },
+    {
+      "step": "oracle",
+      "tree": "reference",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider Tests/test_image_getbbox.py Tests/test_image_getextrema.py",
+      "exit_code": 0,
+      "duration_s": 1.36,
+      "date": "2026-10-29T15:34:51+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m                                                                [100%]\u001b[0m\n\u001b[32m\u001b[32m\u001b[1m9 passed\u001b[0m\u001b[32m in 0.13s\u001b[0m\u001b[0m"
+    },
+    {
+      "step": "workload",
+      "tree": "reference",
+      "command": "python -I -c \"import timeit; from PIL import Image; a = Image.new('L', (2048, 2048), 0); b = Image.open('Tests/images/hopper.png').convert('L').resize((2048, 2048)); c = b.convert('RGB').convert('RGBA'); print(sum(min(timeit.repeat(f, number=20, repeat=5)) for f in (a.getbbox, b.getbbox, c.getbbox, b.getextrema)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-29T15:34:52+00:00",
+      "machine": "macOS-15.7.7-arm64-arm-64bit",
+      "output_tail": "[not recorded: the reference workload of a held-out task]"
+    }
+  ],
+  "split": "held-out",
+  "mined_at": "2026-10-29T15:01:49+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}

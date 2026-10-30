@@ -1,0 +1,49 @@
+{
+  "id": "nautechsystems-nautilus-trader-pr4150",
+  "repository": "nautechsystems/nautilus_trader",
+  "stars": 31025,
+  "pushed_at": "2026-10-29T12:08:26Z",
+  "task_commit": "c12911fa780ea6b5cb1ddab9bc14b66e2df222bb",
+  "task_commit_basis": "first parent of https://github.com/nautechsystems/nautilus_trader/commit/de72baee9f92d7eb952f6562a15282a0e7fc842a; gh api compare c12911fa780e...de72baee9f92 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/nautechsystems/nautilus_trader/pull/4150",
+    "title": "Optimize logging hot paths",
+    "commit": "de72baee9f92d7eb952f6562a15282a0e7fc842a",
+    "merged_at": "2026-05-27T22:40:48Z",
+    "files": [
+      "crates/common/Cargo.toml",
+      "crates/common/benches/logging.rs",
+      "crates/common/src/logging/logger.rs",
+      "crates/common/src/logging/writer.rs"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p nautilus-common --bench logging --no-run",
+    "source": "quoted in the description of https://github.com/nautechsystems/nautilus_trader/pull/4150",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/nautechsystems/nautilus_trader/pull/4150",
+      "note": "description, as matched by the miner: speedup claims: 1.71x; 1.39x; 1.49x; 3.06x; 2.99x | timings: 269.38 ns; 157.58 ns; 345.59 ns; 248.27 ns; 427.58 ns; 286.81 ns; 888.84 ns; 290.44 ns | benchmark files changed: crates/common/benches/logging.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-29T17:24:11+00:00",
+  "miner": "uv run python eval/mine/mine.py manifests"
+}
