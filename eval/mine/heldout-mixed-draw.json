@@ -6,6 +6,7 @@
    "alecthomas-chroma-pr351",
    "apache-couchdb-pr6046",
    "apache-hamilton-pr1629",
+   "callstack-agent-device-pr2505",
    "cupy-cupy-pr8017",
    "databendlabs-databend-pr20331",
    "dathere-qsv-pr3728",
@@ -17,6 +18,7 @@
    "google-jsonnet-pr1149",
    "lance-format-lance-pr9409",
    "libvips-libvips-pr4974",
+   "lmcache-lmcache-pr3835",
    "man-group-arcticdb-pr3055",
    "miniflux-v2-pr3701",
    "msgspec-msgspec-pr237",
@@ -44,7 +46,8 @@
   "seeds": [
    "eval/mine/seeds-heldout-mixed.json",
    "eval/mine/seeds-heldout-mixed-2.json",
-   "eval/mine/seeds-heldout-mixed-3.json"
+   "eval/mine/seeds-heldout-mixed-3.json",
+   "eval/mine/seeds-heldout-mixed-4.json"
   ],
   "note": "Hidden-fix candidates the miner kept from the two seed files, by mine._select and mine._pr_task; the known-change and nothing-to-keep output was not written."
  },
@@ -264,6 +267,16 @@
    "reason": "not mixed: the change and the workload it names stay in Go",
    "read": []
   },
+  "callstack-agent-device-pr2505": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in TypeScript (a PNG crop benchmark)",
+   "read": []
+  },
+  "lmcache-lmcache-pr3835": {
+   "keep": false,
+   "reason": "not mixed: the change and the workload it names stay in Python (the workload needs a Linux NVMe device)",
+   "read": []
+  },
   "msgspec-msgspec-pr237": {
    "keep": true,
    "reason": "Struct construction from Python, implemented in the C extension; the change is in the C",
@@ -407,8 +420,8 @@
    "reason": "setup `uv pip install -e .` exited 1: the cmake configure step (preset macos-release, with the submodules checked out) failed; the output shows no cause"
   },
   "shapely-shapely-pr1547": {
-   "ok": false,
-   "reason": "setup `uv pip install --no-build-isolation -e .` exited 1: the 2022 tree's editable build fails, and its C extension needs GEOS, which this Mac does not have"
+   "ok": true,
+   "reason": ""
   },
   "scipy-scipy-pr26368": {
    "ok": true,
@@ -428,7 +441,7 @@
   },
   "unum-cloud-usearch-pr276": {
    "ok": false,
-   "reason": "setup `uv pip install --no-build-isolation -e .` exited 1: the C++ extension's compile (the 2023 tree, current Apple clang) failed"
+   "reason": "setup `uv pip install --no-build-isolation -e .` exited 1: the C++ extension's compile (the 2023 tree, current Apple clang) failed, also with the conda-forge environment available; the compiler's message is not in the captured output"
   },
   "rapidsai-cugraph-pr3977": {
    "ok": false,
@@ -446,6 +459,7 @@
   "astropy-astropy-pr20107",
   "atuinsh-atuin-pr3577",
   "axios-axios-pr11208",
+  "callstack-agent-device-pr2505",
   "capsoftware-cap-pr2656",
   "cupy-cupy-pr8017",
   "dask-dask-pr11899",
@@ -486,6 +500,7 @@
   "labstack-echo-pr1799",
   "lance-format-lance-pr9409",
   "libvips-libvips-pr4974",
+  "lmcache-lmcache-pr3835",
   "man-group-arcticdb-pr3055",
   "miniflux-v2-pr3701",
   "mitmproxy-mitmproxy-pr8055",
@@ -548,6 +563,7 @@
  "removed": {
   "alecthomas-chroma-pr351": "not mixed: the change and the workload it names stay in Go",
   "apache-couchdb-pr6046": "not mixed: the change and the workload it names stay in Erlang",
+  "callstack-agent-device-pr2505": "not mixed: the change and the workload it names stay in TypeScript (a PNG crop benchmark)",
   "capsoftware-cap-pr2656": "not mixed: the change and the workload it names stay in Rust",
   "cupy-cupy-pr8017": "not mixed: the change and the workload it names stay in Python (environment probing)",
   "databendlabs-databend-pr20331": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
@@ -563,6 +579,7 @@
   "hashicorp-hcl-pr490": "not mixed: the change and the workload it names stay in Go",
   "lance-format-lance-pr9409": "not mixed: the change and the workload it names stay in Rust",
   "libvips-libvips-pr4974": "not mixed: the change and the workload it names stay in C (the vips command line)",
+  "lmcache-lmcache-pr3835": "not mixed: the change and the workload it names stay in Python (the workload needs a Linux NVMe device)",
   "miniflux-v2-pr3701": "not mixed: the change and the workload it names stay in Go",
   "mw00-project-maya-pr452": "not mixed: the change and the workload it names stay in C++ (a C++ benchmark binary)",
   "nandhakishorm-laya-pr615": "not mixed: the change and the workload it names stay in Python (agent logic; the workload needs a model checkpoint)",
@@ -654,6 +671,7 @@
   "astropy-astropy-pr20107": "Python",
   "atuinsh-atuin-pr3577": "Rust",
   "axios-axios-pr11208": "JavaScript/TypeScript",
+  "callstack-agent-device-pr2505": "JavaScript/TypeScript",
   "capsoftware-cap-pr2656": "Rust",
   "cupy-cupy-pr8017": "Python",
   "dask-dask-pr11899": "Python",
@@ -694,6 +712,7 @@
   "labstack-echo-pr1799": "Go",
   "lance-format-lance-pr9409": "Rust",
   "libvips-libvips-pr4974": "C/C++",
+  "lmcache-lmcache-pr3835": "Python",
   "man-group-arcticdb-pr3055": "C/C++",
   "miniflux-v2-pr3701": "Go",
   "mitmproxy-mitmproxy-pr8055": "Python",
@@ -814,13 +833,13 @@
    "id": "unum-cloud-usearch-pr276",
    "language": "C/C++",
    "outcome": "passed",
-   "reason": "did not build: setup `uv pip install --no-build-isolation -e .` exited 1: the C++ extension's compile (the 2023 tree, current Apple clang) failed"
+   "reason": "did not build: setup `uv pip install --no-build-isolation -e .` exited 1: the C++ extension's compile (the 2023 tree, current Apple clang) failed, also with the conda-forge environment available; the compiler's message is not in the captured output"
   },
   {
    "id": "shapely-shapely-pr1547",
    "language": "Python",
-   "outcome": "passed",
-   "reason": "did not build: setup `uv pip install --no-build-isolation -e .` exited 1: the 2022 tree's editable build fails, and its C extension needs GEOS, which this Mac does not have"
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
   },
   {
    "id": "pyvista-pyvista-pr7714",
@@ -878,6 +897,7 @@
   }
  ],
  "picks": [
+  "shapely-shapely-pr1547",
   "pyvista-pyvista-pr7714",
   "apache-hamilton-pr1629",
   "scipy-scipy-pr26368",
@@ -885,13 +905,13 @@
   "geopandas-geopandas-pr2353"
  ],
  "mix": {
-  "picks": 5,
+  "picks": 6,
   "languages": {
-   "Python": 4,
+   "Python": 5,
    "C/C++": 1
   },
   "layers": {
-   "upper": 4,
+   "upper": 5,
    "lower": 1
   }
  },

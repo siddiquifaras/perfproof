@@ -2,6 +2,49 @@
   "model": "claude-sonnet-5-5",
   "tasks": [
     {
+      "id": "heldout-mixed-shapely-shapely-pr1547-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "shapely-shapely-pr1547",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "make this faster"
+        },
+        "detailed": {
+          "skill": "/perfproof Creating points is slower than expected in our map-matching service. Each request builds tens of thousands of single coordinate points one at a time before matching them to roads.",
+          "baseline": "Creating points is slower than expected in our map-matching service. Each request builds tens of thousands of single coordinate points one at a time before matching them to roads."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
+        "metric": "wall"
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "shapely/geometry/point.py",
+          "function": "Point.__new__",
+          "top_n": "skill"
+        }
+      }
+    },
+    {
       "id": "heldout-mixed-pyvista-pyvista-pr7714-hidden-fix",
       "kind": "find",
       "repo": {

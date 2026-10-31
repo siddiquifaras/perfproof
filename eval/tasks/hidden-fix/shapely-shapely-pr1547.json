@@ -24,12 +24,12 @@
   "workload": {
     "command": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
     "source": "written here from the description of https://github.com/shapely/shapely/pull/1547 (the Point constructor): 20000 Point(x, y) objects",
-    "verified": false
+    "verified": true
   },
   "oracle": {
     "command": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
     "source": "shapely's Point tests, for the module https://github.com/shapely/shapely/pull/1547 changes (it changes no test file); targeted tests only",
-    "verified": false
+    "verified": true
   },
   "evidence": [
     {
@@ -38,10 +38,41 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.10 .venv; uv pip install --exclude-newer 2022-09-28 pytest numpy cython setuptools wheel; .venv/bin/python setup.py develop",
+      "exit_code": 0,
+      "duration_s": 13.1,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.25153333399975963"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-30T17:55:46+00:00",
   "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
 }

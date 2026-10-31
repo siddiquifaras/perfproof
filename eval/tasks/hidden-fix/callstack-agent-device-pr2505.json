@@ -1,0 +1,57 @@
+{
+  "id": "callstack-agent-device-pr2505",
+  "repository": "callstack/agent-device",
+  "stars": 5213,
+  "pushed_at": "2026-10-31T16:38:23Z",
+  "task_commit": "076234e2eb21b0529760593acc5893c9ff5bbeec",
+  "task_commit_basis": "first parent of https://github.com/callstack/agent-device/commit/9aa64657688cd23a721412285228517ed3809dac (squash merge); gh api compare 076234e2eb21...9aa64657688c touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/callstack/agent-device/pull/2505",
+    "title": "perf(scripts): add a device-free PNG crop benchmark",
+    "commit": "9aa64657688cd23a721412285228517ed3809dac",
+    "merged_at": "2026-09-12T18:23:30Z",
+    "files": [
+      "package.json",
+      "scripts/png-crop-benchmark/README.md",
+      "scripts/png-crop-benchmark/args.test.ts",
+      "scripts/png-crop-benchmark/args.ts",
+      "scripts/png-crop-benchmark/corpus.test.ts",
+      "scripts/png-crop-benchmark/corpus.ts",
+      "scripts/png-crop-benchmark/pipelines.ts",
+      "scripts/png-crop-benchmark/report.ts",
+      "scripts/png-crop-benchmark/run.ts",
+      "scripts/png-crop-benchmark/statistics.test.ts",
+      "scripts/png-crop-benchmark/statistics.ts",
+      "vitest.config.ts"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "web",
+  "workload": {
+    "command": "pnpm bench:png-crop -- --rounds 5 --file ./real-capture.png",
+    "source": "quoted in the description of https://github.com/callstack/agent-device/pull/2505",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/callstack/agent-device/pull/2505",
+      "note": "description, as matched by the miner: speedup claims: 2.6x; 5.6x faster; 2.16x; 1.78x; 2.52x faster"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T18:31:44+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

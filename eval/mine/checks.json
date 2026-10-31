@@ -1462,5 +1462,22 @@
     "oracle": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
     "oracle_source": "geopandas's spatial join tests, which https://github.com/geopandas/geopandas/pull/2353 edits; targeted tests only",
     "notes": "Python 3.12; dependency versions are those of the day after the merge"
+  },
+  "shapely-shapely-pr1547": {
+    "env": {
+      "GEOS_CONFIG": "/Users/ppeval/.local/share/uv/conda-forge/bin/geos-config",
+      "CFLAGS": "-Wno-error=incompatible-function-pointer-types -Wno-incompatible-function-pointer-types",
+      "LDFLAGS": "-Wl,-rpath,/Users/ppeval/.local/share/uv/conda-forge/lib"
+    },
+    "setup": [
+      "uv venv --python 3.10 .venv",
+      "uv pip install --exclude-newer 2022-09-28 pytest numpy cython setuptools wheel",
+      ".venv/bin/python setup.py develop"
+    ],
+    "workload": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/shapely/shapely/pull/1547 (the Point constructor): 20000 Point(x, y) objects",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
+    "oracle_source": "shapely's Point tests, for the module https://github.com/shapely/shapely/pull/1547 changes (it changes no test file); targeted tests only",
+    "notes": "Python 3.10; the C extension links against GEOS from the eval user's conda-forge environment (amendment of docs/evaluation.md; recipe in eval/README.md); legacy editable install, as the 2022 setup.py needs"
   }
 }

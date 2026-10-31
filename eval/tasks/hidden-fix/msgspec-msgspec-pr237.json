@@ -44,7 +44,7 @@
       "step": "setup",
       "command": "uv venv --python 3.11 .venv; uv pip install --exclude-newer 2022-12-13 pytest setuptools wheel; uv pip install --exclude-newer 2022-12-13 -e .",
       "exit_code": 0,
-      "duration_s": 24.0,
+      "duration_s": 10.3,
       "output_tail": "",
       "tree": "task",
       "date": "2026-10-31",
@@ -65,7 +65,7 @@
       "command": "python -I -c \"import timeit, typing, msgspec; Bench = msgspec.defstruct('Bench', [(f'field_{c}', typing.Optional[int], None) for c in 'abcdefghij']); f = lambda: [Bench(0, 1, 2, 3, 4, field_f=5, field_g=6, field_h=7, field_i=8, field_j=9) for _ in range(100000)]; print(min(timeit.repeat(f, number=5, repeat=5)))\"",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "0.12100279104197398",
+      "output_tail": "0.11359820799953013",
       "tree": "task",
       "date": "2026-10-31",
       "machine": "eval user sandboxed guest, macOS arm64"

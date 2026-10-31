@@ -44,7 +44,7 @@
       "step": "setup",
       "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2026-10-09 pytest numpy meson-python ninja cython pybind11 pythran setuptools; uv pip install --exclude-newer 2026-10-09 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -e .",
       "exit_code": 0,
-      "duration_s": 203.6,
+      "duration_s": 160.5,
       "output_tail": "",
       "tree": "task",
       "date": "2026-10-31",
@@ -65,7 +65,7 @@
       "command": "python -I -c \"import timeit, numpy as np; from scipy.interpolate import BSpline; x = np.random.default_rng(0).random(1000000); k = 2; t = np.r_[[0.0] * k, np.linspace(0, 1, 12), [1.0] * k]; f = lambda: BSpline.design_matrix(x, t, k); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "0.0688743750215508",
+      "output_tail": "0.06684674999996787",
       "tree": "task",
       "date": "2026-10-31",
       "machine": "eval user sandboxed guest, macOS arm64"

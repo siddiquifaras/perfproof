@@ -1,0 +1,50 @@
+{
+  "id": "lmcache-lmcache-pr3835",
+  "repository": "LMCache/LMCache",
+  "stars": 12250,
+  "pushed_at": "2026-10-31T13:11:34Z",
+  "task_commit": "834fd44bd7bfbc8616bf21f2764416529c497976",
+  "task_commit_basis": "first parent of https://github.com/LMCache/LMCache/commit/33962edb4f595ce4a0cbdd6a2bc5b59aeb05d0fa (squash merge); gh api compare 834fd44bd7bf...33962edb4f59 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/LMCache/LMCache/pull/3835",
+    "title": "[Perf] Reduce bringup time with parallel and batched recovery slot-header validation",
+    "commit": "33962edb4f595ce4a0cbdd6a2bc5b59aeb05d0fa",
+    "merged_at": "2026-09-22T06:43:52Z",
+    "files": [
+      "docs/design/v1/distributed/l2_adapters/raw_block.md",
+      "docs/source/mp/l2_storage/raw_block.rst",
+      "lmcache/v1/storage_backend/raw_block/core.py",
+      "rust/raw_block/README.md",
+      "tests/v1/storage_backend/test_raw_block_core.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "python",
+  "workload": {
+    "command": "python benchmarks/storage_backend_io/raw_block_recovery_bringup_bench.py --device-path /dev/nvmeXn1 --cache-space-gb 8192 --slot-bytes 16777216 --measure --io-engine posix io_uring --threads 1 8 --repeats 5",
+    "source": "quoted in the description of https://github.com/LMCache/LMCache/pull/3835",
+    "verified": false
+  },
+  "oracle": {
+    "command": "python -m pytest tests/v1/storage_backend/test_raw_block_core.py",
+    "source": "test files changed by https://github.com/LMCache/LMCache/pull/3835 (gh pr view files); targeted tests only, not the full suite",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/LMCache/LMCache/pull/3835",
+      "note": "description, as matched by the miner: speedup claims: 1.00×; 4.33×; 1.4× speedup; 6.11× | timings: 70.59s; 16.31s; 11.55s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T18:31:50+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

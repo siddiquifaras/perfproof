@@ -659,6 +659,32 @@ cap and quotas were removed by its amendment of 2026-10-31, so the picks
 are the first builds in hash order, up to 12; the record's `mix` reports
 their languages and layers.
 
+### System libraries for the mixed held-out set
+
+By the amendment of 2026-10-31, a setup may take system libraries from
+conda-forge, as a developer's Mac gets them from a package manager. The
+recipe is one and the same for every candidate:
+
+1. `micromamba` 2.10.0 (the `micromamba-osx-arm64` binary of mamba-org's
+   official micromamba-releases, sha256
+   `c547639f5caf742236641c362746abb4a3505774753ecd08fe341643670c4c01`)
+   is installed as `~ppeval/.local/bin/micromamba`.
+2. One environment is created as the eval user, outside the sandbox:
+   `MAMBA_ROOT_PREFIX=~ppeval/.local/share/uv/conda-root micromamba
+   create -y -p ~ppeval/.local/share/uv/conda-forge -c conda-forge
+   --override-channels geos pkg-config openblas ninja cmake`. It sits
+   under `.local/share/uv`, which the sandbox profile already lets the
+   guest read; nothing outside the eval user's home is touched.
+3. A task whose build needs one of those libraries names it in its
+   `checks.json` `env` (for example `GEOS_CONFIG` and a linker rpath)
+   with the environment's absolute path. No task is given a library
+   it does not name.
+
+Every candidate's setup check was redone in hash order after the recipe
+existed (`scratch/sbcheck.py`, not committed: it stages the harness
+bundle as `skill_eval.py run` does and calls `runner.build_real_repo` in
+the guest, with no model call).
+
 ## Published benchmarks
 
 | | GSO | SWE-Perf | SWE-fficiency |
