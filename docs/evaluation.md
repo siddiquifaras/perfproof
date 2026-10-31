@@ -242,6 +242,33 @@ them.
    `eval/mine/heldout-mixed-draw.json`. It never becomes development
    data.
 
+**Amendment (2026-10-31, before any run).** The original text above
+stands; this amendment changes the selection and the setup for the
+reasons given. It was made before any new setup check or mining round.
+
+- **Reason.** About 1,640 seed repositories gave 12 mixed candidates,
+  and 5 of them built. The language cap and the quotas of step 3 allowed
+  4 picks, against the target of 12. No task outcome has been seen: only
+  whether a task builds was checked.
+- **Selection.** Every pool candidate, in the same salted hash order,
+  that builds and passes its oracle under the eval's sandboxed setup is
+  a pick, up to 12. There is no per-language cap and there are no
+  quotas. The language and layer mix of the picks is reported, not
+  required.
+- **System libraries.** Setup may take system libraries from conda-forge
+  (micromamba, from mamba-org's official release), as a developer's Mac
+  gets them from a package manager. One documented recipe is used and
+  applied the same way to every candidate, and every candidate's setup
+  check is redone in hash order once the recipe exists. The environment
+  lives under the eval's own paths, readable by the eval user, and
+  nothing global is changed.
+- **GPU.** A candidate that needs an NVIDIA GPU is excluded, with the
+  reason recorded.
+- **Cutoff.** Mining continues by the same rules, with a seed list
+  fixed and committed before each round, until 2026-11-03 23:59 PKT.
+  Then the draw is final, whatever its size.
+- **Claim.** The launch claim states the number of tasks it rests on.
+
 ## What we publish
 
 `eval/` holds every task manifest (repository, commit, workload,
