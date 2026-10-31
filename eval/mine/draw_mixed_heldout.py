@@ -212,6 +212,8 @@ def derive(
             out.skipped[task.id] = f"named in eval/skill/{named[task.id]}"
         elif task.id in examined:
             out.skipped[task.id] = examined[task.id]
+        elif task.stars is None:
+            out.removed[task.id] = "the manifest records no star count"
         elif task.stars < MIN_STARS:
             out.removed[task.id] = f"{task.stars} stars, under {MIN_STARS}"
         elif review is None:

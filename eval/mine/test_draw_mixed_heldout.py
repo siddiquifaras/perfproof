@@ -159,3 +159,10 @@ def test_a_candidate_under_the_star_floor_is_out() -> None:
     assert "small" in out.removed
     assert out.stopped is None
     assert out.picks == []
+
+
+def test_a_candidate_with_no_star_count_is_out() -> None:
+    task = _synthetic("nostars", ["a.rs"]).model_copy(update={"stars": None})
+    out = mixed.derive([task], {"reviews": {}, "builds": {}}, salt="s")
+    assert out.removed == {"nostars": "the manifest records no star count"}
+    assert out.picks == []

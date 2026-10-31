@@ -17,13 +17,19 @@ tasks file must name every manifest id given.
 
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skill"))
-import eval_user
-import runner
+SKILL = str(Path(__file__).resolve().parents[1] / "skill")
+if SKILL not in sys.path:
+    sys.path.insert(0, SKILL)
+# The harness modules live in eval/skill, a sibling package; loaded by
+# name as realrepo.py loads the mine modules.
+eval_user: Any = importlib.import_module("eval_user")
+runner: Any = importlib.import_module("runner")
 
 GUEST = r"""
 import json, shutil, sys, time
