@@ -1,0 +1,50 @@
+{
+  "id": "databendlabs-databend-pr20331",
+  "repository": "databendlabs/databend",
+  "stars": 9488,
+  "pushed_at": "2026-10-30T21:48:29Z",
+  "task_commit": "11fe8b76d5638a0c89b40471f097fbc2ab38b9f1",
+  "task_commit_basis": "first parent of https://github.com/databendlabs/databend/commit/620e3ccf86624a3097631ad001abc1f613dacaad (squash merge); gh api compare 11fe8b76d563...620e3ccf8662 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/databendlabs/databend/pull/20331",
+    "title": "fix(query): accelerate multi-key hash shuffle",
+    "commit": "620e3ccf86624a3097631ad001abc1f613dacaad",
+    "merged_at": "2026-08-25T08:31:43Z",
+    "files": [
+      "src/query/expression/src/aggregate/group_hash.rs",
+      "src/query/functions/Cargo.toml",
+      "src/query/functions/benches/flight_scatter_hash.rs",
+      "src/query/service/src/servers/flight/v1/scatter/flight_scatter_hash.rs",
+      "tests/sqllogictests/suites/mode/cluster/shuffle_join.test"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "rust",
+  "workload": {
+    "command": "cargo bench -p databend-common-functions --bench flight_scatter_hash",
+    "source": "quoted in the description of https://github.com/databendlabs/databend/pull/20331",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/databendlabs/databend/pull/20331",
+      "note": "description, as matched by the miner: timings: 17.49 ms; 14.21 ms; 20.18 ms; 14.52 ms | benchmark files changed: src/query/functions/benches/flight_scatter_hash.rs"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:28+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

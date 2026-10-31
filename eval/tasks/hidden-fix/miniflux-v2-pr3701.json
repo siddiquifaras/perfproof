@@ -1,0 +1,46 @@
+{
+  "id": "miniflux-v2-pr3701",
+  "repository": "miniflux/v2",
+  "stars": 9860,
+  "pushed_at": "2026-10-30T03:11:19Z",
+  "task_commit": "da8bf3890cf0e49545084959a21c62b17c6ac6f4",
+  "task_commit_basis": "first parent of https://github.com/miniflux/v2/commit/9d32b23ab0f266ae989dc55a8bfb39d66e24c234; gh api compare da8bf3890cf0...9d32b23ab0f2 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/miniflux/v2/pull/3701",
+    "title": "perf(sanitizer): speed the sanitizer up a bit",
+    "commit": "9d32b23ab0f266ae989dc55a8bfb39d66e24c234",
+    "merged_at": "2025-08-21T01:54:50Z",
+    "files": [
+      "internal/reader/sanitizer/sanitizer.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -bench=. -count=25 > old.txt",
+    "source": "quoted in the description of https://github.com/miniflux/v2/pull/3701",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/miniflux/v2/pull/3701",
+      "note": "description, as matched by the miner: speedup claims: 10% improvement"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:31+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

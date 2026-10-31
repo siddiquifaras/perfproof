@@ -1406,18 +1406,6 @@
     "oracle_source": "msgspec's Struct tests, for the module https://github.com/jcrist/msgspec/pull/237 changes (it changes no test file); targeted tests only",
     "notes": "Python 3.11 (3.12 did not exist at the merge); the C extension is built by the editable install"
   },
-  "geopandas-geopandas-pr2353": {
-    "setup": [
-      "uv venv --python 3.12 .venv",
-      "uv pip install --exclude-newer 2024-03-29 pytest numpy pandas shapely pyproj pyogrio packaging",
-      "uv pip install --exclude-newer 2024-03-29 --no-deps -e ."
-    ],
-    "workload": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
-    "workload_source": "written here from the description of https://github.com/geopandas/geopandas/pull/2353 (point-in-polygon spatial join): 1000000 points joined to 10000 square polygons, each with attribute columns",
-    "oracle": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
-    "oracle_source": "geopandas's spatial join tests, which https://github.com/geopandas/geopandas/pull/2353 edits; targeted tests only",
-    "notes": "Python 3.12; dependency versions are those of the day after the merge"
-  },
   "pyvista-pyvista-pr7714": {
     "setup": [
       "uv venv --python 3.12 .venv",
@@ -1441,5 +1429,26 @@
     "oracle": ".venv/bin/pytest -q -p no:cacheprovider tests/caching/test_fingerprinting.py",
     "oracle_source": "Hamilton's fingerprinting tests, which https://github.com/apache/hamilton/pull/1629 edits; targeted tests only",
     "notes": "Python 3.12"
+  },
+  "scipy-scipy-pr26368": {
+    "setup": [
+      "uv venv --python 3.12 .venv",
+      "uv pip install --exclude-newer 2026-10-09 pytest numpy meson-python ninja cython pybind11 pythran setuptools",
+      "uv pip install --exclude-newer 2026-10-09 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -e ."
+    ],
+    "workload": "python -I -c \"import timeit, numpy as np; from scipy.interpolate import BSpline; x = np.random.default_rng(0).random(1000000); k = 2; t = np.r_[[0.0] * k, np.linspace(0, 1, 12), [1.0] * k]; f = lambda: BSpline.design_matrix(x, t, k); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
+    "workload_source": "written here from the description of https://github.com/scipy/scipy/pull/26368 (BSpline.design_matrix on a large array with the default extrapolate=False): 1000000 values, degree 2",
+    "oracle": ".venv/bin/pytest -q -p no:cacheprovider --pyargs scipy.interpolate.tests.test_bsplines -k design_matrix",
+    "oracle_source": "scipy's BSpline tests for design_matrix, in the module https://github.com/scipy/scipy/pull/26368 changes; targeted tests only",
+    "submodules": [
+      "subprojects/array_api_compat",
+      "subprojects/array_api_extra",
+      "subprojects/boost_math/math",
+      "subprojects/cobyqa",
+      "subprojects/highs",
+      "subprojects/unuran",
+      "subprojects/xsf"
+    ],
+    "notes": "scipy is built from source by the editable install; the build needs a BLAS and a compiler toolchain"
   }
 }

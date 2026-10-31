@@ -1,0 +1,46 @@
+{
+  "id": "google-jsonnet-pr1149",
+  "repository": "google/jsonnet",
+  "stars": 7586,
+  "pushed_at": "2026-03-30T14:23:57Z",
+  "task_commit": "67a44210445704ad20f253bd1a2abdb0ea409a55",
+  "task_commit_basis": "first parent of https://github.com/google/jsonnet/commit/e8e278ecef641fb88575679214f4b8b4a1eab7a9; gh api compare 67a442104457...e8e278ecef64 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/google/jsonnet/pull/1149",
+    "title": "Improve performance of escapeStringBash and escapeStringDollars",
+    "commit": "e8e278ecef641fb88575679214f4b8b4a1eab7a9",
+    "merged_at": "2024-04-17T12:15:36Z",
+    "files": [
+      "stdlib/std.jsonnet"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "hyperfine --warmup 10 \"jsonnet -e \\\"std.escapeStringDollars('$str')\\\"\" \"./jsonnet -e \\\"std.escapeStringDollars('$str')\\\"\"",
+    "source": "quoted in the description of https://github.com/google/jsonnet/pull/1149",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/google/jsonnet/pull/1149",
+      "note": "description, as matched by the miner: timings: 48.0 ms; 0.6 ms; 44.2 ms; 2.9 ms; 47.4 ms; 50.8 ms; 45.6 ms; 0.4 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:07+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

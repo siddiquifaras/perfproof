@@ -1,0 +1,47 @@
+{
+  "id": "apache-couchdb-pr6046",
+  "repository": "apache/couchdb",
+  "stars": 6993,
+  "pushed_at": "2026-10-30T19:16:14Z",
+  "task_commit": "fc6bd4f59cc1fa48cab8f63638a82b99277b548d",
+  "task_commit_basis": "first parent of https://github.com/apache/couchdb/commit/65cd52c96bdf6f35a4a2925ff0ebbc29b6583d93; gh api compare fc6bd4f59cc1...65cd52c96bdf touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/apache/couchdb/pull/6046",
+    "title": "Speed-up reduce view merging in fabric",
+    "commit": "65cd52c96bdf6f35a4a2925ff0ebbc29b6583d93",
+    "merged_at": "2026-06-22T13:44:31Z",
+    "files": [
+      "src/fabric/src/fabric_view.erl",
+      "src/fabric/src/fabric_view_reduce.erl"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "./reduce_group_bench.py --ndocs 100000 --q 8 --reps 7",
+    "source": "quoted in the description of https://github.com/apache/couchdb/pull/6046",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/apache/couchdb/pull/6046",
+      "note": "description, as matched by the miner: speedup claims: 2x speedup | timings: 4.4s; 4.5s; 5644.0ms; 5786.6ms; 6108.0ms; 4.3s; 10910.8ms; 11212.5ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:48+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

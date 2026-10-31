@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "%timeit min(x) + max(x)  # ~50ms",
-    "source": "quoted in the description of https://github.com/scipy/scipy/pull/26368",
-    "verified": false
+    "command": "python -I -c \"import timeit, numpy as np; from scipy.interpolate import BSpline; x = np.random.default_rng(0).random(1000000); k = 2; t = np.r_[[0.0] * k, np.linspace(0, 1, 12), [1.0] * k]; f = lambda: BSpline.design_matrix(x, t, k); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/scipy/scipy/pull/26368 (BSpline.design_matrix on a large array with the default extrapolate=False): 1000000 values, degree 2",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": ".venv/bin/pytest -q -p no:cacheprovider --pyargs scipy.interpolate.tests.test_bsplines -k design_matrix",
+    "source": "scipy's BSpline tests for design_matrix, in the module https://github.com/scipy/scipy/pull/26368 changes; targeted tests only",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,41 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "tree": "task",
+      "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2026-10-09 pytest numpy meson-python ninja cython pybind11 pythran setuptools; uv pip install --exclude-newer 2026-10-09 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -e .",
+      "exit_code": 0,
+      "duration_s": 203.6,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "oracle",
+      "tree": "task",
+      "command": ".venv/bin/pytest -q -p no:cacheprovider --pyargs scipy.interpolate.tests.test_bsplines -k design_matrix",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
+    },
+    {
+      "step": "workload",
+      "tree": "task",
+      "command": "python -I -c \"import timeit, numpy as np; from scipy.interpolate import BSpline; x = np.random.default_rng(0).random(1000000); k = 2; t = np.r_[[0.0] * k, np.linspace(0, 1, 12), [1.0] * k]; f = lambda: BSpline.design_matrix(x, t, k); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.0688743750215508"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-16T07:03:55+00:00",
   "miner": "uv run python eval/mine/mine.py manifests"
 }

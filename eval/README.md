@@ -635,11 +635,14 @@ user path mixes languages, with `mine/draw_mixed_heldout.py` into
 a difference). Salt `perfproof-mixed-heldout-2026-10-30`; the walk
 skips every task a task file names and every task a per-class or
 discovery draw examined or took. Besides the committed pool, the miner
-ran on two seed lists fixed before they were searched:
+ran on three seed lists fixed before they were searched:
 `mine/seeds-heldout-mixed.json` (hand-picked, 431 repositories) and
 `mine/seeds-heldout-mixed-2.json` (905 repositories found by topic and
-language-bytes rules the file's note records). Only the hidden-fix
-manifests were written (28 new ids, the record's `mined`); they are kept
+language-bytes rules the file's note records) and
+`mine/seeds-heldout-mixed-3.json` (301 repositories whose primary
+language is not Python, added because the first two lists left too few
+picks below Python or JS). Only the hidden-fix manifests were written
+(37 new ids, the record's `mined`); they are kept
 out of the other draws, which read the record through
 `draw.discovery_record`, `draw_discovery.later_mined` and
 `draw_discovery2.mixed_mined`.

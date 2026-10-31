@@ -1,0 +1,49 @@
+{
+  "id": "rapidsai-cugraph-pr3977",
+  "repository": "rapidsai/cugraph",
+  "stars": 2251,
+  "pushed_at": "2026-10-30T20:49:32Z",
+  "task_commit": "ac5b981dabc0ca2645713164cc74367b4366cd8b",
+  "task_commit_basis": "first parent of https://github.com/rapidsai/cugraph/commit/663d95fab0a9e6312f93d1190d6dfd590b081cd5 (squash merge); gh api compare ac5b981dabc0...663d95fab0a9 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/rapidsai/cugraph/pull/3977",
+    "title": "[REVIEW]Optimize cugraph-DGL csc codepath",
+    "commit": "663d95fab0a9e6312f93d1190d6dfd590b081cd5",
+    "merged_at": "2023-11-08T00:44:18Z",
+    "files": [
+      "benchmarks/cugraph-dgl/scale-benchmarks/cugraph_dgl_benchmark.py",
+      "benchmarks/cugraph-dgl/scale-benchmarks/model.py",
+      "benchmarks/cugraph/standalone/bulk_sampling/cugraph_bulk_sampling.py",
+      "python/cugraph-dgl/cugraph_dgl/dataloading/utils/sampling_helpers.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "python3 cugraph_dgl_benchmark.py",
+    "source": "quoted in the description of https://github.com/rapidsai/cugraph/pull/3977",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/rapidsai/cugraph/pull/3977",
+      "note": "description, as matched by the miner: timings: 2.48 s ± 14 ms; 9.52 s ± 151 ms; 70.41 seconds; 3.37 seconds; 44.09 seconds; 7.31 seconds; 15.60 seconds; 84.72 seconds | benchmark files changed: benchmarks/cugraph-dgl/scale-benchmarks/cugraph_dgl_benchmark.py, benchmarks/cugraph-dgl/scale-benchmarks/model.py, benchmarks/cugraph/standalone/bulk_sampling/cugraph_bulk_sampling.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:34+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

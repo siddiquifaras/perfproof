@@ -1,0 +1,47 @@
+{
+  "id": "alecthomas-chroma-pr351",
+  "repository": "alecthomas/chroma",
+  "stars": 5072,
+  "pushed_at": "2026-10-29T05:23:17Z",
+  "task_commit": "0da4bd1471dee2008916e618989061e463ceabb9",
+  "task_commit_basis": "first parent of https://github.com/alecthomas/chroma/commit/80f48538c4e3679d7feaa599f86159703ecb112d (squash merge); gh api compare 0da4bd1471de...80f48538c4e3 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/alecthomas/chroma/pull/351",
+    "title": "Improve performance of lexers.Get function",
+    "commit": "80f48538c4e3679d7feaa599f86159703ecb112d",
+    "merged_at": "2020-04-25T21:55:11Z",
+    "files": [
+      "lexers/internal/api.go",
+      "lexers/lexers_test.go"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test -bench BenchmarkGet -run BenchmarkGet -v",
+    "source": "quoted in the description of https://github.com/alecthomas/chroma/pull/351",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/alecthomas/chroma/pull/351",
+      "note": "description, as matched by the miner: timings: 128457 ns; 1.491s; 28.1 ns; 1.329s"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:23+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

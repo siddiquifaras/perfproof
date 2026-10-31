@@ -43,33 +43,33 @@
   "runs": [
     {
       "step": "setup",
-      "tree": "task",
       "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2026-04-27 pytest pytest-cases pytest-mock pytest-pyvista==0.3.3 hypothesis scipy pandas imageio meshio trimesh cmcrameri colorcet cmocean pyvista-zstd; uv pip install --exclude-newer 2026-04-27 -e .",
       "exit_code": 0,
       "duration_s": 135.2,
+      "output_tail": "",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": ""
+      "machine": "eval user sandboxed guest, macOS arm64"
     },
     {
       "step": "oracle",
-      "tree": "task",
       "command": ".venv/bin/pytest -q tests/core/test_imagedata_filters.py -k select_values",
       "exit_code": 0,
       "duration_s": null,
+      "output_tail": "",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": ""
+      "machine": "eval user sandboxed guest, macOS arm64"
     },
     {
       "step": "workload",
-      "tree": "task",
       "command": "python -I -c \"import timeit, numpy as np, pyvista as pv; img = pv.ImageData(dimensions=(300, 300, 100)); img.point_data['v'] = (np.random.default_rng(0).random(img.n_points) * 400 - 100).astype(np.float32); f = lambda: img.select_values(ranges=[150, float('inf')], fill_value=-1000); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
       "exit_code": 0,
       "duration_s": null,
+      "output_tail": "0.09507050004322082",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": "0.09507050004322082"
+      "machine": "eval user sandboxed guest, macOS arm64"
     }
   ],
   "split": "held-out",

@@ -1,0 +1,51 @@
+{
+  "id": "unum-cloud-usearch-pr276",
+  "repository": "unum-cloud/USearch",
+  "stars": 4364,
+  "pushed_at": "2026-10-25T01:00:22Z",
+  "task_commit": "2b7e32b85090bff6fcc99351d864deefae5f2bec",
+  "task_commit_basis": "first parent of https://github.com/unum-cloud/USearch/commit/ff65b13b4db4f1852edde7a86aac50163bc460bb; gh api compare 2b7e32b85090...ff65b13b4db4 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/unum-cloud/USearch/pull/276",
+    "title": "Fix: Exact search accuracy and speed",
+    "commit": "ff65b13b4db4f1852edde7a86aac50163bc460bb",
+    "merged_at": "2023-09-25T14:35:40Z",
+    "files": [
+      ".vscode/settings.json",
+      "include/usearch/index_plugins.hpp",
+      "python/lib.cpp",
+      "python/scripts/bench_exact.py",
+      "python/scripts/test_tooling.py",
+      "python/usearch/index.py"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "python -I -c \"import timeit, numpy as np; from usearch.index import search; rng = np.random.default_rng(0); data = rng.random((100000, 256), dtype=np.float32); queries = data[:10]; f = lambda: search(data, queries, 100, exact=True); print(min(timeit.repeat(f, number=3, repeat=5)))\"",
+    "source": "written here from the description of https://github.com/unum-cloud/USearch/pull/276 (exact search over a small dataset): 10 queries against 100000 vectors of 256 dimensions, 100 neighbours each",
+    "verified": false
+  },
+  "oracle": {
+    "command": ".venv/bin/pytest -q -p no:cacheprovider python/scripts/test_tooling.py",
+    "source": "usearch's tooling tests, in the file https://github.com/unum-cloud/USearch/pull/276 edits; targeted tests only",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/unum-cloud/USearch/pull/276",
+      "note": "description, as matched by the miner: speedup claims: 3.3x faster; 6.1x faster | benchmark files changed: python/scripts/bench_exact.py"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:18+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}

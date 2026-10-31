@@ -1,0 +1,48 @@
+{
+  "id": "tencent-weknora-pr4094",
+  "repository": "Tencent/WeKnora",
+  "stars": 36055,
+  "pushed_at": "2026-10-30T13:53:32Z",
+  "task_commit": "d8fa5b49a7f4aa93ded9978c40d1b57346375211",
+  "task_commit_basis": "first parent of https://github.com/Tencent/WeKnora/commit/98e9dc078625265ba1ea85ee3538a547f85a5be0; gh api compare d8fa5b49a7f4...98e9dc078625 touches exactly the pull request's files",
+  "reference_change": {
+    "kind": "pull-request",
+    "url": "https://github.com/Tencent/WeKnora/pull/4094",
+    "title": "perf(reranking): accelerate MMR selection with sparse postings",
+    "commit": "98e9dc078625265ba1ea85ee3538a547f85a5be0",
+    "merged_at": "2026-10-10T12:06:31Z",
+    "files": [
+      "internal/reranking/mmr.go",
+      "internal/reranking/mmr_test.go",
+      "website-docs/02-architecture/04-rag-pipeline.md"
+    ],
+    "files_truncated": false
+  },
+  "revert": null,
+  "family": "hidden-fix",
+  "change_kind": "improvement",
+  "target_class": "native",
+  "workload": {
+    "command": "go test ./internal/reranking -run TestSelectMMR -bench '^BenchmarkSelectMMR' -benchmem -benchtime=200ms -count=3",
+    "source": "quoted in the description of https://github.com/Tencent/WeKnora/pull/4094",
+    "verified": false
+  },
+  "oracle": {
+    "command": null,
+    "source": "unknown",
+    "verified": false
+  },
+  "evidence": [
+    {
+      "url": "https://github.com/Tencent/WeKnora/pull/4094",
+      "note": "description, as matched by the miner: timings: 200ms; 23.15 ms; 16.61 ms; 36.93 ms; 16.71 ms; 69.94 ms; 52.61 ms; 0.369 ms"
+    }
+  ],
+  "audit": null,
+  "status": "candidate",
+  "status_reason": "not built or run here",
+  "runs": [],
+  "split": "development-candidate",
+  "mined_at": "2026-10-31T15:19:45+00:00",
+  "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
+}
