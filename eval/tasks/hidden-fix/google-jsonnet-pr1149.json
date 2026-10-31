@@ -21,14 +21,14 @@
   "change_kind": "improvement",
   "target_class": "native",
   "workload": {
-    "command": "hyperfine --warmup 10 \"jsonnet -e \\\"std.escapeStringDollars('$str')\\\"\" \"./jsonnet -e \\\"std.escapeStringDollars('$str')\\\"\"",
-    "source": "quoted in the description of https://github.com/google/jsonnet/pull/1149",
-    "verified": false
+    "command": "./jsonnet -e \"std.escapeStringDollars(std.join('$', std.makeArray(20000, function(i) std.toString(i))))\"",
+    "source": "written here from the description of https://github.com/google/jsonnet/pull/1149 (std.escapeStringDollars on a string with many dollar signs, run through the command line): a string of 20000 numbers joined by dollar signs",
+    "verified": true
   },
   "oracle": {
-    "command": null,
-    "source": "unknown",
-    "verified": false
+    "command": "make test",
+    "source": "jsonnet's own test target (the command-line, library and snippet tests); the whole target, since the standard library is checked by all of them",
+    "verified": true
   },
   "evidence": [
     {
@@ -37,10 +37,41 @@
     }
   ],
   "audit": null,
-  "status": "candidate",
-  "status_reason": "not built or run here",
-  "runs": [],
-  "split": "development-candidate",
+  "status": "runs",
+  "status_reason": "built through the eval user's sandboxed setup path (runner.build_real_repo as the guest runs it, no model call) on the task tree: setup, the oracle on the untouched tree and the speed check all exited 0. The reference tree was not run: this is a held-out task",
+  "runs": [
+    {
+      "step": "setup",
+      "command": "make -j4 jsonnet jsonnetfmt libjsonnet.so",
+      "exit_code": 0,
+      "duration_s": 34.7,
+      "output_tail": "",
+      "tree": "task",
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64"
+    },
+    {
+      "step": "oracle",
+      "command": "make test",
+      "exit_code": 0,
+      "duration_s": null,
+      "output_tail": "",
+      "tree": "task",
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64"
+    },
+    {
+      "step": "workload",
+      "command": "./jsonnet -e \"std.escapeStringDollars(std.join('$', std.makeArray(20000, function(i) std.toString(i))))\"",
+      "exit_code": 0,
+      "duration_s": null,
+      "output_tail": "5.4 s wall time of the command",
+      "tree": "task",
+      "date": "2026-10-31",
+      "machine": "eval user sandboxed guest, macOS arm64"
+    }
+  ],
+  "split": "held-out",
   "mined_at": "2026-10-31T15:19:07+00:00",
   "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-3.json; mine._select and mine._pr_task, hidden-fix specs only"
 }

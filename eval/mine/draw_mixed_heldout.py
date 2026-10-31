@@ -11,10 +11,24 @@ The rule is the "Mixed held-out set" of docs/evaluation.md, fixed on
    discovery draw examined it, or a discovery draw took it. A candidate
    under 2000 stars is out. Each remaining candidate has a reading in
    the record's ``reviews``: the change is an optimization (step 1 of
-   the held-out rule), its user path mixes at least two languages
-   (``pair``), and its fix is in the upper layer or the lower layer
+   the held-out rule), its user path is mixed (the criterion below;
+   ``pair``), and its fix is in the upper layer or the lower layer
    reached through it (``layer``). A candidate read as not mixed, or
    not an optimization, is out with that reason.
+
+   The criterion for mixed: the user path the task's workload
+   exercises runs code in two languages that the task tree itself
+   holds or builds (a compiled extension, a binding crate, a native
+   library, an interpreter and the library it runs). C and C++ are one
+   language family. A dependency's compiled code (pandas, polars,
+   NumPy, VTK, shapely wheels) does not count, and neither does code
+   in the tree that the timed call does not reach. The basis is the
+   workload command, the files it enters through and the task tree's
+   listing by extension; the files are recorded in each review's
+   ``read``, and a judgement call in the record's ``notes``. It is
+   judged from the task tree and the workload only, never from the
+   effect of the reference change. ``layer`` is the one reading that
+   uses the reference change, for where the fix lies.
 2. The rest are ordered by ``sha256(salt + task id)``, hex digest
    compared as text.
 3. Walking that order, a candidate is passed over when the sandboxed

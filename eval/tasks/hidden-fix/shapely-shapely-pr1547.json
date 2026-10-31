@@ -43,33 +43,33 @@
   "runs": [
     {
       "step": "setup",
-      "tree": "task",
       "command": "uv venv --python 3.10 .venv; uv pip install --exclude-newer 2022-09-28 pytest numpy cython setuptools wheel; .venv/bin/python setup.py develop",
       "exit_code": 0,
       "duration_s": 13.1,
+      "output_tail": "",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": ""
+      "machine": "eval user sandboxed guest, macOS arm64"
     },
     {
       "step": "oracle",
-      "tree": "task",
       "command": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
       "exit_code": 0,
       "duration_s": null,
+      "output_tail": "",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": ""
+      "machine": "eval user sandboxed guest, macOS arm64"
     },
     {
       "step": "workload",
-      "tree": "task",
       "command": "python -I -c \"import timeit; from shapely.geometry import Point; f = lambda: [Point(i, i) for i in range(20000)]; print(min(timeit.repeat(f, number=3, repeat=5)))\"",
       "exit_code": 0,
       "duration_s": null,
+      "output_tail": "0.25153333399975963",
+      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64",
-      "output_tail": "0.25153333399975963"
+      "machine": "eval user sandboxed guest, macOS arm64"
     }
   ],
   "split": "held-out",

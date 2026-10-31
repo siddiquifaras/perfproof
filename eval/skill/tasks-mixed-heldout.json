@@ -45,23 +45,21 @@
       }
     },
     {
-      "id": "heldout-mixed-pyvista-pyvista-pr7714-hidden-fix",
+      "id": "heldout-mixed-google-jsonnet-pr1149-hidden-fix",
       "kind": "find",
       "repo": {
-        "manifest": "pyvista-pyvista-pr7714",
-        "requires": [
-          "uv"
-        ]
+        "manifest": "google-jsonnet-pr1149",
+        "requires": []
       },
       "prompt": "/perfproof",
       "prompts": {
         "vague": {
           "skill": "/perfproof",
-          "baseline": "fix the slowness"
+          "baseline": "make this faster"
         },
         "detailed": {
-          "skill": "/perfproof Masking out low values in our CT volume viewer is slower than expected. We clear everything below a density cutoff on volumes of about nine million voxels, and the masking step is one of the slowest parts of loading a volume.",
-          "baseline": "Masking out low values in our CT volume viewer is slower than expected. We clear everything below a density cutoff on volumes of about nine million voxels, and the masking step is one of the slowest parts of loading a volume."
+          "skill": "/perfproof Escaping values for our config templates is slower than expected. We render templates that contain tens of thousands of dollar signs in a single string, and the escaping step is one of the slowest parts of rendering.",
+          "baseline": "Escaping values for our config templates is slower than expected. We render templates that contain tens of thousands of dollar signs in a single string, and the escaping step is one of the slowest parts of rendering."
         }
       },
       "followups": [
@@ -73,59 +71,17 @@
       "task_budget_usd": 3.0,
       "timeout_s": 2400,
       "speed_check": {
-        "command": "python -I -c \"import timeit, numpy as np, pyvista as pv; img = pv.ImageData(dimensions=(300, 300, 100)); img.point_data['v'] = (np.random.default_rng(0).random(img.n_points) * 400 - 100).astype(np.float32); f = lambda: img.select_values(ranges=[150, float('inf')], fill_value=-1000); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
-        "metric": "wall"
+        "command": "./jsonnet -e \"std.escapeStringDollars(std.join('$', std.makeArray(20000, function(i) std.toString(i))))\"",
+        "metric": "wall",
+        "build": "make -j4 jsonnet"
       },
       "expect": {
         "trigger": true,
         "fix": "optional_branch",
         "outcomes": [],
         "hotspot": {
-          "file": "pyvista/core/filters/image_data.py",
-          "function": "_select_values",
-          "top_n": "skill"
-        }
-      }
-    },
-    {
-      "id": "heldout-mixed-apache-hamilton-pr1629-hidden-fix",
-      "kind": "find",
-      "repo": {
-        "manifest": "apache-hamilton-pr1629",
-        "requires": [
-          "uv"
-        ]
-      },
-      "prompt": "/perfproof",
-      "prompts": {
-        "vague": {
-          "skill": "/perfproof",
-          "baseline": "it's slow, fix it"
-        },
-        "detailed": {
-          "skill": "/perfproof Caching the results of our feature pipeline is slower than expected. Each run fingerprints several data frames of tens of thousands of rows before it can decide whether a cached result is reusable, and that check is one of the slowest steps.",
-          "baseline": "Caching the results of our feature pipeline is slower than expected. Each run fingerprints several data frames of tens of thousands of rows before it can decide whether a cached result is reusable, and that check is one of the slowest steps."
-        }
-      },
-      "followups": [
-        "yes, go ahead with your suggestions",
-        "yes, go ahead with your suggestions",
-        "yes, go ahead with your suggestions"
-      ],
-      "budget_usd": 3.0,
-      "task_budget_usd": 3.0,
-      "timeout_s": 2400,
-      "speed_check": {
-        "command": "python -I -c \"import timeit, numpy as np, pandas as pd; from hamilton.caching import fingerprinting as fp; rng = np.random.default_rng(0); df = pd.DataFrame({c: rng.random(20000) for c in 'abcde'}); f = lambda: fp.hash_value(df); print(min(timeit.repeat(f, number=3, repeat=3)))\"",
-        "metric": "wall"
-      },
-      "expect": {
-        "trigger": true,
-        "fix": "optional_branch",
-        "outcomes": [],
-        "hotspot": {
-          "file": "hamilton/caching/fingerprinting.py",
-          "function": "hash_pandas_obj",
+          "file": "stdlib/std.jsonnet",
+          "function": "escapeStringDollars",
           "top_n": "skill"
         }
       }
@@ -146,8 +102,8 @@
           "baseline": "make the app faster"
         },
         "detailed": {
-          "skill": "/perfproof Building the basis matrix for our spline features is slower than expected in the feature service. We build it for about a million sample points per batch, and that step takes a large share of the time of fitting the transformer.",
-          "baseline": "Building the basis matrix for our spline features is slower than expected in the feature service. We build it for about a million sample points per batch, and that step takes a large share of the time of fitting the transformer."
+          "skill": "/perfproof Building the basis matrix for our spline features is slower than expected in the feature service. We build it for about a million sample points per batch, and that step is one of the slowest parts of fitting the transformer.",
+          "baseline": "Building the basis matrix for our spline features is slower than expected in the feature service. We build it for about a million sample points per batch, and that step is one of the slowest parts of fitting the transformer."
         }
       },
       "followups": [
@@ -189,8 +145,8 @@
           "baseline": "speed up the app"
         },
         "detailed": {
-          "skill": "/perfproof Building lots of small records in our event ingestion service is slower than I expected. Each batch creates about 100,000 records with ten optional fields, most of them passed by name, and creating the records is one of the slowest parts of the batch.",
-          "baseline": "Building lots of small records in our event ingestion service is slower than I expected. Each batch creates about 100,000 records with ten optional fields, most of them passed by name, and creating the records is one of the slowest parts of the batch."
+          "skill": "/perfproof Building lots of small records in our event ingestion service is slower than I expected. Each batch creates about 100,000 records with ten optional fields, and creating the records is one of the slowest parts of the batch.",
+          "baseline": "Building lots of small records in our event ingestion service is slower than I expected. Each batch creates about 100,000 records with ten optional fields, and creating the records is one of the slowest parts of the batch."
         }
       },
       "followups": [
@@ -213,49 +169,6 @@
         "hotspot": {
           "file": "msgspec/_core.c",
           "function": "Struct_vectorcall",
-          "top_n": "skill"
-        }
-      }
-    },
-    {
-      "id": "heldout-mixed-geopandas-geopandas-pr2353-hidden-fix",
-      "kind": "find",
-      "repo": {
-        "manifest": "geopandas-geopandas-pr2353",
-        "requires": [
-          "uv"
-        ]
-      },
-      "prompt": "/perfproof",
-      "prompts": {
-        "vague": {
-          "skill": "/perfproof",
-          "baseline": "make the app faster"
-        },
-        "detailed": {
-          "skill": "/perfproof Matching delivery points to zones is slower than expected in our routing service. A batch joins about a million GPS points to 10,000 zone polygons that carry a few attribute columns, and the matching step is one of the slowest parts of the batch.",
-          "baseline": "Matching delivery points to zones is slower than expected in our routing service. A batch joins about a million GPS points to 10,000 zone polygons that carry a few attribute columns, and the matching step is one of the slowest parts of the batch."
-        }
-      },
-      "followups": [
-        "yes, go ahead with your suggestions",
-        "yes, go ahead with your suggestions",
-        "yes, go ahead with your suggestions"
-      ],
-      "budget_usd": 3.0,
-      "task_budget_usd": 3.0,
-      "timeout_s": 2400,
-      "speed_check": {
-        "command": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
-        "metric": "wall"
-      },
-      "expect": {
-        "trigger": true,
-        "fix": "optional_branch",
-        "outcomes": [],
-        "hotspot": {
-          "file": "geopandas/tools/sjoin.py",
-          "function": "_frame_join",
           "top_n": "skill"
         }
       }

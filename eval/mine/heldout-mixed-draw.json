@@ -47,240 +47,280 @@
    "eval/mine/seeds-heldout-mixed.json",
    "eval/mine/seeds-heldout-mixed-2.json",
    "eval/mine/seeds-heldout-mixed-3.json",
-   "eval/mine/seeds-heldout-mixed-4.json"
+   "eval/mine/seeds-heldout-mixed-4.json",
+   "eval/mine/seeds-heldout-mixed-5.json"
   ],
-  "note": "Hidden-fix candidates the miner kept from the two seed files, by mine._select and mine._pr_task; the known-change and nothing-to-keep output was not written."
+  "note": "Hidden-fix candidates the miner kept from seed lists 1 to 4 (list 5 was stopped before its view stage and kept nothing), by mine._select and mine._pr_task; the known-change and nothing-to-keep output was not written. Seed lists 1 and 2 were committed together with their mined output, so git cannot show they came first; lists 3, 4 and 5 were committed before they were searched."
  },
  "reviews": {
   "capsoftware-cap-pr2656": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench -p cap-gpui-kernels --bench screenshot_blit`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 2196, 'rust': 908, 'js': 98, 'py': 45, 'c': 36}; no source was read.",
    "read": []
   },
   "dathere-qsv-pr3728": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`hyperfine, 10 runs, warmup 3, M4 Max 16 cores, 1M-row \u00d7 41-col NYC 311`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 169, 'ts': 57, 'js': 7, 'py': 2}; no source was read.",
    "read": []
   },
   "delta-io-delta-rs-pr4635": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench -p delta-benchmarks --bench vacuum -- --fixture ./crates/b`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 254, 'py': 75, 'js': 1}; no source was read.",
    "read": []
   },
   "easytier-easytier-pr2397": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench --bench tx_throughput`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 334, 'ts': 34, 'js': 16, 'kotlin': 13, 'go': 4, 'c': 2}; no source was read.",
    "read": []
   },
   "gitbutlerapp-gitbutler-pr13367": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`hyperfine --warmup 2 \"./target/release/but -C /Users/davidpdrsn/code/o`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 905, 'ts': 615, 'js': 16}; no source was read.",
    "read": []
   },
   "lance-format-lance-pr9409": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench -p lance --bench cdf --profile release-with-debug`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 979, 'py': 235, 'java': 226, 'c': 4, 'js': 1, 'cpp': 1}; no source was read.",
    "read": []
   },
   "nautechsystems-nautilus-trader-pr4150": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
+   "reason": "not mixed: the workload (`cargo bench -p nautilus-common --bench logging --no-run`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 2264, 'py': 1209, 'cython': 243, 'c': 4}; no source was read.",
    "read": []
   },
   "screenpipe-screenpipe-pr6254": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench -p screenpipe-screen --bench frame_comparison_bench -- ind`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 1352, 'rust': 948, 'js': 77, 'c': 5, 'py': 5}; no source was read.",
    "read": []
   },
   "tokio-rs-tokio-pr5829": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust",
+   "reason": "not mixed: the workload (`cargo bench -p benches --bench sync_mpsc -- contention`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 685}; no source was read.",
    "read": []
   },
   "dgraph-io-ristretto-pr32": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -count=1 -cpu=4,8,16,32,64 -v -bench=BenchmarkCaches`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 23}; no source was read.",
    "read": []
   },
   "gin-gonic-gin-pr2365": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`docker run --rm -e GOTOOLCHAIN=local -v .:/src -v perfproof-gomod:/go/`) enters through Go (in a container); the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 82}; no source was read.",
    "read": []
   },
   "go-gitea-gitea-pr38573": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench=. -benchmem ./modules/emoji/...`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2987, 'ts': 252, 'js': 4}; no source was read.",
    "read": []
   },
   "golang-jwt-jwt-pr33": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test --bench=Bench --run=NONE .`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 34}; no source was read.",
    "read": []
   },
   "grafana-loki-pr23949": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test ./pkg/pattern/drain/ -run '^$' -bench 'BenchmarkPrefixTreeChil`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 14018, 'c': 19, 'js': 5, 'py': 3, 'cpp': 1}; no source was read.",
    "read": []
   },
   "hashicorp-hcl-pr490": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -benchmem -bench=. -benchtime=200000x -count=10 -memprofile=me`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 186, 'py': 1}; no source was read.",
    "read": []
   },
   "nats-io-nats-go-pr2083": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench=. -benchmem -run=xxx`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 108}; no source was read.",
    "read": []
   },
   "open-policy-agent-opa-pr8167": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench=\"BenchmarkSetIntersection\" -benchmem -run=^$ -count=10 `) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 959, 'c': 128, 'js': 55, 'cpp': 27, 'ts': 3, 'py': 1}; no source was read.",
    "read": []
   },
   "open-telemetry-opentelemetry-go-pr8740": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -run='xxxxMatchNothingxxxx' -bench='FromHex' -benchmem -count=`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 1278}; no source was read.",
    "read": []
   },
   "pulumi-pulumi-pr21176": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: judgement call: the workload is the Go command line; the language of the program it deploys is not stated, so the second language stays unknown.",
    "read": []
   },
   "vllm-project-semantic-router-pr3774": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -run NONE -bench BenchmarkCacheSearch_1000Entries -benchtime 1`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2945, 'ts': 963, 'py': 956, 'rust': 182, 'js': 24, 'c': 11}; no source was read.",
    "read": []
   },
   "oracle-graal-pr12814": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Java",
+   "reason": "not mixed: the native-image driver is Java.",
    "read": []
   },
   "libvips-libvips-pr4974": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in C (the vips command line)",
+   "reason": "not mixed: C only (the vips command line); C and C++ count as one language family.",
    "read": []
   },
   "osgeo-gdal-pr12442": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in C and C++ (the gdal command line)",
+   "reason": "not mixed: the gdal command line runs C and C++, one language family.",
    "read": []
   },
   "mw00-project-maya-pr452": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in C++ (a C++ benchmark binary)",
+   "reason": "not mixed: the workload is a C++ benchmark binary.",
    "read": []
   },
   "xtensor-stack-xtensor-pr2088": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in C++ (a header-only library)",
+   "reason": "not mixed: the workload times numpy.histogram, a dependency; the C++ of this header-only tree is not on that path.",
    "read": []
   },
   "pinojs-pino-pr420": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in JavaScript",
+   "reason": "not mixed: the workload (`node benchmarks/redact.bench`) enters through JavaScript; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'js': 52}; no source was read.",
    "read": []
   },
   "yarnpkg-berry-pr4813": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in JavaScript and TypeScript (node is the runtime)",
+   "reason": "not mixed: the workload (`hyperfine \"node -r ./.pnp-before.cjs -e 1\" \"node -r ./.pnp-after.cjs -`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 423, 'js': 385, 'c': 2}; no source was read.",
    "read": []
   },
   "cupy-cupy-pr8017": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (environment probing)",
-   "read": []
+   "reason": "not mixed: judgement call: _environment.py imports cupy_backends' runtime, but the timed function inspects installed packages with importlib.metadata and calls no compiled code of the tree.",
+   "read": [
+    "cupy/_environment.py"
+   ]
   },
   "networkx-networkx-pr7810": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python",
+   "reason": "not mixed: the workload (`python -c \"import networkx as nx; G = nx.complete_graph(100); nx.squar`) enters through one language; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'py': 668, 'js': 2}; no source was read.",
    "read": []
   },
   "petercorke-robotics-toolbox-python-pr889": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (graph planners)",
-   "read": []
+   "reason": "not mixed: the planners import numpy, pgraph and spatialmath only; the tree's compiled code is not on the planners' path.",
+   "read": [
+    "src/roboticstoolbox/mobile/PRMPlanner.py",
+    "src/roboticstoolbox/mobile/LatticePlanner.py"
+   ]
   },
   "plasma-umass-scalene-pr682": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (sparkline text)",
-   "read": []
+   "reason": "not mixed: sparkline.py imports os and typing only.",
+   "read": [
+    "scalene/sparkline.py"
+   ]
   },
   "python-pendulum-pendulum-pr172": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (pre-Rust Pendulum)",
-   "read": []
+   "reason": "not mixed: the tree at this commit is pure Python (178 py, 1 c).",
+   "read": [
+    "pendulum/pendulum.py"
+   ]
   },
   "rasterio-rasterio-pr2716": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (dtype helpers)",
-   "read": []
+   "reason": "not mixed: judgement call: dtypes.py imports rasterio.env at load, but the timed get_minimum_dtype is NumPy code that calls no compiled module of the tree.",
+   "read": [
+    "rasterio/dtypes.py"
+   ]
   },
   "scikit-image-scikit-image-pr6441": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python and NumPy",
-   "read": []
+   "reason": "not mixed: judgement call: corner.py imports Cython modules of this tree, but the workload calls _symmetric_compute_eigenvalues, a NumPy function that calls none of them.",
+   "read": [
+    "skimage/feature/corner.py"
+   ]
   },
   "vllm-project-vllm-pr60753": {
-   "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (a GPU kernel benchmark)",
-   "read": []
+   "keep": true,
+   "reason": "sparse_indexer.py imports vllm._custom_ops, which registers the C++/CUDA kernels built from this tree (166 cuda, 101 cpp).",
+   "read": [
+    "vllm/models/glm5next/amd/sparse_indexer.py"
+   ],
+   "pair": [
+    "Python",
+    "C++"
+   ],
+   "layer": "upper"
   },
   "nandhakishorm-laya-pr615": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (agent logic; the workload needs a model checkpoint)",
-   "read": []
+   "reason": "not mixed: agent.py imports torch, transformers and safetensors, dependencies; the tree has no compiled code of its own.",
+   "read": [
+    "laya/agent.py"
+   ]
   },
   "alecthomas-chroma-pr351": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench BenchmarkGet -run BenchmarkGet -v`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 259, 'py': 3, 'js': 1}; no source was read.",
    "read": []
   },
   "apache-couchdb-pr6046": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Erlang",
+   "reason": "not mixed: judgement call: the Python script is a benchmark client driving a running server over HTTP; the code the product path runs is Erlang. The script is not in the task tree.",
    "read": []
   },
   "databendlabs-databend-pr20331": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
+   "reason": "not mixed: the workload (`cargo bench -p databend-common-functions --bench flight_scatter_hash`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 3833, 'py': 162, 'js': 9, 'c': 4, 'java': 1}; no source was read.",
    "read": []
   },
   "google-jsonnet-pr1149": {
-   "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Jsonnet (the standard library)",
-   "read": []
+   "keep": true,
+   "reason": "judgement call: the workload runs the C++ jsonnet interpreter (cmd/jsonnet.cpp) over the Jsonnet standard library (stdlib/std.jsonnet) compiled into it, so the path runs code in two languages of this tree. Basis: Makefile targets and the tree listing.",
+   "read": [
+    "stdlib/std.jsonnet",
+    "cmd/jsonnet.cpp"
+   ],
+   "pair": [
+    "Jsonnet",
+    "C++"
+   ],
+   "layer": "upper"
   },
   "miniflux-v2-pr3701": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench=. -count=25 > old.txt`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 379, 'js': 7, 'py': 1}; no source was read.",
    "read": []
   },
   "runatlantis-atlantis-pr2907": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test -bench=. ./server/events/command`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 427, 'js': 6}; no source was read.",
    "read": []
   },
   "tencent-weknora-pr4094": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Go",
+   "reason": "not mixed: the workload (`go test ./internal/reranking -run TestSelectMMR -bench '^BenchmarkSele`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2857, 'ts': 480, 'py': 109, 'js': 103, 'rust': 4, 'c': 1}; no source was read.",
    "read": []
   },
   "callstack-agent-device-pr2505": {
    "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in TypeScript (a PNG crop benchmark)",
+   "reason": "not mixed: the workload (`pnpm bench:png-crop -- --rounds 5 --file ./real-capture.png`) enters through TypeScript; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 3662, 'js': 32, 'java': 18, 'c': 8, 'kotlin': 8, 'py': 1}; no source was read.",
    "read": []
   },
   "lmcache-lmcache-pr3835": {
-   "keep": false,
-   "reason": "not mixed: the change and the workload it names stay in Python (the workload needs a Linux NVMe device)",
-   "read": []
+   "keep": true,
+   "reason": "core.py imports lmcache_rust_raw_block_io, the Rust extension in rust/raw_block of this tree.",
+   "read": [
+    "lmcache/v1/storage_backend/raw_block/core.py"
+   ],
+   "pair": [
+    "Python",
+    "Rust"
+   ],
+   "layer": "upper"
   },
   "msgspec-msgspec-pr237": {
    "keep": true,
-   "reason": "Struct construction from Python, implemented in the C extension; the change is in the C",
-   "read": [],
+   "reason": "workload constructs a Struct from Python; Struct construction is implemented in msgspec/_core.c, a C extension built from this tree (tree: 32 py, 5 c). Basis: the workload command and the tree listing; the C file's presence, not its body, was read.",
+   "read": [
+    "msgspec/_core.c"
+   ],
    "pair": [
     "Python",
     "C"
@@ -288,29 +328,26 @@
    "layer": "lower"
   },
   "geopandas-geopandas-pr2353": {
-   "keep": true,
-   "reason": "a spatial join in Python whose spatial index query runs in shapely's C and pandas' compiled code; the change is in the Python join",
-   "read": [],
-   "pair": [
-    "Python",
-    "C"
-   ],
-   "layer": "upper"
+   "keep": false,
+   "reason": "not mixed: sjoin.py imports numpy, pandas and geopandas modules only; the spatial index is shapely's, a dependency. The tree is 83 py files, no compiled code of its own.",
+   "read": [
+    "geopandas/tools/sjoin.py"
+   ]
   },
   "pyvista-pyvista-pr7714": {
-   "keep": true,
-   "reason": "a pyvista image filter that runs VTK (C++) filters; the change is in the Python that picks the filter",
-   "read": [],
-   "pair": [
-    "Python",
-    "C++"
-   ],
-   "layer": "upper"
+   "keep": false,
+   "reason": "not mixed: the filter calls VTK through pyvista.core._vtk_core, a dependency; the tree is 475 py files, no compiled code of its own.",
+   "read": [
+    "pyvista/core/filters/image_data.py"
+   ]
   },
   "shapely-shapely-pr1547": {
    "keep": true,
-   "reason": "Point construction in Python that calls shapely's C ufuncs over GEOS; the change is in the Python constructor",
-   "read": [],
+   "reason": "Point.__new__ calls shapely.points, a ufunc of the C extension in src/ of this tree (src/lib.c, ufuncs.c).",
+   "read": [
+    "shapely/geometry/point.py",
+    "src/lib.c"
+   ],
    "pair": [
     "Python",
     "C"
@@ -319,8 +356,10 @@
   },
   "scipy-scipy-pr26368": {
    "keep": true,
-   "reason": "BSpline.design_matrix, Python over a C++ routine; the change is the Python bounds check",
-   "read": [],
+   "reason": "BSpline.design_matrix calls _dierckx.data_matrix (line 451 of _bsplines.py), the C++ module of this tree.",
+   "read": [
+    "scipy/interpolate/_bsplines.py"
+   ],
    "pair": [
     "Python",
     "C++"
@@ -329,8 +368,10 @@
   },
   "unum-cloud-usearch-pr276": {
    "keep": true,
-   "reason": "exact search called from Python, run by the C++ extension; the change is in the C++ and its Python wrapper",
-   "read": [],
+   "reason": "workload calls usearch.index.search, which runs the pybind11 extension built from python/lib.cpp. Basis: the workload command and the tree listing (17 py, 13 cpp).",
+   "read": [
+    "python/lib.cpp"
+   ],
    "pair": [
     "Python",
     "C++"
@@ -339,8 +380,10 @@
   },
   "rapidsai-cugraph-pr3977": {
    "keep": true,
-   "reason": "a Python graph data loader over cuGraph's CUDA code; the change is in the Python",
-   "read": [],
+   "reason": "judgement call: the loader's imports are cudf and cupy (dependencies), but the benchmark samples through cugraph, whose C++/CUDA is in this tree (263 cuda, 194 cpp). Basis: the workload command and the tree listing.",
+   "read": [
+    "python/cugraph-dgl/cugraph_dgl/dataloading/utils/sampling_helpers.py"
+   ],
    "pair": [
     "Python",
     "CUDA"
@@ -348,19 +391,18 @@
    "layer": "upper"
   },
   "apache-hamilton-pr1629": {
-   "keep": true,
-   "reason": "fingerprinting of pandas and polars frames; the hot path runs in pandas and polars' compiled code; the change is in the Python",
-   "read": [],
-   "pair": [
-    "Python",
-    "Rust"
-   ],
-   "layer": "upper"
+   "keep": false,
+   "reason": "not mixed: fingerprinting.py calls pandas.util.hash_pandas_object, a dependency; the tree holds no compiled code of its own.",
+   "read": [
+    "hamilton/caching/fingerprinting.py"
+   ]
   },
   "man-group-arcticdb-pr3055": {
    "keep": true,
-   "reason": "reading a column through the Python API into the C++ engine; the change is in the C++ handler",
-   "read": [],
+   "reason": "workload reads a frame through arcticdb.Arctic, whose engine is the C++ of this tree (1281 cpp, 281 py). Basis: the workload command and the tree listing.",
+   "read": [
+    "cpp/arcticdb/python/python_handler_data.hpp"
+   ],
    "pair": [
     "Python",
     "C++"
@@ -369,8 +411,10 @@
   },
   "nvidia-transformerengine-pr3068": {
    "keep": true,
-   "reason": "PyTorch quantization calling a CUDA kernel; the change is in the CUDA header and its Python reference",
-   "read": [],
+   "reason": "the benchmark runs TransformerEngine's PyTorch modules, which call the C++/CUDA of this tree (399 py, 148 cuda, 69 cpp). Basis: the workload command and the tree listing.",
+   "read": [
+    "transformer_engine/pytorch/custom_recipes/quantization_ref_nvfp4.py"
+   ],
    "pair": [
     "Python",
     "CUDA"
@@ -378,19 +422,18 @@
    "layer": "lower"
   },
   "flashinfer-ai-flashinfer-pr7130": {
-   "keep": true,
-   "reason": "a Python wrapper over cuDNN plans; the change is in the Python wrapper",
-   "read": [],
-   "pair": [
-    "Python",
-    "CUDA"
-   ],
-   "layer": "upper"
+   "keep": false,
+   "reason": "not mixed: judgement call: the workload times the host-side wrapper (bench_cudnn_wrapper_host), which imports the cudnn package, a dependency, and torch; no code of this tree's CUDA runs on the path it times.",
+   "read": [
+    "flashinfer/cudnn/prefill.py"
+   ]
   },
   "sgl-project-sglang-pr46500": {
    "keep": true,
-   "reason": "a Python serving scheduler driving CUDA kernels; the change is in the Python",
-   "read": [],
+   "reason": "judgement call: lora_drainer.py is Python only, but the workload is a serving benchmark whose forward passes run the CUDA kernels of sgl-kernel in this tree (8322 py, 336 cuda).",
+   "read": [
+    "python/sglang/srt/lora/lora_drainer.py"
+   ],
    "pair": [
     "Python",
     "CUDA"
@@ -431,10 +474,6 @@
    "ok": false,
    "reason": "not run: the change is a CUDA kernel and its workload needs an NVIDIA GPU, and this Mac has none"
   },
-  "flashinfer-ai-flashinfer-pr7130": {
-   "ok": false,
-   "reason": "not run: the workload builds cuDNN plans and needs an NVIDIA GPU, and this Mac has none"
-  },
   "sgl-project-sglang-pr46500": {
    "ok": false,
    "reason": "not run: the workload serves a model on an NVIDIA GPU, and this Mac has none"
@@ -446,9 +485,51 @@
   "rapidsai-cugraph-pr3977": {
    "ok": false,
    "reason": "not run: the workload needs an NVIDIA GPU, and this Mac has none"
+  },
+  "google-jsonnet-pr1149": {
+   "ok": true,
+   "reason": ""
+  },
+  "vllm-project-vllm-pr60753": {
+   "ok": false,
+   "reason": "not run: the workload serves a model on an AMD or NVIDIA GPU, and this Mac has none"
+  },
+  "lmcache-lmcache-pr3835": {
+   "ok": false,
+   "reason": "not run: the workload needs a Linux block device and io_uring, which this Mac does not have"
   }
  },
- "notes": {},
+ "notes": {
+  "pulumi-pulumi-pr21176": "judgement call: the workload is the Go command line; the language of the program it deploys is not stated, so the second language stays unknown.",
+  "oracle-graal-pr12814": "the native-image driver is Java.",
+  "libvips-libvips-pr4974": "C only (the vips command line); C and C++ count as one language family.",
+  "osgeo-gdal-pr12442": "the gdal command line runs C and C++, one language family.",
+  "mw00-project-maya-pr452": "the workload is a C++ benchmark binary.",
+  "xtensor-stack-xtensor-pr2088": "the workload times numpy.histogram, a dependency; the C++ of this header-only tree is not on that path.",
+  "cupy-cupy-pr8017": "judgement call: _environment.py imports cupy_backends' runtime, but the timed function inspects installed packages with importlib.metadata and calls no compiled code of the tree.",
+  "petercorke-robotics-toolbox-python-pr889": "the planners import numpy, pgraph and spatialmath only; the tree's compiled code is not on the planners' path.",
+  "plasma-umass-scalene-pr682": "sparkline.py imports os and typing only.",
+  "python-pendulum-pendulum-pr172": "the tree at this commit is pure Python (178 py, 1 c).",
+  "rasterio-rasterio-pr2716": "judgement call: dtypes.py imports rasterio.env at load, but the timed get_minimum_dtype is NumPy code that calls no compiled module of the tree.",
+  "scikit-image-scikit-image-pr6441": "judgement call: corner.py imports Cython modules of this tree, but the workload calls _symmetric_compute_eigenvalues, a NumPy function that calls none of them.",
+  "vllm-project-vllm-pr60753": "sparse_indexer.py imports vllm._custom_ops, which registers the C++/CUDA kernels built from this tree (166 cuda, 101 cpp).",
+  "nandhakishorm-laya-pr615": "agent.py imports torch, transformers and safetensors, dependencies; the tree has no compiled code of its own.",
+  "apache-couchdb-pr6046": "judgement call: the Python script is a benchmark client driving a running server over HTTP; the code the product path runs is Erlang. The script is not in the task tree.",
+  "google-jsonnet-pr1149": "judgement call: the workload runs the C++ jsonnet interpreter (cmd/jsonnet.cpp) over the Jsonnet standard library (stdlib/std.jsonnet) compiled into it, so the path runs code in two languages of this tree. Basis: Makefile targets and the tree listing.",
+  "lmcache-lmcache-pr3835": "core.py imports lmcache_rust_raw_block_io, the Rust extension in rust/raw_block of this tree.",
+  "msgspec-msgspec-pr237": "workload constructs a Struct from Python; Struct construction is implemented in msgspec/_core.c, a C extension built from this tree (tree: 32 py, 5 c). Basis: the workload command and the tree listing; the C file's presence, not its body, was read.",
+  "geopandas-geopandas-pr2353": "sjoin.py imports numpy, pandas and geopandas modules only; the spatial index is shapely's, a dependency. The tree is 83 py files, no compiled code of its own.",
+  "pyvista-pyvista-pr7714": "the filter calls VTK through pyvista.core._vtk_core, a dependency; the tree is 475 py files, no compiled code of its own.",
+  "shapely-shapely-pr1547": "Point.__new__ calls shapely.points, a ufunc of the C extension in src/ of this tree (src/lib.c, ufuncs.c).",
+  "scipy-scipy-pr26368": "BSpline.design_matrix calls _dierckx.data_matrix (line 451 of _bsplines.py), the C++ module of this tree.",
+  "unum-cloud-usearch-pr276": "workload calls usearch.index.search, which runs the pybind11 extension built from python/lib.cpp. Basis: the workload command and the tree listing (17 py, 13 cpp).",
+  "rapidsai-cugraph-pr3977": "judgement call: the loader's imports are cudf and cupy (dependencies), but the benchmark samples through cugraph, whose C++/CUDA is in this tree (263 cuda, 194 cpp). Basis: the workload command and the tree listing.",
+  "apache-hamilton-pr1629": "fingerprinting.py calls pandas.util.hash_pandas_object, a dependency; the tree holds no compiled code of its own.",
+  "man-group-arcticdb-pr3055": "workload reads a frame through arcticdb.Arctic, whose engine is the C++ of this tree (1281 cpp, 281 py). Basis: the workload command and the tree listing.",
+  "nvidia-transformerengine-pr3068": "the benchmark runs TransformerEngine's PyTorch modules, which call the C++/CUDA of this tree (399 py, 148 cuda, 69 cpp). Basis: the workload command and the tree listing.",
+  "flashinfer-ai-flashinfer-pr7130": "judgement call: the workload times the host-side wrapper (bench_cudnn_wrapper_host), which imports the cudnn package, a dependency, and torch; no code of this tree's CUDA runs on the path it times.",
+  "sgl-project-sglang-pr46500": "judgement call: lora_drainer.py is Python only, but the workload is a serving benchmark whose forward passes run the CUDA kernels of sgl-kernel in this tree (8322 py, 336 cuda)."
+ },
  "pool": [
   "alecthomas-chroma-pr351",
   "apache-arrow-rs-pr11143",
@@ -561,48 +642,49 @@
   "yarnpkg-berry-pr4813"
  ],
  "removed": {
-  "alecthomas-chroma-pr351": "not mixed: the change and the workload it names stay in Go",
-  "apache-couchdb-pr6046": "not mixed: the change and the workload it names stay in Erlang",
-  "callstack-agent-device-pr2505": "not mixed: the change and the workload it names stay in TypeScript (a PNG crop benchmark)",
-  "capsoftware-cap-pr2656": "not mixed: the change and the workload it names stay in Rust",
-  "cupy-cupy-pr8017": "not mixed: the change and the workload it names stay in Python (environment probing)",
-  "databendlabs-databend-pr20331": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
-  "dathere-qsv-pr3728": "not mixed: the change and the workload it names stay in Rust",
-  "delta-io-delta-rs-pr4635": "not mixed: the change and the workload it names stay in Rust",
-  "dgraph-io-ristretto-pr32": "not mixed: the change and the workload it names stay in Go",
-  "easytier-easytier-pr2397": "not mixed: the change and the workload it names stay in Rust",
-  "gitbutlerapp-gitbutler-pr13367": "not mixed: the change and the workload it names stay in Rust",
-  "go-gitea-gitea-pr38573": "not mixed: the change and the workload it names stay in Go",
-  "golang-jwt-jwt-pr33": "not mixed: the change and the workload it names stay in Go",
-  "google-jsonnet-pr1149": "not mixed: the change and the workload it names stay in Jsonnet (the standard library)",
-  "grafana-loki-pr23949": "not mixed: the change and the workload it names stay in Go",
-  "hashicorp-hcl-pr490": "not mixed: the change and the workload it names stay in Go",
-  "lance-format-lance-pr9409": "not mixed: the change and the workload it names stay in Rust",
-  "libvips-libvips-pr4974": "not mixed: the change and the workload it names stay in C (the vips command line)",
-  "lmcache-lmcache-pr3835": "not mixed: the change and the workload it names stay in Python (the workload needs a Linux NVMe device)",
-  "miniflux-v2-pr3701": "not mixed: the change and the workload it names stay in Go",
-  "mw00-project-maya-pr452": "not mixed: the change and the workload it names stay in C++ (a C++ benchmark binary)",
-  "nandhakishorm-laya-pr615": "not mixed: the change and the workload it names stay in Python (agent logic; the workload needs a model checkpoint)",
-  "nats-io-nats-go-pr2083": "not mixed: the change and the workload it names stay in Go",
-  "nautechsystems-nautilus-trader-pr4150": "not mixed: the change and the workload it names stay in Rust (cargo bench)",
-  "open-policy-agent-opa-pr8167": "not mixed: the change and the workload it names stay in Go",
-  "open-telemetry-opentelemetry-go-pr8740": "not mixed: the change and the workload it names stay in Go",
-  "oracle-graal-pr12814": "not mixed: the change and the workload it names stay in Java",
-  "osgeo-gdal-pr12442": "not mixed: the change and the workload it names stay in C and C++ (the gdal command line)",
-  "petercorke-robotics-toolbox-python-pr889": "not mixed: the change and the workload it names stay in Python (graph planners)",
-  "pinojs-pino-pr420": "not mixed: the change and the workload it names stay in JavaScript",
-  "plasma-umass-scalene-pr682": "not mixed: the change and the workload it names stay in Python (sparkline text)",
-  "pulumi-pulumi-pr21176": "not mixed: the change and the workload it names stay in Go",
-  "python-pendulum-pendulum-pr172": "not mixed: the change and the workload it names stay in Python (pre-Rust Pendulum)",
-  "rasterio-rasterio-pr2716": "not mixed: the change and the workload it names stay in Python (dtype helpers)",
-  "runatlantis-atlantis-pr2907": "not mixed: the change and the workload it names stay in Go",
-  "scikit-image-scikit-image-pr6441": "not mixed: the change and the workload it names stay in Python and NumPy",
-  "screenpipe-screenpipe-pr6254": "not mixed: the change and the workload it names stay in Rust",
-  "tencent-weknora-pr4094": "not mixed: the change and the workload it names stay in Go",
-  "vllm-project-semantic-router-pr3774": "not mixed: the change and the workload it names stay in Go",
-  "vllm-project-vllm-pr60753": "not mixed: the change and the workload it names stay in Python (a GPU kernel benchmark)",
-  "xtensor-stack-xtensor-pr2088": "not mixed: the change and the workload it names stay in C++ (a header-only library)",
-  "yarnpkg-berry-pr4813": "not mixed: the change and the workload it names stay in JavaScript and TypeScript (node is the runtime)"
+  "alecthomas-chroma-pr351": "not mixed: the workload (`go test -bench BenchmarkGet -run BenchmarkGet -v`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 259, 'py': 3, 'js': 1}; no source was read.",
+  "apache-couchdb-pr6046": "not mixed: judgement call: the Python script is a benchmark client driving a running server over HTTP; the code the product path runs is Erlang. The script is not in the task tree.",
+  "apache-hamilton-pr1629": "not mixed: fingerprinting.py calls pandas.util.hash_pandas_object, a dependency; the tree holds no compiled code of its own.",
+  "callstack-agent-device-pr2505": "not mixed: the workload (`pnpm bench:png-crop -- --rounds 5 --file ./real-capture.png`) enters through TypeScript; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 3662, 'js': 32, 'java': 18, 'c': 8, 'kotlin': 8, 'py': 1}; no source was read.",
+  "capsoftware-cap-pr2656": "not mixed: the workload (`cargo bench -p cap-gpui-kernels --bench screenshot_blit`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 2196, 'rust': 908, 'js': 98, 'py': 45, 'c': 36}; no source was read.",
+  "cupy-cupy-pr8017": "not mixed: judgement call: _environment.py imports cupy_backends' runtime, but the timed function inspects installed packages with importlib.metadata and calls no compiled code of the tree.",
+  "databendlabs-databend-pr20331": "not mixed: the workload (`cargo bench -p databend-common-functions --bench flight_scatter_hash`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 3833, 'py': 162, 'js': 9, 'c': 4, 'java': 1}; no source was read.",
+  "dathere-qsv-pr3728": "not mixed: the workload (`hyperfine, 10 runs, warmup 3, M4 Max 16 cores, 1M-row \u00d7 41-col NYC 311`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 169, 'ts': 57, 'js': 7, 'py': 2}; no source was read.",
+  "delta-io-delta-rs-pr4635": "not mixed: the workload (`cargo bench -p delta-benchmarks --bench vacuum -- --fixture ./crates/b`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 254, 'py': 75, 'js': 1}; no source was read.",
+  "dgraph-io-ristretto-pr32": "not mixed: the workload (`go test -count=1 -cpu=4,8,16,32,64 -v -bench=BenchmarkCaches`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 23}; no source was read.",
+  "easytier-easytier-pr2397": "not mixed: the workload (`cargo bench --bench tx_throughput`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 334, 'ts': 34, 'js': 16, 'kotlin': 13, 'go': 4, 'c': 2}; no source was read.",
+  "flashinfer-ai-flashinfer-pr7130": "not mixed: judgement call: the workload times the host-side wrapper (bench_cudnn_wrapper_host), which imports the cudnn package, a dependency, and torch; no code of this tree's CUDA runs on the path it times.",
+  "geopandas-geopandas-pr2353": "not mixed: sjoin.py imports numpy, pandas and geopandas modules only; the spatial index is shapely's, a dependency. The tree is 83 py files, no compiled code of its own.",
+  "gitbutlerapp-gitbutler-pr13367": "not mixed: the workload (`hyperfine --warmup 2 \"./target/release/but -C /Users/davidpdrsn/code/o`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 905, 'ts': 615, 'js': 16}; no source was read.",
+  "go-gitea-gitea-pr38573": "not mixed: the workload (`go test -bench=. -benchmem ./modules/emoji/...`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2987, 'ts': 252, 'js': 4}; no source was read.",
+  "golang-jwt-jwt-pr33": "not mixed: the workload (`go test --bench=Bench --run=NONE .`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 34}; no source was read.",
+  "grafana-loki-pr23949": "not mixed: the workload (`go test ./pkg/pattern/drain/ -run '^$' -bench 'BenchmarkPrefixTreeChil`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 14018, 'c': 19, 'js': 5, 'py': 3, 'cpp': 1}; no source was read.",
+  "hashicorp-hcl-pr490": "not mixed: the workload (`go test -benchmem -bench=. -benchtime=200000x -count=10 -memprofile=me`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 186, 'py': 1}; no source was read.",
+  "lance-format-lance-pr9409": "not mixed: the workload (`cargo bench -p lance --bench cdf --profile release-with-debug`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 979, 'py': 235, 'java': 226, 'c': 4, 'js': 1, 'cpp': 1}; no source was read.",
+  "libvips-libvips-pr4974": "not mixed: C only (the vips command line); C and C++ count as one language family.",
+  "miniflux-v2-pr3701": "not mixed: the workload (`go test -bench=. -count=25 > old.txt`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 379, 'js': 7, 'py': 1}; no source was read.",
+  "mw00-project-maya-pr452": "not mixed: the workload is a C++ benchmark binary.",
+  "nandhakishorm-laya-pr615": "not mixed: agent.py imports torch, transformers and safetensors, dependencies; the tree has no compiled code of its own.",
+  "nats-io-nats-go-pr2083": "not mixed: the workload (`go test -bench=. -benchmem -run=xxx`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 108}; no source was read.",
+  "nautechsystems-nautilus-trader-pr4150": "not mixed: the workload (`cargo bench -p nautilus-common --bench logging --no-run`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'rust': 2264, 'py': 1209, 'cython': 243, 'c': 4}; no source was read.",
+  "open-policy-agent-opa-pr8167": "not mixed: the workload (`go test -bench=\"BenchmarkSetIntersection\" -benchmem -run=^$ -count=10 `) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 959, 'c': 128, 'js': 55, 'cpp': 27, 'ts': 3, 'py': 1}; no source was read.",
+  "open-telemetry-opentelemetry-go-pr8740": "not mixed: the workload (`go test -run='xxxxMatchNothingxxxx' -bench='FromHex' -benchmem -count=`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 1278}; no source was read.",
+  "oracle-graal-pr12814": "not mixed: the native-image driver is Java.",
+  "osgeo-gdal-pr12442": "not mixed: the gdal command line runs C and C++, one language family.",
+  "petercorke-robotics-toolbox-python-pr889": "not mixed: the planners import numpy, pgraph and spatialmath only; the tree's compiled code is not on the planners' path.",
+  "pinojs-pino-pr420": "not mixed: the workload (`node benchmarks/redact.bench`) enters through JavaScript; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'js': 52}; no source was read.",
+  "plasma-umass-scalene-pr682": "not mixed: sparkline.py imports os and typing only.",
+  "pulumi-pulumi-pr21176": "not mixed: judgement call: the workload is the Go command line; the language of the program it deploys is not stated, so the second language stays unknown.",
+  "python-pendulum-pendulum-pr172": "not mixed: the tree at this commit is pure Python (178 py, 1 c).",
+  "pyvista-pyvista-pr7714": "not mixed: the filter calls VTK through pyvista.core._vtk_core, a dependency; the tree is 475 py files, no compiled code of its own.",
+  "rasterio-rasterio-pr2716": "not mixed: judgement call: dtypes.py imports rasterio.env at load, but the timed get_minimum_dtype is NumPy code that calls no compiled module of the tree.",
+  "runatlantis-atlantis-pr2907": "not mixed: the workload (`go test -bench=. ./server/events/command`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 427, 'js': 6}; no source was read.",
+  "scikit-image-scikit-image-pr6441": "not mixed: judgement call: corner.py imports Cython modules of this tree, but the workload calls _symmetric_compute_eigenvalues, a NumPy function that calls none of them.",
+  "screenpipe-screenpipe-pr6254": "not mixed: the workload (`cargo bench -p screenpipe-screen --bench frame_comparison_bench -- ind`) enters through Rust; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 1352, 'rust': 948, 'js': 77, 'c': 5, 'py': 5}; no source was read.",
+  "tencent-weknora-pr4094": "not mixed: the workload (`go test ./internal/reranking -run TestSelectMMR -bench '^BenchmarkSele`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2857, 'ts': 480, 'py': 109, 'js': 103, 'rust': 4, 'c': 1}; no source was read.",
+  "vllm-project-semantic-router-pr3774": "not mixed: the workload (`go test -run NONE -bench BenchmarkCacheSearch_1000Entries -benchtime 1`) enters through Go; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'go': 2945, 'ts': 963, 'py': 956, 'rust': 182, 'js': 24, 'c': 11}; no source was read.",
+  "xtensor-stack-xtensor-pr2088": "not mixed: the workload times numpy.histogram, a dependency; the C++ of this header-only tree is not on that path.",
+  "yarnpkg-berry-pr4813": "not mixed: the workload (`hyperfine \"node -r ./.pnp-before.cjs -e 1\" \"node -r ./.pnp-after.cjs -`) enters through a native command line; the project's own path stays in that language. Basis: the workload command and the task tree's listing by extension {'ts': 423, 'js': 385, 'c': 2}; no source was read."
  },
  "skipped": {
   "apache-arrow-rs-pr11143": "named in eval/skill/tasks-heldout-discovery.json",
@@ -786,12 +868,16 @@
    "key": "25e6898a2e56a09fa6d9740307b0d6978b66c23072d5147850a2351942487eb9"
   },
   {
-   "id": "pyvista-pyvista-pr7714",
-   "key": "3af5ec2735e8a58b726ae2b24afe7cbf2ac895b4e00aff9402ae1a3d60bdabed"
+   "id": "google-jsonnet-pr1149",
+   "key": "33cfb6273e61157955bebf2dedc1f6e3410dee8d4c7a1fd5f5ee3850ce81bc81"
   },
   {
-   "id": "apache-hamilton-pr1629",
-   "key": "42b1cc4e22c50baca55d8abbe08e32150513710cd0987e833d85d7499ff82f8a"
+   "id": "vllm-project-vllm-pr60753",
+   "key": "3b2b52c524e9858563995f86a622ae7c1c6ddf4d61e4b421f471be72fe48f8a8"
+  },
+  {
+   "id": "lmcache-lmcache-pr3835",
+   "key": "4986fdf4341265c763c5be42e4183f82746386908f55f5e2314c3e99b9de87b5"
   },
   {
    "id": "scipy-scipy-pr26368",
@@ -802,20 +888,12 @@
    "key": "5aaa6a821a7016787337d4f965066ac0d08b93249e1615516684d85f6cfa78c7"
   },
   {
-   "id": "flashinfer-ai-flashinfer-pr7130",
-   "key": "91d21e46e5ac0bd7663cf2eb9ed2809c035874ca58316fc2f2017c64b89e425f"
-  },
-  {
    "id": "nvidia-transformerengine-pr3068",
    "key": "a1eb33d9d1dd24aae5f98c5b9d1f2d07ced8a94604275becd765d2123babf9d8"
   },
   {
    "id": "msgspec-msgspec-pr237",
    "key": "c0fd0c9604332ea7348c8953a9e304469cc1935159b4a2d4963e7b0ac7eeade9"
-  },
-  {
-   "id": "geopandas-geopandas-pr2353",
-   "key": "ea298090f024dd39191c710807c831de72f4b18c31f83e6e0d400be52209214d"
   },
   {
    "id": "rapidsai-cugraph-pr3977",
@@ -842,16 +920,22 @@
    "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
   },
   {
-   "id": "pyvista-pyvista-pr7714",
-   "language": "Python",
+   "id": "google-jsonnet-pr1149",
+   "language": "unknown",
    "outcome": "taken",
    "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
   },
   {
-   "id": "apache-hamilton-pr1629",
+   "id": "vllm-project-vllm-pr60753",
    "language": "Python",
-   "outcome": "taken",
-   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
+   "outcome": "passed",
+   "reason": "did not build: not run: the workload serves a model on an AMD or NVIDIA GPU, and this Mac has none"
+  },
+  {
+   "id": "lmcache-lmcache-pr3835",
+   "language": "Python",
+   "outcome": "passed",
+   "reason": "did not build: not run: the workload needs a Linux block device and io_uring, which this Mac does not have"
   },
   {
    "id": "scipy-scipy-pr26368",
@@ -866,12 +950,6 @@
    "reason": "did not build: not run: the workload serves a model on an NVIDIA GPU, and this Mac has none"
   },
   {
-   "id": "flashinfer-ai-flashinfer-pr7130",
-   "language": "Python",
-   "outcome": "passed",
-   "reason": "did not build: not run: the workload builds cuDNN plans and needs an NVIDIA GPU, and this Mac has none"
-  },
-  {
    "id": "nvidia-transformerengine-pr3068",
    "language": "CUDA",
    "outcome": "passed",
@@ -884,12 +962,6 @@
    "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
   },
   {
-   "id": "geopandas-geopandas-pr2353",
-   "language": "Python",
-   "outcome": "taken",
-   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
-  },
-  {
    "id": "rapidsai-cugraph-pr3977",
    "language": "Python",
    "outcome": "passed",
@@ -898,20 +970,19 @@
  ],
  "picks": [
   "shapely-shapely-pr1547",
-  "pyvista-pyvista-pr7714",
-  "apache-hamilton-pr1629",
+  "google-jsonnet-pr1149",
   "scipy-scipy-pr26368",
-  "msgspec-msgspec-pr237",
-  "geopandas-geopandas-pr2353"
+  "msgspec-msgspec-pr237"
  ],
  "mix": {
-  "picks": 6,
+  "picks": 4,
   "languages": {
-   "Python": 5,
+   "Python": 2,
+   "unknown": 1,
    "C/C++": 1
   },
   "layers": {
-   "upper": 5,
+   "upper": 3,
    "lower": 1
   }
  },

@@ -46,36 +46,36 @@
   "runs": [
     {
       "step": "setup",
+      "tree": "task",
       "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2024-03-29 pytest numpy pandas shapely pyproj pyogrio packaging; uv pip install --exclude-newer 2024-03-29 --no-deps -e .",
       "exit_code": 0,
       "duration_s": 45.2,
-      "output_tail": "",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
     },
     {
       "step": "oracle",
+      "tree": "task",
       "command": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
     },
     {
       "step": "workload",
+      "tree": "task",
       "command": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "0.3792869580011029",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.3792869580011029"
     }
   ],
-  "split": "held-out",
+  "split": "development-candidate",
   "mined_at": "2026-10-30T17:55:30+00:00",
   "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
 }

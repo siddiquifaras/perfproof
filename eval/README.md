@@ -681,7 +681,7 @@ recipe is one and the same for every candidate:
    it does not name.
 
 Every candidate's setup check was redone in hash order after the recipe
-existed (`scratch/sbcheck.py`, not committed: it stages the harness
+existed (`mine/sbcheck.py`: it stages the harness
 bundle as `skill_eval.py run` does and calls `runner.build_real_repo` in
 the guest, with no model call).
 

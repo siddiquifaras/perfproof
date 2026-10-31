@@ -1406,30 +1406,6 @@
     "oracle_source": "msgspec's Struct tests, for the module https://github.com/jcrist/msgspec/pull/237 changes (it changes no test file); targeted tests only",
     "notes": "Python 3.11 (3.12 did not exist at the merge); the C extension is built by the editable install"
   },
-  "pyvista-pyvista-pr7714": {
-    "setup": [
-      "uv venv --python 3.12 .venv",
-      "uv pip install --exclude-newer 2026-04-27 pytest pytest-cases pytest-mock pytest-pyvista==0.3.3 hypothesis scipy pandas imageio meshio trimesh cmcrameri colorcet cmocean pyvista-zstd",
-      "uv pip install --exclude-newer 2026-04-27 -e ."
-    ],
-    "workload": "python -I -c \"import timeit, numpy as np, pyvista as pv; img = pv.ImageData(dimensions=(300, 300, 100)); img.point_data['v'] = (np.random.default_rng(0).random(img.n_points) * 400 - 100).astype(np.float32); f = lambda: img.select_values(ranges=[150, float('inf')], fill_value=-1000); print(min(timeit.repeat(f, number=1, repeat=5)))\"",
-    "workload_source": "written here from the description of https://github.com/pyvista/pyvista/pull/7714 (select_values on a large image with a half-open range and a fill value): a 300x300x100 float32 image",
-    "oracle": ".venv/bin/pytest -q tests/core/test_imagedata_filters.py -k select_values",
-    "oracle_source": "pyvista's image filter tests for select_values, in the file https://github.com/pyvista/pyvista/pull/7714 edits; targeted tests only",
-    "notes": "Python 3.12; test-only dependencies are installed by name, because the dependency group names packages that have no wheel here"
-  },
-  "apache-hamilton-pr1629": {
-    "setup": [
-      "uv venv --python 3.12 .venv",
-      "uv pip install --exclude-newer 2026-06-11 pytest numpy pandas polars pyarrow",
-      "uv pip install --exclude-newer 2026-06-11 -e ."
-    ],
-    "workload": "python -I -c \"import timeit, numpy as np, pandas as pd; from hamilton.caching import fingerprinting as fp; rng = np.random.default_rng(0); df = pd.DataFrame({c: rng.random(20000) for c in 'abcde'}); f = lambda: fp.hash_value(df); print(min(timeit.repeat(f, number=3, repeat=3)))\"",
-    "workload_source": "written here from the description of https://github.com/apache/hamilton/pull/1629 (fingerprinting of DataFrames for the cache): a pandas frame of 20000 rows and 5 float columns",
-    "oracle": ".venv/bin/pytest -q -p no:cacheprovider tests/caching/test_fingerprinting.py",
-    "oracle_source": "Hamilton's fingerprinting tests, which https://github.com/apache/hamilton/pull/1629 edits; targeted tests only",
-    "notes": "Python 3.12"
-  },
   "scipy-scipy-pr26368": {
     "setup": [
       "uv venv --python 3.12 .venv",
@@ -1451,18 +1427,6 @@
     ],
     "notes": "scipy is built from source by the editable install; the build needs a BLAS and a compiler toolchain"
   },
-  "geopandas-geopandas-pr2353": {
-    "setup": [
-      "uv venv --python 3.12 .venv",
-      "uv pip install --exclude-newer 2024-03-29 pytest numpy pandas shapely pyproj pyogrio packaging",
-      "uv pip install --exclude-newer 2024-03-29 --no-deps -e ."
-    ],
-    "workload": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
-    "workload_source": "written here from the description of https://github.com/geopandas/geopandas/pull/2353 (point-in-polygon spatial join): 1000000 points joined to 10000 square polygons, each with attribute columns",
-    "oracle": ".venv/bin/pytest -q -p no:cacheprovider geopandas/tools/tests/test_sjoin.py",
-    "oracle_source": "geopandas's spatial join tests, which https://github.com/geopandas/geopandas/pull/2353 edits; targeted tests only",
-    "notes": "Python 3.12; dependency versions are those of the day after the merge"
-  },
   "shapely-shapely-pr1547": {
     "env": {
       "GEOS_CONFIG": "/Users/ppeval/.local/share/uv/conda-forge/bin/geos-config",
@@ -1479,5 +1443,15 @@
     "oracle": ".venv/bin/pytest -q -p no:cacheprovider shapely/tests/geometry/test_point.py",
     "oracle_source": "shapely's Point tests, for the module https://github.com/shapely/shapely/pull/1547 changes (it changes no test file); targeted tests only",
     "notes": "Python 3.10; the C extension links against GEOS from the eval user's conda-forge environment (amendment of docs/evaluation.md; recipe in eval/README.md); legacy editable install, as the 2022 setup.py needs"
+  },
+  "google-jsonnet-pr1149": {
+    "setup": [
+      "make -j4 jsonnet jsonnetfmt libjsonnet.so"
+    ],
+    "workload": "./jsonnet -e \"std.escapeStringDollars(std.join('$', std.makeArray(20000, function(i) std.toString(i))))\"",
+    "workload_source": "written here from the description of https://github.com/google/jsonnet/pull/1149 (std.escapeStringDollars on a string with many dollar signs, run through the command line): a string of 20000 numbers joined by dollar signs",
+    "oracle": "make test",
+    "oracle_source": "jsonnet's own test target (the command-line, library and snippet tests); the whole target, since the standard library is checked by all of them",
+    "notes": "built with the Makefile and Apple clang; the standard library is compiled into the binary by the build"
   }
 }

@@ -43,36 +43,36 @@
   "runs": [
     {
       "step": "setup",
+      "tree": "task",
       "command": "uv venv --python 3.12 .venv; uv pip install --exclude-newer 2026-06-11 pytest numpy pandas polars pyarrow; uv pip install --exclude-newer 2026-06-11 -e .",
       "exit_code": 0,
       "duration_s": 40.0,
-      "output_tail": "",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
     },
     {
       "step": "oracle",
+      "tree": "task",
       "command": ".venv/bin/pytest -q -p no:cacheprovider tests/caching/test_fingerprinting.py",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": ""
     },
     {
       "step": "workload",
+      "tree": "task",
       "command": "python -I -c \"import timeit, numpy as np, pandas as pd; from hamilton.caching import fingerprinting as fp; rng = np.random.default_rng(0); df = pd.DataFrame({c: rng.random(20000) for c in 'abcde'}); f = lambda: fp.hash_value(df); print(min(timeit.repeat(f, number=3, repeat=3)))\"",
       "exit_code": 0,
       "duration_s": null,
-      "output_tail": "0.09179395799947088",
-      "tree": "task",
       "date": "2026-10-31",
-      "machine": "eval user sandboxed guest, macOS arm64"
+      "machine": "eval user sandboxed guest, macOS arm64",
+      "output_tail": "0.09179395799947088"
     }
   ],
-  "split": "held-out",
+  "split": "development-candidate",
   "mined_at": "2026-10-30T21:14:45+00:00",
   "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed-2.json; mine._select and mine._pr_task, hidden-fix specs only"
 }

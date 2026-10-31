@@ -273,6 +273,13 @@ reasons given. It was made before any new setup check or mining round.
   was stopped partway (280 of its 1,366 repositories searched, none
   viewed) and nothing from it was kept. No task outcome had been seen.
   The draw is final.
+- **Order of commits.** Seed lists 1 and 2 were committed together with
+  their mined output, so the history cannot show that they came first;
+  lists 3, 4 and 5 were committed before they were searched. The mixed
+  readings of the candidates were redone on 2026-11-01 by one written
+  criterion (the docstring of `eval/mine/draw_mixed_heldout.py`), from
+  the task tree and the workload only, before any run; the picks changed
+  with them.
 
 ## What we publish
 
