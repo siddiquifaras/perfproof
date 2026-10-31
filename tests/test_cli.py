@@ -24,6 +24,7 @@ BUILT = (
     "cancel",
     "compare",
     "doctor",
+    "find",
     "init",
     "install-skills",
     "log",

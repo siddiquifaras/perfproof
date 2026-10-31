@@ -406,7 +406,9 @@ def _blockers(record: RunRecord) -> list[str]:
             )
     for warning in record.warnings:
         text = _WARNING_BLOCKERS.get(warning.code)
-        if text is not None:
+        if warning.code == "workload_not_confirmed":
+            lines.append(f"{_text(warning.message)} (`{warning.code}`)")
+        elif text is not None:
             lines.append(f"{text} (`{warning.code}`).")
     return lines
 

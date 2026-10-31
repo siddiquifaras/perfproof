@@ -20,6 +20,9 @@ Understand
                    entries; check which entries are stale
 
 Discover
+  find             Run the mechanical discovery steps: tooling, test and
+                   workload probes, a map, leads, one question and the
+                   next steps
   profile          Run a profiler on a workload and summarise the top
                    frames with file:line and share of time
   measure          Measure one version: scaling runs (--sizes), a stage
@@ -331,6 +334,83 @@ files' suffixes alone.
 Errors: `not_a_repository`, `invalid_name`, `not_found` (no readable
 saved profile) and `state_read_failed`.
 
+## `perfproof find`
+
+```
+perfproof find [--depth light|medium|deep] [--budget SECONDS]
+               [--size-arg WORKLOAD:FLAG=BASE | --size-env WORKLOAD:NAME=BASE]...
+               [--no-tests] [--test-timeout SECONDS] [--confirm-tests PART]...
+               [--test-command PART=JSON]...
+               [--waive CODE=REASON]... [--json]
+```
+
+Runs the mechanical discovery steps and says where they stand. The design
+is `docs/find.md`; this is the interface. Each call advances one plan as
+far as the budget allows; calling it again resumes from
+`.perfproof/find/state.json` (written to a temporary file and renamed).
+`find` writes only under `.perfproof/`, apart from what the profiled
+commands themselves do.
+
+- `--depth` (default `medium`) sets the probes: light runs none; medium
+  and deep run each part's test command, its existing benchmarks and every
+  user workload; the native recorder runs on parts with native code (at
+  medium also when a leaf frame reaches `min_effect`).
+- `--budget` is wall-clock seconds for probes in this call (300 light,
+  900 medium, 2400 deep). A probe's time limit, per run, is the smaller
+  of what is left and its own (`--test-timeout`, 300 s by default, for
+  tests; 300 s for benchmarks; the spec's for a workload). `profile` runs
+  the command twice, so a probe can take up to twice that. A probe the
+  budget ended is not recorded and stays pending.
+- `--size-arg` / `--size-env` store the size knob of a defined workload
+  (`not_found` when it is not defined). A workload with a knob is
+  profiled with `--sizes 1,2,4` under the key `<name>@sizes`.
+- `--test-command PART=JSON` gives a part's test command as a JSON array
+  of strings when none was detected; it is kept in
+  `.perfproof/find/test-commands.json` and is still run only after
+  `--confirm-tests` for that argv.
+- `--confirm-tests PART` records the user's yes to that part's test
+  command, with the argv. Tests run only after it, and a changed argv
+  needs a new confirmation. `--no-tests` runs none.
+- `--waive CODE=REASON` records why `define_workloads`, `add_size_knob`
+  or `reach_lead` cannot be met; `done` accepts it.
+
+`find` runs `init` when there is no project model, otherwise its stale
+check. `--json` result: the `FindResult` of `docs/find.md`: `done`,
+`depth`, `parts`, `question`, `next_steps`, `map`, `leads`,
+`not_reached`, `skipped` and `budget`, plus `profilers`, each part's
+`--profiler-command` template (an empty list: the default profiler).
+
+- **Probes**, in order: the tests of each part (`find-tests-<part>`),
+  then its native re-profile (`@native`); the existing benchmarks
+  (`find-bench-<part>-<name>`); then every user workload. A probe is
+  current when its spec hash and the `tree_id` match; a stale probe's
+  old runs are deleted before it runs again. A failed or timed-out probe
+  leaves no profile; it is in `skipped` with the reason and the log tail.
+- **Tree check**: `git status --porcelain` before and after every probe.
+  Entries the probe added make it `tree_modified` (reason
+  `tests_modified_tree: <paths>`), its profile is deleted, and it never
+  runs again; the other probes go on.
+- **Map**: `profile show --rank` over the user workloads' names (none:
+  `map` is empty). At most 50 rows; wrappers (such as `main`) are left
+  out. **Leads**: functions the `find-*` probes reached that no user
+  workload did, test files excluded, at most 20, then files the probes
+  sampled that no user workload did. `via_test` is
+  `<file>::<function>` of the heaviest test frame above the lead.
+  `not_reached` is the files no saved profile sampled.
+- **`question`**: confirm each unconfirmed class, each test command, and
+  install each missing coverage tool that could lead to a KEEP.
+- **`next_steps`**, in order: `install_or_confirm`, `define_workloads`,
+  `add_size_knob`, `reach_lead`, `continue_find`. `reach_lead` is advice:
+  `done` does not wait for it.
+- **`done`** is true when the depth's probes are done or waived (by
+  `no_tests`, `recorder_unavailable`, `tests_modified_tree`, `timeout`
+  or `failed`), the workload and size-knob asks are met or waived with
+  `--waive`, and no question or pending probe is left.
+
+`compare` refuses a `find-*` spec with `find_spec_not_comparable`.
+Exit status is 0 whether or not `done`; errors are in the error-code
+table below.
+
 ## Long runs
 
 `compare` runs in the foreground by default. When a comparison may
@@ -430,7 +510,7 @@ verdict. A `timed_out` run can't be resumed.
 | `verdict` | object | The record's verdict: `outcome`, `reason`, `rule`, `gate`, `estimate`, `interval`, `rounds`, `looks`, `procedure`, `diagnostics` and the rest |
 | `gates` | array | `{"gate", "status"}` in the record's order |
 | `warnings` | array | `{"code", "message"}` for every warning in the record |
-| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown`, `schedule_uncalibrated`, `schedule_not_class_own`, `metric_not_calibrated`, `target_class_unknown` and `target_class_unverified`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
+| `not_verified` | array | What withholds a KEEP, in plain terms for the skill: gates `not_available` with their reasons, guardrails `not_declared`, `unmeasurable` or `not_established`, and the warnings `counter_unavailable`, `resolution_unknown`, `schedule_uncalibrated`, `schedule_not_class_own`, `metric_not_calibrated`, `target_class_unknown`, `target_class_unverified` and `workload_not_confirmed`. Each is `{"kind", "name", "status", "reason"}`; empty when nothing was left unverified |
 | `measured_metric` | object or null | The metric actually measured when it is not the spec's: a `counter` that fell back to wall time in seconds. Null otherwise |
 
 `verdict.calibration` is `calibrated` exactly when all of these hold: the
@@ -457,6 +537,45 @@ runtime, on a primary metric that is not `wall`),
 class) or `schedule_uncalibrated` (`alpha` or schedule outside the domain,
 including `gpu_kernel`). A REJECT on evidence is decided the same
 either way. "The calibrated domain" in `method.md` has the rule.
+
+A KEEP also needs the benchmark's workload confirmed in the project
+model: a workload named like the spec, with its target, goal and every
+constraint `confirmed` and unchanged, on this machine, frozen at this
+spec's hash. `compare` always measures; when that does not hold it
+withholds the KEEP (INCONCLUSIVE, `insufficient_evidence`) with the
+warning `workload_not_confirmed`, whose message lists each problem. It
+does not change `calibration`. It changes nothing but a final KEEP: every
+other verdict, the stopping round, the estimate and the interval are
+those of a confirmed workload. Three more
+checks are part of "confirmed":
+
+- **Goal agreement.** The confirmed goal's metric name, direction and
+  unit must equal the spec's (`objective`, or `wall_time` or `cpu_time`
+  for a `wall` or `cpu` metric with none; `metric.direction`;
+  `metric.unit`). Each that differs is named.
+- **Spec binding.** The workload must be bound to a spec
+  (`spec_hash`), and to this one. `project confirm` binds a confirmed
+  workload to the stored spec of its name (`add-workload` binds it at
+  registration), so after `bench define` run `project confirm ID
+  [--spec-hash HASH]` again, even for a confirmed workload. A workload
+  confirmed before its benchmark existed withholds the KEEP
+  ("confirmed before its benchmark was defined: confirm again with
+  `perfproof project confirm ID [--spec-hash HASH]`"), as does a bound
+  hash that differs from the spec's. A benchmark with several stored
+  specs needs `--spec-hash`: without it `project confirm` refuses
+  (`ambiguous_hash`, listing the hashes) and writes nothing. A
+  benchmark with no stored spec has nothing to bind.
+  `project confirm ID --spec-hash B` for a workload already bound to
+  another spec A refuses with `spec_already_bound` (naming A and B) and
+  writes nothing; the remedy is `project add-workload NAME --target ID
+  --spec-hash B --replace`, then `confirm`. The same hash is a quiet
+  success.
+- **Class link.** The spec's `target_class` must equal the class of the
+  confirmed workload's target; the warning names both.
+
+Fix it with
+`project add-workload`, `project confirm` and `project goal --confirm`
+(below), then define the spec again if it changed.
 
 `verdict.procedure` names the interval procedure that decided:
 `hac_lf` or `t_log_ratio_batch_means`. `compare` picks it from the
@@ -551,6 +670,12 @@ the run was cancelled. For a run that had already `timed_out` or
 | `invalid_record` | `status` | The record of a `finished` run does not read back |
 | `invalid_record` | `compare` | The spec directory can't be read or a spec does not load, foreground or `--detach` |
 | `ambiguous_hash` | `compare` | More than one spec of the benchmark matches |
+| `find_spec_not_comparable` | `compare` | The name starts with `find-`: a probe spec of `perfproof find`, profile-only |
+| `unknown_part` | `find` | `--confirm-tests` or `--test-command` names no part |
+| `no_test_command` | `find` | `--confirm-tests` names a part with no test command |
+| `not_found` | `find` | `--size-arg` or `--size-env` names a workload that is not defined |
+| `tree_check_failed` | `find` | The version control state could not be read for `tree_id` or the before/after status |
+| `state_read_failed`, `state_write_failed` | `find` | `.perfproof/find/state.json` cannot be read, is not a valid state, or cannot be written |
 | `invalid_revision` | `compare` | A revision names no commit, or a worktree can't be made |
 | `already_finished` | `cancel` | The run has a record |
 | `cancel_incomplete` | `cancel` | A process of the run survived SIGKILL (`details.pids`), or the marker or process table could not be written or read |
@@ -690,6 +815,32 @@ on a `wall` primary metric only (another kind withholds a KEEP with
 (owner's decision of 2026-10-29, "Which traces are in which class" in
 `method.md`). A Go, .NET or Ruby library that is not a web service gets
 no class, so a KEEP there is not calibrated.
+
+## `project add-workload`
+
+```
+perfproof project add-workload NAME --target TARGET_ID
+    [--evidence TEXT] [--spec-hash HASH] [--replace] --json
+```
+
+Registers a benchmark the agent wrote (`bench define NAME`) as a
+workload in the project model, so the developer can confirm it. The
+entry is `proposed`, `source` `agent_defined`, its `command`, `cwd` and
+`spec_hash` come from the stored spec, and `TARGET_ID` is a live target
+(`not_found` or `retired_entry` otherwise). `--evidence` is recorded in
+the history line's note (default: "defined by the agent from spec ... of
+NAME"). `--spec-hash` picks a version when the benchmark has several.
+The same spec for the same target again changes nothing. Another spec or
+target under an existing name, or a retired workload, is refused with
+`duplicate` unless `--replace` is given; a replacement is a new version
+that makes a confirmed goal of the workload stale. Then
+`project confirm TARGET_ID NAME` and `project goal NAME --metric ...
+--confirm` work as for a workload `init` found. The result is that of
+`project confirm`: `{"action", "records", "entries"}`.
+
+A workload the agent added has no recorded files, so only the spec hash
+guards it: define a changed spec and `compare` withholds the KEEP until
+`add-workload --replace` and a new confirmation.
 
 ## A session
 

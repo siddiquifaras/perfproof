@@ -188,6 +188,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final, cast
 
 import numpy as np
@@ -239,7 +240,8 @@ from perfproof.bench.tree_setup import (
     run_setup,
 )
 from perfproof.machine import fingerprint, machine_warnings
-from perfproof.project.errors import ProjectError
+from perfproof.project.errors import NotConfirmedError, ProjectError
+from perfproof.project.guard import require_confirmed
 from perfproof.project.staleness import find_stale
 from perfproof.project.store import load_model
 from perfproof.report import write
@@ -253,6 +255,7 @@ from perfproof.schema import (
     Difference,
     GateName,
     GateResult,
+    GoalEntry,
     GuardrailResult,
     GuardrailSpec,
     Interval,
@@ -516,7 +519,12 @@ def compare(
         (``.perfproof/project.json``) must hold a ``confirmed`` target
         of the spec's ``target_class`` for a verdict to be calibrated.
         ``None``, no model, or an unreadable one fails closed: a KEEP
-        is withheld with ``target_class_unverified``.
+        is withheld with ``target_class_unverified``. It must also hold
+        the benchmark's workload (the spec's name) confirmed, with its
+        goal and every constraint, unchanged on disk, on this machine
+        and with this spec (`require_confirmed`), or a KEEP is
+        withheld with ``workload_not_confirmed``; the comparison is
+        measured either way.
     journal : perfproof.bench.journal.Journal, optional
         Where a detached run keeps its progress; each completed round
         is appended to it. ``run_dir`` may then exist already.
@@ -588,6 +596,7 @@ def compare(
     run.order_seed = order_seed
     run.harness_root = harness_root
     run.class_problem = _class_problem(spec, project_root)
+    run.workload_problem = _workload_problem(spec, project_root)
     run.wall_step = _wall_step()
     run.deadline = deadline
     return run.execute()
@@ -622,6 +631,7 @@ class _Run:
         # Fail closed: a class not confirmed by the project model
         # never makes a verdict calibrated.
         self.class_problem: str | None = "the project model was not read"
+        self.workload_problem: str | None = "the project model was not read"
         self.wall_step = 0.0
         self.gates: dict[GateName, GateResult] = {}
         self.warnings: list[RunWarning] = list(machine_warnings(machine))
@@ -701,6 +711,7 @@ class _Run:
             )
         )
         self._warn_calibration()
+        self._warn_workload()
         self.gates["runtime"] = self._test_launcher(
             runtime_gate(
                 spec,
@@ -884,6 +895,27 @@ class _Run:
         if blocker is not None:
             self.warnings.append(
                 RunWarning(code=blocker[0], message=blocker[1])
+            )
+
+    def _warn_workload(self) -> None:
+        """Record why the workload is not confirmed, once.
+
+        A KEEP stands only on a workload the developer confirmed; the
+        comparison is measured regardless (`_workload_problem`).
+        """
+        if self.workload_problem is not None:
+            self.warnings.append(
+                RunWarning(
+                    code="workload_not_confirmed",
+                    message=(
+                        f"the project model does not back workload "
+                        f"{self.spec.name}: {self.workload_problem}. The "
+                        "comparison runs, but this verdict can never be a "
+                        "KEEP; register and confirm the workload with "
+                        "`perfproof project add-workload`, `project "
+                        "confirm` and `project goal --confirm`"
+                    ),
+                )
             )
 
     def _test_launcher(self, gate: GateResult) -> GateResult:
@@ -1697,7 +1729,10 @@ class _Run:
         if rule == 2:
             if self._guardrails_with("breached"):
                 outcome, reason = "REJECT", "guardrail"
-            elif not self._keep_blocked():
+            elif not self._keep_blocked() and self.workload_problem is None:
+                # An unconfirmed workload relabels a KEEP and changes
+                # nothing before it: the looks and stopping are those
+                # of a confirmed one.
                 outcome, reason = "KEEP", "performance"
         elif rule == 3:
             outcome, reason, reject = "REJECT", "performance", True
@@ -2268,6 +2303,128 @@ def _class_problem(spec: BenchmarkSpec, root: Path | None) -> str | None:
             )
         return f"its {cls} target could not be checked for staleness"
     return None
+
+
+def _workload_problem(spec: BenchmarkSpec, root: Path | None) -> str | None:
+    """Why the project model does not back this benchmark's workload.
+
+    ``None`` only when `perfproof.project.guard.require_confirmed`
+    accepts the workload named like the spec for this spec's hash (the
+    workload, its target, its goal and every live constraint
+    ``confirmed``, none changed on disk since, none bound to another
+    machine) and `_alignment_problems` finds none. Otherwise every
+    problem found, in one string: no root, no model, an unreadable one,
+    a missing or retired workload, an entry not confirmed or stale, a
+    changed spec, a workload not bound to a spec, a spec of another
+    class than the workload's target, a goal that disagrees with the
+    spec's metric. Read-only.
+    """
+    if root is None:
+        return "no project root was given"
+    problems: list[str] = []
+    try:
+        require_confirmed(root, spec.name, spec_hash=spec.spec_hash)
+    except NotConfirmedError as exc:
+        problems = [
+            f"{p.entry_id} ({p.kind}) {p.reason}: {p.detail}"
+            for p in exc.problems
+        ]
+    except (ProjectError, OSError) as exc:
+        return f"the project model is unreadable ({exc})"
+    problems.extend(_alignment_problems(spec, root))
+    return "; ".join(problems) or None
+
+
+def _alignment_problems(spec: BenchmarkSpec, root: Path) -> list[str]:
+    """Name where the workload, target and goal disagree with the spec.
+
+    Each check runs on whatever entries exist, so a missing or
+    unconfirmed one does not hide the others: a confirmed workload with
+    no ``spec_hash`` was confirmed before its benchmark was defined (a
+    bound hash that differs is `require_confirmed`'s ``spec_changed``);
+    the spec's ``target_class`` must be the workload's target's class; a
+    confirmed goal's metric, direction and unit must be the spec's.
+    """
+    try:
+        model = load_model(root)
+    except (ProjectError, OSError):
+        return []
+    if model is None:
+        return []
+    workload = next(
+        (
+            w
+            for w in model.workloads
+            if w.id == spec.name and w.status != "retired"
+        ),
+        None,
+    )
+    if workload is None:
+        return []
+    found: list[str] = []
+    if workload.status == "confirmed" and workload.spec_hash is None:
+        found.append(
+            f"{workload.id} (workload) confirmed before its benchmark was "
+            f"defined: confirm again with `perfproof project confirm "
+            f"{workload.id} [--spec-hash HASH]`"
+        )
+    target = next(
+        (t for t in model.targets if t.id == workload.target_id), None
+    )
+    if target is not None and spec.target_class != target.target_class:
+        found.append(
+            f"{workload.id} (workload) runs on target {target.id} of class "
+            f"{target.target_class}, but the spec declares "
+            f"{spec.target_class}"
+        )
+    goal = next(
+        (
+            g
+            for g in model.goals
+            if g.workload_id == workload.id and g.status == "confirmed"
+        ),
+        None,
+    )
+    mismatch = None if goal is None else _goal_mismatch(spec, goal)
+    if mismatch is not None:
+        found.append(mismatch)
+    return found
+
+
+_DEFAULT_OBJECTIVE: Final[Mapping[str, str]] = MappingProxyType(
+    {"wall": "wall_time", "cpu": "cpu_time"}
+)
+
+
+def _goal_mismatch(spec: BenchmarkSpec, goal: GoalEntry) -> str | None:
+    """Name each way the spec's metric contradicts the confirmed goal.
+
+    The goal says what faster means (metric name, direction, unit); a
+    KEEP on a spec that measures something else would claim the wrong
+    thing. ``None`` when all three agree. A spec that names no
+    objective is known only for ``wall`` and ``cpu``; for another
+    kind its name is unknown and counts as a mismatch.
+    """
+    objective = spec.objective or _DEFAULT_OBJECTIVE.get(spec.metric.kind)
+    found: list[str] = []
+    if objective != goal.metric:
+        found.append(
+            f"metric is {objective or 'not named'} in the spec, "
+            f"{goal.metric} in the confirmed goal"
+        )
+    if spec.metric.direction != goal.direction:
+        found.append(
+            f"direction is {spec.metric.direction} in the spec, "
+            f"{goal.direction} in the confirmed goal"
+        )
+    if spec.metric.unit != goal.unit:
+        found.append(
+            f"unit is {spec.metric.unit} in the spec, {goal.unit} in the "
+            "confirmed goal"
+        )
+    if not found:
+        return None
+    return f"{goal.id} (goal) does not match the spec: " + "; ".join(found)
 
 
 def _calibration_blocker(

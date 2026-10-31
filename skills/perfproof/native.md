@@ -86,7 +86,8 @@ C++)" in `docs/method.md`.
 `perfproof profile` runs any command that writes folded stacks.
 `perfproof.profilers.native` runs the program under `sample` (macOS)
 or `perf` (Linux), reads the tool's text, and writes folded stacks with
-function, file and line:
+function, file and line. `perfproof find` fills in this command for native
+parts; by hand:
 
 ```
 perfproof profile <name> --json --profiler-command '["<python>", "-m",

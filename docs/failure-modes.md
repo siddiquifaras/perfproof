@@ -55,10 +55,11 @@ mechanisms above.
 
 | # | Failure | Mechanism | Enforced by | Shown to work by | Still can't catch |
 |---|---|---|---|---|---|
-| 17 | Measuring an unrepresentative workload | The developer confirms every workload, goal and constraint; no comparison runs on an unconfirmed or stale one; the report states where the workload came from | Code (refusal), skill (proposal) | Refusal tests; evaluation | A developer confirming a poor workload |
+| 17 | Measuring an unrepresentative workload | The developer confirms every workload, goal and constraint; no KEEP stands on an unconfirmed, stale, retired, missing or other-machine workload, goal or constraint: `compare` still measures and withholds the KEEP with `workload_not_confirmed` (measure anyway, withhold only KEEP; a REJECT on evidence is unchanged); the report states where the workload came from | Code (refusal), skill (proposal) | Refusal tests; evaluation | A developer confirming a poor workload |
 | 18 | Guessing the hotspot instead of measuring | Every hypothesis carries its evidence by path and hash; profiles summarised by code | Code (log), skill (reasoning) | Log tests; evaluation of discovery | A plausible but wrong reading of good evidence |
 | 19 | Retrying ideas that already failed | The hypothesis log, anchored to code, shown with every opportunity | Code (log), skill (judgment) | Log tests; repeat rate in the evaluation | Two ideas that look different but aren't |
 | 20 | Claiming more than was shown | Reports render only recorded fields; caps labelled as bounds; claims name the repository | Code (report), skill (wording) | Report snapshot tests; evaluation review | Over-reading by the person reading the report |
+| 21 | The agent skips a mechanical discovery step the method requires (one workload, no test-suite probe, no native recorder on native code, no size scaling, coverage tooling not set up) | `perfproof find` runs these steps itself and reports `done` only when the depth's requirements hold or each unmet one has a recorded reason | Code (`find`), skill (workloads and choices) | `find` tests; the skill-vs-baseline evaluation | A workload the agent writes that is realistic in name only |
 
 ## Components and why each exists
 
@@ -70,6 +71,7 @@ mechanisms above.
 | Session state | Branch, undo, dirty-tree refusal, resume | 15, 16 | Session tests |
 | Project model and hypothesis log | Persistence, invalidation, refusal on stale entries | 17, 18, 19 | Unit tests |
 | `profile` | Run a profiler, summarise folded stacks to the top frames | 18 | Fixtures captured from real tools |
+| `perfproof find` | Run the mechanical discovery steps (parts, test-suite probe, native recorder, sizes, coverage tooling, one map, one question); no workloads or changes written | 21, and 18 by profiling before any idea | `find` tests on captured real repositories; the skill-vs-baseline evaluation |
 | `report` | Render a record; nothing computed | 20 | Byte-identical snapshot tests |
 | `load` | Drive an HTTP service at a constant rate, record latency percentiles | 1 and 13 for services | Fixture service |
 | `replay` | Record and replay an app's model and tool calls | 1 and 14 for agentic apps | Fixture app; live-sample check |

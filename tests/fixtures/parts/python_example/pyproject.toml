@@ -1,0 +1,39 @@
+[build-system]
+requires = [
+    "setuptools>=61",
+    "pybind11>=2.10.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python_example"
+version = "0.0.1"
+description = "A test project using pybind11"
+authors = [{ name = "Sylvain Corlay", email = "sylvain.corlay@gmail.com" }]
+requires-python = ">=3.11"
+
+[project.urls]
+Homepage = "https://github.com/pybind/python_example"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+
+[tool.cibuildwheel]
+test-command = "python {project}/tests/test.py"
+enable = ["pypy", "graalpy"]
+build-frontend = "build[uv]"
+
+
+[tool.ruff]
+show-fixes = true
+target-version = "py311"
+
+[tool.ruff.lint]
+extend-select = [
+  "B",   # flake8-bugbear
+  "I",   # isort
+  "PGH", # pygrep-hooks
+  "RUF", # Ruff-specific
+  "UP",  # pyupgrade
+]

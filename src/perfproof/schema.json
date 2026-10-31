@@ -1042,6 +1042,56 @@
       "title": "DifferentialCheck",
       "type": "object"
     },
+    "EntryPoint": {
+      "additionalProperties": false,
+      "description": "A way into the part's code.",
+      "properties": {
+        "kind": {
+          "description": "Which sort of entry point.",
+          "enum": [
+            "console_script",
+            "bin",
+            "main_package",
+            "route",
+            "public_module"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Function, command or route name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "file": {
+          "description": "File that defines it, relative to the repository root.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1-based line; ``None`` when unknown.",
+          "title": "Line"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "file",
+        "line"
+      ],
+      "title": "EntryPoint",
+      "type": "object"
+    },
     "EntryRef": {
       "additionalProperties": false,
       "description": "A project model entry a hypothesis relied on.",
@@ -1077,6 +1127,83 @@
         "version"
       ],
       "title": "EntryRef",
+      "type": "object"
+    },
+    "Established_Literal__python_cpu____native____node____jvm____web_service____llm_serving____gpu_kernel____agentic___": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "enum": [
+                "python_cpu",
+                "native",
+                "node",
+                "jvm",
+                "web_service",
+                "llm_serving",
+                "gpu_kernel",
+                "agentic"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The established value; ``None`` when unknown.",
+          "title": "Value"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it is unknown; ``None`` when ``value`` is set.",
+          "title": "Reason"
+        }
+      },
+      "title": "Established[Literal['python_cpu', 'native', 'node', 'jvm', 'web_service', 'llm_serving', 'gpu_kernel', 'agentic']]",
+      "type": "object"
+    },
+    "Established_TestCommand_": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TestCommand"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The established value; ``None`` when unknown."
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it is unknown; ``None`` when ``value`` is set.",
+          "title": "Reason"
+        }
+      },
+      "title": "Established[TestCommand]",
       "type": "object"
     },
     "EvidenceRef": {
@@ -1115,6 +1242,53 @@
         "sha256"
       ],
       "title": "EvidenceRef",
+      "type": "object"
+    },
+    "ExistingBenchmark": {
+      "additionalProperties": false,
+      "description": "A benchmark the project already has.",
+      "properties": {
+        "kind": {
+          "description": "Which framework.",
+          "enum": [
+            "pytest_benchmark",
+            "asv",
+            "cargo_bench",
+            "go_bench",
+            "script"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name used in the ``find-bench-`` spec name.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "argv": {
+          "description": "Command that runs it.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "cwd": {
+          "description": "Working directory, relative to the repository root.",
+          "title": "Cwd",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "argv",
+        "cwd"
+      ],
+      "title": "ExistingBenchmark",
       "type": "object"
     },
     "FalsificationEvent": {
@@ -1245,6 +1419,249 @@
         "sha256"
       ],
       "title": "FileHash",
+      "type": "object"
+    },
+    "FindBudget": {
+      "additionalProperties": false,
+      "description": "Probe time in one call.",
+      "properties": {
+        "spent_seconds": {
+          "description": "Seconds used.",
+          "minimum": 0,
+          "title": "Spent Seconds",
+          "type": "number"
+        },
+        "limit_seconds": {
+          "description": "Seconds allowed.",
+          "exclusiveMinimum": 0,
+          "title": "Limit Seconds",
+          "type": "number"
+        },
+        "exhausted": {
+          "description": "Whether the limit stopped the call.",
+          "title": "Exhausted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "spent_seconds",
+        "limit_seconds",
+        "exhausted"
+      ],
+      "title": "FindBudget",
+      "type": "object"
+    },
+    "FindCall": {
+      "additionalProperties": false,
+      "description": "One call of ``find``.",
+      "properties": {
+        "started_at": {
+          "description": "When it started, with time zone.",
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "spent_seconds": {
+          "description": "Seconds of probe time it used.",
+          "minimum": 0,
+          "title": "Spent Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "started_at",
+        "spent_seconds"
+      ],
+      "title": "FindCall",
+      "type": "object"
+    },
+    "FindResult": {
+      "additionalProperties": false,
+      "description": "What ``find`` returns.",
+      "properties": {
+        "done": {
+          "description": "Whether every requirement is met or waived.",
+          "title": "Done",
+          "type": "boolean"
+        },
+        "depth": {
+          "description": "Depth of this call.",
+          "enum": [
+            "light",
+            "medium",
+            "deep"
+          ],
+          "title": "Depth",
+          "type": "string"
+        },
+        "parts": {
+          "description": "Parts found.",
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "title": "Parts",
+          "type": "array"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The one question for the user, or ``None``.",
+          "title": "Question"
+        },
+        "next_steps": {
+          "description": "In priority order.",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "title": "Next Steps",
+          "type": "array"
+        },
+        "map": {
+          "description": "Functions seen.",
+          "items": {
+            "$ref": "#/$defs/MapRow"
+          },
+          "title": "Map",
+          "type": "array"
+        },
+        "leads": {
+          "description": "Leads, best first.",
+          "items": {
+            "$ref": "#/$defs/Lead"
+          },
+          "title": "Leads",
+          "type": "array"
+        },
+        "not_reached": {
+          "description": "Entry points or leads no profile reached.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Not Reached",
+          "type": "array"
+        },
+        "skipped": {
+          "description": "Probes that did not run or finish.",
+          "items": {
+            "$ref": "#/$defs/ProbeRecord"
+          },
+          "title": "Skipped",
+          "type": "array"
+        },
+        "budget": {
+          "$ref": "#/$defs/FindBudget",
+          "description": "Budget state."
+        }
+      },
+      "required": [
+        "done",
+        "depth",
+        "parts",
+        "question",
+        "next_steps",
+        "map",
+        "leads",
+        "not_reached",
+        "skipped",
+        "budget"
+      ],
+      "title": "FindResult",
+      "type": "object"
+    },
+    "FindState": {
+      "additionalProperties": false,
+      "description": "What ``find`` keeps between calls.\n\nRaises\n------\npydantic.ValidationError\n    If a waiver is keyed by ``install_or_confirm`` or\n    ``continue_find``.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "description": "Version of this format.",
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "parts_hash": {
+          "description": "Hash of the parts the state was made for.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Parts Hash",
+          "type": "string"
+        },
+        "probes": {
+          "description": "Probes, in order.",
+          "items": {
+            "$ref": "#/$defs/ProbeRecord"
+          },
+          "title": "Probes",
+          "type": "array"
+        },
+        "size_knobs": {
+          "description": "Size knob per user workload name.",
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._-]*$": {
+              "$ref": "#/$defs/SizeKnobSpec"
+            }
+          },
+          "title": "Size Knobs",
+          "type": "object"
+        },
+        "confirmed_tests": {
+          "description": "Test argv the user confirmed, keyed by ``Part.id``.",
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._-]*$": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "title": "Confirmed Tests",
+          "type": "object"
+        },
+        "waivers": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Reason per waived next-step code.",
+          "propertyNames": {
+            "enum": [
+              "install_or_confirm",
+              "define_workloads",
+              "add_size_knob",
+              "reach_lead",
+              "continue_find"
+            ]
+          },
+          "title": "Waivers",
+          "type": "object"
+        },
+        "calls": {
+          "description": "Calls so far.",
+          "items": {
+            "$ref": "#/$defs/FindCall"
+          },
+          "title": "Calls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parts_hash",
+        "probes",
+        "size_knobs",
+        "confirmed_tests",
+        "waivers",
+        "calls"
+      ],
+      "title": "FindState",
       "type": "object"
     },
     "GateResult": {
@@ -2317,6 +2734,99 @@
       "title": "Invalidation",
       "type": "object"
     },
+    "Lead": {
+      "additionalProperties": false,
+      "description": "A place worth a workload.",
+      "properties": {
+        "kind": {
+          "description": "Whether it names a function or a file.",
+          "enum": [
+            "function",
+            "file"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Function or file name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source file.",
+          "title": "File"
+        },
+        "part": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Part owning it.",
+          "title": "Part"
+        },
+        "cap": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Amdahl cap; ``None`` when unknown.",
+          "title": "Cap"
+        },
+        "seen_in": {
+          "description": "``find-*`` specs that reached it.",
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Seen In",
+          "type": "array"
+        },
+        "via_test": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Test frame that reaches it, if any.",
+          "title": "Via Test"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "file",
+        "part",
+        "cap",
+        "seen_in",
+        "via_test"
+      ],
+      "title": "Lead",
+      "type": "object"
+    },
     "LimitStanding": {
       "additionalProperties": false,
       "description": "Where the candidate stands against one absolute limit.\n\nRecorded for every limit of a measured guardrail, whatever the\noutcome, so a user always sees how far from the cap the candidate\nis. ``reliable_value`` is information, not a verdict: the verdict is\nthe guardrail's status, and this never causes a KEEP by itself.\n\nRaises\n------\npydantic.ValidationError\n    If ``gap`` is not exactly ``reliable_value - limit``, or\n    ``rounds_over`` exceeds ``rounds``.",
@@ -2831,6 +3341,124 @@
       "title": "MachineFingerprint",
       "type": "object"
     },
+    "MapRow": {
+      "additionalProperties": false,
+      "description": "One function in the map.",
+      "properties": {
+        "function": {
+          "description": "Function name.",
+          "minLength": 1,
+          "title": "Function",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source file.",
+          "title": "File"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1-based line.",
+          "title": "Line"
+        },
+        "part": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Part owning the file (longest root prefix); ``None`` if none.",
+          "title": "Part"
+        },
+        "layer": {
+          "description": "Layer of the stack.",
+          "enum": [
+            "python",
+            "native",
+            "gpu",
+            "javascript",
+            "typescript",
+            "rust",
+            "go",
+            "java",
+            "kotlin",
+            "csharp",
+            "ruby",
+            "other"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "cap": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Amdahl cap on the speedup; ``None`` when unknown.",
+          "title": "Cap"
+        },
+        "total_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Share including callees.",
+          "title": "Total Fraction"
+        },
+        "seen_in": {
+          "description": "``find-*`` specs whose profiles hold it.",
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Seen In",
+          "type": "array"
+        }
+      },
+      "required": [
+        "function",
+        "file",
+        "line",
+        "part",
+        "layer",
+        "cap",
+        "total_fraction",
+        "seen_in"
+      ],
+      "title": "MapRow",
+      "type": "object"
+    },
     "MeasuredSpeedup": {
       "additionalProperties": false,
       "description": "A speedup measured by prove, with its interval.",
@@ -3007,6 +3635,102 @@
         "unit"
       ],
       "title": "MetricSpec",
+      "type": "object"
+    },
+    "NativeCode": {
+      "additionalProperties": false,
+      "description": "Native code a part builds.",
+      "properties": {
+        "kind": {
+          "description": "How it is built.",
+          "enum": [
+            "setuptools_ext",
+            "pyo3",
+            "maturin",
+            "node_gyp",
+            "cgo",
+            "cmake",
+            "cargo_cdylib"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Extension, crate or library name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "own_module": {
+          "description": "Built binary's image name, as ``--own-module`` matches it.",
+          "minLength": 1,
+          "title": "Own Module",
+          "type": "string"
+        },
+        "sources": {
+          "description": "Source files, relative to the repository root.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "own_module",
+        "sources"
+      ],
+      "title": "NativeCode",
+      "type": "object"
+    },
+    "NextStep": {
+      "additionalProperties": false,
+      "description": "One thing the agent should do next.",
+      "properties": {
+        "code": {
+          "description": "Which step.",
+          "enum": [
+            "install_or_confirm",
+            "define_workloads",
+            "add_size_knob",
+            "reach_lead",
+            "continue_find"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "description": "What and why.",
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Command to run, if there is one.",
+          "title": "Command"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "command"
+      ],
+      "title": "NextStep",
       "type": "object"
     },
     "ObservationEvent": {
@@ -3333,6 +4057,163 @@
       "title": "OutputCheck",
       "type": "object"
     },
+    "Part": {
+      "additionalProperties": false,
+      "description": "One part of the repository: a root with its own manifests.\n\nRaises\n------\npydantic.ValidationError\n    If ``id`` is not a `Name`.",
+      "properties": {
+        "id": {
+          "description": "Root with ``/`` as ``.``; ``root`` for the repo root.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "root": {
+          "description": "Root directory, relative to the repository.",
+          "title": "Root",
+          "type": "string"
+        },
+        "manifests": {
+          "description": "Manifest files, relative to the repository root.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Manifests",
+          "type": "array"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Target in the project model, if any.",
+          "title": "Target Id"
+        },
+        "language": {
+          "description": "Main language.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript",
+            "rust",
+            "go",
+            "java",
+            "kotlin",
+            "c",
+            "cpp",
+            "csharp",
+            "ruby",
+            "other"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "target_class": {
+          "$ref": "#/$defs/Established_Literal__python_cpu____native____node____jvm____web_service____llm_serving____gpu_kernel____agentic___",
+          "description": "Class from the target, or why unknown."
+        },
+        "test_command": {
+          "$ref": "#/$defs/Established_TestCommand_",
+          "description": "Test command, or why unknown."
+        },
+        "native": {
+          "description": "Native code the part builds.",
+          "items": {
+            "$ref": "#/$defs/NativeCode"
+          },
+          "title": "Native",
+          "type": "array"
+        },
+        "benchmarks": {
+          "description": "Benchmarks the part has.",
+          "items": {
+            "$ref": "#/$defs/ExistingBenchmark"
+          },
+          "title": "Benchmarks",
+          "type": "array"
+        },
+        "entry_points": {
+          "description": "Entry points found.",
+          "items": {
+            "$ref": "#/$defs/EntryPoint"
+          },
+          "title": "Entry Points",
+          "type": "array"
+        },
+        "tooling": {
+          "$ref": "#/$defs/PartTooling",
+          "description": "Tool availability."
+        }
+      },
+      "required": [
+        "id",
+        "root",
+        "manifests",
+        "target_id",
+        "language",
+        "target_class",
+        "test_command",
+        "native",
+        "benchmarks",
+        "entry_points",
+        "tooling"
+      ],
+      "title": "Part",
+      "type": "object"
+    },
+    "PartTooling": {
+      "additionalProperties": false,
+      "description": "Tools a part needs; availability only.",
+      "properties": {
+        "profiler": {
+          "$ref": "#/$defs/ToolStatus",
+          "description": "The profiler binary."
+        },
+        "native_recorder": {
+          "$ref": "#/$defs/ToolStatus",
+          "description": "The native recorder."
+        },
+        "coverage": {
+          "description": "Coverage tool state.",
+          "enum": [
+            "not_needed",
+            "present",
+            "missing"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "coverage_install": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Command that installs the coverage tool, if missing.",
+          "title": "Coverage Install"
+        }
+      },
+      "required": [
+        "profiler",
+        "native_recorder",
+        "coverage",
+        "coverage_install"
+      ],
+      "title": "PartTooling",
+      "type": "object"
+    },
     "PredictionEvent": {
       "additionalProperties": false,
       "description": "Step 3: the gain cap and what the cheap test should show.",
@@ -3425,6 +4306,96 @@
         "expect_if_false"
       ],
       "title": "PredictionEvent",
+      "type": "object"
+    },
+    "ProbeRecord": {
+      "additionalProperties": false,
+      "description": "One probe and where it stands.\n\nRaises\n------\npydantic.ValidationError\n    If ``key`` is not ``<Name>``, ``<Name>@native`` or\n    ``<Name>@sizes``.",
+      "properties": {
+        "key": {
+          "description": "Spec name, ``<name>@native`` or ``<name>@sizes``.",
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "requirement": {
+          "description": "Whether the depth table requires it.",
+          "title": "Requirement",
+          "type": "boolean"
+        },
+        "spec_hash": {
+          "description": "Hash of the spec it ran.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Spec Hash",
+          "type": "string"
+        },
+        "tree_id": {
+          "description": "Identity of the tree it ran on.",
+          "minLength": 1,
+          "title": "Tree Id",
+          "type": "string"
+        },
+        "status": {
+          "description": "Where it stands.",
+          "enum": [
+            "pending",
+            "done",
+            "failed",
+            "timeout",
+            "skipped_unconfirmed",
+            "skipped_no_tests",
+            "tree_modified"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "run_ids": {
+          "description": "Runs it produced.",
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Run Ids",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Why it did not finish, if it did not.",
+          "title": "Reason"
+        },
+        "log_tail": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "End of its log on failure.",
+          "title": "Log Tail"
+        }
+      },
+      "required": [
+        "key",
+        "requirement",
+        "spec_hash",
+        "tree_id",
+        "status",
+        "run_ids",
+        "reason",
+        "log_tail"
+      ],
+      "title": "ProbeRecord",
       "type": "object"
     },
     "ProjectHistoryRecord": {
@@ -4294,6 +5265,40 @@
       "title": "SetupSpec",
       "type": "object"
     },
+    "SizeKnobSpec": {
+      "additionalProperties": false,
+      "description": "A workload's size knob, stored in the find state.\n\nRaises\n------\npydantic.ValidationError\n    If ``base`` is not a positive integer.",
+      "properties": {
+        "kind": {
+          "description": "Command-line flag or environment variable.",
+          "enum": [
+            "arg",
+            "env"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Flag or variable name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "base": {
+          "description": "Base size.",
+          "minimum": 1,
+          "title": "Base",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "base"
+      ],
+      "title": "SizeKnobSpec",
+      "type": "object"
+    },
     "SkippedCalls": {
       "additionalProperties": false,
       "description": "Calls to one function a differential check could not use.",
@@ -4658,6 +5663,77 @@
         "evidence"
       ],
       "title": "TargetEntry",
+      "type": "object"
+    },
+    "TestCommand": {
+      "additionalProperties": false,
+      "description": "A part's test command, already normalised.",
+      "properties": {
+        "argv": {
+          "description": "Command and arguments, interpreter first for Python.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "cwd": {
+          "description": "Working directory, relative to the repository root.",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "evidence": {
+          "description": "Where the command came from.",
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "argv",
+        "cwd",
+        "evidence"
+      ],
+      "title": "TestCommand",
+      "type": "object"
+    },
+    "ToolStatus": {
+      "additionalProperties": false,
+      "description": "Whether one tool is available.",
+      "properties": {
+        "name": {
+          "description": "Tool name.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "available": {
+          "description": "Whether it was found.",
+          "title": "Available",
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Why not, when unavailable.",
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "name",
+        "available",
+        "reason"
+      ],
+      "title": "ToolStatus",
       "type": "object"
     },
     "TreeEnvironment": {
@@ -5157,7 +6233,8 @@
             "entry_point",
             "route_list",
             "recorded_traffic",
-            "recorded_agent_run"
+            "recorded_agent_run",
+            "agent_defined"
           ],
           "title": "Source",
           "type": "string"

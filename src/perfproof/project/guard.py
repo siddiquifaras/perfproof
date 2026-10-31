@@ -1,26 +1,26 @@
-"""The refusal: nothing is measured against an unconfirmed workload.
+"""The guard: a KEEP stands only on a confirmed workload.
 
-`require_confirmed` is what ``compare`` and ``measure`` will call (after
-T3.6) before they touch a workload. It fails closed: a workload, its
-goal or a constraint that is ``proposed``, ``stale`` or ``retired``, a
-goal that does not exist, an entry whose recorded files changed on
-disk since it was derived (even if nobody has run ``project check``
-yet), an entry bound to another machine, and a machine that cannot be
-identified are all refusals, listed together in one
-`NotConfirmedError`.
+`require_confirmed` is what ``compare`` calls to learn whether the
+project model backs a workload (``measure`` will too). It fails
+closed: a workload, its goal or a constraint that is ``proposed``,
+``stale`` or ``retired``, a goal that does not exist, an entry whose
+recorded files changed on disk since it was derived (even if nobody has
+run ``project check`` yet), an entry bound to another machine, and a
+machine that cannot be identified are all refusals, listed together in
+one `NotConfirmedError`.
 
-Wiring it in ``compare``
-------------------------
-After the spec is loaded and before the baseline is checked out::
+Use in ``compare``
+------------------
+``compare`` measures whatever the answer: it calls::
 
     require_confirmed(root, name, spec_hash=spec.spec_hash)
 
-``name`` is the benchmark name, which is the workload ID by the
-convention of ``docs/cli.md`` (``bench define bench-tile``,
-``compare bench-tile``). The call raises `NotConfirmedError`, a
-`ProjectError` with code ``not_confirmed`` and the problems in
-``details``; the command turns it into a `CommandError` with the same
-code and details.
+and turns a `NotConfirmedError` into the ``workload_not_confirmed``
+warning, which relabels a final KEEP as INCONCLUSIVE and changes
+nothing else. ``name`` is the benchmark name, which is the workload ID
+by the convention of ``docs/cli.md`` (``bench define bench-tile``,
+``compare bench-tile``). The error is a `ProjectError` with code
+``not_confirmed`` and the problems in ``details``.
 """
 
 from collections.abc import Callable
@@ -38,6 +38,7 @@ from perfproof.schema import (
     GoalBar,
     GoalEntry,
     ProjectEntry,
+    TargetEntry,
     WorkloadEntry,
 )
 
@@ -54,12 +55,15 @@ class ConfirmedWorkload:
         The confirmed workload.
     goal : GoalEntry
         Its confirmed goal.
+    target : TargetEntry
+        Its confirmed target.
     constraints : tuple of ConstraintEntry
         Every live constraint, all confirmed.
     """
 
     workload: WorkloadEntry
     goal: GoalEntry
+    target: TargetEntry
     constraints: tuple[ConstraintEntry, ...]
 
     @property
@@ -68,7 +72,7 @@ class ConfirmedWorkload:
         return self.goal.bar
 
     def bar_label(self, min_effect: float) -> str:
-        """Name the bar a comparison applies; see `bar_label`.
+        """Name the bar a result is reported against; see `bar_label`.
 
         Parameters
         ----------
@@ -163,7 +167,7 @@ def require_confirmed(
         )
     used: list[ProjectEntry] = [entry]
     target = find(model, entry.target_id)
-    if target is None or target.status == "retired":
+    if not isinstance(target, TargetEntry) or target.status == "retired":
         problems.append(
             Problem(
                 entry.target_id,
@@ -238,10 +242,10 @@ def require_confirmed(
         _problem(by_id[entry_id], "machine_unknown", text)
         for entry_id, text in unknown
     )
-    if problems:
+    if problems or not isinstance(target, TargetEntry):
         raise NotConfirmedError(workload_id, problems)
     goal = goals[0]
-    return ConfirmedWorkload(entry, goal, constraints)
+    return ConfirmedWorkload(entry, goal, target, constraints)
 
 
 def _why(entry: ProjectEntry) -> str:

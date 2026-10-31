@@ -2725,20 +2725,25 @@ rule 2 matches with any gate `not_available`, the result is
 **INCONCLUSIVE** (`insufficient_evidence`) at that look, naming the
 gate, because more rounds can't make it available. Rules 1 and 3 still
 give REJECT, and so does a guardrail breach under rule 2, because a
-REJECT keeps nothing. Four more things withhold a KEEP the same way
+REJECT keeps nothing. Five more things withhold a KEEP the same way
 without being gates: a counter metric that fell back to wall time, a
 value whose resolution is unknown, a look schedule outside the
-calibrated ones, and a guardrail not shown or not declared. Each is
-named in the record (a `RunWarning`, or the guardrail's status), so the
-agent can say what would make the change keepable; the schema refuses a
-KEEP that carries one. A comparison does not go on collecting rounds for
-a KEEP that can't come: when a look would keep but one of these, fixed
-for the run, withholds it (any `not_available` gate, an undeclared or
-unmeasurable guardrail, the counter fallback, an unknown resolution, a
-late-look schedule), the comparison ends at that look as INCONCLUSIVE
-under rule 2, naming it, and REJECT stays reachable at earlier looks as
-before. A guardrail that is `not_established` is not fixed for the run:
-more rounds can narrow it, so those looks continue.
+calibrated ones, a workload the project model does not confirm
+(`workload_not_confirmed`), and a guardrail not shown or not declared.
+Each is named in the record (a `RunWarning`, or the guardrail's
+status), so the agent can say what would make the change keepable; the
+schema refuses a KEEP that carries one. A comparison does not go on
+collecting rounds for a KEEP that can't come: when a look would keep
+but one of these, fixed for the run, withholds it (any `not_available`
+gate, an undeclared or unmeasurable guardrail, the counter fallback, an
+unknown resolution, a late-look schedule), the comparison ends at that
+look as INCONCLUSIVE under rule 2, naming it, and REJECT stays
+reachable at earlier looks as before. An unconfirmed workload is not
+one of these: it changes nothing before the end (the looks and the
+stopping round are those of a confirmed one) and only turns a final
+KEEP into INCONCLUSIVE. A guardrail that
+is `not_established` is not fixed for the run: more rounds can narrow
+it, so those looks continue.
 
 **Which interval decides.** The interval of rules 2 and 3 is the one
 `procedure_for_schedule` gives the spec's look schedule, before any
@@ -3302,6 +3307,42 @@ not confirm the class). A REJECT on evidence (rule 1, a guardrail breach, a
 rule 3 interval at or below the bar) is decided the same whether the
 verdict is calibrated or not. `RunRecord` refuses a `calibrated` verdict
 whose class is not the spec's.
+
+**A confirmed workload is a separate KEEP condition.** Calibration is a
+property of the spec; whether the benchmark measures something the
+developer accepted is not. A KEEP also requires that the project model
+back the benchmark's workload (the workload whose ID is the spec's
+`name`): the workload, its target, its goal and every live constraint
+`confirmed`, none changed on disk since, none bound to another machine,
+and the workload's recorded `spec_hash` equal to the spec being compared
+(`require_confirmed`, read-only, once per run). The confirmed goal must
+also agree with the spec's metric: the goal's metric name (the spec's
+`objective`, or `wall_time` or `cpu_time` for a `wall` or `cpu` metric
+with none), direction and unit equal the spec's; each that differs is
+named. A KEEP on a spec that measures something other than what the
+developer confirmed would claim the wrong thing. The workload must be
+bound to a spec (`spec_hash` recorded, set when it is confirmed after
+its benchmark is defined) and that spec must be the one compared, so
+"equal" is exact: a workload confirmed before its benchmark existed
+withholds the KEEP until it is confirmed again. The spec's
+`target_class` must equal the class of the workload's confirmed target;
+the warning names both classes. Otherwise the comparison
+runs, and every verdict, stopping round, estimate and interval is
+exactly what it is for a confirmed workload; only a final KEEP becomes
+INCONCLUSIVE (`insufficient_evidence`) with the warning
+`workload_not_confirmed`, which names every problem found (missing,
+`proposed`, `stale`, `retired`, changed spec, an unbound workload, a
+class or goal that disagrees with the spec, other machine, no model). It is in `KEEP_BLOCKING_WARNINGS`, so a rule 2 INCONCLUSIVE
+may rest on it and a KEEP cannot carry it. It does not change
+`calibration`, and a REJECT on evidence (rule 1, a guardrail breach, a
+rule 3 interval at or below the bar) is decided the same either way.
+
+**KEEP does not depend on the goal's bar or guardrail targets.** The
+confirmed goal fixes what is measured (metric, direction, unit), not
+how much is enough. A KEEP means a real improvement past the spec's
+`min_effect` under the spec's own guardrails; how far that lands from
+the developer's bar is reported separately (the cap-goal "keep going?"
+question). This is a design statement, not an unchecked gap.
 
 ### Development scenarios
 

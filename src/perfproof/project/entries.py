@@ -166,6 +166,20 @@ def record(
     )
 
 
+def _built_from_goals(workload: WorkloadEntry) -> bool:
+    """Whether the workload's frozen spec came from goals and limits.
+
+    True for a workload with a frozen spec, except one the agent
+    defined itself (``agent_defined``): its spec exists before its goal
+    and constraints and does not change with them, and the guard checks
+    its ``spec_hash`` against the spec in use, so a later goal or
+    constraint does not make it stale.
+    """
+    return workload.spec_hash is not None and (
+        workload.source != "agent_defined"
+    )
+
+
 def dependents(model: ProjectModel, entry: ProjectEntry) -> list[ProjectEntry]:
     """Return the live entries that depend on ``entry``.
 
@@ -175,7 +189,7 @@ def dependents(model: ProjectModel, entry: ProjectEntry) -> list[ProjectEntry]:
     - a goal and a workload-bound how-to-run depend on their workload;
     - a workload that has a frozen spec (``spec_hash``) depends on its
       goals and on every constraint, because the spec was built from
-      them.
+      them; not a workload the agent defined (`_built_from_goals`).
 
     Retired entries are never returned.
     """
@@ -189,10 +203,10 @@ def dependents(model: ProjectModel, entry: ProjectEntry) -> list[ProjectEntry]:
         live = [
             w
             for w in model.workloads
-            if w.id == entry.workload_id and w.spec_hash is not None
+            if w.id == entry.workload_id and _built_from_goals(w)
         ]
     elif isinstance(entry, ConstraintEntry):
-        live = [w for w in model.workloads if w.spec_hash is not None]
+        live = [w for w in model.workloads if _built_from_goals(w)]
     else:
         live = []
     return [e for e in live if e.status != "retired"]
@@ -205,7 +219,7 @@ def dependencies(
     live: list[ProjectEntry] = []
     if isinstance(entry, WorkloadEntry):
         live = [t for t in model.targets if t.id == entry.target_id]
-        if entry.spec_hash is not None:
+        if _built_from_goals(entry):
             live += [g for g in model.goals if g.workload_id == entry.id]
             live += list(model.constraints)
     elif isinstance(entry, (GoalEntry, HowToRunEntry)) and entry.workload_id:

@@ -83,6 +83,7 @@ __all__ = [
     "AllowanceSource",
     "Anchors",
     "Arm",
+    "BenchmarkKind",
     "BenchmarkSpec",
     "Budget",
     "CalibrationStatus",
@@ -92,15 +93,27 @@ __all__ = [
     "Confirmation",
     "ConstraintEntry",
     "CorrectnessSpec",
+    "CoverageStatus",
     "DependencyLock",
     "Diagnostics",
     "Difference",
     "DifferentialCheck",
     "Direction",
+    "EntryPoint",
+    "EntryPointKind",
     "EntryRef",
+    "Established",
     "EvidenceRef",
+    "ExistingBenchmark",
     "FalsificationEvent",
     "FileHash",
+    "FindBudget",
+    "FindCall",
+    "FindDepth",
+    "FindLanguage",
+    "FindResult",
+    "FindSchemaVersion",
+    "FindState",
     "GateName",
     "GateResult",
     "GateStatus",
@@ -117,6 +130,7 @@ __all__ = [
     "ImplementationEvent",
     "Interval",
     "Invalidation",
+    "Lead",
     "LimitStanding",
     "LinkedLibrary",
     "LockManifest",
@@ -124,15 +138,25 @@ __all__ = [
     "LockedFile",
     "LookSchedule",
     "MachineFingerprint",
+    "MapLayer",
+    "MapRow",
     "MeasuredSpeedup",
     "MechanismEvent",
     "MetricKind",
     "MetricSpec",
+    "NativeCode",
+    "NativeKind",
+    "NextStep",
+    "NextStepCode",
     "ObservationEvent",
     "Outcome",
     "OutcomeEvent",
     "OutputCheck",
+    "Part",
+    "PartTooling",
     "PredictionEvent",
+    "ProbeRecord",
+    "ProbeStatus",
     "Procedure",
     "ProjectEntry",
     "ProjectHistoryRecord",
@@ -152,11 +176,14 @@ __all__ = [
     "Sample",
     "ServiceSpec",
     "SetupSpec",
+    "SizeKnobSpec",
     "SkippedCalls",
     "SkippedEvent",
     "StaleEvent",
     "TargetClass",
     "TargetEntry",
+    "TestCommand",
+    "ToolStatus",
     "TreeEnvironment",
     "UnverifiedLines",
     "Verdict",
@@ -338,6 +365,7 @@ KEEP_BLOCKING_WARNINGS: Final = frozenset(
         "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
+        "workload_not_confirmed",
     }
 )
 """`RunWarning` codes naming a reason a KEEP is withheld that is
@@ -346,8 +374,9 @@ a value of unknown resolution, a look schedule outside the calibrated
 ones, a look schedule that is not the declared target class's own, a
 metric kind the class's traces did not cover
 (``metric_not_calibrated``), a spec that declares no target class or
-one the project model does not confirm. A KEEP cannot carry one, and a
-rule 2 INCONCLUSIVE may rest on one."""
+one the project model does not confirm, a workload the project model
+does not confirm (``workload_not_confirmed``). A KEEP cannot carry one,
+and a rule 2 INCONCLUSIVE may rest on one."""
 _REPORTED_ONLY: Final[frozenset[MetricKind]] = frozenset({"reported"})
 _OBJECTIVE_KINDS: Final[Mapping[str, frozenset[MetricKind]]] = (
     MappingProxyType(
@@ -2972,6 +3001,7 @@ WorkloadSource = Literal[
     "route_list",
     "recorded_traffic",
     "recorded_agent_run",
+    "agent_defined",
 ]
 ConstraintKind = Literal[
     "public_api",
@@ -3850,6 +3880,403 @@ HypothesisEvent = Annotated[
     Field(discriminator="event"),
 ]
 """One line of ``.perfproof/hypotheses/<workload>.jsonl``."""
+
+FindSchemaVersion = Annotated[Literal[1], BeforeValidator(_exact_int)]
+"""Version of the find state format, independent of `SCHEMA_VERSION`:
+it is a new root document, so it starts its own count."""
+FindLanguage = Literal[
+    "python",
+    "javascript",
+    "typescript",
+    "rust",
+    "go",
+    "java",
+    "kotlin",
+    "c",
+    "cpp",
+    "csharp",
+    "ruby",
+    "other",
+]
+NativeKind = Literal[
+    "setuptools_ext",
+    "pyo3",
+    "maturin",
+    "node_gyp",
+    "cgo",
+    "cmake",
+    "cargo_cdylib",
+]
+BenchmarkKind = Literal[
+    "pytest_benchmark", "asv", "cargo_bench", "go_bench", "script"
+]
+EntryPointKind = Literal[
+    "console_script", "bin", "main_package", "route", "public_module"
+]
+CoverageStatus = Literal["not_needed", "present", "missing"]
+ProbeStatus = Literal[
+    "pending",
+    "done",
+    "failed",
+    "timeout",
+    "skipped_unconfirmed",
+    "skipped_no_tests",
+    "tree_modified",
+]
+NextStepCode = Literal[
+    "install_or_confirm",
+    "define_workloads",
+    "add_size_knob",
+    "reach_lead",
+    "continue_find",
+]
+MapLayer = Literal[
+    "python",
+    "native",
+    "gpu",
+    "javascript",
+    "typescript",
+    "rust",
+    "go",
+    "java",
+    "kotlin",
+    "csharp",
+    "ruby",
+    "other",
+]
+FindDepth = Literal["light", "medium", "deep"]
+_PROBE_KEY: Final = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._-]*(@native|@sizes)?$"
+)
+_UNWAIVABLE: Final = frozenset({"install_or_confirm", "continue_find"})
+
+
+class Established[T](_Model):
+    """A value that is known, or the reason it is not.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If both or neither of ``value`` and ``reason`` are set.
+    """
+
+    value: T | None = None
+    """The established value; ``None`` when unknown."""
+    reason: Text | None = None
+    """Why it is unknown; ``None`` when ``value`` is set."""
+
+    @model_validator(mode="after")
+    def _check_one_side(self) -> Self:
+        if (self.value is None) == (self.reason is None):
+            msg = "exactly one of value and reason must be set"
+            raise ValueError(msg)
+        return self
+
+
+class TestCommand(_Model):
+    """A part's test command, already normalised."""
+
+    __test__: ClassVar[bool] = False
+
+    argv: Argv
+    """Command and arguments, interpreter first for Python."""
+    cwd: RelDir
+    """Working directory, relative to the repository root."""
+    evidence: Text
+    """Where the command came from."""
+
+
+class NativeCode(_Model):
+    """Native code a part builds."""
+
+    kind: NativeKind
+    """How it is built."""
+    name: Text
+    """Extension, crate or library name."""
+    own_module: Text
+    """Built binary's image name, as ``--own-module`` matches it."""
+    sources: tuple[RelPath, ...]
+    """Source files, relative to the repository root."""
+
+
+class ExistingBenchmark(_Model):
+    """A benchmark the project already has."""
+
+    kind: BenchmarkKind
+    """Which framework."""
+    name: Name
+    """Name used in the ``find-bench-`` spec name."""
+    argv: Argv
+    """Command that runs it."""
+    cwd: RelDir
+    """Working directory, relative to the repository root."""
+
+
+class EntryPoint(_Model):
+    """A way into the part's code."""
+
+    kind: EntryPointKind
+    """Which sort of entry point."""
+    name: Text
+    """Function, command or route name."""
+    file: RelPath
+    """File that defines it, relative to the repository root."""
+    line: PositiveInt | None
+    """1-based line; ``None`` when unknown."""
+
+
+class ToolStatus(_Model):
+    """Whether one tool is available."""
+
+    name: Text
+    """Tool name."""
+    available: Flag
+    """Whether it was found."""
+    reason: Text | None
+    """Why not, when unavailable."""
+
+
+class PartTooling(_Model):
+    """Tools a part needs; availability only."""
+
+    profiler: ToolStatus
+    """The profiler binary."""
+    native_recorder: ToolStatus
+    """The native recorder."""
+    coverage: CoverageStatus
+    """Coverage tool state."""
+    coverage_install: Argv | None
+    """Command that installs the coverage tool, if missing."""
+
+
+class Part(_Model):
+    """One part of the repository: a root with its own manifests.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``id`` is not a `Name`.
+    """
+
+    id: Name
+    """Root with ``/`` as ``.``; ``root`` for the repo root."""
+    root: RelDir
+    """Root directory, relative to the repository."""
+    manifests: tuple[RelPath, ...]
+    """Manifest files, relative to the repository root."""
+    target_id: Name | None
+    """Target in the project model, if any."""
+    language: FindLanguage
+    """Main language."""
+    target_class: Established[TargetClass]
+    """Class from the target, or why unknown."""
+    test_command: Established[TestCommand]
+    """Test command, or why unknown."""
+    native: tuple[NativeCode, ...]
+    """Native code the part builds."""
+    benchmarks: tuple[ExistingBenchmark, ...]
+    """Benchmarks the part has."""
+    entry_points: tuple[EntryPoint, ...]
+    """Entry points found."""
+    tooling: PartTooling
+    """Tool availability."""
+
+
+class SizeKnobSpec(_Model):
+    """A workload's size knob, stored in the find state.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``base`` is not a positive integer.
+    """
+
+    kind: Literal["arg", "env"]
+    """Command-line flag or environment variable."""
+    name: Text
+    """Flag or variable name."""
+    base: PositiveInt
+    """Base size."""
+
+
+class ProbeRecord(_Model):
+    """One probe and where it stands.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If ``key`` is not ``<Name>``, ``<Name>@native`` or
+        ``<Name>@sizes``.
+    """
+
+    key: Text
+    """Spec name, ``<name>@native`` or ``<name>@sizes``."""
+    requirement: Flag
+    """Whether the depth table requires it."""
+    spec_hash: Sha256Hex
+    """Hash of the spec it ran."""
+    tree_id: Text
+    """Identity of the tree it ran on."""
+    status: ProbeStatus
+    """Where it stands."""
+    run_ids: tuple[Name, ...]
+    """Runs it produced."""
+    reason: Text | None
+    """Why it did not finish, if it did not."""
+    log_tail: Text | None
+    """End of its log on failure."""
+
+    @field_validator("key")
+    @classmethod
+    def _check_key(cls, value: str) -> str:
+        if _PROBE_KEY.fullmatch(value) is None:
+            msg = "key must be <Name>, <Name>@native or <Name>@sizes"
+            raise ValueError(msg)
+        return value
+
+
+class FindCall(_Model):
+    """One call of ``find``."""
+
+    started_at: AwareDatetime
+    """When it started, with time zone."""
+    spent_seconds: NonNegative
+    """Seconds of probe time it used."""
+
+
+class FindState(_Model):
+    """What ``find`` keeps between calls.
+
+    Raises
+    ------
+    pydantic.ValidationError
+        If a waiver is keyed by ``install_or_confirm`` or
+        ``continue_find``.
+    """
+
+    schema_version: FindSchemaVersion = 1
+    """Version of this format."""
+    parts_hash: Sha256Hex
+    """Hash of the parts the state was made for."""
+    probes: tuple[ProbeRecord, ...]
+    """Probes, in order."""
+    size_knobs: Annotated[
+        Mapping[Name, SizeKnobSpec],
+        AfterValidator(lambda m: cast("Any", _FrozenMap(m))),
+        PlainSerializer(dict, return_type=dict[Name, SizeKnobSpec]),
+    ]
+    """Size knob per user workload name."""
+    confirmed_tests: Annotated[
+        Mapping[Name, Argv],
+        AfterValidator(lambda m: cast("Any", _FrozenMap(m))),
+        PlainSerializer(dict, return_type=dict[Name, Argv]),
+    ]
+    """Test argv the user confirmed, keyed by ``Part.id``."""
+    waivers: Annotated[
+        Mapping[NextStepCode, Text],
+        AfterValidator(lambda m: cast("Any", _FrozenMap(m))),
+        PlainSerializer(dict, return_type=dict[NextStepCode, Text]),
+    ]
+    """Reason per waived next-step code."""
+    calls: tuple[FindCall, ...]
+    """Calls so far."""
+
+    @model_validator(mode="after")
+    def _check_waivers(self) -> Self:
+        refused = sorted(set(self.waivers) & _UNWAIVABLE)
+        if refused:
+            msg = f"these codes cannot be waived: {refused}"
+            raise ValueError(msg)
+        return self
+
+
+class MapRow(_Model):
+    """One function in the map."""
+
+    function: Text
+    """Function name."""
+    file: Text | None
+    """Source file."""
+    line: PositiveInt | None
+    """1-based line."""
+    part: Name | None
+    """Part owning the file (longest root prefix); ``None`` if none."""
+    layer: MapLayer
+    """Layer of the stack."""
+    cap: NonNegative | None
+    """Amdahl cap on the speedup; ``None`` when unknown."""
+    total_fraction: Fraction | None
+    """Share including callees."""
+    seen_in: tuple[Name, ...]
+    """``find-*`` specs whose profiles hold it."""
+
+
+class Lead(_Model):
+    """A place worth a workload."""
+
+    kind: Literal["function", "file"]
+    """Whether it names a function or a file."""
+    name: Text
+    """Function or file name."""
+    file: Text | None
+    """Source file."""
+    part: Name | None
+    """Part owning it."""
+    cap: NonNegative | None
+    """Amdahl cap; ``None`` when unknown."""
+    seen_in: tuple[Name, ...]
+    """``find-*`` specs that reached it."""
+    via_test: Text | None
+    """Test frame that reaches it, if any."""
+
+
+class NextStep(_Model):
+    """One thing the agent should do next."""
+
+    code: NextStepCode
+    """Which step."""
+    message: Text
+    """What and why."""
+    command: Argv | None
+    """Command to run, if there is one."""
+
+
+class FindBudget(_Model):
+    """Probe time in one call."""
+
+    spent_seconds: NonNegative
+    """Seconds used."""
+    limit_seconds: Positive
+    """Seconds allowed."""
+    exhausted: Flag
+    """Whether the limit stopped the call."""
+
+
+class FindResult(_Model):
+    """What ``find`` returns."""
+
+    done: Flag
+    """Whether every requirement is met or waived."""
+    depth: FindDepth
+    """Depth of this call."""
+    parts: tuple[Part, ...]
+    """Parts found."""
+    question: Text | None
+    """The one question for the user, or ``None``."""
+    next_steps: tuple[NextStep, ...]
+    """In priority order."""
+    map: tuple[MapRow, ...]
+    """Functions seen."""
+    leads: tuple[Lead, ...]
+    """Leads, best first."""
+    not_reached: tuple[Text, ...]
+    """Entry points or leads no profile reached."""
+    skipped: tuple[ProbeRecord, ...]
+    """Probes that did not run or finish."""
+    budget: FindBudget
+    """Budget state."""
+
+
 HYPOTHESIS_EVENT: Final[TypeAdapter[HypothesisEvent]] = TypeAdapter(
     HypothesisEvent
 )
@@ -3915,6 +4342,22 @@ MODELS: Final[tuple[type[BaseModel], ...]] = (
     ReorderedEvent,
     StaleEvent,
     RevalidatedEvent,
+    TestCommand,
+    NativeCode,
+    ExistingBenchmark,
+    EntryPoint,
+    ToolStatus,
+    PartTooling,
+    Part,
+    SizeKnobSpec,
+    ProbeRecord,
+    FindCall,
+    FindState,
+    MapRow,
+    Lead,
+    NextStep,
+    FindBudget,
+    FindResult,
 )
 """Every public model, in the order they appear in the JSON Schema."""
 

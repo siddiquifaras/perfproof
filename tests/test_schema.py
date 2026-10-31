@@ -8,6 +8,7 @@ from typing import Any, cast, get_args
 
 import pytest
 from pydantic import BaseModel, ValidationError
+from test_schema_find import find_examples
 
 from perfproof import schema
 from perfproof.schema import (
@@ -1186,6 +1187,8 @@ EXAMPLES.update(
         **{f"event_{n}": event(n) for n in EVENTS},
     }
 )
+
+EXAMPLES.update(find_examples())
 
 
 def with_value(data: dict[str, Any], path: str, value: Any) -> dict[str, Any]:
@@ -4569,6 +4572,7 @@ def withheld_keep() -> Verdict:
         "metric_not_calibrated",
         "target_class_unknown",
         "target_class_unverified",
+        "workload_not_confirmed",
     ],
 )
 def test_a_keep_cannot_carry_a_warning_that_withholds_it(code: str) -> None:
