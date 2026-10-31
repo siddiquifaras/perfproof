@@ -268,6 +268,11 @@ reasons given. It was made before any new setup check or mining round.
   fixed and committed before each round, until 2026-11-03 23:59 PKT.
   Then the draw is final, whatever its size.
 - **Claim.** The launch claim states the number of tasks it rests on.
+- **Mining stopped.** Mining stopped 2026-11-01 on the owner's decision,
+  before the 11-03 cutoff. Round 4 gave no new mixed candidate; round 5
+  was stopped partway (280 of its 1,366 repositories searched, none
+  viewed) and nothing from it was kept. No task outcome had been seen.
+  The draw is final.
 
 ## What we publish
 
