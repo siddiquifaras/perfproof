@@ -654,8 +654,10 @@ user (`runner.build_real_repo` run in the guest, behind the sandbox
 profile, planted files removed, the oracle run on the untouched tree,
 the task's speed check run once), with no model call. The record's
 `builds` holds each outcome. The picks are `held-out` and named in
-`skill/tasks-mixed-heldout.json`. The pool gave fewer than 12 picks and
-met neither quota; the record's `quotas` says so.
+`skill/tasks-mixed-heldout.json`. The pre-registration's per-language
+cap and quotas were removed by its amendment of 2026-10-31, so the picks
+are the first builds in hash order, up to 12; the record's `mix` reports
+their languages and layers.
 
 ## Published benchmarks
 

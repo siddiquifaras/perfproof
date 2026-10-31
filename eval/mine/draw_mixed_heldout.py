@@ -1,10 +1,11 @@
 """Draw the mixed-language held-out set.
 
 The rule is the "Mixed held-out set" of docs/evaluation.md, fixed on
-2026-10-30 before any task was built for it. As applied here:
+2026-10-30 before any task was built for it and amended on
+2026-10-31. As applied here:
 
 1. The pool is every hidden-fix manifest, the ones mined for this draw
-   (``seeds-heldout-mixed.json``) and the earlier ones. A task is
+   (``seeds-heldout-mixed*.json``) and the earlier ones. A task is
    skipped, with the reason recorded, when a task file
    (``eval/skill/tasks*.json``) names it, a per-class draw or a
    discovery draw examined it, or a discovery draw took it. A candidate
@@ -16,18 +17,15 @@ The rule is the "Mixed held-out set" of docs/evaluation.md, fixed on
    not an optimization, is out with that reason.
 2. The rest are ordered by ``sha256(salt + task id)``, hex digest
    compared as text.
-3. Walking that order, a candidate is passed over when its language
-   already has three picks, when it would leave too few slots for the
-   quotas (below), or when the sandboxed setup check in ``builds``
-   says it did not build and pass its oracle on the untouched tree.
-   The first twelve that pass are the picks. The check is judged on
-   the task tree alone; what the reference change does is never read.
-4. The quotas are minimums: at least 3 picks whose fix language is not
-   Python and at least 4 whose fix is in the lower layer. A candidate is
-   passed over when taking it would leave fewer slots than the larger
-   of the two shortfalls still to fill, so the quotas are met whenever
-   the pool allows it. A pool too small gives fewer than twelve picks
-   and says which quota failed.
+3. Walking that order, a candidate is passed over when the sandboxed
+   setup check in ``builds`` says it did not build and pass its oracle
+   on the untouched tree. The first twelve that pass are the picks. The
+   check is judged on the task tree alone; what the reference change
+   does is never read.
+4. There is no per-language cap and there are no quotas (the amendment
+   of 2026-10-31). The language and layer mix of the picks is
+   reported in ``mix``, not required. A pool too small gives fewer
+   than twelve picks.
 
 The fix language is `draw_discovery.language_of` over the files the
 reference change touched.
@@ -35,7 +33,7 @@ reference change touched.
 The record ``eval/mine/heldout-mixed-draw.json`` keeps the human inputs
 (``mined``, ``reviews``, ``builds``, ``notes``) and everything this
 module derives (``pool``, ``removed``, ``skipped``, ``languages``,
-``order``, ``walk``, ``picks``, ``quotas``), so the draw can be
+``order``, ``walk``, ``picks``, ``mix``), so the draw can be
 re-derived: ``uv run python eval/mine/draw_mixed_heldout.py`` prints the
 derivation and exits 1 if the record differs, and ``--write`` rewrites
 the derived part.
@@ -59,9 +57,6 @@ RECORD = draw.MIXED
 SALT = "perfproof-mixed-heldout-2026-10-30"
 RULE = "docs/evaluation.md, Mixed held-out set"
 PICKS = 12
-PER_LANGUAGE = 3
-MIN_NON_PYTHON = 3
-MIN_LOWER = 4
 MIN_STARS = 2000
 LAYERS = ("upper", "lower")
 
@@ -77,7 +72,7 @@ class Derived:
     order: list[dict[str, str]] = field(default_factory=list[dict[str, str]])
     walk: list[Visit] = field(default_factory=list[Visit])
     picks: list[str] = field(default_factory=list[str])
-    quotas: dict[str, Any] = field(default_factory=dict[str, Any])
+    mix: dict[str, Any] = field(default_factory=dict[str, Any])
     stopped: str | None = None
 
 
@@ -151,10 +146,6 @@ def named_by_task_files(skill_dir: Path = draw.SKILL_DIR) -> dict[str, str]:
     return named
 
 
-def _is_python(language: str) -> bool:
-    return language == "Python"
-
-
 def derive(
     tasks: list[Task],
     record: dict[str, Any],
@@ -220,41 +211,23 @@ def derive(
     out.order = [{"id": t.id, "key": draw.order_key(salt, t.id)} for t in kept]
     for task in hidden:
         out.languages[task.id] = language_of(task.reference_change.files)
-    per_language: Counter[str] = Counter()
-    non_python = lower = 0
     for task in kept:
         if len(out.picks) == PICKS:
             break
         language = out.languages[task.id]
-        layer = reviews[task.id]["layer"]
-        gives_non_python = not _is_python(language)
-        gives_lower = layer == "lower"
-        left = PICKS - len(out.picks) - 1
-        short = max(
-            MIN_NON_PYTHON - non_python - int(gives_non_python),
-            MIN_LOWER - lower - int(gives_lower),
-            0,
-        )
-        reason: str | None = None
-        if per_language[language] >= PER_LANGUAGE:
-            reason = (
-                f"language cap: {PER_LANGUAGE} {language} tasks already "
-                "taken; not built"
+        build = builds.get(task.id)
+        if build is None:
+            out.stopped = f"{task.id} needs a sandboxed setup check"
+            return out
+        if not build["ok"]:
+            out.walk.append(
+                Visit(
+                    task.id,
+                    language,
+                    "passed",
+                    f"did not build: {build['reason']}",
+                )
             )
-        elif left < short:
-            reason = (
-                f"quota: {left} slots would be left for {short} still "
-                "needed (non-Python fix or lower layer); not built"
-            )
-        else:
-            build = builds.get(task.id)
-            if build is None:
-                out.stopped = f"{task.id} needs a sandboxed setup check"
-                return out
-            if not build["ok"]:
-                reason = f"did not build: {build['reason']}"
-        if reason is not None:
-            out.walk.append(Visit(task.id, language, "passed", reason))
             continue
         out.walk.append(
             Visit(
@@ -266,17 +239,14 @@ def derive(
             )
         )
         out.picks.append(task.id)
-        per_language[language] += 1
-        non_python += int(gives_non_python)
-        lower += int(gives_lower)
-    out.quotas = {
+    out.mix = {
         "picks": len(out.picks),
-        "non_python": non_python,
-        "lower": lower,
-        "max_per_language": max(per_language.values(), default=0),
-        "met": len(out.picks) == PICKS
-        and non_python >= MIN_NON_PYTHON
-        and lower >= MIN_LOWER,
+        "languages": dict(
+            Counter(out.languages[i] for i in out.picks).most_common()
+        ),
+        "layers": dict(
+            Counter(reviews[i]["layer"] for i in out.picks).most_common()
+        ),
     }
     return out
 
@@ -305,7 +275,7 @@ def render(record: dict[str, Any], derived: Derived) -> dict[str, Any]:
             for v in derived.walk
         ],
         "picks": derived.picks,
-        "quotas": derived.quotas,
+        "mix": derived.mix,
         "stopped": derived.stopped,
     }
 

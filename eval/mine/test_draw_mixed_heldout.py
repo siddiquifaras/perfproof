@@ -46,8 +46,7 @@ def test_the_salt_is_the_one_the_spec_fixes() -> None:
     section = spec[start : spec.index("## What we publish")]
     assert re.findall(r"salt\s+`([^`]+)`", section) == [mixed.SALT]
     assert mixed.SALT == "perfproof-mixed-heldout-2026-10-30"
-    assert (mixed.PICKS, mixed.PER_LANGUAGE) == (12, 3)
-    assert (mixed.MIN_NON_PYTHON, mixed.MIN_LOWER) == (3, 4)
+    assert mixed.PICKS == 12
     assert mixed.MIN_STARS == 2000
 
 
@@ -88,39 +87,35 @@ def test_the_order_is_sha256_of_salt_and_id() -> None:
     assert walked == [o["id"] for o in record["order"]][: len(walked)]
 
 
-def test_the_picks_obey_the_caps_and_quotas() -> None:
+def test_the_picks_are_the_builds_and_the_mix_is_reported() -> None:
     record = _record()
     picks = record["picks"]
     assert 0 < len(picks) <= mixed.PICKS
-    langs = [record["languages"][i] for i in picks]
-    assert max(langs.count(x) for x in set(langs)) <= mixed.PER_LANGUAGE
-    assert record["quotas"]["met"] is (len(picks) == mixed.PICKS)
     for pick in picks:
         review = record["reviews"][pick]
         assert review["keep"] is True
         assert len(review["pair"]) >= 2
         assert record["builds"][pick]["ok"] is True
-    non_python = sum(record["languages"][i] != "Python" for i in picks)
-    lower = sum(record["reviews"][i]["layer"] == "lower" for i in picks)
-    assert record["quotas"]["non_python"] == non_python
-    assert record["quotas"]["lower"] == lower
-    if record["quotas"]["met"]:
-        assert non_python >= mixed.MIN_NON_PYTHON
-        assert lower >= mixed.MIN_LOWER
+    assert record["mix"]["picks"] == len(picks)
+    assert sum(record["mix"]["layers"].values()) == len(picks)
+    assert "quotas" not in record
+    # Each walked candidate is taken or says why not.
+    walked = {v["id"]: v["outcome"] for v in record["walk"]}
+    for pick in picks:
+        assert walked[pick] == "taken"
+    assert sum(o == "taken" for o in walked.values()) == len(picks)
 
 
-def test_the_language_cap_passes_over_the_fourth_of_a_language() -> None:
-    tasks = [_synthetic(f"t{i}", [f"a{i}.py"]) for i in range(5)]
-    tasks.append(_synthetic("t9", ["x.rs"]))
+def test_there_is_no_language_cap_or_quota() -> None:
+    tasks = [_synthetic(f"t{i}", [f"a{i}.py"]) for i in range(15)]
     record: dict[str, Any] = {
-        "reviews": {t.id: _review("lower") for t in tasks},
+        "reviews": {t.id: _review("upper") for t in tasks},
         "builds": {t.id: {"ok": True, "reason": ""} for t in tasks},
     }
     out = mixed.derive(tasks, record, salt="s")
-    python = [v for v in out.walk if v.language == "Python"]
-    assert [v.outcome for v in python].count("taken") == 3
-    assert any("language cap" in v.reason for v in python)
-    assert "t9" in out.picks
+    assert len(out.picks) == mixed.PICKS
+    assert out.mix["languages"] == {"Python": mixed.PICKS}
+    assert out.mix["layers"] == {"upper": mixed.PICKS}
 
 
 def test_the_walk_follows_the_hash_and_skips_what_did_not_build() -> None:
@@ -148,35 +143,14 @@ def test_a_candidate_with_no_check_stops_the_walk() -> None:
     )
 
 
-def test_the_quotas_reserve_slots_for_what_they_need() -> None:
-    python = [_synthetic(f"p{i}", [f"a{i}.py"]) for i in range(30)]
-    rust = [_synthetic(f"r{i}", [f"a{i}.rs"]) for i in range(30)]
-    go = [_synthetic(f"g{i}", [f"a{i}.go"]) for i in range(30)]
-    java = [_synthetic(f"j{i}", [f"a{i}.java"]) for i in range(30)]
-    tasks = [*python, *rust, *go, *java]
-    record: dict[str, Any] = {
-        "reviews": {t.id: _review("upper") for t in tasks},
-        "builds": {t.id: {"ok": True, "reason": ""} for t in tasks},
-    }
-    for t in tasks[::3]:
-        record["reviews"][t.id] = _review("lower")
-    out = mixed.derive(tasks, record, salt="s")
-    assert len(out.picks) == mixed.PICKS
-    assert out.quotas["met"] is True
-    assert out.quotas["non_python"] >= mixed.MIN_NON_PYTHON
-    assert out.quotas["lower"] >= mixed.MIN_LOWER
-    assert out.quotas["max_per_language"] <= mixed.PER_LANGUAGE
-
-
-def test_a_pool_that_cannot_meet_a_quota_says_so() -> None:
+def test_a_pool_smaller_than_twelve_gives_fewer_picks() -> None:
     tasks = [_synthetic(f"p{i}", [f"a{i}.py"]) for i in range(8)]
     record: dict[str, Any] = {
         "reviews": {t.id: _review() for t in tasks},
         "builds": {t.id: {"ok": True, "reason": ""} for t in tasks},
     }
     out = mixed.derive(tasks, record, salt="s")
-    assert len(out.picks) == mixed.PER_LANGUAGE
-    assert out.quotas["met"] is False
+    assert len(out.picks) == 8
 
 
 def test_a_candidate_under_the_star_floor_is_out() -> None:

@@ -173,6 +173,49 @@
           "top_n": "skill"
         }
       }
+    },
+    {
+      "id": "heldout-mixed-geopandas-geopandas-pr2353-hidden-fix",
+      "kind": "find",
+      "repo": {
+        "manifest": "geopandas-geopandas-pr2353",
+        "requires": [
+          "uv"
+        ]
+      },
+      "prompt": "/perfproof",
+      "prompts": {
+        "vague": {
+          "skill": "/perfproof",
+          "baseline": "make the app faster"
+        },
+        "detailed": {
+          "skill": "/perfproof Matching delivery points to zones is slower than expected in our routing service. A batch joins about a million GPS points to 10,000 zone polygons that carry a few attribute columns, and the matching step is one of the slowest parts of the batch.",
+          "baseline": "Matching delivery points to zones is slower than expected in our routing service. A batch joins about a million GPS points to 10,000 zone polygons that carry a few attribute columns, and the matching step is one of the slowest parts of the batch."
+        }
+      },
+      "followups": [
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions",
+        "yes, go ahead with your suggestions"
+      ],
+      "budget_usd": 3.0,
+      "task_budget_usd": 3.0,
+      "timeout_s": 2400,
+      "speed_check": {
+        "command": "python -I -c \"import timeit, numpy as np, geopandas as gpd; rng = np.random.default_rng(0); side = 100; ix = np.arange(side * side); polys = gpd.GeoDataFrame({'zone': ix, 'a': rng.random(ix.size), 'b': rng.random(ix.size)}, geometry=gpd.GeoSeries.from_xy(ix % side, ix // side).buffer(0.5, cap_style='square')); pts = gpd.GeoDataFrame({'p': np.arange(1000000), 'q': rng.random(1000000)}, geometry=gpd.points_from_xy(rng.random(1000000) * side, rng.random(1000000) * side)); f = lambda: gpd.sjoin(pts, polys, predicate='within'); print(min(timeit.repeat(f, number=1, repeat=3)))\"",
+        "metric": "wall"
+      },
+      "expect": {
+        "trigger": true,
+        "fix": "optional_branch",
+        "outcomes": [],
+        "hotspot": {
+          "file": "geopandas/tools/sjoin.py",
+          "function": "_frame_join",
+          "top_n": "skill"
+        }
+      }
     }
   ]
 }

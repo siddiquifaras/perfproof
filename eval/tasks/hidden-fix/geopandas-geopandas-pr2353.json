@@ -75,7 +75,7 @@
       "output_tail": "0.4558212500414811"
     }
   ],
-  "split": "development-candidate",
+  "split": "held-out",
   "mined_at": "2026-10-30T17:55:30+00:00",
   "miner": "mine.py repos, search and view on eval/mine/seeds-heldout-mixed.json; mine._select and mine._pr_task, hidden-fix specs only"
 }

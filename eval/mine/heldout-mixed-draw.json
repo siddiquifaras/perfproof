@@ -844,13 +844,13 @@
    "id": "sgl-project-sglang-pr46500",
    "language": "Python",
    "outcome": "passed",
-   "reason": "language cap: 3 Python tasks already taken; not built"
+   "reason": "did not build: not run: the workload serves a model on an NVIDIA GPU, and this Mac has none"
   },
   {
    "id": "flashinfer-ai-flashinfer-pr7130",
    "language": "Python",
    "outcome": "passed",
-   "reason": "language cap: 3 Python tasks already taken; not built"
+   "reason": "did not build: not run: the workload builds cuDNN plans and needs an NVIDIA GPU, and this Mac has none"
   },
   {
    "id": "nvidia-transformerengine-pr3068",
@@ -867,28 +867,33 @@
   {
    "id": "geopandas-geopandas-pr2353",
    "language": "Python",
-   "outcome": "passed",
-   "reason": "language cap: 3 Python tasks already taken; not built"
+   "outcome": "taken",
+   "reason": "built, and its oracle passed on the untouched tree, through the sandboxed setup"
   },
   {
    "id": "rapidsai-cugraph-pr3977",
    "language": "Python",
    "outcome": "passed",
-   "reason": "language cap: 3 Python tasks already taken; not built"
+   "reason": "did not build: not run: the workload needs an NVIDIA GPU, and this Mac has none"
   }
  ],
  "picks": [
   "pyvista-pyvista-pr7714",
   "apache-hamilton-pr1629",
   "scipy-scipy-pr26368",
-  "msgspec-msgspec-pr237"
+  "msgspec-msgspec-pr237",
+  "geopandas-geopandas-pr2353"
  ],
- "quotas": {
-  "picks": 4,
-  "non_python": 1,
-  "lower": 1,
-  "max_per_language": 3,
-  "met": false
+ "mix": {
+  "picks": 5,
+  "languages": {
+   "Python": 4,
+   "C/C++": 1
+  },
+  "layers": {
+   "upper": 4,
+   "lower": 1
+  }
  },
  "stopped": null
 }
