@@ -43,13 +43,15 @@ stateDiagram-v2
     interrupted --> cancelled: cancel
     running --> unknown: process table unreadable
     unknown --> cancelled: cancel
+    unknown --> running: next read sees the process
+    unknown --> interrupted: next read sees it gone
     cancelled --> [*]
     timed_out --> [*]
     failed --> [*]
     finished --> [*]
 ```
 
-Caption: states are read from files, so `finished` beats every marker.
+Caption: states are derived on every call, so `unknown` can move to `running` or `interrupted`, and `finished` beats every marker.
 
 **Persisted by.** `job.json`, `pid`, `cancelled`, `timed_out`,
 `failed.json`, `record.json` (`detach.py:139` and the module docstring),
@@ -199,12 +201,12 @@ What each gate can produce, from where it is built:
 
 | Gate | passed | failed | waived | not_available |
 |---|---|---|---|---|
-| `side_effects` | `side_effects.py:1312` | `:1327`, `:1498` | `:1324` | none |
-| `lock` | `lock.py:585` | `:588` | cannot | none |
-| `procedure` | `lock.py:585` | `:588`, `compare.py:2145`, `:2173` | cannot | none |
-| `runtime` | `lock.py:585` | `:588` | `lock.py:1582` | `lock.py:1591` |
-| `same_host` | `compare.py:2062` | same function | none built, cross host is refused (`compare.py:853`) | same function |
-| `correctness` | `correctness.py:1484` | `:1464` | cannot | `:1414`, `:1475`, `compare.py:1114` |
+| `side_effects` | `side_effects.py:1312` | `:1327`, `:1498` (reset) | `:1324` | none |
+| `lock` | `lock.py:585` | `:588`, via `:631`, `:651` | cannot | none |
+| `procedure` | `lock.py:585` | `:588`, via `:791` only | cannot | none |
+| `runtime` | `lock.py:585` (`:1597`) | `:588` (`lock.py:1587`), `compare.py:2173` | `lock.py:1582` | `lock.py:1591`, `compare.py:941` |
+| `same_host` | `compare.py:2084`, `:2109` | `:2101` | none built, cross host is refused (`compare.py:853`) | `:2075`, `:2091` |
+| `correctness` | `correctness.py:1484` | `:1464`, `compare.py:834`, `:2145` | cannot | `correctness.py:1414`, `:1475`, `compare.py:1114` |
 | `coverage` | `coverage_gate.py:1530` | never | `:1537` | `:1519`, `:1544`, `:1705`, `:1734`, `:1794` |
 
 **Persisted by.** `RunRecord.gates`, validated in `GateResult._check_status`
@@ -221,8 +223,8 @@ matters.
 - CODE FACT, no `coverage_gate.py` return builds `status="failed"`
   (statuses at the lines above), yet `GATE_REASON` maps `coverage` to a
   reject reason (`schema.py:309`) and the precedence lists it. INFERENCE:
-  a state the schema allows that no code reaches. Intended per the
-  `GateResult` docstring ("never failed"), but the reject path is dead
+  a state the schema allows that no code reaches. Intended, per
+  `coverage_gate.py:8` ("never failed"), but the reject path is dead
   code until that changes.
 - CODE FACT, the schema accepts `same_host` as `waived` with `allow_cross_host`
   (`schema.py:2701`), but compare refuses that spec (`compare.py:853`,
@@ -293,7 +295,8 @@ stateDiagram-v2
     proposed --> stale: trigger fired
     confirmed --> stale: trigger fired, or dependency edited
     stale --> confirmed: confirm (goal, constraint)
-    stale --> confirmed: revalidated, claim unchanged
+    stale --> confirmed: revalidated, was confirmed
+    stale --> proposed: revalidated, was proposed
     stale --> proposed: reproposed, claim differs
     proposed --> retired: retire
     confirmed --> retired: retire
