@@ -1,0 +1,82 @@
+{
+  "gates": [
+    {
+      "gate": "side_effects",
+      "status": "passed"
+    },
+    {
+      "gate": "lock",
+      "status": "passed"
+    },
+    {
+      "gate": "procedure",
+      "status": "passed"
+    },
+    {
+      "gate": "runtime",
+      "status": "passed"
+    },
+    {
+      "gate": "same_host",
+      "status": "passed"
+    },
+    {
+      "gate": "correctness",
+      "status": "failed"
+    }
+  ],
+  "measured_metric": null,
+  "not_verified": [
+    {
+      "kind": "warning",
+      "name": "target_class_unknown",
+      "reason": "the spec declares no target_class, so no class's calibration can be claimed: the comparison runs, but this verdict can never be a KEEP; declare the class in a new spec",
+      "status": "withholds_keep"
+    }
+  ],
+  "run_id": "20261029T100810Z-d27f13",
+  "verdict": {
+    "calibration": "uncalibrated",
+    "calibration_conditions": [],
+    "cross_host": false,
+    "diagnostics": {
+      "autocorrelated_rounds": null,
+      "coarse_resolution": null,
+      "cv_baseline": null,
+      "cv_candidate": null,
+      "lag1_autocorrelation": null,
+      "metric_disagreement": null,
+      "outlier_rounds": null,
+      "procedure_uncalibrated": false,
+      "resolution_widening": null,
+      "sd_log_ratio": null,
+      "wall_interval": null
+    },
+    "estimate": null,
+    "gate": "correctness",
+    "interval": null,
+    "looks": 0,
+    "outcome": "REJECT",
+    "procedure": "hac_lf",
+    "reason": "correctness",
+    "regression": false,
+    "rounds": 0,
+    "rule": 1,
+    "session_pairs": null,
+    "target_class": null
+  },
+  "warnings": [
+    {
+      "code": "high_load",
+      "message": "1-minute load average is 5.18 on 10 logical CPUs, above 0.5 per CPU; other work on the machine adds noise to every round."
+    },
+    {
+      "code": "target_class_unknown",
+      "message": "the spec declares no target_class, so no class's calibration can be claimed: the comparison runs, but this verdict can never be a KEEP; declare the class in a new spec"
+    },
+    {
+      "code": "differential_checks_not_run",
+      "message": "differential checks are not built yet (plan task T2.13); the correctness gate ran the tests and compared the declared outputs only"
+    }
+  ]
+}
