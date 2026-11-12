@@ -89,6 +89,9 @@ committee or a model. Owner's reference:
 - Commit subjects: imperative, what changed, under 72 characters
   ("compare: withhold KEEP when no test ran"). Body only when the why
   isn't obvious. No co-author trailers.
+- Identity: every commit, tag, package field and doc uses
+  `Faras Siddiqui <siddiquifaras@gmail.com>`, from the git config. Never
+  override `user.email`, never another address.
 
 ## Code standard
 
