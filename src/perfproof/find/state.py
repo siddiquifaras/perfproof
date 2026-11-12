@@ -3,14 +3,19 @@
 One file holds everything a later call needs to resume: the probes
 run and how each ended, the user's confirmations, the size knobs,
 the waivers and the cost of every call. It is written to a temporary
-file and renamed, so a reader sees all of it or none.
+file in the same directory and renamed, so a reader sees all of it or
+none. A call to ``find`` holds `state_lock` from its first read to its
+last write, so two calls on one checkout never interleave.
 """
 
 import contextlib
+import fcntl
 import hashlib
 import json
 import os
-from collections.abc import Iterable, Sequence
+import tempfile
+import time
+from collections.abc import Generator, Iterable, Sequence
 from pathlib import Path
 from typing import Final, cast
 
@@ -21,6 +26,7 @@ from perfproof.commands import CommandError
 from perfproof.schema import FindState, Part, ProbeRecord
 
 __all__ = [
+    "LOCK_TIMEOUT_SECONDS",
     "STATE_FILE",
     "STICKY_STATUSES",
     "TERMINAL_STATUSES",
@@ -33,11 +39,16 @@ __all__ = [
     "reason_code",
     "save_state",
     "save_test_commands",
+    "state_lock",
     "state_path",
+    "was_blocked",
     "with_probe",
 ]
 
 STATE_FILE: Final = "state.json"
+LOCK_FILE: Final = "state.lock"
+LOCK_TIMEOUT_SECONDS: Final = 5.0
+"""Seconds a second ``find`` call waits before it fails."""
 TERMINAL_STATUSES: Final = frozenset({"done", "failed", "timeout"})
 """Statuses of a probe that ran and is not run again on the same spec
 and tree."""
@@ -48,6 +59,59 @@ STICKY_STATUSES: Final = frozenset({"tree_modified"})
 def state_path(root: Path) -> Path:
     """Return ``root/.perfproof/find/state.json``."""
     return root / STATE_DIR / "find" / STATE_FILE
+
+
+@contextlib.contextmanager
+def state_lock(
+    root: Path, timeout: float = LOCK_TIMEOUT_SECONDS
+) -> Generator[None]:
+    """Hold the exclusive find lock of ``root`` while the block runs.
+
+    The lock is an ``flock`` on ``.perfproof/find/state.lock``, so it
+    is released when the process dies. It is not re-entrant.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Repository root.
+    timeout : float, optional
+        Seconds to wait for another holder before giving up.
+
+    Raises
+    ------
+    CommandError
+        ``find_busy`` if another ``find`` call still holds the lock
+        after ``timeout`` seconds; ``state_write_failed`` if the lock
+        file cannot be opened.
+    """
+    path = state_path(root).with_name(LOCK_FILE)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handle = path.open("a+b")
+    except OSError as exc:
+        msg = f"cannot open {path}: {exc}"
+        raise CommandError(
+            "state_write_failed", msg, {"path": str(path)}
+        ) from exc
+    with handle:
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise CommandError(
+                        "find_busy",
+                        "another perfproof find call is using this "
+                        "checkout; wait for it and call again",
+                        {"path": str(path)},
+                    ) from None
+                time.sleep(0.05)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def hash_parts(parts: Iterable[Part]) -> str:
@@ -122,8 +186,28 @@ def with_probe(state: FindState, record: ProbeRecord) -> FindState:
     return evolve(state, probes=[*kept, record])
 
 
+BLOCKED_REASONS: Final = (
+    "failed: profiler unavailable",
+    "recorder_unavailable",
+)
+"""Leading text of the reason of a probe that never started because a
+tool was missing."""
+
+
+def was_blocked(record: ProbeRecord) -> bool:
+    """Return whether ``record`` failed only for want of a tool."""
+    return record.status == "failed" and (record.reason or "").startswith(
+        BLOCKED_REASONS
+    )
+
+
 def current_record(
-    state: FindState, key: str, spec_hash: str, tree: str
+    state: FindState,
+    key: str,
+    spec_hash: str,
+    tree: str,
+    *,
+    tool_present: bool = False,
 ) -> ProbeRecord | None:
     """Return the record that is still current for a probe, if any.
 
@@ -137,6 +221,10 @@ def current_record(
         The spec's hash now.
     tree : str
         The working tree's id now.
+    tool_present : bool, optional
+        True when the profiler or recorder the probe needs is there
+        now. A record of a probe that failed only for want of that
+        tool is then not current, so it runs again.
 
     Returns
     -------
@@ -147,6 +235,8 @@ def current_record(
     """
     for record in state.probes:
         if record.key != key or record.spec_hash != spec_hash:
+            continue
+        if tool_present and was_blocked(record):
             continue
         if record.status in STICKY_STATUSES:
             return record
@@ -220,19 +310,27 @@ def save_state(root: Path, state: FindState) -> None:
     CommandError
         ``state_write_failed`` if it cannot be written.
     """
-    path = state_path(root)
-    temporary = path.with_name(f".{path.name}.tmp")
-    data = state.model_dump_json(indent=2) + "\n"
+    _write_whole(state_path(root), state.model_dump_json(indent=2) + "\n")
+
+
+def _write_whole(path: Path, data: str) -> None:
+    """Write ``data`` to ``path`` through a unique temporary file."""
+    temporary: Path | None = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        with temporary.open("w", encoding="utf-8") as f:
+        fd, name = tempfile.mkstemp(
+            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+        )
+        temporary = Path(name)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(data)
             f.flush()
             os.fsync(f.fileno())
         temporary.replace(path)
     except OSError as exc:
-        with contextlib.suppress(OSError):
-            temporary.unlink(missing_ok=True)
+        if temporary is not None:
+            with contextlib.suppress(OSError):
+                temporary.unlink(missing_ok=True)
         msg = f"cannot write {path}: {exc}"
         raise CommandError(
             "state_write_failed", msg, {"path": str(path)}
@@ -299,20 +397,5 @@ def save_test_commands(
     CommandError
         ``state_write_failed`` if it cannot be written.
     """
-    path = state_path(root).with_name(TEST_COMMANDS_FILE)
-    temporary = path.with_name(f".{path.name}.tmp")
     data = json.dumps({k: list(v) for k, v in commands.items()}, indent=2)
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with temporary.open("w", encoding="utf-8") as f:
-            f.write(data + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-        temporary.replace(path)
-    except OSError as exc:
-        with contextlib.suppress(OSError):
-            temporary.unlink(missing_ok=True)
-        msg = f"cannot write {path}: {exc}"
-        raise CommandError(
-            "state_write_failed", msg, {"path": str(path)}
-        ) from exc
+    _write_whole(state_path(root).with_name(TEST_COMMANDS_FILE), data + "\n")
