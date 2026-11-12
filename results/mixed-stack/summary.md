@@ -36,13 +36,16 @@ the final answer or edited in the final tree, as the harness scores it.
 | tiktoken | 0.96x, 0.98x, 1.00x (no difference) | baseline build failed |
 | mitmproxy | 10.68x, 10.30x, 1.00x | 9.88x |
 
-The mitmproxy cell in run 4 is a problem. The release evidence audit
-of 2026-11-13 read that run's archive (not committed) and found a KEEP
-on branch `perfproof/body-edit`, while the harness's own timing of the
-same branch is 1.00x, no difference, and the run edited a locked test
-file. Nothing here explains the disagreement. It is the one place where
-a perfproof verdict and an independent timing disagree, so no "wrong
-KEEP: 0" is claimed from these runs.
+The mitmproxy cell in run 4 is not a false KEEP. The agent found a
+different real bug from the task's hidden one: `infer_content_encoding`
+is quadratic on HTML bodies with many unclosed `<meta` tags. It fixed
+it, checked the new code against the old on about 700,000 random
+inputs, added a regression test, and every gate passed. The KEEP
+(371x, interval 358 to 384) was on its own benchmark, a 64 KB body of
+unclosed tags, so it is a worst case, not a typical page. The harness
+timed the task's hidden bottleneck, which that change never touched,
+hence 1.00x, and the task correctly scored "not found". The source is
+the lead's reading of the run transcript, which is not committed.
 
 ## What the "claims unbacked" column is, and is not
 

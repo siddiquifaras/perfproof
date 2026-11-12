@@ -31,14 +31,17 @@ The two KEEPs carry `calibration: calibrated` in their run records.
   output comparison was not built then, so the correctness gate ran the
   tests and the declared outputs only.
 
-## An unexplained number
+## Two numbers in the membership KEEP
 
-In `verdict-membership-keep.json` the verdict's `estimate` is 491.67
-with an interval of 470.57 to 513.72, while
-`diagnostics.wall_interval` in the same record is 2.82 to 3.21. I have
-not established why the two differ (`measured_metric` is null in the
-record). Treat the 491.67 as unverified until that is explained, and do
-not quote it as a speedup.
+In `verdict-membership-keep.json` the verdict's `estimate` is 491.67x
+with an interval of 470.57 to 513.72. `diagnostics.wall_interval` in
+the same record is 2.82 to 3.21x. Both are real. The spec
+(`examples/membership/spec.json`) uses a `reported` metric in seconds:
+the benchmark times only the membership-check section, and the KEEP is
+about that section. The wall interval covers the whole process,
+including Python startup and data loading, which the change did not
+touch. So: 491x on the timed section, about 3x end to end, on an
+example repository with a planted bottleneck. Quote both or neither.
 
 ## Files
 

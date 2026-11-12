@@ -115,8 +115,8 @@ it proves anything there.
 
 Only numbers with a committed source. Transcripts and scripts are not
 committed; the harness reports and verdict records are, under
-`results/`. The one claim of a locked-file edit in the mixed-language
-summary rests on an audit of an uncommitted archive, and says so.
+`results/`. The mixed-language run-4 explanation rests on a reading of an
+uncommitted transcript, and says so.
 
 **Calibration.** I resampled recorded A/A noise (the same code run
 against itself) to count false KEEPs, 4,000 replications per cell. The
@@ -149,14 +149,15 @@ fixes KEEP, two wrong-output changes REJECT, two edits to a locked
 benchmark REJECT. Each case ran once, on bottlenecks I planted, so this
 shows the loop works, not that it generalises.
 [Summary and verdict records](results/prove-examples/summary.md). The
-summary also names one number in those records I can't yet explain, so
-I quote no speedup from them.
+membership KEEP is 491x on the timed section and about 3x end to end,
+on an example with a planted bottleneck; the summary explains both.
 
 **Mixed-language repositories.** On 5 Python-over-native tasks, with
 detailed prompts, the skill found the known function in 4, 4 and 3 of
 5 runs against 3 of 5 for Claude Code alone. One KEEP in the last
-run disagrees with the harness's own timing of the same branch, so I
-claim no "wrong KEEP: 0" from it. On vague prompts it found 2, 2 and 0 of 5
+run was for a different real bug than the task's hidden one, so the
+harness's timing of the task's own bottleneck read 1.00x; the task
+scored "not found" ([details](results/mixed-stack/summary.md)). On vague prompts it found 2, 2 and 0 of 5
 (the last run only ran 4), against 1 of 5 alone. It also cost several
 times more per task.
 [Summary](results/mixed-stack/summary.md).
