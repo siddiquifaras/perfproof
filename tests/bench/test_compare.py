@@ -2516,6 +2516,30 @@ def test_a_missing_correctness_check_is_not_available_not_passed(
     assert_measured_but_not_kept(result)
 
 
+def test_a_test_command_that_crashes_in_both_arms_is_not_passed(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={
+                "command": [
+                    "python",
+                    "-c",
+                    "import no_such_test_runner_module",
+                ],
+                "timeout_seconds": 60.0,
+            },
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["correctness"] == "not_available"
+    assert "judged nothing" in unverified(result)["correctness"]
+    assert result.record.verdict.reason != "correctness"
+    assert_measured_but_not_kept(result)
+
+
 def test_a_crash_is_still_rejected_without_a_correctness_check(
     project: Project,
 ) -> None:

@@ -470,6 +470,50 @@ def test_benchmark_environment_is_the_base_and_the_spec() -> None:
     assert benchmark_environment(make_spec(), {}) == {}
 
 
+def _fake_interpreters(root: Path) -> tuple[Path, Path]:
+    """Two prefixes whose ``bin/python`` print which one ran."""
+    prefixes = (root / "tool", root / "project")
+    for prefix in prefixes:
+        (prefix / "bin").mkdir(parents=True)
+        script = prefix / "bin" / "python"
+        script.write_text(f"#!/bin/sh\necho {prefix.name}\n")
+        script.chmod(0o755)
+    return prefixes
+
+
+def _which_python(env: dict[str, str]) -> str:
+    done = subprocess.run(
+        ["python"], env=env, capture_output=True, text=True, check=True
+    )
+    return done.stdout.strip()
+
+
+def test_perfproof_own_environment_is_not_the_commands(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool, project = _fake_interpreters(tmp_path)
+    monkeypatch.setattr(sys, "prefix", str(tool))
+    path = os.pathsep.join([str(tool / "bin"), str(project / "bin"), "/bin"])
+    process_env = {"PATH": path, "VIRTUAL_ENV": str(tool / "elsewhere")}
+    assert _which_python({"PATH": path}) == "tool"
+    env = benchmark_environment(make_spec(), process_env)
+    assert _which_python(env) == "project"
+    assert "VIRTUAL_ENV" not in env
+    assert str(tool) not in env["PATH"]
+
+
+def test_the_users_own_virtual_environment_stays_on_the_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool, project = _fake_interpreters(tmp_path)
+    monkeypatch.setattr(sys, "prefix", str(project))
+    path = os.pathsep.join([str(project / "bin"), str(tool / "bin"), "/bin"])
+    process_env = {"PATH": path, "VIRTUAL_ENV": str(project)}
+    env = benchmark_environment(make_spec(), process_env)
+    assert env["PATH"] == path
+    assert _which_python(env) == "project"
+
+
 def test_perfproof_own_service_addresses_never_reach_the_gate() -> None:
     spec = make_spec()
     env = benchmark_environment(spec, PROCESS_ENV)

@@ -35,7 +35,7 @@ the record, so a tool or an agent never has to parse prose to learn why.
 | Candidate gives wrong results | REJECT | `correctness`, gate `correctness` |
 | Changed code that no check ran | INCONCLUSIVE | `insufficient_evidence`, gate `coverage` `not_available`, naming the lines |
 | The experiment itself is not valid (locked files, procedure, both arms' runtimes identified and different, a candidate that can't be started where the baseline runs, a host identity that changed) | REJECT | `integrity`, with the gate named |
-| Something could not be verified (an unidentified runtime, an unreadable host identity, no correctness check declared, a guardrail not declared) | INCONCLUSIVE | `insufficient_evidence`, naming what was not verified; the comparison is still measured and recorded |
+| Something could not be verified (an unidentified runtime, an unreadable host identity, no correctness check declared, a test command that judged no test, a guardrail not declared) | INCONCLUSIVE | `insufficient_evidence`, naming what was not verified; the comparison is still measured and recorded |
 | The benchmark would reach a service that isn't local | Refused before anything runs | `integrity`, gate `side_effects` |
 | Interval still straddles the bar when the budget runs out | INCONCLUSIVE | `insufficient_evidence` |
 | A value no larger than its resolution, or an undeclared `reported` resolution that can't be trusted | INCONCLUSIVE | `insufficient_evidence`, diagnostic `coarse_resolution` |
@@ -130,6 +130,17 @@ coverage gate. Only a test command that can't run at all on the
 baseline (it times out, is killed, or can't start) stops the
 comparison as a broken baseline.
 
+**Nothing judged.** When a test command is declared and no test is
+left to judge the candidate, because every test is flaky or a known
+failure, the `correctness` gate is `not_available`, never `passed`,
+whether or not declared outputs were compared. The usual case is a
+command that fails the same way in every run on both trees (the test
+runner is not installed: `ModuleNotFoundError`, command not found
+inside a shell): its exit status is one known failure, and an
+identical failure on both trees is no evidence that the change broke
+anything, so it is not a REJECT. The detail says "judged nothing and a
+KEEP is withheld" and the report's "Blocked by:" lines name it.
+
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
 give the same result every time is flaky: it is quarantined, listed in
@@ -171,7 +182,8 @@ in code no check executed is unverified, and an unverified change is
 not kept. It is not rejected either: the gate is `not_available`, with
 the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
-perfproof only cannot show it. For a target where perfproof cannot measure coverage, a
+perfproof only cannot show it. Python bytecode under `__pycache__` is
+generated, never a change, even where the tree does not ignore it. For a target where perfproof cannot measure coverage, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
 "coverage not checked", with the reason: no coverage command is
 declared, it wrote no report, or the report does not list the changed
@@ -2720,7 +2732,8 @@ The first rule that matches decides:
 the opt-in is recorded. `not_available` means the gate couldn't be
 checked here, for example coverage for a language perfproof can't
 instrument, a runtime perfproof can't identify, a host identity it
-can't read, or a spec with no correctness check. It blocks KEEP. When
+can't read, a spec with no correctness check, or a test command that
+judged no test (it failed identically in every run). It blocks KEEP. When
 rule 2 matches with any gate `not_available`, the result is
 **INCONCLUSIVE** (`insufficient_evidence`) at that look, naming the
 gate, because more rounds can't make it available. Rules 1 and 3 still

@@ -136,6 +136,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import tempfile
 import urllib.parse
 from collections.abc import Collection, Iterable, Iterator, Mapping
@@ -162,6 +163,7 @@ __all__ = [
     "points_at_tree",
     "run_reset",
     "side_effects_gate",
+    "without_own_environment",
 ]
 
 PROGRAM_ERRNOS: Final = frozenset(
@@ -1350,7 +1352,10 @@ def benchmark_environment(
     `BASE_ENV_VARIABLES` and every ``LC_*`` variable present in
     ``process_env``, overlaid with ``spec.env``. Nothing else from
     perfproof's own environment (an API base URL, a cloud token)
-    reaches the benchmark.
+    reaches the benchmark. perfproof's own virtual environment (the
+    one ``uvx`` runs it in) is taken off ``PATH``, so ``python`` and
+    other commands resolve as in the user's shell, not to perfproof's
+    interpreter; the user's own virtual environment stays.
 
     Parameters
     ----------
@@ -1370,7 +1375,68 @@ def benchmark_environment(
         for name, value in process_env.items()
         if name in BASE_ENV_VARIABLES or name.startswith("LC_")
     }
+    if "PATH" in base:
+        base["PATH"] = without_own_environment(base["PATH"], process_env)
     return {**base, **spec.env}
+
+
+_TOOL_ENV_PARTS: Final = frozenset({"archive-v0", "environments-v2"})
+
+
+def _own_prefix(process_env: Mapping[str, str]) -> Path | None:
+    """Return perfproof's own virtual environment, or ``None``.
+
+    That is ``sys.prefix`` when perfproof runs from a virtual
+    environment that is not the user's: one the user activated
+    (``VIRTUAL_ENV`` names it) is theirs and stays, unless it sits in
+    uv's cache or tool directory, which only ``uvx`` and
+    ``uv tool run`` put it in.
+    """
+    if sys.prefix == sys.base_prefix:
+        return None
+    own = Path(sys.prefix).resolve()
+    active = process_env.get("VIRTUAL_ENV")
+    if not active or Path(active).resolve() != own:
+        return own
+    in_tool_env = bool(_TOOL_ENV_PARTS & set(own.parts)) or (
+        "tools" in own.parts and "uv" in own.parts
+    )
+    return own if in_tool_env else None
+
+
+def without_own_environment(path: str, process_env: Mapping[str, str]) -> str:
+    """Drop perfproof's own environment's ``bin`` from ``path``.
+
+    Parameters
+    ----------
+    path : str
+        A ``PATH`` value.
+    process_env : Mapping of str to str
+        perfproof's own environment, read for ``VIRTUAL_ENV``.
+
+    Returns
+    -------
+    str
+        ``path`` without the entries inside perfproof's own virtual
+        environment; unchanged when perfproof does not run in one.
+
+    Notes
+    -----
+    ``uvx`` puts its tool environment first on ``PATH``, so a spec
+    command ``python`` would run perfproof's interpreter, not the
+    project's. Commands resolve as they would in the user's shell:
+    only entries inside perfproof's own environment (`_own_prefix`)
+    go; the user's virtual environment and everything else stay.
+    """
+    own = _own_prefix(process_env)
+    if own is None:
+        return path
+    kept = [
+        entry
+        for entry in path.split(os.pathsep)
+        if not entry or not Path(entry).resolve().is_relative_to(own)
+    ]
+    return os.pathsep.join(kept)
 
 
 def points_at_tree(exc: OSError, *names: str) -> bool:

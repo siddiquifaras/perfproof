@@ -1387,12 +1387,12 @@ def check_correctness(
         Gate ``correctness``: failed when an output differs, a test
         fails only on the candidate, or a candidate test run times out,
         is killed or cannot start, with the failing run's output;
-        ``not_available`` when no output is declared and every test
-        is flaky or a known failure, so nothing judged the candidate;
-        passed otherwise. Quarantined tests are listed whatever the
-        status, and known failures are named in ``detail``. Test
-        failures are listed before output differences, at most
-        `MAX_DIFFERENCES` in all.
+        ``not_available`` when a test command is declared and every
+        test is flaky or a known failure (declared outputs or not), so
+        the tests judged nothing; passed otherwise. Quarantined tests
+        are listed whatever the status, and known failures are named
+        in ``detail``. Test failures are listed before output
+        differences, at most `MAX_DIFFERENCES` in all.
 
         A spec with no test command and no declared output has
         nothing to check: ``not_available``, never passed.
@@ -1469,13 +1469,14 @@ def check_correctness(
             output=output,
         )
         return failed, tests
-    if tests is not None and not tests.judged and not outputs.compared:
+    if tests is not None and not tests.judged:
         unjudged = GateResult(
             gate="correctness",
             status="not_available",
-            detail="every test is flaky or a known failure and no output "
-            "is declared, so nothing judged the candidate; "
-            + "; ".join(summary),
+            detail="every test is flaky or a known failure (a test "
+            "command that fails the same way in every run, such as a "
+            "missing test runner, is one known failure), so the tests "
+            "judged nothing and a KEEP is withheld; " + "; ".join(summary),
             quarantined=quarantined,
         )
         return unjudged, tests

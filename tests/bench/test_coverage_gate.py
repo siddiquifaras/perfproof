@@ -598,7 +598,9 @@ def test_lines_a_test_runs_in_a_child_process_are_the_tests(
 ) -> None:
     # The fast suite runs in perfproof's own environment, where
     # coverage.py's a1_coverage.pth starts it before the hook does.
-    purelib = Path(sysconfig.get_paths()["purelib"])
+    # The suite's fixture moves sys.prefix; exec_prefix is the real one.
+    base = {"base": sys.exec_prefix, "platbase": sys.exec_prefix}
+    purelib = Path(sysconfig.get_paths(vars=base)["purelib"])
     assert (purelib / "a1_coverage.pth").exists()
     trees = make_trees(tmp_path)
     edit(
@@ -777,14 +779,15 @@ def test_files_the_runs_create_are_not_the_candidates(tmp_path: Path) -> None:
         candidate_root=cand,
         env=benchmark_environment(spec, os.environ),
     )
-    assert any("__pycache__" in p for p in untracked_files(cand))
+    assert list(cand.rglob("__pycache__"))
     result = gate(trees, spec, known=NOT_TRACED, untracked=before)
     assert result.status == "passed", result.detail
     assert "in 2 Python files" in result.detail
-    # Listed after the runs, their bytecode is taken for a change.
+    # Bytecode is generated, so listed after the runs it is no change.
+    assert untracked_files(cand) == ("pkg/fast.py",)
     late = gate(trees, spec, known=NOT_TRACED)
-    assert late.status == "not_available"
-    assert "__pycache__" in late.detail
+    assert late.status == "passed", late.detail
+    assert "__pycache__" not in late.detail
 
 
 def test_no_change_passes_without_running_anything(tmp_path: Path) -> None:

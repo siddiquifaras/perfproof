@@ -17,11 +17,12 @@ baseline's commit and the candidate's working tree (``--text``, so a
 untracked file git does not ignore, except the spec's declared
 outputs: an untracked file is part of the candidate, a ``.py`` one as
 a new module and any other one (an untracked ``.gitattributes``
-included) as a non-Python change. The candidate is the tree as it was
-handed to perfproof, so the untracked files are listed
-(`untracked_files`) before anything runs in it, and files the runs
-create (``__pycache__``, test caches, coverage data) are never taken
-for changes. ``compare`` must list them before its first run and pass
+included) as a non-Python change, except Python bytecode under
+``__pycache__``, which is generated and never a change. The
+candidate is the tree as it was handed to perfproof, so the untracked
+files are listed (`untracked_files`) before anything runs in it, and
+files the runs create (test caches, coverage data) are never taken for
+changes. ``compare`` must list them before its first run and pass
 them in; the gate lists them itself, before its own run, only when it
 is the first thing to run. For each changed ``.py`` file it reads one
 ``git diff -U0``:
@@ -852,8 +853,12 @@ def untracked_files(
     """List the candidate's untracked files that git does not ignore.
 
     Call it before anything runs in the candidate tree: the files the
-    runs create (``__pycache__``, test caches, coverage data) are then
-    never taken for the candidate's changes.
+    runs create (test caches, coverage data) are then never taken for
+    the candidate's changes. Python bytecode (anything under a
+    ``__pycache__`` directory) is never listed, run before or after:
+    it is built from source by the interpreter and nobody writes it, so
+    a tree that does not ignore it (no ``.gitignore``) is not changed
+    by it.
 
     Parameters
     ----------
@@ -882,7 +887,11 @@ def untracked_files(
         "--full-name",
         timeout=timeout,
     ).split(b"\0")
-    return tuple(os.fsdecode(path) for path in listing if path)
+    return tuple(
+        name
+        for name in (os.fsdecode(path) for path in listing if path)
+        if "__pycache__" not in name.split("/")
+    )
 
 
 def changed_lines(
