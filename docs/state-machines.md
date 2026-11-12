@@ -207,7 +207,7 @@ What each gate can produce, from where it is built:
 | `runtime` | `lock.py:585` (`:1597`) | `:588` (`lock.py:1587`), `compare.py:2173` | `lock.py:1582` | `lock.py:1591`, `compare.py:941` |
 | `same_host` | `compare.py:2084`, `:2109` | `:2101` | none built, cross host is refused (`compare.py:853`) | `:2075`, `:2091` |
 | `correctness` | `correctness.py:1484` | `:1464`, `compare.py:834`, `:2145` | cannot | `correctness.py:1414`, `:1475`, `compare.py:1114` |
-| `coverage` | `coverage_gate.py:1530` | never | `:1537` | `:1519`, `:1544`, `:1705`, `:1734`, `:1794` |
+| `coverage` | `coverage_gate.py:1530` | never | `:1537` | `:1519`, `:1544`, `:1705`, `:1734`, `:1794`, `compare.py:1162`, `:1184` |
 
 **Persisted by.** `RunRecord.gates`, validated in `GateResult._check_status`
 (`schema.py:1581`): a non-passed gate needs a detail; only
