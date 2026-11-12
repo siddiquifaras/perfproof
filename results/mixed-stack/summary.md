@@ -45,7 +45,7 @@ inputs, added a regression test, and every gate passed. The KEEP
 unclosed tags, so it is a worst case, not a typical page. The harness
 timed the task's hidden bottleneck, which that change never touched,
 hence 1.00x, and the task correctly scored "not found". The source is
-the lead's reading of the run transcript, which is not committed.
+[an excerpt of the run transcript](mitmproxy-run4-excerpt.md).
 
 ## What the "claims unbacked" column is, and is not
 

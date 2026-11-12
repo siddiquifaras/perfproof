@@ -115,8 +115,8 @@ it proves anything there.
 
 Only numbers with a committed source. Transcripts and scripts are not
 committed; the harness reports and verdict records are, under
-`results/`. The mixed-language run-4 explanation rests on a reading of an
-uncommitted transcript, and says so.
+`results/`. The mixed-language run-4 explanation rests on a committed excerpt
+of the transcript.
 
 **Calibration.** I resampled recorded A/A noise (the same code run
 against itself) to count false KEEPs, 4,000 replications per cell. The
