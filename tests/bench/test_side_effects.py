@@ -472,7 +472,7 @@ def test_benchmark_environment_is_the_base_and_the_spec() -> None:
 
 def _fake_interpreters(root: Path) -> tuple[Path, Path]:
     """Two prefixes whose ``bin/python`` print which one ran."""
-    prefixes = (root / "tool", root / "project")
+    prefixes = (root / "archive-v0" / "tool", root / "project")
     for prefix in prefixes:
         (prefix / "bin").mkdir(parents=True)
         script = prefix / "bin" / "python"
@@ -502,16 +502,45 @@ def test_perfproof_own_environment_is_not_the_commands(
     assert str(tool) not in env["PATH"]
 
 
+@pytest.mark.parametrize("activated", [False, True])
 def test_the_users_own_virtual_environment_stays_on_the_path(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, activated: bool
 ) -> None:
+    """perfproof in the project's venv, on PATH or activated."""
     tool, project = _fake_interpreters(tmp_path)
     monkeypatch.setattr(sys, "prefix", str(project))
     path = os.pathsep.join([str(project / "bin"), str(tool / "bin"), "/bin"])
-    process_env = {"PATH": path, "VIRTUAL_ENV": str(project)}
+    process_env = {"PATH": path}
+    if activated:
+        process_env["VIRTUAL_ENV"] = str(project)
     env = benchmark_environment(make_spec(), process_env)
     assert env["PATH"] == path
     assert _which_python(env) == "project"
+
+
+def test_a_uvx_prefix_is_removed_whatever_virtual_env_says(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool, project = _fake_interpreters(tmp_path)
+    monkeypatch.setattr(sys, "prefix", str(tool))
+    path = os.pathsep.join([str(tool / "bin"), str(project / "bin"), "/bin"])
+    env = benchmark_environment(
+        make_spec(), {"PATH": path, "VIRTUAL_ENV": str(tool)}
+    )
+    assert _which_python(env) == "project"
+
+
+def test_a_prefix_in_the_uv_tool_dir_is_removed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = tmp_path / "somewhere" / "perfproof-env"
+    (tool / "bin").mkdir(parents=True)
+    monkeypatch.setattr(sys, "prefix", str(tool))
+    path = os.pathsep.join([str(tool / "bin"), "/bin"])
+    process_env = {"PATH": path, "UV_TOOL_DIR": str(tmp_path / "somewhere")}
+    assert benchmark_environment(make_spec(), process_env)["PATH"] == "/bin"
+    unrelated = {"PATH": path, "UV_TOOL_DIR": str(tmp_path / "other")}
+    assert benchmark_environment(make_spec(), unrelated)["PATH"] == path
 
 
 def test_perfproof_own_service_addresses_never_reach_the_gate() -> None:

@@ -137,12 +137,12 @@ def test_doctor_has_no_skill_problem_after_install(run: Run) -> None:
     assert not [p for p in install["problems"] if "skill" in p["what"]]
 
 
-def _tool_prefix_with_perfproof(root: Path) -> Path:
-    exe = root / "tool" / "bin" / "perfproof"
+def _prefix_with_perfproof(prefix: Path) -> Path:
+    exe = prefix / "bin" / "perfproof"
     exe.parent.mkdir(parents=True)
     exe.write_text("#!/bin/sh\n")
     exe.chmod(0o755)
-    return root / "tool"
+    return prefix
 
 
 def _not_on_path(doc: dict[str, Any]) -> bool:
@@ -153,7 +153,7 @@ def _not_on_path(doc: dict[str, Any]) -> bool:
 def test_doctor_does_not_count_perfproofs_own_tool_environment(
     run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    tool = _tool_prefix_with_perfproof(tmp_path)
+    tool = _prefix_with_perfproof(tmp_path / "archive-v0" / "tool")
     monkeypatch.setattr(sys, "prefix", str(tool))
     monkeypatch.delenv("VIRTUAL_ENV", raising=False)
     monkeypatch.setenv("PATH", os.pathsep.join([str(tool / "bin"), "/bin"]))
@@ -164,9 +164,9 @@ def test_doctor_does_not_count_perfproofs_own_tool_environment(
 def test_doctor_finds_perfproof_a_users_shell_would(
     run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    tool = tmp_path / "tool"
+    tool = tmp_path / "archive-v0" / "tool"
     (tool / "bin").mkdir(parents=True)
-    users = _tool_prefix_with_perfproof(tmp_path / "users")
+    users = _prefix_with_perfproof(tmp_path / "users")
     monkeypatch.setattr(sys, "prefix", str(tool))
     monkeypatch.delenv("VIRTUAL_ENV", raising=False)
     monkeypatch.setenv(

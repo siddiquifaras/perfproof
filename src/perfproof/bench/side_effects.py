@@ -1384,24 +1384,27 @@ _TOOL_ENV_PARTS: Final = frozenset({"archive-v0", "environments-v2"})
 
 
 def _own_prefix(process_env: Mapping[str, str]) -> Path | None:
-    """Return perfproof's own virtual environment, or ``None``.
+    """Return perfproof's own environment when it is a uv tool one.
 
-    That is ``sys.prefix`` when perfproof runs from a virtual
-    environment that is not the user's: one the user activated
-    (``VIRTUAL_ENV`` names it) is theirs and stays, unless it sits in
-    uv's cache or tool directory, which only ``uvx`` and
-    ``uv tool run`` put it in.
+    That is ``sys.prefix`` only when it positively sits in uv's cache
+    (``uvx``'s ephemeral environments) or its tool directory
+    (``uv tool install``), by the usual directory names or by
+    ``UV_CACHE_DIR`` and ``UV_TOOL_DIR`` in ``process_env``. A
+    project's virtual environment that holds perfproof, activated or
+    not, and any prefix that cannot be told is the user's: ``None``.
     """
     if sys.prefix == sys.base_prefix:
         return None
     own = Path(sys.prefix).resolve()
-    active = process_env.get("VIRTUAL_ENV")
-    if not active or Path(active).resolve() != own:
-        return own
-    in_tool_env = bool(_TOOL_ENV_PARTS & set(own.parts)) or (
+    if _TOOL_ENV_PARTS & set(own.parts) or (
         "tools" in own.parts and "uv" in own.parts
-    )
-    return own if in_tool_env else None
+    ):
+        return own
+    for name in ("UV_CACHE_DIR", "UV_TOOL_DIR"):
+        root = process_env.get(name)
+        if root and own.is_relative_to(Path(root).resolve()):
+            return own
+    return None
 
 
 def without_own_environment(path: str, process_env: Mapping[str, str]) -> str:
@@ -1412,21 +1415,24 @@ def without_own_environment(path: str, process_env: Mapping[str, str]) -> str:
     path : str
         A ``PATH`` value.
     process_env : Mapping of str to str
-        perfproof's own environment, read for ``VIRTUAL_ENV``.
+        perfproof's own environment, read for ``UV_CACHE_DIR`` and
+        ``UV_TOOL_DIR``.
 
     Returns
     -------
     str
         ``path`` without the entries inside perfproof's own virtual
-        environment; unchanged when perfproof does not run in one.
+        environment; unchanged unless perfproof runs from a uv tool or
+        uvx environment.
 
     Notes
     -----
     ``uvx`` puts its tool environment first on ``PATH``, so a spec
     command ``python`` would run perfproof's interpreter, not the
     project's. Commands resolve as they would in the user's shell:
-    only entries inside perfproof's own environment (`_own_prefix`)
-    go; the user's virtual environment and everything else stay.
+    only entries inside perfproof's own uv tool environment
+    (`_own_prefix`) go; the user's virtual environment, perfproof
+    installed in it or not, and everything else stay.
     """
     own = _own_prefix(process_env)
     if own is None:

@@ -139,7 +139,9 @@ runner is not installed: `ModuleNotFoundError`, command not found
 inside a shell): its exit status is one known failure, and an
 identical failure on both trees is no evidence that the change broke
 anything, so it is not a REJECT. The detail says "judged nothing and a
-KEEP is withheld" and the report's "Blocked by:" lines name it.
+KEEP is withheld" and ends with the last lines of the command's output
+(at most six, each cut to 200 characters), so the cause shows without
+a rerun; the report's "Blocked by:" lines name it.
 
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
@@ -258,7 +260,13 @@ the spec's own `env`. Anything else the benchmark needs, such as
 the agent's own credentials and service addresses (an API base URL, a
 cloud token) never reach the benchmark's environment, and both
 versions run with
-exactly the declared environment.
+exactly the declared environment. The one change to `PATH`: when
+perfproof itself runs from a uv tool or `uvx` environment (positively
+identified by uv's cache or tool directory), that environment's `bin`
+is taken off, so `python` resolves as in the user's shell and not to
+perfproof's own interpreter. A project virtual environment, with or
+without perfproof in it, is never touched; if the prefix cannot be
+told, nothing is removed.
 
 **The check.** Before anything executes, perfproof checks that
 environment, the commands' arguments and the declared config files for

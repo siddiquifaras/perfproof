@@ -229,6 +229,9 @@ class SuiteComparison:
         reported per-test results), neither flaky nor known failures.
     baseline_runs, candidate_runs : int
         Runs of the command on each tree.
+    last_output : CommandOutput or None
+        Output of the last candidate run that finished; ``None`` when
+        none did.
     """
 
     quarantined: tuple[QuarantinedTest, ...]
@@ -239,6 +242,7 @@ class SuiteComparison:
     judged: int
     baseline_runs: int
     candidate_runs: int
+    last_output: CommandOutput | None = None
 
 
 @dataclass(frozen=True)
@@ -740,7 +744,41 @@ def _judge(
         judged=len(units - {q.test_id for q in quarantined} - set(known)),
         baseline_runs=len(baseline),
         candidate_runs=len(candidate),
+        last_output=finished[-1].output if finished else None,
     )
+
+
+_TAIL_LINES: Final = 6
+"""Lines of the command's output quoted when nothing was judged."""
+_TAIL_LINE_CHARS: Final = 200
+"""Longest quoted line, in characters."""
+
+
+def _output_tail(output: CommandOutput | None) -> str:
+    """Quote the last lines of a command's output for a gate detail.
+
+    Parameters
+    ----------
+    output : CommandOutput or None
+        The run's output.
+
+    Returns
+    -------
+    str
+        ``"; its output ended: ..."`` with at most `_TAIL_LINES` lines
+        of ``stderr`` then ``stdout``, each cut to `_TAIL_LINE_CHARS`;
+        empty when the command printed nothing.
+    """
+    if output is None:
+        return ""
+    lines = [
+        line[:_TAIL_LINE_CHARS]
+        for line in f"{output.stdout}\n{output.stderr}".splitlines()
+        if line.strip()
+    ]
+    if not lines:
+        return ""
+    return "; its output ended: " + " | ".join(lines[-_TAIL_LINES:])
 
 
 def _locate(root: Path, rel: str) -> Path | str:
@@ -1476,7 +1514,9 @@ def check_correctness(
             detail="every test is flaky or a known failure (a test "
             "command that fails the same way in every run, such as a "
             "missing test runner, is one known failure), so the tests "
-            "judged nothing and a KEEP is withheld; " + "; ".join(summary),
+            "judged nothing and a KEEP is withheld; "
+            + "; ".join(summary)
+            + _output_tail(tests.last_output),
             quarantined=quarantined,
         )
         return unjudged, tests

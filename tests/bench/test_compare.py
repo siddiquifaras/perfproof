@@ -2536,6 +2536,7 @@ def test_a_test_command_that_crashes_in_both_arms_is_not_passed(
     result = project.run(project.candidate("same", {}), spec)
     assert gates(result.record)["correctness"] == "not_available"
     assert "judged nothing" in unverified(result)["correctness"]
+    assert "no_such_test_runner_module" in unverified(result)["correctness"]
     assert result.record.verdict.reason != "correctness"
     assert_measured_but_not_kept(result)
 
