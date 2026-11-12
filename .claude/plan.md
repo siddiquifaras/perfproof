@@ -7,6 +7,108 @@ agent and developer see), `docs/method.md` (prove),
 (how we show it works) and `docs/targets.md` (per-class contracts).
 This file is the order of work.
 
+## Release plan from 2026-11-13
+
+Faras, 2026-11-13. This replaces the launch dates below; the task IDs
+and history stay. Goal: ship perfproof publicly in about 2.5 weeks as
+Faras's main open-source project for job applications (agent evals and
+harness roles, LLM inference roles, Europe).
+
+**Framing.** perfproof is "evals and guardrails that stop a coding
+agent from making false claims, with performance as the proving
+ground". The README opening, the docs and the launch post lead with the
+false-KEEP rate, calibrated verdicts, and the held-out eval against the
+agent alone. The CLI is the exact core (stats, gates, records); the
+skill is how agents drive it. Both ship.
+
+**Results bar.** Only numbers clearly better than Claude Code alone are
+published as headlines, and weak numbers are reported as weak.
+- Headline metrics, in order: (1) false-claim rate (claimed speedups
+  that are noise or break correctness), perfproof against the agent
+  alone, especially on nothing-to-keep and decoy tasks; (2) verified
+  wins of 2x or more found per task; (3) median verified speedup.
+  Small-percentage gains are not a headline.
+- Pilot first, on the development split only: perfproof against the
+  agent alone, same model, same budget. If the gap is not clearly
+  large, improve the skill and CLI on the development split and
+  re-pilot. Never tune on held-out tasks.
+- Then the held-out set runs exactly once, with scoring fixed per
+  `docs/evaluation.md`, reported with intervals whatever it shows.
+- Upstream PRs only where perfproof proves at least 2x on a realistic
+  workload with tests and differential checks passing.
+
+**Week 1 (11-13 to 11-19): ship what exists.**
+- Scope cut (T6.1): any class or language not at the bar ships
+  labelled experimental. Ruby, C#/.NET, Java and Go do not block.
+- T6.2 README with every claim linked to a run; T3.16 install works
+  for a stranger on a clean machine. Then Faras's hands-on try.
+- T6.3 prepared, not done: repo public, PyPI package, Claude Code
+  plugin marketplace entry. Stop with a checklist; Faras flips it.
+- Development-split pilot (results bar), then start the held-out eval
+  (T4.3, T4.4, T4.5: about 30 held-out tasks, Claude Code + perfproof
+  against Claude Code alone). Check Faras's Claude usage before the
+  240 runs and split them across days if needed. T4.2 labels: reuse
+  existing output; see the open point below.
+
+**Week 2 (11-20 to 11-26): evidence.**
+- Finish the held-out eval. Results table with uncertainty, worded as
+  `docs/evaluation.md` allows ("evidence about those tasks"). Primary:
+  precision of claimed wins and false-KEEP rate; also recall and cost
+  per verified KEEP.
+- Upstream speedups: perfproof on 5 to 8 well-known Python projects
+  outside the eval set. For each clean KEEP of 2x or more, draft a PR
+  with the perfproof record. Faras reviews and opens every PR.
+- LLM serving: T5.14 (serving A/A traces) and T5.15 (vLLM case on a
+  small model), on Modal free credit, reusing `~/code/modal-test`.
+
+**Week 3 (11-27 to 12-03): story.**
+- T5.16/T5.17 GPU traces only if Modal free credit is left; otherwise
+  GPU stays a published limit.
+- Draft a blog post for siddiquifaras.github.io ("Proving speedups
+  instead of claiming them: what coding agents get wrong about
+  performance": the method, the eval table, the agent-inefficiency and
+  token-cost studies, one upstream PR as a case study) and a Show HN
+  post. Faras posts both.
+
+**Side track, a few hours a week: vLLM and SGLang contributions.**
+Weekly triage of open issues (performance, bug, regression, good first
+issue, help wanted; last 30 days preferred); shortlist 3 that reproduce
+on one small GPU or CPU and touch serving, scheduling, KV cache,
+benchmarks or docs. Reproduce on Modal free credit; measure with
+perfproof (the runs double as `llm_serving` traces); write the fix, run
+the project's tests and linters, follow CONTRIBUTING.md; draft the PR
+description and stop for Faras. If it doesn't reproduce, draft a short
+"can't reproduce on X with Y" comment. Log every attempt in
+`CONTRIBUTIONS.md`. Real fixes only.
+
+**Budget.** $20 of Faras's own money in total, each spend with his OK.
+GPU work runs on Modal free credit (about $30 a month). If money gets
+tight: cut GPU traces first, then shrink the vLLM case to one small
+model. Never cut the held-out eval or the upstream PRs.
+
+**Rules.**
+- No public action without Faras's OK: no pushes to public remotes, no
+  PRs, no issue comments, no PyPI publish, no posts.
+- No claim in the README, docs or posts without a linked run. The
+  published limits stay.
+- No MCP server.
+- Subagents on Sonnet 5.5.
+- Each session ends with a worklog update and a short status: what
+  shipped, which numbers exist, what is blocked on Faras.
+
+**Open points found on 2026-11-13 (lead, from the repo).**
+- T4.2: the worklog records the Hetzner labelling run as deferred with
+  $0 spent, and `eval/label/results/` holds only a 3-task Mac pilot.
+  The Hetzner box ran the T1.12 golden set and the T2.11 noise traces,
+  not labels. Faras to say where the labelling output is, if it exists.
+- T4.3 and T4.4 as specified (`eval/run/`, `eval/score/`) were never
+  built; `eval/skill/skill_eval.py` has skill and baseline arms and a
+  scorer for found, correct, claims and speed check.
+- The per-class held-out set (f595745): 20 CPU tasks build, 10 serving
+  and GPU tasks are unbuilt. Whether anyone who edits `skills/` has
+  read it must be checked before it is called unseen. The two
+  discovery held-out sets are spent. PR #144 (4 mixed tasks) is open.
+
 ## Launch plan to 2026-11-02 (Faras, 2026-10-22: "ready for the world by then; it's your job")
 
 Nov 2 is the launch, not a beta; support comes after. No gold plating: a
