@@ -1,26 +1,46 @@
 # `perfproof find`: discovery the CLI runs
 
-Status: spec, 2026-10-30, revised after review. Not built yet.
+Status: built (the CLI, #142, and the skill loop, #140) and **experimental**.
+No agent eval run of the shipped `find` exists yet. The evidence before it is
+weak: on repositories held out from tuning, discovery named the hidden
+bottleneck in 2 of 8 tasks (`eval/README.md`).
 
 ## Why
 
-Measured on mixed-language repositories (`eval/skill/tasks-mixed.json`, runs
-mixed1, mixed3 and mixed4), bare `/perfproof` found the slow code no more often
-than a plain agent asked "make the app faster", at 5-8x the cost. The diagnoses
-agree on the cause. The skill said what to do, and the agent skipped it:
+I measured bare `/perfproof` on mixed-language repositories
+(`eval/skill/tasks-mixed.json`, runs mixed1, mixed3 and mixed4). It found the
+slow code no more often than a plain agent asked "make the app faster", at 5
+to 8 times the cost. The diagnoses agree: the skill said what to do and the
+agent skipped it.
 
-- one workload where medium asks for three;
-- combined workloads;
-- no size scaling;
-- the test-suite probe in 0 of 10 runs;
-- no native recorder on C extensions;
-- the coverage tool never set up, so a 35x change ended INCONCLUSIVE.
+- **Workloads:** one where medium asks for three.
+- **Combined workloads:** used instead of separate ones.
+- **Size scaling:** none.
+- **Test-suite probe:** skipped in 0 of 10 runs that should have had it.
+- **Native recorder:** not used on C extensions.
+- **Coverage tool:** never set up, so a 35x change ended INCONCLUSIVE.
 
 These steps are mechanical. Code owns mechanical work and the model owns
 judgment, so `perfproof find` runs them. The agent still decides which
-workloads represent real use, what to change, and how to fix it.
-`docs/failure-modes.md` gains the failure this stops: *the agent skips a
-mechanical discovery step that the method requires.*
+workloads represent real use, what to change, and how to fix it. The failure
+it stops is in `docs/failure-modes.md`: *the agent skips a mechanical
+discovery step that the method requires.*
+
+## The loop
+
+```mermaid
+flowchart TD
+    A[perfproof find] --> B[understand: model and parts]
+    B --> C[tooling per part]
+    C --> D[probes: tests, benchmarks, user workloads]
+    D --> E[map: ranked functions, leads, not reached]
+    E --> F{next_steps left?}
+    F -->|yes| G["agent answers or waives a step"]
+    G --> A
+    F -->|no| H[done: agent picks leads to prove]
+```
+
+*Each call advances one plan and returns where it stands, so calling it again resumes.*
 
 ## Command
 

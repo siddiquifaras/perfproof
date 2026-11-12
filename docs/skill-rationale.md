@@ -135,7 +135,7 @@ own step number.
   fp:finding 18 (a 2^11 to 2^15 fit predicted 1.17x, compare gave
   0.73x). Wrong process: nb:F-01 (96.8% `socket.recv_into`).
   Line attribution for vectorised code: fp:finding 6. History: fp:T1
-  Step 8 (`6b09b2d`), fp:finding 19. Hidden state: fp:finding 15 and
+  Step 8, fp:finding 19. Hidden state: fp:finding 15 and
   fp:T4 Step 3. What else the change touches: pr:§8. One environment:
   pr:C3, pr:§9.
 

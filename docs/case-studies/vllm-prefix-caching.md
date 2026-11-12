@@ -1,8 +1,8 @@
 # vLLM: prefix caching that costs throughput when nothing hits
 
-Done by hand in October 2026, before perfproof existed. It is the
-template for what perfproof automates, and it will be re-run through
-perfproof for comparison.
+I did this by hand in October 2026, before perfproof existed. It's the
+template for what perfproof should automate. It has not been re-run
+through perfproof, so none of these numbers is a perfproof verdict.
 
 ## Question
 

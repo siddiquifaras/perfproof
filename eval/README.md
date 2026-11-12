@@ -290,7 +290,7 @@ Passed over on the way, for not reaching `runs` here:
 `sanic-org-sanic-pr412` (its tests hang until the 30-minute timeout
 under the oldest Python and current dependencies) in web. The
 held-out section of `tasks/SPLITS.md` differs from the list as first
-committed (f595745) in one line only: the wording of sanic#412's pass-over
+committed (566a0c4d46d9) in one line only: the wording of sanic#412's pass-over
 reason, rewritten when the status rule was corrected. The picks are
 identical. Step 1 read 111 candidates and removed 25 (reasons in
 `tasks/selection.json`; those a draw reached are also listed in
