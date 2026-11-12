@@ -1220,6 +1220,35 @@ def test_all_tests_quarantined_but_outputs_compared_is_not_passed(
     assert "0 tests judged" in result.detail
 
 
+def test_a_suite_where_every_test_is_skipped_is_not_passed(
+    suite: Suite,
+) -> None:
+    suite.plan(
+        tests=("test_a", "test_b"),
+        baseline={"test_a": "s" * 8, "test_b": "s" * 8},
+        candidate={"test_a": "s" * 8, "test_b": "s" * 8},
+    )
+
+    result = suite.gate()
+
+    assert result.status == "not_available"
+    assert "0 tests judged" in result.detail
+    assert "a KEEP is withheld" in result.detail
+
+
+def test_skipped_tests_beside_passing_ones_still_pass(suite: Suite) -> None:
+    suite.plan(
+        tests=("test_a", "test_b"),
+        baseline={"test_b": "s" * 8},
+        candidate={"test_b": "s" * 8},
+    )
+
+    result = suite.gate()
+
+    assert result.status == "passed"
+    assert "1 tests judged" in result.detail
+
+
 def test_one_known_failure_among_passing_tests_still_passes(
     suite: Suite,
 ) -> None:

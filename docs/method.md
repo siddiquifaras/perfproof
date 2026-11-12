@@ -131,9 +131,9 @@ baseline (it times out, is killed, or can't start) stops the
 comparison as a broken baseline.
 
 **Nothing judged.** When a test command is declared and no test is
-left to judge the candidate, because every test is flaky or a known
-failure, the `correctness` gate is `not_available`, never `passed`,
-whether or not declared outputs were compared. The usual case is a
+left to judge the candidate, because every test is flaky, a known
+failure, or skipped in every baseline run (a skipped test never ran),
+the `correctness` gate is `not_available`, never `passed`, whether or not declared outputs were compared. The usual case is a
 command that fails the same way in every run on both trees (the test
 runner is not installed: `ModuleNotFoundError`, command not found
 inside a shell): its exit status is one known failure, and an
@@ -184,8 +184,10 @@ in code no check executed is unverified, and an unverified change is
 not kept. It is not rejected either: the gate is `not_available`, with
 the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
-perfproof only cannot show it. Python bytecode under `__pycache__` is
-generated, never a change, even where the tree does not ignore it. For a target where perfproof cannot measure coverage, a
+perfproof only cannot show it. Python bytecode that Python checks against its source (a
+`.pyc` in `__pycache__` with a timestamp-based or checked-hash header)
+is generated, never a change, even where the tree does not ignore it;
+any other file there, and an unchecked-hash `.pyc`, is a change. For a target where perfproof cannot measure coverage, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
 "coverage not checked", with the reason: no coverage command is
 declared, it wrote no report, or the report does not list the changed

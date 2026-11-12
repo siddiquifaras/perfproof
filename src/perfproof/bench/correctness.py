@@ -226,7 +226,8 @@ class SuiteComparison:
         none did or it could not be started.
     judged : int
         Tests used to judge the candidate (the exit status, when no run
-        reported per-test results), neither flaky nor known failures.
+        reported per-test results), neither flaky, known failures nor
+        skipped in every baseline run.
     baseline_runs, candidate_runs : int
         Runs of the command on each tree.
     last_output : CommandOutput or None
@@ -741,7 +742,12 @@ def _judge(
         failures=tuple(failures),
         problem=problem,
         output=output,
-        judged=len(units - {q.test_id for q in quarantined} - set(known)),
+        judged=len(
+            units
+            - {q.test_id for q in quarantined}
+            - set(known)
+            - {t for t in units if _all_skipped(_history(baseline, t))}
+        ),
         baseline_runs=len(baseline),
         candidate_runs=len(candidate),
         last_output=finished[-1].output if finished else None,
@@ -779,6 +785,14 @@ def _output_tail(output: CommandOutput | None) -> str:
     if not lines:
         return ""
     return "; its output ended: " + " | ".join(lines[-_TAIL_LINES:])
+
+
+def _all_skipped(history: Sequence[str]) -> bool:
+    """Say whether a test was skipped in every baseline run.
+
+    Such a test never ran, so it cannot judge the candidate.
+    """
+    return bool(history) and all(r == "skipped" for r in history)
 
 
 def _locate(root: Path, rel: str) -> Path | str:

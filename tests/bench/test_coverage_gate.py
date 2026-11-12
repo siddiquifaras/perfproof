@@ -790,6 +790,43 @@ def test_files_the_runs_create_are_not_the_candidates(tmp_path: Path) -> None:
     assert "__pycache__" not in late.detail
 
 
+def _pyc(flags: int) -> bytes:
+    """A ``.pyc`` header with ``flags`` and a body nobody validated."""
+    return b"\xa7\x0d\x0d\x0a" + flags.to_bytes(4, "little") + b"\0" * 8
+
+
+@pytest.mark.parametrize(
+    ("name", "data", "listed"),
+    [
+        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0), False),
+        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0b11), False),
+        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0b01), True),
+        ("pkg/__pycache__/calc.cpython-312.pyc", b"\xa7\x0d", True),
+        ("pkg/__pycache__/scale.txt", b"2\n", True),
+        ("pkg/__pycache__/fast.py", b"def one():\n    return 1\n", True),
+        ("pkg/__pycache__/sub/calc.cpython-312.pyc", _pyc(0), True),
+    ],
+)
+def test_only_validated_bytecode_is_left_out_of_the_changes(
+    tmp_path: Path, name: str, data: bytes, listed: bool
+) -> None:
+    trees = make_trees(tmp_path, {".gitignore": ""})
+    target = trees["candidate"] / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    assert (name in untracked_files(trees["candidate"])) is listed
+
+
+def test_a_python_file_hidden_in_pycache_is_checked(tmp_path: Path) -> None:
+    trees = make_trees(tmp_path, {".gitignore": ""})
+    hidden = trees["candidate"] / "pkg" / "__pycache__" / "fast.py"
+    hidden.parent.mkdir()
+    hidden.write_text("def one():\n    return 1\n")
+    result = gate(trees, make_spec(PYTEST), known=NOT_TRACED)
+    assert result.status == "not_available", result.detail
+    assert "fast.py" in result.detail
+
+
 def test_no_change_passes_without_running_anything(tmp_path: Path) -> None:
     trees = make_trees(tmp_path)
     result = gate(trees, make_spec(("false",)))
