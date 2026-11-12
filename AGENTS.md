@@ -61,6 +61,35 @@ worktree.
 - An unknown stays `unknown`. Probes that fail return `None` with a
   reason, never a plausible default.
 
+## Writing
+
+Everything a person reads (README, docs, commit messages, PR text,
+comments, CLI messages) should sound like one engineer wrote it, not a
+committee or a model. Owner's reference:
+<https://siddiquifaras.github.io/blog.html>.
+
+- Short paragraphs, 2 to 4 sentences. One-liners for emphasis are fine.
+  Never a wall of paragraphs; reach for a list, table or diagram.
+- First person singular in the README and posts ("I built this
+  because..."), plain "you" for the reader. Contractions are fine.
+- Sentence-case headings, ideally a claim ("KEEP has to mean
+  something"), never Title Case.
+- Lists: short, 3 or 4 items, a bold lead-in when it helps.
+- Numbers with units and their source. A claim without a run behind it
+  doesn't ship.
+- Dry, brief humour where it lands. One line, never forced, never at
+  the reader's expense.
+- Diagrams (Mermaid, which GitHub renders) where they explain flow or
+  state better than prose, each with a one-line caption.
+- British spelling in prose. Code identifiers keep their existing
+  spelling.
+- No em dashes, no exclamation marks, no hype ("blazing",
+  "revolutionary", "seamless"), no filler ("It's worth noting that",
+  "In summary", "Let's dive in").
+- Commit subjects: imperative, what changed, under 72 characters
+  ("compare: withhold KEEP when no test ran"). Body only when the why
+  isn't obvious. No co-author trailers.
+
 ## Code standard
 
 - PEP 8, enforced by ruff at 79 columns. Pyright strict must pass.
