@@ -44,19 +44,17 @@ flowchart LR
 ### Claude Code (plugin)
 
 ```bash
-claude plugin marketplace add siddiquifaras/perfproof && claude plugin install perfproof@perfproof
+claude plugin marketplace add https://github.com/siddiquifaras/perfproof.git && claude plugin install perfproof@perfproof
 ```
 
-Inside a session it's `/plugin marketplace add siddiquifaras/perfproof`
-then `/plugin install perfproof@perfproof`. Then say `/perfproof`, or
-in plain words "make this faster".
+Inside a session it's `/plugin marketplace add
+https://github.com/siddiquifaras/perfproof.git` then `/plugin install
+perfproof@perfproof`. Then say `/perfproof`, or in plain words "make
+this faster".
 
-The shorthand clones over SSH, so it needs a GitHub SSH key. Without
-one, use the full URL:
-
-```bash
-claude plugin marketplace add https://github.com/siddiquifaras/perfproof.git
-```
+I use the HTTPS URL on purpose. The `siddiquifaras/perfproof` shorthand
+clones over SSH, so it needs a GitHub SSH key, and a stranger might not
+have one.
 
 What it writes:
 
@@ -70,9 +68,9 @@ That wrapper runs the CLI through `uvx --python 3.12 --from <plugin
 directory> perfproof`. So the CLI lives in uv's cache, not in your
 project or your Python environment, and it's always the version the
 plugin ships. The first call builds it, and later calls reuse the cache.
-I measured both with the plugin installed into a scratch `HOME`:
-`perfproof doctor` took about 10 s on the first call on this Mac and
-about 1 s afterwards.
+Two cold-cache checks in a scratch `HOME` took about 10 s (`perfproof
+doctor` through the plugin wrapper, on this Mac) and about 43 s (a cold
+`uvx` run, another check). Warm calls took about 1 s.
 
 ### Codex
 
