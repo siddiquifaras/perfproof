@@ -39,7 +39,8 @@ Published limits that apply across the board:
 - **Wall only.** `node` and `jvm` are calibrated on whole-process `wall`
   time only.
 - **Missing commands.** `perfproof load` and `perfproof replay` exist as
-  stubs and print "not built yet".
+  stubs and print "not built yet". So do `check`, `confirm` and
+  `report`, and the `--host` option isn't accepted.
 - **Discovery on unseen code is weak.** On held-out repositories it
   named the hidden bottleneck in 2 of 8 tasks.
 

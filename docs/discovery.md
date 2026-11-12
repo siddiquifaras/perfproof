@@ -6,6 +6,10 @@ The third, **prove**, decides whether a change is kept, and is specified
 in [method.md](method.md). Where a part is not built yet,
 `.claude/plan.md` tracks it.
 
+Status: experimental. `perfproof find` runs the mechanical steps
+([find.md](find.md)), but discovery on unseen code is weak: on held-out
+repositories it named the hidden bottleneck in 2 of 8 tasks.
+
 ```
         ┌──────────────────────────────────────────────┐
         ▼                                              │

@@ -1,8 +1,20 @@
 # The CLI and a session
 
-The target interface for the release, written before the tasks so the
-plan serves what the agent and the developer actually see. Every number
-on this page is illustrative, not a measurement.
+This is the interface the agent and the developer see. I wrote it
+before the tasks so the plan serves it, so it describes more than exists.
+Every number on this page is illustrative, not a measurement.
+
+## What's built
+
+`perfproof --help` on 0.1.0 prints this note: "Not built yet in
+perfproof 0.1.0: check, confirm, report, load, replay." Those commands
+exit with an error saying so. The `--host` option (SSH and Modal runners)
+is also not accepted, and `--depth` exists only on `find`.
+
+- **Python prove path:** supported.
+- **`find`:** built, experimental.
+- **Everything else here:** the spec, labelled by class in
+  [targets.md](targets.md).
 
 ## `perfproof --help`
 

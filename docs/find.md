@@ -16,7 +16,7 @@ agent skipped it.
 - **Workloads:** one where medium asks for three.
 - **Combined workloads:** used instead of separate ones.
 - **Size scaling:** none.
-- **Test-suite probe:** skipped in 0 of 10 runs that should have had it.
+- **Test-suite probe:** run in 0 of 10 runs.
 - **Native recorder:** not used on C extensions.
 - **Coverage tool:** never set up, so a 35x change ended INCONCLUSIVE.
 

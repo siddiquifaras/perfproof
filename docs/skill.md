@@ -1,5 +1,9 @@
 # The /perfproof skill contract
 
+Status: the Python prove path is supported. Depth tiers, the find path,
+brief output and Codex are experimental. Rules that name `check`,
+`confirm` or `--depth` describe commands that aren't built yet.
+
 The contract the `/perfproof` skill (T3.8) is built and tested against:
 what it does for every input and every bad state. The exact words the
 user sees are in [skill-messages.md](skill-messages.md), by ID. The
