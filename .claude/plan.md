@@ -10,9 +10,7 @@ This file is the order of work.
 ## Release plan from 2026-11-13
 
 Faras, 2026-11-13. This replaces the launch dates below; the task IDs
-and history stay. Goal: ship perfproof publicly in about 2.5 weeks as
-Faras's main open-source project for job applications (agent evals and
-harness roles, LLM inference roles, Europe).
+and history stay. Goal: ship perfproof publicly in about 2.5 weeks.
 
 **Framing.** perfproof is "evals and guardrails that stop a coding
 agent from making false claims, with performance as the proving

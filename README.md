@@ -16,12 +16,12 @@ Codex model drives the skill well has not been verified.
 
 ## Install
 
-Status: the repository is private and perfproof is not on PyPI until
-the 2026-11-02 launch, so the lines below do not resolve yet. Until
-then, install from a clone (see
+Status: perfproof is not on PyPI yet and the README is being
+rewritten for the release, so parts of it are out of date. Until the
+release, install from a clone (see
 [docs/install.md](docs/install.md#before-the-release-2026-11-02)).
 
-Claude Code, one line (not yet live):
+Claude Code, one line:
 
 ```bash
 claude plugin marketplace add siddiquifaras/perfproof && claude plugin install perfproof@perfproof
