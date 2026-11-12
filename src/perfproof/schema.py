@@ -352,9 +352,15 @@ _NOT_APPLICABLE: Final[Mapping[RuntimeKind | None, frozenset[str]]] = (
     )
 )
 """`TreeEnvironment` fields that don't apply to each runtime kind."""
-_UNSHOWN: Final = frozenset(
-    {"not_established", "unmeasurable", "not_declared"}
-)
+KEEP_BLOCKING_GATE_STATUSES: Final = frozenset({"not_available"})
+"""`GateStatus` values that withhold a KEEP."""
+FIXED_GUARDRAIL_STATUSES: Final = frozenset({"unmeasurable", "not_declared"})
+"""`GuardrailStatus` values that withhold a KEEP for a reason no further
+round lifts."""
+PENDING_GUARDRAIL_STATUSES: Final = frozenset({"not_established"})
+"""`GuardrailStatus` values that withhold a KEEP until a later look
+shows the guardrail."""
+_UNSHOWN: Final = FIXED_GUARDRAIL_STATUSES | PENDING_GUARDRAIL_STATUSES
 _MEASURED: Final = frozenset({"passed", "breached", "not_established"})
 KEEP_BLOCKING_WARNINGS: Final = frozenset(
     {
@@ -2775,7 +2781,7 @@ class RunRecord(_Model):
         """
         v = self.verdict
         unavailable = sorted(
-            g for g, s in status.items() if s == "not_available"
+            g for g, s in status.items() if s in KEEP_BLOCKING_GATE_STATUSES
         )
         states = {r.metric: r.status for r in self.guardrails}
         breached = sorted(m for m, s in states.items() if s == "breached")

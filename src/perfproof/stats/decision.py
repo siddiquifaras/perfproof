@@ -78,7 +78,10 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from perfproof.schema import (
+    FIXED_GUARDRAIL_STATUSES,
     GATE_REASON,
+    KEEP_BLOCKING_GATE_STATUSES,
+    PENDING_GUARDRAIL_STATUSES,
     Arm,
     GateName,
     GateResult,
@@ -394,14 +397,14 @@ def decide(
             name
             for name in GATE_PRECEDENCE
             if (gate := seen.get(name)) is not None
-            and gate.status == "not_available"
+            and gate.status in KEEP_BLOCKING_GATE_STATUSES
         )
         breached = tuple(m for m, st in named.items() if st == "breached")
         fixed = tuple(
-            m for m, st in named.items() if st in _FIXED_GUARDRAIL_STATUSES
+            m for m, st in named.items() if st in FIXED_GUARDRAIL_STATUSES
         )
         pending = tuple(
-            m for m, st in named.items() if st == "not_established"
+            m for m, st in named.items() if st in PENDING_GUARDRAIL_STATUSES
         )
         step = guardrail_actions(
             np.int8(2),
@@ -685,9 +688,6 @@ def _check_min_effect(min_effect: object) -> float:
         msg = f"min_effect must be a finite float >= 0, got {min_effect!r}"
         raise ValueError(msg)
     return min_effect
-
-
-_FIXED_GUARDRAIL_STATUSES: Final = frozenset({"unmeasurable", "not_declared"})
 
 
 def _checked_guardrails(
