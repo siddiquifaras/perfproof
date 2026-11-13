@@ -1190,11 +1190,14 @@ class _Run:
             items = cast("list[object]", raw)
             if all(isinstance(f, str) for f in items):
                 files = cast("list[str]", items)
-        if (
-            saved is None
-            or files is None
-            or saved.get("sha256") != _names_hash(files)
-        ):
+        intact = False
+        if saved is not None and files is not None:
+            try:
+                intact = saved.get("sha256") == _names_hash(files)
+            except ValueError:
+                # A name that cannot be encoded (a lone surrogate).
+                intact = False
+        if files is None or not intact:
             self.untracked_error = (
                 f"the first attempt's snapshot of the candidate's untracked "
                 f"files ({path.name}) is missing or corrupt, so they cannot "

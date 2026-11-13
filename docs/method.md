@@ -186,17 +186,29 @@ the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
 perfproof only cannot show it. The change set is fixed before perfproof
 runs anything in a tree: the committed diff, plus the untracked files
-present in the candidate at that moment (`git ls-files --others`
-before any setup, test, benchmark or coverage command). Every one of
-them counts, whatever its name or content, so a planted `.pyc`, test
-cache or data file is a change; files that appear later were made by
-perfproof's own runs (bytecode, caches, coverage data) and are not.
+present in the candidate at that moment (`git ls-files --others
+--exclude-standard` before any setup, test, benchmark or coverage
+command). Every one of them counts, whatever its name or content, so a
+planted `.pyc`, test cache or data file is a change; files that appear
+later were made by perfproof's own runs (bytecode, caches, coverage
+data) and are not.
 The list is saved in the run directory (`untracked.json`, with its
 hash) by the first attempt, and a resumed run reads it back instead of
 listing again, since the first attempt's runs have left files in the
-tree by then. A saved list that is missing or fails its hash leaves the
-change set unknown: the gate is `not_available` and the verdict is
-never KEEP.
+tree by then (`docs/cli.md`, "Long runs", says what a resume is). That
+is sound because `resume` hashes both trees, except the directories in
+`_SKIP_DIRS`, and refuses a resume if either has changed. A saved list
+that is missing or fails its hash leaves the change set unknown: the
+gate is `not_available` and the verdict is never KEEP. A list that
+cannot be saved leaves attempt 0 `not_available` the same way.
+The gate cannot see two things. Untracked files that git ignores are
+not listed, because `--exclude-standard` skips them, so an ignored
+file the candidate adds is not counted as a change. And a file added
+between a kill and the resume, inside a directory `resume` does not
+hash (`__pycache__`, `.pytest_cache`, `node_modules` and the rest of
+`_SKIP_DIRS`), is neither refused by the resume nor in the saved list,
+so a planted `.pyc` there can pass the gate. Both are known limits,
+not rules.
 A file that is not a regular file (FIFO, socket, device, symbolic
 link) is read with `lstat` only, never opened or followed, and counts
 as a change that cannot be checked. For a target where perfproof cannot measure coverage, a

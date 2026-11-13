@@ -425,12 +425,16 @@ in its own session, and its run directory is the only state.
 | `runs/<id>/samples.jsonl` | One line per completed round, appended after it is written; not fsynced, so no flush burst before the next round |
 | `runs/<id>/machine.json` | The machine fingerprint taken before anything ran, and the start time. A resume needs it |
 | `runs/<id>/trees.json` | A manifest of both trees' files at the start. A resume needs it |
+| `runs/<id>/untracked.json` | The candidate's untracked files and their hash, listed by the first attempt before anything ran. A resume reads it and never lists again |
 | `runs/<id>/run.lock` | Held while a resume decides and spawns |
 | `runs/<id>/pid` | Process ID and its start time, so a reused PID isn't mistaken for the run |
 | `runs/<id>/cancelled`, `timed_out`, `failed.json` | Written by `cancel`, by the timeout, and by a stop with no verdict (`code`, `message`) |
 | `runs/<id>/detached.log` | The process's stdout and stderr |
 
 A resume without `machine.json` or `trees.json` is `not_resumable`.
+
+A run whose `untracked.json` is missing or fails its hash is still
+resumable, but it can never KEEP: the coverage gate is `not_available`.
 
 `status <id>` and `cancel <id>` take a run id or a unique prefix of it
 or of its random part. `compare --resume <id>` takes the same.

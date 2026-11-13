@@ -30,6 +30,7 @@ from perfproof.bench.compare import (
     keep_blocked,
     late_looks,
 )
+from perfproof.bench.journal import Journal, Resumed
 from perfproof.bench.lock import build_manifest
 from perfproof.bench.runner import Round, Runner, RunnerError
 from perfproof.bench.snapshot import add_baseline_worktree
@@ -49,6 +50,7 @@ from perfproof.schema import (
     GoalEntry,
     Interval,
     Invalidation,
+    LockManifest,
     MachineFingerprint,
     ProjectModel,
     Provenance,
@@ -4685,70 +4687,121 @@ def test_a_real_node_run_on_wall_is_not_blocked_by_the_metric_rule(
 # The untracked snapshot is the first attempt's, never retaken on resume
 
 
-def _interrupted_then_resumed(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    *,
-    damage: Callable[[Path], None] | None = None,
-) -> tuple[RunRecord, Path]:
-    """Die in round 3 of attempt 0, resume, and return the final record.
+@dataclass
+class _Fixture:
+    """A candidate that is a full copy of the baseline repository."""
 
-    The candidate is a full copy of a repository that has no ignore for
-    bytecode, so attempt 0's own test run leaves ``__pycache__`` in it.
-    """
-    from perfproof.bench import runner as runner_module
-    from perfproof.bench.journal import (
-        MACHINE_NAME,
-        METRIC_NAME,
-        Journal,
-        Resumed,
-        load_journal,
-        read_json,
-    )
+    project: Project
+    candidate: Path
+    spec: BenchmarkSpec
+    lock: LockManifest
+    run_dir: Path
+    model_root: Path | None
+    max_rounds: int
 
-    spec = twelve_rounds()
-    project = make_project(tmp_path)
-    candidate = tmp_path / "candidate-full"
-    shutil.copytree(project.root, candidate)
-    run_dir = project.run_dir()
-    run_dir.mkdir(parents=True)
-    lock = build_manifest(spec, project.root)
-    real_round = runner_module.Runner.run_round
-
-    def dying(self: Runner, index: int) -> Round:
-        if index == 3:
-            raise KeyboardInterrupt
-        return real_round(self, index)
-
-    def attempt(resume: Resumed | None, rounds: int) -> CompareResult:
-        journal = Journal(run_dir, 12, resume_after=rounds)
+    def attempt(self, resume: Resumed | None, rounds: int) -> CompareResult:
+        journal = Journal(self.run_dir, self.max_rounds, resume_after=rounds)
         try:
             return compare(
-                spec,
-                lock,
-                baseline_root=project.root,
-                baseline_commit=project.commit,
-                candidate_root=candidate,
-                run_dir=run_dir,
+                self.spec,
+                self.lock,
+                baseline_root=self.project.root,
+                baseline_commit=self.project.commit,
+                candidate_root=self.candidate,
+                run_dir=self.run_dir,
                 process_env=os.environ,
                 order_seed=7,
+                project_root=self.model_root,
                 journal=journal,
                 resume=resume,
             )
         finally:
             journal.close()
 
+
+def _full_copy_fixture(tmp_path: Path, *, keep: bool) -> _Fixture:
+    """Build the fixture; with `keep` the candidate is 2x faster.
+
+    The faster candidate edits ``work.py`` without committing it, so the
+    coverage gate has a changed line to check, and the model confirms
+    the class: the verdict is KEEP unless a gate withholds it.
+    """
+    if not keep:
+        spec = twelve_rounds()
+        project = make_project(tmp_path)
+        candidate = tmp_path / "candidate-full"
+        shutil.copytree(project.root, candidate)
+        run_dir = project.run_dir()
+        run_dir.mkdir(parents=True)
+        lock = build_manifest(spec, project.root)
+        return _Fixture(project, candidate, spec, lock, run_dir, None, 12)
+    spec = web_spec()
+    project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
+    candidate = tmp_path / "candidate-full"
+    shutil.copytree(project.root, candidate)
+    (candidate / "work.py").write_text(det_work(0.5))
+    run_dir = project.run_dir()
+    run_dir.mkdir(parents=True)
+    assert spec.target_class is not None
+    write_model(
+        project.model_root,
+        ((spec.target_class, "confirmed"),),
+        workload=spec,
+    )
+    lock = build_manifest(spec, project.root)
+    return _Fixture(
+        project, candidate, spec, lock, run_dir, project.model_root, 30
+    )
+
+
+def _interrupted_then_resumed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    damage: Callable[[Path], None] | None = None,
+    plant: Callable[[Path], None] | None = None,
+    keep: bool = False,
+    die_in_round: int = 3,
+) -> tuple[RunRecord, Path]:
+    """Die in a round of attempt 0, resume, and return the final record.
+
+    The candidate is a full copy of a repository that has no ignore for
+    bytecode, so attempt 0's own test run leaves ``__pycache__`` in it
+    (unless it dies before the first round). `plant` runs on the
+    candidate before attempt 0 and `damage` on the run directory
+    between the attempts. With `keep` the candidate is a clear win, so
+    the verdict shows whether a gate withheld it.
+    """
+    from perfproof.bench import runner as runner_module
+    from perfproof.bench.journal import (
+        MACHINE_NAME,
+        METRIC_NAME,
+        load_journal,
+        read_json,
+    )
+
+    fx = _full_copy_fixture(tmp_path, keep=keep)
+    real_round = runner_module.Runner.run_round
+
+    def dying(self: Runner, index: int) -> Round:
+        if index == die_in_round:
+            raise KeyboardInterrupt
+        return real_round(self, index)
+
+    if plant is not None:
+        plant(fx.candidate)
     monkeypatch.setattr(runner_module.Runner, "run_round", dying)
     with pytest.raises(KeyboardInterrupt):
-        attempt(None, 0)
+        fx.attempt(None, 0)
     monkeypatch.setattr(runner_module.Runner, "run_round", real_round)
-    assert list(candidate.rglob("__pycache__"))
+    if die_in_round > 0:
+        assert list(fx.candidate.rglob("__pycache__"))
     if damage is not None:
-        damage(run_dir)
-    rounds = load_journal(run_dir, repair=True)
-    doc = read_json(run_dir / MACHINE_NAME)
+        damage(fx.run_dir)
+    rounds = load_journal(fx.run_dir, repair=True)
+    doc = read_json(fx.run_dir / MACHINE_NAME)
     assert doc is not None
-    recorded = read_json(run_dir / METRIC_NAME)
+    recorded = read_json(fx.run_dir / METRIC_NAME)
     kind = None if recorded is None else recorded.get("kind")
     resumed = Resumed(
         rounds=tuple(rounds),
@@ -4757,7 +4810,7 @@ def _interrupted_then_resumed(
         attempt=1,
         metric_kind=kind if isinstance(kind, str) else None,
     )
-    return attempt(resumed, len(rounds)).record, run_dir
+    return fx.attempt(resumed, len(rounds)).record, fx.run_dir
 
 
 def test_a_resume_keeps_the_first_attempts_untracked_snapshot(
@@ -4790,7 +4843,9 @@ def test_the_snapshot_is_saved_at_attempt_zero_and_reused_after_changes(
     # Written by attempt 0, before its runs left bytecode in the tree.
     assert seen == [[]]
     # Added between attempts, so not in the snapshot: retaking it would
-    # have counted this file.
+    # have counted this file. `resume_run` refuses such a file unless it
+    # is in a directory it does not hash, so this test calls `compare`
+    # on a resume directly and covers the layer below that refusal.
     coverage = next(g for g in record.gates if g.gate == "coverage")
     assert coverage.status == "passed"
     assert "added_after.py" not in coverage.detail
@@ -4825,6 +4880,73 @@ def test_a_corrupt_snapshot_fails_closed(
     coverage = next(g for g in record.gates if g.gate == "coverage")
     assert coverage.status == "not_available"
     assert "corrupt" in coverage.detail
+
+
+def _coverage_gate(record: RunRecord) -> GateResult:
+    return next(g for g in record.gates if g.gate == "coverage")
+
+
+def test_a_file_planted_before_attempt_zero_still_counts_after_a_resume(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def plant(candidate: Path) -> None:
+        (candidate / "data.txt").write_text("planted\n")
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, plant=plant, keep=True, die_in_round=13
+    )
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "data.txt" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+def test_a_resume_with_no_finished_round_still_reads_the_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, keep=True, die_in_round=0
+    )
+    assert _coverage_gate(record).status == "passed"
+
+
+def test_a_snapshot_that_cannot_be_saved_fails_closed(
+    tmp_path: Path,
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    fx = _full_copy_fixture(tmp_path, keep=True)
+    (fx.run_dir / UNTRACKED_NAME).mkdir()
+    record = fx.attempt(None, 0).record
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "could not be saved" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+@pytest.mark.parametrize(
+    "snapshot",
+    [
+        '{"files": [1], "sha256": "0"}\n',
+        '{"files": ["\\ud800"], "sha256": "x"}\n',
+    ],
+    ids=["non_string_entry", "lone_surrogate"],
+)
+def test_a_snapshot_that_cannot_be_trusted_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, snapshot: str
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    def damage(run_dir: Path) -> None:
+        (run_dir / UNTRACKED_NAME).write_text(snapshot)
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, damage=damage, keep=True, die_in_round=13
+    )
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "corrupt" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
 
 
 def test_nothing_runs_in_the_candidate_before_the_snapshot(
