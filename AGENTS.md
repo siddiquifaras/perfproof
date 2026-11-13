@@ -49,6 +49,7 @@ worktree.
 | a target class's oracle, guardrails or boundary | `docs/targets.md` |
 | `eval/` | `docs/evaluation.md` |
 | module boundaries, on-disk layout, prior art | `docs/architecture.md` |
+| a status, phase or marker file, or anything that gates a later step | `docs/state-machines.md` |
 
 ## Evidence
 
