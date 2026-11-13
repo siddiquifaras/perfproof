@@ -1,16 +1,39 @@
 # Target classes
 
-Every class is proven by the same generic workload: a command, a
-metric, the gates and the verdict in [method.md](method.md). What
-differs per class is written here: what "same output" means, which
-guardrails apply and how they're measured, which helper runs the
-workload, and the boundary of what the release supports.
+Every class is proven by the same generic workload: a command, a metric,
+the gates and the verdict in [method.md](method.md). Per class, this page
+says what "same output" means, which guardrails apply, which helper runs
+the workload, and where the release boundary sits.
+
+Outside a boundary it still runs as a generic command workload. It's
+measured and proven, but the playbook's advice and the class's calibration
+don't apply, and the report says so.
+
+## Support status
+
+Only the Python prove path is supported. The rest is experimental or a
+published limit, because I have no end-to-end run behind it that I'd put a
+KEEP on. The basis is the calibration table in [method.md](method.md) and the
+eval runs.
+
+| Class or language | Status | Why |
+|---|---|---|
+| Python (prove path) | **supported** | 10 real traces, 210 in-class calibration cells with none failing, and known-answer eval tasks that KEEP and REJECT correctly. Discovery on unseen code is weak: 2 of 8 hidden bottlenecks named |
+| Node and TypeScript | experimental | Calibrated on `wall` only, and no eval run has produced a Node KEEP yet |
+| Rust, Go, Java, Ruby, C# | experimental | Pre-calibration eval runs only, and no KEEP on a real project yet |
+| C and C++ | experimental | The `native` class rests on 2 traces of one program (picolm) |
+| Web services | experimental | Calibrated on one synthetic load shape, and `perfproof load` isn't built (T5.7) |
+| Agentic apps | experimental | Calibrated on a deterministic agent loop, and `perfproof replay` isn't built (T5.19 to T5.22) |
+| LLM serving | experimental | Calibrated on 2 CPU Ollama traces, no GPU |
+| GPU kernels | **published limit** | Not calibrated, so perfproof withholds KEEP by construction |
+
+Published limits that apply to every row:
+
+- **No class from `init`:** Go, .NET and Ruby non-web libraries (`find` may still map Go to `native`).
+- **Not built:** `load`, `replay`, `check`, `confirm`, `report` and `--host`.
 
 The boundaries below are proposals until each class's contract task in
-`.claude/plan.md` confirms them against its fixture and case study.
-Anything outside a boundary still runs as a generic command workload:
-it is measured and proven, but the playbook's advice and the class's
-calibration don't apply, and the report says so.
+`.claude/plan.md` confirms them.
 
 ## Python
 
@@ -28,32 +51,30 @@ calibration don't apply, and the report says so.
 
 Target class `node`: schedule `(10, 10, 6, 60)`, calibrated on a
 `wall` primary metric only. Its real traces are the five Node traces
-of `tests/calibration/traces/data` (whole-process `wall` timings,
-`bench.js`), counted in this class by the owner's decision of
+in `tests/calibration/traces/data` (whole-process `wall` timings,
+`bench.js`). They count in this class by the owner's decision of
 2026-10-29, taken after the results were seen ("Which traces are in
 which class" in [method.md](method.md)). An in-process (`reported`)
 Node measurement gets the estimate and interval but no KEEP ("Named
 limit" in method.md).
 
-`init` proposes `node` when a `package.json` (outside the
-directories below) has no web framework dependency and JavaScript or
-TypeScript source files are more than half of the source files. The one rule
-for `node` and `jvm`: count non-test source files per language over a
-walk of 16 directory levels and `MAX_FILES`, leaving out declaration
-files, tool configs, dot directories and files under `test`, `tests`,
-`spec`, `e2e`, `__tests__`, `__mocks__`, `examples`, `example`,
-`samples`, `docs`, `fixtures`, `static`, `assets`, `public`, `vendor`,
-`third_party`, `dist` and `build`; a language is proposed only when
-its files are more than half of all source files counted, and a
-truncated walk proposes neither (the proposal's notes say so). Every
-language with a known suffix counts in the total (about 50 suffixes:
-Python, JS/TS with Vue and Svelte, Java/Kotlin/Scala/Groovy, C family,
-Rust, Go, Ruby, PHP, Swift, C#, Elixir, Dart and others). A tooling `package.json` in a
-Python, Ruby, Go or Java repository does not make it `node`. A
-framework's own repository, such as echo, gin or Rails itself, may
-get no class. A `package.json` with a web framework dependency
-(`express`, `fastify`, `@nestjs/core`, `koa`, `@hapi/hapi`) makes the
-project `web_service` and is never a `node` manifest.
+How `init` proposes `node`:
+
+- **Trigger:** a `package.json` (outside the excluded directories) with no web
+  framework dependency, and JS or TS files over half of the source files.
+- **Counting rule**, shared with `jvm`: non-test source files per language,
+  over a walk of 16 levels and `MAX_FILES`. A language needs more than half of
+  all files counted. A truncated walk proposes neither, and the notes say so.
+- **Not counted:** declaration files, tool configs, dot directories, and
+  files under `test`, `tests`, `spec`, `e2e`, `__tests__`, `__mocks__`,
+  `examples`, `example`, `samples`, `docs`, `fixtures`, `static`, `assets`,
+  `public`, `vendor`, `third_party`, `dist` and `build`.
+- **Total:** every language with a known suffix (about 50, Python to Dart).
+- **Web frameworks:** `express`, `fastify`, `@nestjs/core`, `koa` or
+  `@hapi/hapi` in `package.json` makes it `web_service`, never `node`.
+
+A tooling `package.json` in a Python, Ruby, Go or Java repo doesn't make it
+`node`. A framework's own repo (echo, gin, Rails) may get no class.
 
 | | |
 |---|---|
@@ -66,52 +87,38 @@ project `web_service` and is never a `node` manifest.
 | Supported | Node 18.20.8, 20.20.2 and 24.13.0 (`tests/fixtures/node/versions` holds the profiler's output on each) on macOS arm64; TypeScript through `tsx` and Node's own type stripping (both with committed tests), or compiled with `esbuild` and a source map. `ts-node`, `esbuild-register` and `@swc-node/register` gave correct lines once on Node 20, with no committed fixture |
 | Outside | `pnpm`, `yarn`, `bun`, `deno` and `npm run` as the benchmark command (the runtime gate cannot follow them); browser code; Node programs that mostly wait on a service |
 
-What the runtime gate sees and does not (measured with
-`probe_environment` on Node 24.13.0): `node`, `node --import tsx`,
-`node --require esbuild-register`, `node -r ts-node/register`,
-`node --loader tsx`, `node --experimental-strip-types`,
-`node_modules/.bin/tsx` and `ts-node`, `npx --no-install tsx` and
-`npm exec --no -- tsx` are identified, with the Node's path, version
-and SHA-256. `npm run`, a bare `tsx` or `bun` that is not on `PATH`
-are not. The loader's own version (`tsx`, `esbuild`, `typescript`) is
-not in the runtime record; it is covered only by the lockfile hash, and
-`bun.lock` is not among the lockfiles hashed.
+Runtime gate, measured with `probe_environment` on Node 24.13.0:
 
-TypeScript run through a loader is not the code that ships. `tsx` adds
-`__name` calls (esbuild's `keepNames`) around every function, which
-shows as time in `__name` at line 1 of the file: 1.4% of the total
-for one project file in the committed tsx fixture (1.4% total, 0.7% self;
-the only `__name` in it), and none in the project's files in the
-committed `esbuild` bundle fixture. A profile to find
-hotspots can use the loader; a number to compare versions should come
-from one launch form used for both versions.
-
-## Native: C, C++, Rust
-
-| | |
+| Command | Identified (path, version, SHA-256) |
 |---|---|
-| Workload | A benchmark binary or test binary, built per tree; `wall`, `reported`, or `counter` on Linux |
-| Oracle | Output comparison between the two builds, and the project's tests |
-| Coverage | llvm-cov or gcov on changed lines |
-| Guardrails | Peak memory, 10% |
-| Profiling | samply or perf, turned into folded stacks |
-| Supported | Projects built with make, CMake or Cargo, on macOS arm64 and Linux x86_64 |
-| Outside | Windows, embedded targets, builds that need hardware not present |
+| `node`, `node --import tsx`, `--require esbuild-register`, `-r ts-node/register`, `--loader tsx`, `--experimental-strip-types`, `node_modules/.bin/tsx`, `ts-node`, `npx --no-install tsx`, `npm exec --no -- tsx` | yes |
+| `npm run`, a bare `tsx` or `bun` not on `PATH` | no |
+
+The loader's own version (`tsx`, `esbuild`, `typescript`) isn't in the runtime
+record. Only the lockfile hash covers it, and `bun.lock` isn't hashed.
+
+TypeScript through a loader isn't the code that ships. `tsx` adds `__name`
+calls (esbuild's `keepNames`) around every function, shown as time in `__name`
+at line 1. In the committed tsx fixture that was 1.4% of the total for one
+project file (0.7% self). The committed `esbuild` bundle fixture has none.
+So profile with the loader if you like, but compare versions through one
+launch form.
 
 ## Java and other JVM code
 
 Target class `jvm`: schedule `(10, 10, 6, 60)`, calibrated on a
-`wall` primary metric only. Its real traces are the three Java traces of
-`tests/calibration/traces/data` (`Bench.java`, whole-process `wall`),
-counted in this class by the owner's decision of 2026-10-29
-("Which traces are in which class" in [method.md](method.md)). An
-in-process measurement (a JMH score, a warmed-up `reported` time)
-gets the estimate and interval but no KEEP.
+`wall` primary metric only. Its real traces are the three Java traces
+in `tests/calibration/traces/data` (`Bench.java`, whole-process
+`wall`). They count in this class by the owner's decision of
+2026-10-29 ("Which traces are in which class" in
+[method.md](method.md)). An in-process measurement (a JMH score, a
+warmed-up `reported` time) gets the estimate and interval but no KEEP.
 
 `init` proposes `jvm` when a `pom.xml`, `build.gradle` or
 `build.gradle.kts` (outside the directories above) exists and Java,
-Kotlin, Scala and Groovy source files are together more than half of
-the source files, by the rule under Node. A manifest alone is not enough.
+Kotlin, Scala and Groovy files together make up more than half of the
+source files, by the counting rule under Node. A manifest alone isn't
+enough.
 
 | | |
 |---|---|
@@ -136,6 +143,7 @@ the source files, by the rule under Node. A manifest alone is not enough.
 | Profiling | `sample` on macOS and `perf` (CPU-clock event) on Linux, turned into folded stacks with demangled symbols by `perfproof.profilers.rust`; symbols only, no source lines |
 | Supported | rustc 1.94.1 on macOS arm64 (profiled with `sample`) and on Linux arm64 in Docker (profiled with perf 6.12), as run for T5.13; x86_64 Linux, other toolchains and `cargo-llvm-cov` were not run |
 | Outside | Windows, `no_std` and embedded targets, async runtime tracing (the playbook says what to look at), the v0 symbol mangling (not decoded) |
+
 ## Go
 
 | | |
@@ -200,14 +208,18 @@ Target class `web_service`. `init` proposes it from any of:
   to `http.ListenAndServe` in a non-test `.go` file;
 - Ruby: a `Gemfile` with `gem "rails"`, `"sinatra"` or `"roda"`.
 
-A Go, .NET or Ruby library that is not a web service has no class
-(`init` proposes nothing for it), so no KEEP is calibrated for it: a
-stated limit. `http.ListenAndServe` counts only in a non-test,
-non-example `.go` file and not in a comment. Detection reads
-dependencies and code, not a repository's own name, so a framework's
-own repository may get no class: `labstack/echo` and `gin-gonic/gin`
-require none of the above, and Rails has no `rails` line in its
-`Gemfile` and its few JavaScript files do not outnumber its Ruby.
+A .NET or Ruby library that isn't a web service has no class. `init`
+proposes nothing for it, so no KEEP is calibrated. A Go library is the same
+for `init`, but `find`'s part mapping (`project/parts.py`, `_PREFERRED_TARGETS`)
+lists Go as `web_service`, then `native`. So a Go part in a `find` plan can map
+to `native`, which has no Go traces behind it.
+
+Detection reads dependencies and code, never a repo's name:
+
+- **`http.ListenAndServe`** counts only in a non-test, non-example `.go`
+  file, outside comments.
+- **Framework repos** may get no class: `labstack/echo` and `gin-gonic/gin`
+  require none of the above, and Rails has no `rails` line in its `Gemfile`.
 
 | | |
 |---|---|
@@ -257,30 +269,19 @@ require none of the above, and Rails has no `rails` line in its
 
 How replay keeps the performance test valid:
 
-- **Recording.** One run of the baseline with every outbound HTTP
-  request and response captured, with its latency.
-- **Replay.** Each request is matched by method, URL and a hash of its
-  body, and answered with the recorded response after the recorded
-  latency. Concurrency and ordering changes therefore show up in wall
-  time as they would live, without live latency's noise or cost.
-- **Divergence.** A candidate may make fewer of the recorded requests
-  (removing a wasted call) in any order. A request with no recorded
-  match can't be answered: the run stops and the result is
-  INCONCLUSIVE, never a KEEP.
-- **Correctness.** Both versions get the same responses, so their final
-  outputs must be identical. A removed call whose result mattered
-  changes the output and fails the gate.
-- **Limits.** Replay can't measure provider-side effects: prompt
-  caching, rate limits, latency that depends on load. Prompt caching is
-  reported as a token and cost change only. A change to a prompt or a
-  model makes new requests, so it can't be proven under replay and is
-  outside the class's release boundary.
+| Step | What happens |
+|---|---|
+| Recording | One baseline run, every outbound HTTP request and response captured with its latency |
+| Replay | Requests matched by method, URL and body hash, answered after the recorded latency, so concurrency and ordering changes show in wall time without live noise or cost |
+| Divergence | A candidate may make fewer recorded requests, in any order. An unmatched request stops the run: INCONCLUSIVE, never KEEP |
+| Correctness | Both versions get the same responses, so final outputs must be identical. A removed call whose result mattered fails the gate |
+| Limits | Provider-side effects (prompt caching, rate limits, load-dependent latency) can't be measured. Prompt caching is a token and cost change only. A prompt or model change makes new requests, so it's outside the class |
 
 ## Release case studies: workload and oracle
 
 Each case study has a workload anyone can rerun and a correctness check
-that doesn't depend on perfproof. Checked against each repository's
-own files; anything still to confirm is marked.
+that doesn't depend on perfproof. I checked these against each
+repository's own files. Anything still to confirm is marked.
 
 | Class | Repository | Workload | Correctness check |
 |---|---|---|---|
@@ -291,6 +292,4 @@ own files; anything still to confirm is marked.
 | GPU and PyTorch | nanoGPT | `train.py` with the Shakespeare character config for a fixed number of steps on a T4, `float16` (the T4 has no bfloat16), seed fixed as `train.py` already does (`torch.manual_seed(1337)`) | Validation loss after the fixed steps within a declared tolerance; the declared tolerance is set from the baseline's own run-to-run spread, measured first |
 | Agentic | gpt-researcher | One research run under `perfproof replay`, recorded with a local model through Ollama and the DuckDuckGo retriever, both supported in its code, so no API key or paid call is needed; or `REPORT_SOURCE` set to local documents for a fully offline run | Final report identical under the same replay; its pytest suite for the code touched |
 
-To confirm in each class's contract task: the frames2py cell, the NetBox
-endpoint mix, the vLLM model, the nanoGPT step count and tolerance, and
-the gpt-researcher query and documents.
+To confirm per class: the frames2py cell, NetBox endpoint mix, vLLM model, nanoGPT step count and tolerance, and gpt-researcher query and documents.

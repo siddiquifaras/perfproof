@@ -1,39 +1,18 @@
 # Architecture
 
-The design target for the release. `.claude/plan.md` tracks what
-exists. Each component's reason to exist is in
-[failure-modes.md](failure-modes.md); the interface is in
-[cli.md](cli.md); prove is specified in [method.md](method.md), and
-understand and discover in [discovery.md](discovery.md).
+A small exact core and the Markdown skills that drive it. Why each part
+exists: [failure-modes.md](failure-modes.md). Interface: [cli.md](cli.md).
+Prove: [method.md](method.md). Understand and discover:
+[discovery.md](discovery.md).
 
 ## Shape
 
-A small exact core and the skills that drive it:
-
-```
- developer ──▶ agent (Claude Code, Codex, anything with a shell)
-                 │ reads
-                 ▼
-          skills/: /perfproof loop + one playbook per target class
-                 │ runs
-                 ▼
-          perfproof CLI ── understand: project model (persisted, invalidated)
-                        ── discover:   profile summaries, scaling runs,
-                                       stub-out bounds, hypothesis log
-                        ── prove:      gates, interleaved rounds, verdict,
-                                       guardrails, confirm, record, report
-                 │
-          local runner ── remote runner (SSH host, Modal)
-```
-
-- **The CLI** owns everything that must be exact: state, measurement,
-  statistics, gates, undo and records. Agents use it through the shell
-  with `--json`, and long comparisons with `--detach` and `status`.
-- **The skills** own judgment: understanding the project with the
-  developer, choosing what to look at, forming hypotheses, choosing a
-  cheap test, writing candidates. They are Markdown. If the agent
-  skips a step, the CLI's gates still stand between its output and a
-  kept change.
+- **The CLI** owns what must be exact: state, measurement, statistics,
+  gates, undo and records. Agents call it with `--json`, and long
+  comparisons with `--detach` and `status`.
+- **The skills** own judgment: what to look at, hypotheses, candidates. If
+  the agent skips a step, the gates still stand between it and a kept change.
+- **Local only.** Remote runners (SSH, Modal) aren't built.
 
 ## Packages
 
@@ -41,16 +20,38 @@ A small exact core and the skills that drive it:
 |---|---|
 | `perfproof.schema` | Pydantic models for every record: spec, sample, gate, verdict, guardrail, project model, hypothesis |
 | `perfproof.stats` | Intervals, sequential looks, decision rule, guardrails, noise simulation. Pure functions on NumPy arrays |
-| `perfproof.bench` | Spec and lock, snapshots, runner, correctness, differential checks, coverage, side-effect guard, compare, confirm |
+| `perfproof.bench` | Spec and lock, snapshots, runner, correctness, differential checks, coverage, side-effect guard, compare |
 | `perfproof.machine` | Fingerprint and warnings |
 | `perfproof.project` | The project model: proposal, confirmation, staleness, history |
-| `perfproof.hypotheses` | The append-only hypothesis log |
-| `perfproof.profilers` | Run a profiler, summarise folded stacks to the top frames |
-| `perfproof.helpers` | `load` (constant-rate HTTP driver) and `replay` (model and tool calls) |
-| `perfproof.remote` | SSH and Modal runners; the remote side runs the same engine |
-| `perfproof.session` | The `/perfproof` session: branch, undo, dirty-tree refusal, resume |
+| `perfproof.hypotheses`, `perfproof.profilers` | The append-only hypothesis log; run a profiler and summarise folded stacks to the top frames |
+| `perfproof.find` | `perfproof find`: map the app, probe, rank, plan (see [find.md](find.md)) |
 | `perfproof.report` | Renders a record. Computes nothing new |
-| `perfproof.cli` | One module per command under `perfproof/commands/` |
+| `perfproof.commands`, `perfproof.cli` | One module per CLI command plus shared helpers; argument parsing and dispatch |
+
+## Module boundaries
+
+The intended direction is one way, from the CLI down to the maths.
+
+```mermaid
+flowchart TD
+    cli --> commands
+    commands --> find & bench & project & profilers & report
+    find --> profilers & project
+    bench --> stats & machine & schema
+    project --> schema
+    stats --> schema
+```
+
+*Arrows are allowed imports. `stats` takes arrays and never imports `bench`.*
+
+Three edges go the wrong way today and are being fixed separately:
+
+- **`profilers` imports `commands`** for `JsonValue`
+  (`profilers/growth.py:73`, `summary.py:30`, `rank.py:45`).
+- **`find` imports private `commands` helpers** (`find/mapping.py:21-22`,
+  `find/probes.py:25`, `find/engine.py:17`).
+- **`bench` and `project` import each other** (`bench/compare.py:243-246`,
+  `project/store.py:29`).
 
 ## On disk
 
@@ -69,8 +70,7 @@ repository, which it adds to `.git/info/exclude`:
                                both trees before every run, all locked
   runs/<run-id>/
     logs/setup/                output of each tree's setup commands
-    progress.json              where a detached compare has got to
-    pid                        the detached process and its start time
+    progress.json, pid         a detached compare's progress and process
     samples.jsonl              one line per completed round, for resume
     record.json                the full machine-readable result
     report.md                  the readable report
@@ -95,14 +95,13 @@ Checked against each tool's own documentation.
 | [Bencher](https://bencher.dev/docs/explanation/thresholds) | CI thresholds with a t-test or z-score against history, alerts | Compares against history, not a paired run; no correctness gate |
 | CodSpeed | Low-noise CI measurement through CPU simulation | A hosted CI service; no correctness gate or agent loop |
 
-perfproof reuses their lessons: warmup, calibrated inner loops for
-in-process timing (the `reported` metric), outlier reporting, system
-tuning advice in `doctor`, and instruction counts on Linux. What it adds,
-and what none of them does:
+perfproof reuses their lessons: warmup, calibrated inner loops for `reported`
+timing, outlier reporting, tuning advice in `doctor`, and instruction counts
+on Linux. What none of them does:
 
-- old and new interleaved in randomly ordered pairs on one machine;
-- a verdict with a minimum effect and an honest INCONCLUSIVE, with
-  calibrated error rates under sequential looks;
+- old and new interleaved in random pairs on one machine;
+- a verdict with a minimum effect, an honest INCONCLUSIVE and calibrated
+  error rates under sequential looks;
 - gates that make "faster but wrong" and "faster by cheating" a REJECT;
 - choose-then-confirm when many candidates are tried;
-- the agent loop that finds what to try.
+- an agent loop that finds what to try.

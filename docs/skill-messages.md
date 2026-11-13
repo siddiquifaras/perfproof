@@ -1,13 +1,14 @@
 # /perfproof messages
 
-Every message the user sees, by ID, for [skill.md](skill.md). The skill
-fills the `{placeholders}` (named after the `--json` field they come
-from) and adds nothing; T3.8 snapshot-tests each. Plain words, no codes:
-a placeholder never holds a raw error code. Every session ends with its
-`Result:` line (skill.md, section 2), always last.
+Every message the user sees, by ID, for [skill.md](skill.md).
 
-Words rule: messages under R-10 to R-13 and any estimate never contain
-a direction word (skill.md, rule 1).
+- **Placeholders** (`{like_this}`) are named after the `--json` field
+  they come from. The skill fills them and adds nothing.
+- **Plain words:** a placeholder never holds a raw error code.
+- **Last line:** every session ends with its `Result:` line (skill.md,
+  section 2).
+- **No direction words** in R-10 to R-13 or any estimate (skill.md,
+  rule 1). T3.8 snapshot-tests each message.
 
 ## Inputs
 
@@ -28,12 +29,11 @@ My suggestions, all in one go:
 Shall I go ahead with these, or change any first?
 ```
 
-`{machine_warning}` is the BS-10 sentence, or nothing. Nothing is
-measured until the user says yes, and nothing after this asks again
-unless only the user can decide it.
-
-With no workload found, line 2 reads "Ways to run it: none found" and
-BS-5 speaks. The goal stays "unknown" if the repository doesn't say.
+- `{machine_warning}` is the BS-10 sentence, or nothing.
+- Nothing is measured until the user says yes, and nothing after this
+  asks again unless only the user can decide it.
+- With no workload found, line 2 reads "Ways to run it: none found" and
+  BS-5 speaks. The goal stays "unknown" if the repository doesn't say.
 
 **IN-2a, free text, the named thing is the largest share**
 
@@ -76,7 +76,7 @@ not a result; {basis}). {reason}
 Pick a different workload, or stop here?
 ```
 
-When `{cap}` is at or below the bar, the skill does not offer to try it.
+At or below the bar, the skill doesn't offer to try it.
 
 **IN-5, depth** (shown for `light` and `medium` with the last sentence)
 
@@ -146,9 +146,9 @@ benchmark branch as {derived} ({derived_sha}); your own commit stays
 Result: {OUTCOME} ({reason})
 ```
 
-`{claim_line}` is the claim as the author made it, with "not checked"
-beside any claim perfproof did not test. Memory and tail latency appear
-under Facts when judged, otherwise under Not checked.
+`{claim_line}` is the author's claim, with "not checked" beside any
+claim perfproof didn't test. Memory and tail latency go under Facts
+when judged, otherwise under Not checked.
 
 ## Bad states before a run
 
@@ -296,8 +296,8 @@ both mostly cancels; it widens the range and may need more rounds.
 {advice} I'll go on and note the conditions in the report.
 ```
 
-`{advice}` is the `advice` field of the warning. Unknown code: the
-warning's `message`, unchanged.
+`{advice}` is the warning's `advice` field. Unknown code: its
+`message`, unchanged.
 
 **BS-11a, start**
 
@@ -315,10 +315,10 @@ Resume it?
 Result: NO VERDICT (run not finished)
 ```
 
-`{state_plain}` is "it was interrupted", "it was cancelled" or "it is
-still running". `{length_sentence}` is the CLI's rounds and minutes
-estimate when it gave one, otherwise "I can't say how long it will
-take."
+- `{state_plain}`: "it was interrupted", "it was cancelled" or "it is
+  still running".
+- `{length_sentence}`: the CLI's rounds and minutes estimate when it
+  gave one, otherwise "I can't say how long it will take."
 
 **BS-12**, by what failed
 
@@ -328,7 +328,7 @@ code is unchanged. Details: {run_dir}. {next}
 Result: NO VERDICT (perfproof stopped)
 ```
 
-`{plain}` comes from this table; an unknown code gets "something I don't
+`{plain}` comes from this table. An unknown code gets "something I don't
 recognise went wrong".
 
 | Failure | `{plain}` and `{next}` |
@@ -362,7 +362,7 @@ Result: REJECT (performance)
 ```
 
 `{slower_clause}` is "It is slower than the original." only when
-`verdict.regression`, otherwise empty.
+`verdict.regression`, else empty.
 
 **R-3, not kept, a limit**
 
@@ -381,10 +381,10 @@ measured, and your code is back as it was.
 Result: REJECT (correctness, gate correctness)
 ```
 
-`{fact}` for a pin: "The project's pinned query count for {test} is
-{old}; the change makes it {new}." For output: "The output {file}
-differs from the original's in {n} places." For a crash: "The benchmark
-crashed on your change: {tail}." `{pin_next}`: "Update {pin_file} the
+`{fact}` is one of: "The project's pinned query count for {test} is
+{old}; the change makes it {new}." (a pin); "The output {file} differs
+from the original's in {n} places." (output); "The benchmark crashed on
+your change: {tail}." (a crash). `{pin_next}` is "Update {pin_file} the
 project's way ({command}) and measure the speed, or drop this change?"
 or "Drop this change, or tell me what difference is allowed?"
 
@@ -400,13 +400,12 @@ you to judge?
 Result: INCONCLUSIVE (insufficient_evidence)
 ```
 
-Lines that ran under no passing check are not a failure of the change,
-so this is not a REJECT: the `coverage` gate is `not_available` and the
-result is INCONCLUSIVE. When coverage can't be measured at all, the
-result is R-11; the reason line reads "perfproof can't see which
-{language} lines ran, so it can't keep a change here"; if the user's
-spec opted out of coverage it adds "coverage was switched off by this
-benchmark's settings".
+Unrun lines aren't a failure of the change, so this isn't a REJECT: the
+`coverage` gate is `not_available` and the result is INCONCLUSIVE. When
+coverage can't be measured at all, the result is R-11 and the reason
+reads "perfproof can't see which {language} lines ran, so it can't keep
+a change here" (plus "coverage was switched off by this benchmark's
+settings" if the spec opted out).
 
 **R-6, edits a locked file**
 
@@ -484,9 +483,9 @@ Undecided on {candidate}: after {rounds} rounds the interval {lo}x to
 Result: INCONCLUSIVE (insufficient_evidence)
 ```
 
-`{settle}` is "At this noise a decision needs about {r} more rounds
-(about {t} minutes). Run them, or use a quieter machine?" when the CLI
-gave it, else empty.
+`{settle}`, when the CLI gave it (else empty), is "At this noise a
+decision needs about {r} more rounds (about {t} minutes). Run them, or
+use a quieter machine?"
 
 **R-13, uncalibrated (what every run shows today)**
 
@@ -504,9 +503,9 @@ Result: INCONCLUSIVE (insufficient_evidence)
 ```
 
 `{where}` is the branch, derived branch or directory holding the change.
-Next step: "Want me to try the next idea?" (find path) or none (prove).
-`{conditions}` has one clause per warning, from this table, or the
-warning's `message` unchanged:
+The next step is "Want me to try the next idea?" (find path) or none
+(prove). `{conditions}` has one clause per warning, from this table, or
+the warning's `message` unchanged:
 
 | Code | Clause |
 |---|---|
