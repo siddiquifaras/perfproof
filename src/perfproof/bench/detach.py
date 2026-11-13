@@ -1311,8 +1311,9 @@ def tree_manifest(root: Path, exclude: Collection[str]) -> dict[str, str]:
     -------
     dict of str to str
         Relative path to SHA-256 of the content (a symlink's target
-        text, ``unreadable`` for a file that can't be read). Version
-        control and cache directories are skipped. O(bytes in the tree).
+        text, ``unreadable`` for a file that can't be read). The
+        directories in ``_SKIP_DIRS`` are not entered; every other file,
+        build output included, is hashed. O(bytes in the tree).
     """
     out: dict[str, str] = {}
     for dirpath, dirs, files in os.walk(root):
