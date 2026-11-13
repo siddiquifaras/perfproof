@@ -32,8 +32,9 @@ published as headlines, and weak numbers are reported as weak.
   re-pilot. Never tune on held-out tasks.
 - Then the held-out set runs exactly once, with scoring fixed per
   `docs/evaluation.md`, reported with intervals whatever it shows.
-- Upstream PRs only where perfproof proves at least 2x on a realistic
-  workload with tests and differential checks passing.
+- Upstream PRs only where perfproof proves at least 1.5x on the
+  project's own benchmark, with tests and differential checks passing
+  (Faras, 2026-11-13; was 2x). Headline bars: `docs/evaluation.md`.
 
 **Week 1 (11-13 to 11-19): ship what exists.**
 - Scope cut (T6.1): any class or language not at the bar ships
@@ -54,7 +55,7 @@ published as headlines, and weak numbers are reported as weak.
   precision of claimed wins and false-KEEP rate; also recall and cost
   per verified KEEP.
 - Upstream speedups: perfproof on 5 to 8 well-known Python projects
-  outside the eval set. For each clean KEEP of 2x or more, draft a PR
+  outside the eval set. For each clean KEEP of 1.5x or more, draft a PR
   with the perfproof record. Faras reviews and opens every PR.
 - LLM serving: T5.14 (serving A/A traces) and T5.15 (vLLM case on a
   small model), on Modal free credit, reusing `~/code/modal-test`.

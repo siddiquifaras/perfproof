@@ -4,6 +4,42 @@ Concise record of commits, merges, tests, calibration, benchmark
 evidence, spending, decisions and blockers. Newest first. Kept by the
 lead; task branches don't edit it.
 
+## 2026-11-13, public repo
+
+The repo is public now, with history rewritten. Old PR numbers don't
+carry over. CI runs on every PR and push to main since #1. A new lead
+session took over in the morning; agents are capped at 5 at once.
+
+### Merges on main
+
+| Commit | What |
+|---|---|
+| `8cb3d538` | #11 headline bars in `docs/evaluation.md`, fixed before any agent run on the per-class held-out set: false-claim rate on nothing-to-keep tasks (alone at least 30%, with perfproof at most 2%), precision at least 95% with a Clopper-Pearson interval, upstream PRs only for KEEPs of 1.5x or more. The pilot runs on 10 development tasks, both arms. The reviewer blocked a false-claim definition the alone arm couldn't meet, fixed |
+| `273f983a` | #10 T4.2 held-out labels: 16 tasks, the same label on both machines (9 improvement, 7 below-bar), correctness `unknown` for all (no suite recipes). gin-4466's label is compile time, not the change. Combined labels in `eval/label/results/final/` |
+| `f75edd49` | #8 first-run gates. No KEEP when no test ran; commands run with the user's env; the change set is fixed before any run. The untracked-file snapshot is saved at attempt 0 and a resume reads it back; a missing or corrupt one means the coverage gate is `not_available`. Reviewer passed; the stats re-audit blocked (contents never asserted, a lone-surrogate crash), fixed with 5 pinned tests, each one killing its mutant. The lead checked that last delta and Faras OK'd merging on that check. method.md and failure-modes now name two blind spots of the gate (below) |
+| `f4e770d1` | #9 five performance fixes from the code audit (find scan O(n^2) to O(n), one git diff, streamed diff hash, single parse). Reviewer passed; a conflict with #7 in `tests/find/test_find_state.py` was resolved by keeping both sides |
+| `de49e878` | #7 find: state lock, unique temp file, retry probes blocked by a missing tool. Reviewer passed |
+| `a2e6f577` | #1 CI on PRs and pushes. Took four pushes: env assumptions, Python 3.13 behaviour (glob skips unsearchable dirs, unclosed SQLite warnings) and macOS runner quirks. Small product fixes: `doctor` keeps a multi-line detail on one line, 3.13 counts as tested, the coverage gate closes its database. The reviewer blocked one loosened test: a rule 5 record with no interval must carry `coarse_resolution` or `interval_unrepresentable` |
+| `a37139a2` | #4 README for the public release. The review blocked a miscounted figure, local paths in an excerpt, the mitmproxy KEEP without its caveat (371x on the timed section, about 1.7x end to end, on a pathological input), install claims with no source, an overclaiming opening, and depth tiers not marked experimental. All fixed |
+
+### Found, not fixed (follow-ups)
+
+- **Coverage gate blind spots** (documented in #8): untracked files git ignores, and files added between a kill and the resume inside directories `resume` doesn't hash (`__pycache__` and the rest). A planted `.pyc` there reached a KEEP through the real CLI. Needs its own fix.
+- A kill between `journal.begin` and the snapshot write leaves a run that can never KEEP. Write the snapshot earlier.
+- Two flaky tests on main: the native recorder under the sandbox on GitHub's macOS (`sample` can't attach), and `test_passing_gates_end_inconclusive_with_the_interval` on Linux 3.12 (`metric_disagreement` None). Both passed on rerun.
+- The rule 5 record with no interval seen on Linux 3.13 is unexplained.
+- The sandbox links `clang` from a path a full Xcode doesn't have; the lock-gate probe may not reap its child (one ETXTBSY).
+- `docs/install.md` still shows the SSH shorthand the README warns against.
+
+### Labelling (T4.2)
+
+Done on two Linux boxes (both deleted after), 19 held-out CPU tasks each. gin-2365 was
+dropped (Faras): its workload runs `go test` in a fresh container with
+only the module cache, so every arm recompiles gin (about 53 s) and the
+benchmark itself drowns. gin-4466 has the same problem and will be
+flagged. scipy-24913 can't build on Linux as written (Apple Accelerate);
+libuv-2064 fails its cmake build on one box.
+
 ## 2026-10-16, overnight session
 
 ### RESUMED 2026-10-22 15:35 PKT (Faras: "continue where you left off everything"); pause notes below kept for reference
