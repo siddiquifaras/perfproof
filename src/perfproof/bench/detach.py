@@ -75,6 +75,7 @@ import hashlib
 import math
 import os
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -142,6 +143,10 @@ FAILED_NAME: Final = "failed.json"
 LOG_NAME: Final = "detached.log"
 LOCK_NAME: Final = "run.lock"
 TREES_NAME: Final = "trees.json"
+STATS_NAME: Final = "trees_stat.json"
+# A file modified this close to the snapshot may change again within
+# one timestamp tick, so its stat is never trusted.
+_RACY_NS: Final = 2_000_000_000
 _SKIP_DIRS: Final = frozenset(
     {
         ".git",
@@ -1296,7 +1301,13 @@ def check_resumable(run_dir: Path) -> Job:
     return job
 
 
-def tree_manifest(root: Path, exclude: Collection[str]) -> dict[str, str]:
+def tree_manifest(
+    root: Path,
+    exclude: Collection[str],
+    *,
+    stats: dict[str, tuple[int, int]] | None = None,
+    trusted: Mapping[str, tuple[str, int, int]] | None = None,
+) -> dict[str, str]:
     """Hash every file of a tree.
 
     Parameters
@@ -1306,13 +1317,21 @@ def tree_manifest(root: Path, exclude: Collection[str]) -> dict[str, str]:
     exclude : collection of str
         Paths relative to ``root`` (POSIX form) left out, such as the
         outputs a run rewrites.
+    stats : dict, optional
+        Filled with ``(size, mtime_ns)`` of each regular file hashed or
+        reused.
+    trusted : mapping, optional
+        Relative path to ``(digest, size, mtime_ns)`` from an earlier
+        walk. A file whose size and mtime_ns still match reuses its
+        digest and is not read.
 
     Returns
     -------
     dict of str to str
         Relative path to SHA-256 of the content (a symlink's target
-        text, ``unreadable`` for a file that can't be read). Version
-        control and cache directories are skipped. O(bytes in the tree).
+        text, ``unreadable`` for a file that can't be read). The
+        directories in ``_SKIP_DIRS`` are not entered. O(files) stats,
+        plus O(bytes) for the files read.
     """
     out: dict[str, str] = {}
     for dirpath, dirs, files in os.walk(root):
@@ -1323,23 +1342,81 @@ def tree_manifest(root: Path, exclude: Collection[str]) -> dict[str, str]:
             if rel in exclude:
                 continue
             try:
-                if full.is_symlink():
+                info = full.lstat()
+                if stat.S_ISLNK(info.st_mode):
                     out[rel] = f"link:{os.readlink(full)}"
+                    continue
+                key = (info.st_size, info.st_mtime_ns)
+                known = None if trusted is None else trusted.get(rel)
+                if known is not None and known[1:] == key:
+                    out[rel] = known[0]
                 else:
                     with full.open("rb") as f:
                         out[rel] = hashlib.file_digest(f, "sha256").hexdigest()
+                if stats is not None:
+                    stats[rel] = key
             except OSError:
                 out[rel] = "unreadable"
     return out
 
 
-def _manifests(job: Job) -> dict[str, dict[str, str]]:
+def _manifests(
+    job: Job,
+    stats: dict[str, dict[str, tuple[int, int]]] | None = None,
+    trusted: Mapping[str, Mapping[str, tuple[str, int, int]]] | None = None,
+) -> dict[str, dict[str, str]]:
     spec, _ = load_spec(Path(job.repo), job.name, job.spec_hash)
     exclude = {o.path for o in spec.correctness.outputs}
+    out: dict[str, dict[str, str]] = {}
+    for arm, root in (
+        ("baseline", job.baseline_root),
+        ("candidate", job.candidate_root),
+    ):
+        arm_stats = None if stats is None else stats.setdefault(arm, {})
+        known = None if trusted is None else trusted.get(arm)
+        out[arm] = tree_manifest(
+            Path(root), exclude, stats=arm_stats, trusted=known
+        )
+    return out
+
+
+def _save_trees(run_dir: Path, job: Job) -> None:
+    """Write the start manifests and the stats they were read at."""
+    taken = time.time_ns()
+    stats: dict[str, dict[str, tuple[int, int]]] = {}
+    write_json(run_dir / TREES_NAME, _manifests(job, stats))
+    write_json(
+        run_dir / STATS_NAME,
+        {arm: _settled(files, taken) for arm, files in stats.items()},
+    )
+
+
+def _settled(
+    files: Mapping[str, tuple[int, int]], taken_ns: int
+) -> dict[str, list[int]]:
+    """Keep the stats old enough to vouch for a digest later."""
     return {
-        "baseline": tree_manifest(Path(job.baseline_root), exclude),
-        "candidate": tree_manifest(Path(job.candidate_root), exclude),
+        rel: list(key)
+        for rel, key in files.items()
+        if key[1] < taken_ns - _RACY_NS
     }
+
+
+def _trusted(
+    run_dir: Path, saved: Mapping[str, object]
+) -> dict[str, dict[str, tuple[str, int, int]]]:
+    """Digests the start-time stat can vouch for on a resume."""
+    doc = read_json(run_dir / STATS_NAME)
+    if doc is None:
+        return {}
+    out: dict[str, dict[str, tuple[str, int, int]]] = {}
+    for arm, before in saved.items():
+        digests = cast("dict[str, str]", before)
+        out[arm] = {}
+        for rel, key in cast("dict[str, list[int]]", doc.get(arm, {})).items():
+            if rel in digests:
+                out[arm][rel] = (digests[rel], key[0], key[1])
+    return out
 
 
 def _check_trees(run_dir: Path, job: Job) -> None:
@@ -1359,7 +1436,7 @@ def _check_trees(run_dir: Path, job: Job) -> None:
         )
         raise DetachError("not_resumable", msg)
     try:
-        now = _manifests(job)
+        now = _manifests(job, trusted=_trusted(run_dir, saved))
     except (OSError, ValueError, KeyError) as exc:
         msg = f"the trees could not be read: {exc}"
         raise DetachError("not_resumable", msg) from exc
@@ -1480,7 +1557,7 @@ def _run(run_dir: Path, job: Job) -> int:
     spec, lock = load_spec(Path(job.repo), job.name, job.spec_hash)
     resumed: Resumed | None = None
     if job.attempt == 0:
-        write_json(run_dir / TREES_NAME, _manifests(job))
+        _save_trees(run_dir, job)
     if job.attempt > 0:
         saved, started = _read_machine(run_dir)
         differing = machine_differences(saved, fingerprint())
