@@ -120,7 +120,7 @@ that doesn't is still published, in the same table, as a miss.
 
 | Metric | Measured as | Bar |
 |---|---|---|
-| False-claim rate | Claimed KEEPs that independent measurement shows are noise or a regression, over runs, on nothing-to-keep and noise-only tasks. Claude Code alone against Claude Code with perfproof | Alone at least 30%, with perfproof at most 2% |
+| False-claim rate | Claimed KEEPs that independent measurement shows are noise or a regression, over runs, on nothing-to-keep tasks. Claude Code alone against Claude Code with perfproof | Alone at least 30%, with perfproof at most 2% |
 | Precision of claimed wins | Share of perfproof's KEEPs that independent measurement confirms, with a 95% Clopper-Pearson interval | At least 95% |
 | Upstream pull requests | A perfproof KEEP on the project's own benchmark | Only for a KEEP of 1.5x or more |
 
@@ -128,8 +128,9 @@ Small counts give wide intervals: with 5 runs, 0 false claims still
 has an upper bound of about 52%. The interval is published next to
 every rate, and a bar met only by the point estimate says so.
 
-The bars and the task set are not tuned after seeing results. If a
-pilot shows a small gap, the next step is an explanation and a proposed
+The pilot runs on development tasks only (10 tasks, both arms), so
+the held-out set stays unseen for its one run. The bars and the task
+set are not tuned after seeing results. If the pilot shows a small gap, the next step is an explanation and a proposed
 new draw, run only once I've agreed to it.
 
 ## Splits
