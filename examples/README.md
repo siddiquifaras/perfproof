@@ -1,7 +1,7 @@
 # Examples and decoys
 
 Small programs with a known bottleneck, its real fix, and decoy
-candidates that perfproof must not keep. They are the fixtures for the
+candidates that perfproof must not keep. They're the fixtures for the
 end-to-end loop (T2.8), the profiler integration test (T2.10) and the
 real noise traces (T2.11).
 
@@ -15,25 +15,23 @@ real noise traces (T2.11).
 
 ## Layout
 
-Each example directory is a self-contained project: its own
-`pytest.ini`, benchmark, tests, and benchmark specs. To use one with
-perfproof, copy it into its own git repository. Paths in its specs are
-relative to the example directory.
+Each example is a self-contained project with its own `pytest.ini`,
+benchmark, tests and benchmark specs. To use one with perfproof, copy it
+into its own git repository. Paths in its specs are relative to the
+example directory.
 
-A **candidate** is a directory `<example>/candidates/<name>/` holding a
-full copy of every file the candidate changes, at the same path relative
-to the example; nothing else. A candidate tree is the example without
-its `candidates/` directory, with those files copied over it.
-`materialize.py` builds one:
+A **candidate** is `<example>/candidates/<name>/`: a full copy of every
+file the candidate changes, at the same relative path, and nothing else.
+A candidate tree is the example without `candidates/`, with those files
+copied over it. `materialize.py` builds one:
 
 ```bash
 uv run python examples/materialize.py rolling fix scratch/rolling-fix
 uv run python examples/materialize.py rolling scratch/rolling-baseline
 ```
 
-Full copies were chosen over patches so every candidate is plain source
-that ruff and pyright check, and so a candidate can be run in place
-with no patch tool. `diff -r` against the example shows the change.
+Full copies, not patches, so every candidate is plain source that ruff
+and pyright check. `diff -r` against the example shows the change.
 
 ## Running
 
@@ -45,44 +43,44 @@ make -C examples/colsum check        # build baseline and fix, compare sums
 ```
 
 None of these run in the main `uv run pytest`: `testpaths` there is
-`tests/`, and each directory here has its own `pytest.ini`. The two
-example suites take under a second each; `uv run pytest examples` builds
-every candidate tree in a temporary directory and runs it in
-subprocesses, so it is slower and kept out of the default run.
+`tests/`, and each example has its own `pytest.ini`. The example suites
+take under a second each. `uv run pytest examples` builds every
+candidate in a temporary directory and runs it in subprocesses, so it's
+slower and kept out of the default run.
 
-`uv run pytest examples` (`tests/test_examples.py`) checks, for both
-Python examples:
+`uv run pytest examples` (`examples/tests/test_examples.py`) checks, for
+both Python examples:
 
-- the baseline, the fix and every decoy except `wrong-output` pass the
-  example's suite (the deliberately flaky test deselected), and
-  `wrong-output` fails it;
-- the benchmark output of the fix and of every decoy except
+- **Suites:** the baseline, the fix and every decoy except `wrong-output`
+  pass the example's suite (the deliberately flaky test deselected), and
+  `wrong-output` fails it.
+- **Output:** the benchmark output of the fix and of every decoy except
   `wrong-output` and `bench-edit` is identical to the baseline's, and
-  `wrong-output`'s differs;
-- only `bench-edit` changes a file the spec locks, and it changes only
-  the harness;
-- every spec validates as a `perfproof.schema.BenchmarkSpec` and names
-  files that exist; the remote-database spec differs from `spec.json`
-  only in a non-local `DATABASE_URL`;
-- the flaky test both passes and fails across seeds;
-- each `untested-branch` decoy behaves differently from the baseline on
-  an input no test uses;
-- each `memory-cache` decoy peaks at least 2.5 times the baseline's
-  maximum RSS, and each fix at most 1.25 times, on the median of three
-  runs per tree (one tree's peak RSS varied by up to 9% across ten
-  runs, see "Measured effects"); every benchmark run there is killed with its
-  process group if it outlives a timeout;
-- the C fix gives byte-identical sums (skipped without `make` and `cc`).
+  `wrong-output`'s differs.
+- **Locks:** only `bench-edit` changes a file the spec locks, and only
+  the harness.
+- **Specs:** every spec validates as a `perfproof.schema.BenchmarkSpec`
+  and names files that exist. The remote-database spec differs from
+  `spec.json` only in a non-local `DATABASE_URL`.
+- **Flaky test:** it both passes and fails across seeds.
+- **Untested branch:** each `untested-branch` decoy behaves differently
+  from the baseline on an input no test uses.
+- **Memory:** each `memory-cache` decoy peaks at least 2.5 times the
+  baseline's maximum RSS, and each fix at most 1.25 times, on the median
+  of three runs per tree (one tree's peak RSS varied by up to 9% across
+  ten runs, see "Measured effects"). Every benchmark run there is killed
+  with its process group if it outlives a timeout.
+- **C:** the fix gives byte-identical sums (skipped without `make`/`cc`).
 
 ## Benchmarks
 
 Every benchmark is a command that runs the whole workload once, so
 `wall` and `cpu` metrics work on it as it is. The timing code is in the
-locked harness, never in the code a candidate changes, and it prints
-one line, `PERFPROOF {"value": <seconds>}`, for a `reported` metric
-that excludes interpreter start-up and input generation. With
-`--output PATH` the Python benchmarks also write their result, outside
-the timed region, for output comparison.
+locked harness, never in the code a candidate changes. It prints one
+line, `PERFPROOF {"value": <seconds>}`, for a `reported` metric that
+excludes interpreter start-up and input generation. With `--output PATH`
+the Python benchmarks also write their result, outside the timed region,
+for output comparison.
 
 | Example | Command | Harness (locked) | Oracle (locked) | Output |
 |---|---|---|---|---|
@@ -90,35 +88,37 @@ the timed region, for output comparison.
 | `membership` | `python bench.py --output output/held.txt` | `bench.py` | `tests/test_orders.py` | held order IDs, one per line, compared as `text` |
 | `colsum` | `make bench`, or `build/colsum ROWS COLS OUTPUT` | `bench.c`, `kernel.h`, `Makefile`, once it has a spec | none | `build/sums.txt`, column sums to 17 significant digits, compared as `bytes` |
 
-`make check` in `colsum/` builds the baseline and `candidates/fix/`
-from the same harness, runs both on the same 4096 x 4096 matrix and
-fails unless `cmp` finds their sums byte-identical. Both versions add
-each column's values in the same order, from row 0 down, so the
-comparison can demand the same bits rather than a tolerance.
+`make check` in `colsum/` builds the baseline and `candidates/fix/` from
+the same harness, runs both on the same 4096 x 4096 matrix and fails
+unless `cmp` finds their sums byte-identical. Both add each column's
+values in the same order, from row 0 down, so the comparison can demand
+the same bits rather than a tolerance.
 
-`spec.json` in each Python example is the benchmark spec, in schema
-version 4. It names `wall_time` as the objective and declares the three
-default guardrails of `docs/method.md` (the target class is unknown, so
-all three are required): peak memory at the 10% default allowance, and
-peak GPU memory and p99 latency not applicable, each with a reason.
-Its budget and look schedule are the default Python schedule of
-`docs/method.md` (10, 10, 6 looks, 60 rounds), a starting point for
-T2.8, not a measured choice; a schedule with more than one look at 120
-rounds or more still runs, but `compare` warns and never keeps.
-`pytest.ini` is locked as config, so a candidate can't deselect tests.
-`colsum` has no spec: the schema has no build step yet.
+`spec.json` in each Python example is the benchmark spec, schema
+version 4:
+
+- **Objective and guardrails:** `wall_time`, with the three defaults of
+  `docs/method.md` (the class is unknown, so all are required): peak
+  memory at the 10% allowance, and peak GPU memory and p99 latency not
+  applicable, each with a reason.
+- **Schedule:** the default Python schedule of `docs/method.md` (10, 10,
+  6 looks, 60 rounds), a starting point for T2.8 and not a measured
+  choice. More than one look at 120 rounds or more still runs, but
+  `compare` warns and never keeps.
+- **Locks:** `pytest.ini` is locked, so a candidate can't deselect
+  tests. `colsum` has no spec, because the schema has no build step yet.
 
 ## The examples
 
 **`rolling/`.** `rolling.rolling_sum(values, width)` sums every window
 of `width` consecutive int64 counts. The baseline keeps a running total
 in a Python loop that indexes the NumPy array one element at a time
-(`rolling.py:48-50`), two NumPy scalar reads and one write per step.
-The benchmark sums windows of 3,000 over 20 series of
-100,000 counts. The fix (`candidates/fix/`) takes one `np.cumsum` into
-a prefix array with a leading zero and returns the difference of two
-slices of it. Its results are exact, so outputs compare equal bit for
-bit. The suite holds the deliberately flaky test.
+(`rolling.py:48-50`), two NumPy scalar reads and one write per step. The
+benchmark sums windows of 3,000 over 20 series of 100,000 counts. The
+fix (`candidates/fix/`) takes one `np.cumsum` into a prefix array with a
+leading zero and returns the difference of two slices of it. Results are
+exact, so outputs compare equal bit for bit. The suite holds the
+deliberately flaky test.
 
 **`membership/`.** `orders.held_orders(orders, blocked_customers)`
 returns the orders placed by blocked customers. The baseline tests
@@ -131,32 +131,32 @@ remote-database spec.
 **`colsum/`.** `column_sums` in `kernel.c` sums each column of a
 row-major 4096 x 4096 matrix of doubles by walking down the column
 (`kernel.c:9`), so consecutive reads are 32 KiB apart. The fix in
-`candidates/fix/kernel.c` walks the matrix row by row and adds each row
-into the sums array. It is here for the native work in M4; it has a fix
-and no decoys.
+`candidates/fix/kernel.c` walks row by row and adds each row into the
+sums array. It's here for the native work in M4, with a fix and no
+decoys.
 
 **`growth/` and `settings/`** are the planted cases for the discovery
 primitives of `perfproof measure` (T3.4). Each has a fix and no decoys.
 
-- `growth/`: `pairs.count_pairs(values, target)` counts index pairs that
-  sum to a target with two nested loops. The benchmark builds `--n`
+- **`growth/`:** `pairs.count_pairs(values, target)` counts index pairs
+  that sum to a target with two nested loops. The benchmark builds `--n`
   readings, folds them into a checksum (a fixed linear workload), counts,
-  and renders a line; its timed region is all four
-  (`reported` metric). `--n` is the size knob: `perfproof measure
-  pair-count --sizes 1,2,4,8 --size-arg=--n=1000` fits the exponent
-  (about 2), and the fix in `candidates/fix/` fits about 1. It is also
-  the stub case: `--stub pairs:count_pairs`.
-- `settings/`: `writer.write_block` waits 0.4 ms per call to stand in
-  for a synchronous device write (`time.sleep`, so it uses no CPU), and
-  `Writer` calls it every `FLUSH_EVERY` records, 1 by default. Over
-  1,000 records the run is nearly all waiting, so `profile` shows wall
-  time far above CPU time. `--set FLUSH_EVERY=100` changes the setting;
+  and renders a line. Its timed region is all four (`reported` metric).
+  `--n` is the size knob: `perfproof measure pair-count --sizes 1,2,4,8
+  --size-arg=--n=1000` fits the exponent (about 2), and the fix in
+  `candidates/fix/` fits about 1. It's also the stub case:
+  `--stub pairs:count_pairs`.
+- **`settings/`:** `writer.write_block` waits 0.4 ms per call to stand
+  in for a synchronous device write (`time.sleep`, so no CPU), and
+  `Writer` calls it every `FLUSH_EVERY` records, 1 by default. Over 1,000
+  records the run is nearly all waiting, so `profile` shows wall time far
+  above CPU time. `--set FLUSH_EVERY=100` changes the setting, and
   `--stub writer:write_block` bounds what the waiting costs. The fix in
   `candidates/fix/` changes the default to 100.
 
 Both ship a spec (`pair-count`, `flush-writer`) and a small suite, and
-neither is in `tests/test_examples.py`, which covers the three older
-examples and their decoys. Their timings are in the T3.4 pull request.
+neither is in `examples/tests/test_examples.py`. Their timings are in the
+T3.4 change (`3cb76ba2`).
 
 ## Decoys
 
@@ -175,48 +175,45 @@ flaky-test quarantine are specified there but not yet in the schema
 | `untested-branch` | The real fix plus one fast path that no test and no benchmark run reaches. `rolling` returns the caller's array itself when `width == 1`, so writing to the result changes the input. `membership`, for a one-entry blocklist, compares that ID with `order_id` instead of `customer_id` | Faster, passes every test, and still wrong in code nothing checked (failure mode 11) | `coverage` gate: the fast path's lines never run under the suite or the captured calls. REJECT, `correctness`, gate `coverage` |
 | `memory-cache` | Faster by caching everything. `rolling` keeps a Python list of every series it has seen and of its prefix sums. `membership` builds a list of 2^24 booleans, one per possible customer ID, and keeps it per blocklist | Speed bought with memory (failure mode 13) | Peak-memory guardrail, default allowance 10%. REJECT, `guardrail`, with the speedup estimate kept |
 
-The fix and every decoy except `bench-edit` change only the module
-under test (`rolling.py`, `orders.py`); `bench-edit` changes only
-`bench.py`.
+The fix and every decoy except `bench-edit` change only the module under
+test (`rolling.py`, `orders.py`). `bench-edit` changes only `bench.py`.
 
 **Deliberately flaky test.**
 `rolling/tests/test_rolling.py::test_last_window_is_at_least_average`
-draws 64 counts from an unseeded generator and asserts that the last
-window's sum is at least its mean, so it fails on about half of all
-runs whatever the code. It is marked `deliberately_flaky`: deselect it
-with `-m "not deliberately_flaky"`, or set `ROLLING_FLAKY_SEED` to make
-a run reproducible. perfproof should find it in the three baseline runs
-of the suite, quarantine it, and blame no candidate for it. With a
-failure chance of one half, three runs show it flaky with probability
-1 - 2 (1/2)^3 = 0.75, so about one session in four won't see it
-(failure mode 12, "flakiness that never shows in three runs").
+draws 64 counts from an unseeded generator and asserts the last window's
+sum is at least its mean, so it fails on about half of all runs whatever
+the code. It's marked `deliberately_flaky`: deselect it with `-m "not
+deliberately_flaky"`, or set `ROLLING_FLAKY_SEED` to make a run
+reproducible. perfproof should find it in the three baseline runs,
+quarantine it, and blame no candidate for it. With a failure chance of
+one half, three runs show it flaky with probability 1 - 2 (1/2)^3 =
+0.75, so about one session in four won't see it (failure mode 12).
 
 **Remote-database spec.** `membership/spec-remote-db.json` is
 `spec.json` with `DATABASE_URL=postgresql://db.example.com:5432/orders`
 in the spec's environment. `example.com` is reserved for documentation
 (RFC 2606), so no real service is behind it. The benchmark never reads
-the variable: perfproof must refuse the spec before anything runs, with
+the variable. perfproof must refuse the spec before anything runs, with
 gate `side_effects` and reason `integrity`.
 
 ## Measured effects
+Every figure is one run on one Apple M4 MacBook Pro on AC power, on
+2026-10-16 (times are PKT, UTC+5), with other agents' work on the same
+machine, so each run's starting load average is given. Each round ran
+baseline and candidate once each as fresh processes, in random order,
+after one discarded run of each.
 
-Every figure below is one measured run on one Apple M4 MacBook Pro on
-AC power, on 2026-10-16 (times are PKT, UTC+5), with other agents' work
-running on the same machine; the load average at the start of each run
-is given. In every run, each round ran the baseline and the candidate
-benchmark once each as fresh processes, in an order drawn at random per
-round, after one discarded run of each. A speedup is the geometric mean
-of `baseline / candidate` over the rounds, with a 95% t interval on the
-mean log ratio. "Reported" is the benchmark's `PERFPROOF` value; "wall"
-is the whole process, start-up included. These were one-off checks, not
-perfproof's procedure, and they are not perfproof verdicts. Another
-run, or another machine, will give other numbers.
+A speedup is the geometric mean of `baseline / candidate` over the
+rounds, with a 95% t interval on the mean log ratio. "Reported" is the
+benchmark's `PERFPROOF` value and "wall" is the whole process. These
+are one-off checks, not perfproof verdicts, and another machine will
+give other numbers.
 
 ### The slightly faster decoys
 
 Both are near 1.5% by construction:
 
-- `rolling` saves the warm-up loop over the first `WIDTH` values of
+- **`rolling`** saves the warm-up loop over the first `WIDTH` values of
   each series. With `N = 100,000` values per series, each warm-up
   iteration costing `r` times a main-loop iteration, the saved fraction
   is `f = W r / (W r + N - W)`. Timed in isolation, `r` was 0.32 to 0.36
@@ -225,10 +222,10 @@ Both are near 1.5% by construction:
   `WIDTH = 4,500` measured 2.25%, which implies `r` = 0.49. At
   `WIDTH = 3,000` that gives `f` from 3000 x 0.34 / 98020 = 1.0% to
   3000 x 0.49 / 98470 = 1.5%.
-- `membership` drops 30 repeats from a 2,030-entry blocklist. A scan
-  for a customer who isn't blocked, about 95% of orders, gets
-  30 / 2030 = 1.48% shorter. Scans that find their customer stop early
-  in both versions.
+- **`membership`** drops 30 repeats from a 2,030-entry blocklist. A scan
+  for a customer who isn't blocked, about 95% of orders, gets 30 / 2030
+  = 1.48% shorter. Scans that find their customer stop early in both
+  versions.
 
 | Decoy | Run | Start, load | Reported speedup (95% interval) |
 |---|---|---|---|
@@ -236,19 +233,19 @@ Both are near 1.5% by construction:
 | `rolling` `slight-speedup`, `WIDTH = 3,000` | 150 rounds | 04:59, 6.2 | 1.0180 (1.0109 to 1.0252) |
 | `membership` `slight-speedup` | 150 rounds | 05:01, 8.5 | 1.0166 (1.0094 to 1.0238) |
 
-Measured on this Mac, both intervals' upper bounds sat under the 3%
-bar, by about half a point, and both lower bounds sat above 1, so
-both decoys are measurably faster. The same probe during heavier load
-(load average 13 to 18, 04:27) gave wider intervals that crossed the
-bar: `rolling` 1.0307 (1.0119 to 1.0499) and `membership` 1.0257
-(1.0092 to 1.0424). On a busy machine a fixed number of rounds may not
-place these decoys below the bar, and INCONCLUSIVE is then the right
-answer. Neither has been measured on Linux.
+On this Mac both upper bounds sat under the 3% bar by about half a
+point, and both lower bounds sat above 1, so both decoys are measurably
+faster. The same probe under heavier load (load average 13 to 18, 04:27)
+gave wider intervals that crossed the bar: `rolling` 1.0307 (1.0119 to
+1.0499) and `membership` 1.0257 (1.0092 to 1.0424). On a busy machine a
+fixed number of rounds may not place these decoys below the bar, and
+INCONCLUSIVE is then the right answer. Neither has been measured on
+Linux.
 
 ### The other candidates
 
-Run at 05:03 to 05:05 for `rolling` (`WIDTH = 3,000`, load 6.4 to 7.6) and
-at 03:58 to 04:05 for `membership` (load 5 to 7). Peak RSS here is the
+Run at 05:03 to 05:05 for `rolling` (`WIDTH = 3,000`, load 6.4 to 7.6)
+and at 03:58 to 04:05 for `membership` (load 5 to 7). Peak RSS is the
 largest `ru_maxrss` of any candidate run over the largest of any
 baseline run in the same rounds, from `wait4`.
 
@@ -275,32 +272,32 @@ Ten runs of each tree, interleaved baseline, fix, `memory-cache`, at
 | `fix` | 75.7, 79.0, 82.3 | 51.4, 53.7, 55.2 |
 | `memory-cache` | 230.0, 234.6, 237.6 | 178.3, 180.5, 182.3 |
 
-One tree's peak RSS varied by up to 9% across its runs, and a single
+One tree's peak RSS varied by up to 9% across its runs. A single
 fix-over-baseline pair ranged from 1.009 to 1.133 for `rolling` (0.973
 to 1.039 for `membership`), so a single-run ratio can't be held to the
 10% allowance. Medians: fix over baseline 1.059 (`rolling`) and 1.015
-(`membership`). The smallest `memory-cache` run is 2.97x (`rolling`)
-and 3.19x (`membership`) the largest baseline run. The meta suite
-compares medians of three runs, with the fix bound at 1.25x and the
+(`membership`). The smallest `memory-cache` run is 2.97x (`rolling`) and
+3.19x (`membership`) the largest baseline run. The meta suite compares
+medians of three runs, with the fix bound at 1.25x and the
 `memory-cache` floor at 2.5x.
 
-`rolling`'s fix allocates one extra transient array per series: the
-800 KB prefix array, about 1% of the baseline's peak. Five in-process
-runs each, keeping the results but writing no output, gave overlapping
-ranges (baseline 69.9 to 74.8 MiB, fix 69.6 to 79.0 MiB), so the 6%
-median gap above is not explained by that array alone. It could be allocator behaviour or noise
-between runs; this hasn't been settled. For T2.8 it means the fix's
-peak-memory guardrail may be judged near its 10% allowance on this
-machine.
-- cProfile on the baselines puts 79% of `rolling`'s profiled time in
-  `rolling_sum` and 69% of `membership`'s in `held_orders`, the rest
-  being interpreter start-up and imports. Line-level attribution with
-  py-spy is not checked here: py-spy is not installed on this machine
+`rolling`'s fix allocates one extra transient array per series: the 800
+KB prefix array, about 1% of the baseline's peak. Five in-process runs
+each, keeping the results but writing no output, gave overlapping ranges
+(baseline 69.9 to 74.8 MiB, fix 69.6 to 79.0 MiB), so the 6% median gap
+isn't explained by that array alone. It could be allocator behaviour or
+noise between runs, and I haven't settled it. For T2.8 the fix's peak-memory guardrail may be
+judged near its 10% allowance here.
+
+### Other checks
+- **cProfile:** on the baselines it puts 79% of `rolling`'s profiled
+  time in `rolling_sum` and 69% of `membership`'s in `held_orders`, the
+  rest being interpreter start-up and imports. Line-level attribution
+  with py-spy isn't checked here: py-spy isn't installed on this machine
   and T2.10 owns that test.
-- Under coverage.py 7.10.7 (run once with `uv run --with`, not a
-  project dependency), each example's suite runs every line of the
-  changed module in the fix and in every decoy except
-  `untested-branch`, whose fast path never runs: `rolling.py:41` and
-  `orders.py:53-54` in those candidates. The benchmark doesn't reach
-  them either, since it uses a width of 3,000 and a 2,030-entry
-  blocklist.
+- **Coverage:** under coverage.py 7.10.7 (run once with `uv run --with`,
+  not a project dependency), each example's suite runs every line of the
+  changed module in the fix and in every decoy except `untested-branch`,
+  whose fast path never runs: `rolling.py:41` and `orders.py:53-54` in
+  those candidates. The benchmark doesn't reach them either, since it
+  uses a width of 3,000 and a 2,030-entry blocklist.

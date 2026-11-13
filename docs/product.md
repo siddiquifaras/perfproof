@@ -5,9 +5,8 @@ engineering, and how much agent usage they can spend. One `/perfproof`
 has to give each of them the most for what they put in, without a new
 setup.
 
-Status: the Python prove path is supported. Everything about depth
-tiers, `find` and the other languages is experimental (see
-[targets.md](targets.md)). Where this page says what the skill does, it
+Status: the Python prove path is supported. Depth tiers, `find` and the
+other languages are experimental ([targets.md](targets.md)). This page
 describes the design, and the skill eval is what checks it.
 
 ## The bar
@@ -63,22 +62,6 @@ merges.
 
 ## How each kind of user is served
 
-```mermaid
-flowchart TD
-    U[user] --> Q{Has their own change?}
-    Q -->|yes| P["prove path: gates, then measure"]
-    Q -->|no| D{Depth word?}
-    D -->|light| L[one workload, top idea or two]
-    D -->|medium, the default| M[learn the project, best ideas]
-    D -->|full| F[every angle, several candidates]
-    L --> P
-    M --> P
-    F --> P
-    P --> V["KEEP, REJECT or INCONCLUSIVE"]
-```
-
-*Every route ends at the same prove step, so depth never changes the verdict.*
-
 **Beginner, small budget**
 - `/perfproof light`, or proving a change they already have (light by
   default): one workload, the top idea or two, one attempt, a short
@@ -109,25 +92,20 @@ flowchart TD
 Depth tiers are experimental. They exist as skill wording, and the
 boundaries between them haven't been measured.
 
-- **A depth word picks it:** `/perfproof light | medium | full`.
-- **No word:** the default is `medium`, and proving an existing change
-  is `light`.
+- **A depth word picks it:** `/perfproof light | medium | full`. With none,
+  the default is `medium`, and proving an existing change is `light`.
 - **Cost:** the first time a depth would cost more than a light run,
   perfproof says roughly what it'll use, as a share of a 5-hour window
   (T3.14), and offers the lighter choice. The choice is remembered in
-  `.perfproof/`.
-- **Plans:** perfproof never guesses a user's plan. It states the cost
-  and lets them choose.
+  `.perfproof/`. It never guesses a user's plan.
 
 ## What perfproof suggests
 
-- **After profiling:** ideas ranked by the most each could gain (its
-  bound), with the cheapest test for each.
-- **After a verdict:** the next idea worth trying, or "nothing left can
-  clear the bar", which is a useful answer on its own.
-- **When it can't decide:** what would settle it (more rounds, a
-  quieter machine, a test that reaches the changed lines), and only
-  what's actually possible.
+| When | It suggests |
+|---|---|
+| After profiling | Ideas ranked by their bound, with the cheapest test for each |
+| After a verdict | The next idea worth trying, or "nothing left can clear the bar" |
+| When it can't decide | What would settle it (more rounds, a quieter machine, a test that reaches the changed lines), only if possible |
 
 ## How we know it works
 
@@ -139,5 +117,4 @@ boundaries between them haven't been measured.
   verdict as through the skill.
 - **First run:** install to first verdict, timed (T3.16).
 
-None of these has a published number yet. They're the checks, not
-results.
+None of these has a published number yet. They're checks, not results.

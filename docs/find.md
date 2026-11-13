@@ -13,8 +13,7 @@ slow code no more often than a plain agent asked "make the app faster", at 5
 to 8 times the cost. The diagnoses agree: the skill said what to do and the
 agent skipped it.
 
-- **Workloads:** one where medium asks for three.
-- **Combined workloads:** used instead of separate ones.
+- **Workloads:** one where medium asks for three, or combined ones.
 - **Size scaling:** none.
 - **Test-suite probe:** run in 0 of 10 runs.
 - **Native recorder:** not used on C extensions.
@@ -231,7 +230,7 @@ In priority order:
 
 It is never true while `continue_find` or `install_or_confirm` is pending.
 
-## Contract (`perfproof.schema`; added in its own PR, first)
+## Contract (`perfproof.schema`)
 
 All models are frozen `_Model`s. "Opt" below means `Established[T]`: `value`
 and `reason`, with exactly one of them set.
@@ -265,14 +264,14 @@ User workloads are every other spec name.
 | Model | Fields |
 |---|---|
 | `Part` | `id`, `root`, `manifests: tuple[str, ...]`, `target_id: str \| None`, `language`, `target_class`, `test_command: Opt[TestCommand]`, `native: tuple[NativeCode, ...]`, `benchmarks`, `entry_points`, `tooling: PartTooling` |
-| `TestCommand` | `argv`, `cwd`, `evidence`. Unit A emits it already normalised: for Python `[<project interpreter>, "-m", "pytest", ...]`, with the interpreter `init` found |
+| `TestCommand` | `argv`, `cwd`, `evidence`. `project.parts` emits it already normalised: for Python `[<project interpreter>, "-m", "pytest", ...]`, with the interpreter `init` found |
 | `NativeCode` | `kind`, `name`, `own_module` (the built binary's image name, as `--own-module` matches it), `sources: tuple[str, ...]` |
 | `ExistingBenchmark` | `kind`, `name`, `argv`, `cwd` |
 | `EntryPoint` | `kind`, `name`, `file`, `line: int \| None` |
 | `ToolStatus` | `name`, `available: bool`, `reason: str \| None` |
-| `PartTooling` | `profiler: ToolStatus` (the binary found or not), `native_recorder: ToolStatus`, `coverage: Literal[...]`, `coverage_install: Argv \| None`. **Unit A fills availability only; Unit B owns the profiler template table** |
+| `PartTooling` | `profiler: ToolStatus` (the binary found or not), `native_recorder: ToolStatus`, `coverage: Literal[...]`, `coverage_install: Argv \| None`. **`project.parts` fills availability only; `find` owns the profiler template table** |
 | `ProbeRecord` | `key`: the spec name, `<name>@native` for a native re-profile, or `<name>@sizes` for a sized run; `requirement: bool` (whether the depth table requires it); `spec_hash`, `tree_id`, `status`, `run_ids: tuple[str, ...]`, `reason`, `log_tail` |
-| `SizeKnobSpec` | `kind: Literal["arg", "env"]`, `name`, `base: PositiveInt`. Unit B converts it to `perfproof.bench.scaling.SizeKnob` |
+| `SizeKnobSpec` | `kind: Literal["arg", "env"]`, `name`, `base: PositiveInt`. `find` converts it to `perfproof.bench.scaling.SizeKnob` |
 | `FindState` | `schema_version`, `parts_hash`, `probes: tuple[ProbeRecord, ...]`, `size_knobs: Mapping[str, SizeKnobSpec]`, `confirmed_tests: Mapping[str, Argv]`, `waivers: Mapping[NextStepCode, str]`, `calls: tuple[FindCall, ...]` (`started_at`, `spent_seconds`) |
 | `MapRow` | `function`, `file`, `line`, `part: str \| None` (the longest `Part.root` prefix of `file`), `layer`, `cap`, `total_fraction`, `seen_in: tuple[str, ...]` |
 | `Lead` | `kind: "function" \| "file"`, `name`, `file`, `part`, `cap: float \| None`, `seen_in: tuple[str, ...]` (the `find-*` names that reached it), `via_test: str \| None` |
@@ -280,7 +279,7 @@ User workloads are every other spec name.
 | `FindBudget` | `spent_seconds`, `limit_seconds`, `exhausted` |
 | `FindResult` | `done`, `depth`, `parts`, `question: str \| None`, `next_steps`, `map: tuple[MapRow, ...]`, `leads`, `not_reached: tuple[str, ...]`, `skipped: tuple[ProbeRecord, ...]`, `budget` |
 
-**Derivations (Unit B)**
+**Derivations**
 
 - **Entry point covered:** its `name` matches a function, or its `file` a
   frame file, in a current user-workload profile.
@@ -321,26 +320,6 @@ old runs are deleted.
 `--waive CODE=REASON` covers any `NextStep.code` except `install_or_confirm`
 and `continue_find`. `tests_modified_tree` doesn't stop `find`. `done` is
 computed as usual, and that probe counts as waived.
-
-## Build units
-
-1. **Schema PR:** the models above, with tests. Nothing else.
-2. **Unit A, `perfproof.project.parts`:**
-   - `detect_parts(root, model) -> tuple[Part, ...]`;
-   - the tooling probes;
-   - test-command, native-code, benchmark and entry-point detection per
-     language.
-
-   Tests use manifests captured from real repositories.
-3. **Unit B, `perfproof.find` and `commands/find.py`:**
-   - the profiler table;
-   - spec building and `compare`'s refusal of `find-*`;
-   - probes, state, safety checks, map and leads;
-   - `question`, `next_steps` and `done`;
-   - `docs/cli.md`.
-
-   It uses Unit A through `detect_parts` only.
-4. **Skill:** find mode becomes the loop below.
 
 ## The skill with `find`
 

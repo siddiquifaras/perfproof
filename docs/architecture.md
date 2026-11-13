@@ -1,37 +1,20 @@
 # Architecture
 
-A small exact core and the Markdown skills that drive it. This page is
-the map. Why each part exists is in [failure-modes.md](failure-modes.md),
-the interface is [cli.md](cli.md), prove is [method.md](method.md), and
-understand and discover are [discovery.md](discovery.md).
+A small exact core and the Markdown skills that drive it. Why each part
+exists: [failure-modes.md](failure-modes.md). Interface: [cli.md](cli.md).
+Prove: [method.md](method.md). Understand and discover:
+[discovery.md](discovery.md).
 
 ## Shape
 
-```mermaid
-flowchart TD
-    dev[developer] --> agent["agent: Claude Code, Codex, any shell"]
-    agent -->|reads| skill["skills/: the /perfproof loop and one playbook per language"]
-    skill -->|runs| cli[perfproof CLI]
-    cli --> und["understand: project model"]
-    cli --> disc["discover: find, profile summaries, hypothesis log"]
-    cli --> prove["prove: gates, interleaved rounds, verdict, record"]
-```
-
-*The agent never talks to the statistics directly. It goes through the CLI.*
-
-- **The CLI** owns everything that must be exact: state, measurement,
-  statistics, gates, undo and records. Agents call it with `--json`,
-  and long comparisons with `--detach` and `status`.
-- **The skills** own judgment: choosing what to look at, forming
-  hypotheses, writing candidates. If the agent skips a step, the
-  CLI's gates still stand between its output and a kept change.
-
-Everything runs on the local machine. Remote runners (SSH, Modal) are
-not built.
+- **The CLI** owns what must be exact: state, measurement, statistics,
+  gates, undo and records. Agents call it with `--json`, and long
+  comparisons with `--detach` and `status`.
+- **The skills** own judgment: what to look at, hypotheses, candidates. If
+  the agent skips a step, the gates still stand between it and a kept change.
+- **Local only.** Remote runners (SSH, Modal) aren't built.
 
 ## Packages
-
-These are the packages in `src/perfproof`, checked against the tree.
 
 | Package | Job |
 |---|---|
@@ -40,12 +23,10 @@ These are the packages in `src/perfproof`, checked against the tree.
 | `perfproof.bench` | Spec and lock, snapshots, runner, correctness, differential checks, coverage, side-effect guard, compare |
 | `perfproof.machine` | Fingerprint and warnings |
 | `perfproof.project` | The project model: proposal, confirmation, staleness, history |
-| `perfproof.hypotheses` | The append-only hypothesis log |
-| `perfproof.profilers` | Run a profiler, summarise folded stacks to the top frames |
+| `perfproof.hypotheses`, `perfproof.profilers` | The append-only hypothesis log; run a profiler and summarise folded stacks to the top frames |
 | `perfproof.find` | `perfproof find`: map the app, probe, rank, plan (see [find.md](find.md)) |
 | `perfproof.report` | Renders a record. Computes nothing new |
-| `perfproof.commands` | One module per CLI command, plus shared helpers |
-| `perfproof.cli` | Argument parsing and dispatch |
+| `perfproof.commands`, `perfproof.cli` | One module per CLI command plus shared helpers; argument parsing and dispatch |
 
 ## Module boundaries
 
@@ -54,16 +35,9 @@ The intended direction is one way, from the CLI down to the maths.
 ```mermaid
 flowchart TD
     cli --> commands
-    commands --> find
-    commands --> bench
-    commands --> project
-    commands --> profilers
-    commands --> report
-    find --> profilers
-    find --> project
-    bench --> stats
-    bench --> machine
-    bench --> schema
+    commands --> find & bench & project & profilers & report
+    find --> profilers & project
+    bench --> stats & machine & schema
     project --> schema
     stats --> schema
 ```
@@ -73,13 +47,11 @@ flowchart TD
 Three edges go the wrong way today and are being fixed separately:
 
 - **`profilers` imports `commands`** for `JsonValue`
-  (`profilers/growth.py:73`, `profilers/summary.py:30`,
-  `profilers/rank.py:45`).
-- **`find` imports private `commands` helpers**: `_profile_rank` and
-  `_profile_show` (`find/mapping.py:21-22`, `find/probes.py:25`) and
-  `_project` (`find/engine.py:17`).
-- **`bench` and `project` import each other**: `bench/compare.py:243-246`
-  uses `project`, and `project/store.py:29` uses `bench.spec`.
+  (`profilers/growth.py:73`, `summary.py:30`, `rank.py:45`).
+- **`find` imports private `commands` helpers** (`find/mapping.py:21-22`,
+  `find/probes.py:25`, `find/engine.py:17`).
+- **`bench` and `project` import each other** (`bench/compare.py:243-246`,
+  `project/store.py:29`).
 
 ## On disk
 
@@ -98,8 +70,7 @@ repository, which it adds to `.git/info/exclude`:
                                both trees before every run, all locked
   runs/<run-id>/
     logs/setup/                output of each tree's setup commands
-    progress.json              where a detached compare has got to
-    pid                        the detached process and its start time
+    progress.json, pid         a detached compare's progress and process
     samples.jsonl              one line per completed round, for resume
     record.json                the full machine-readable result
     report.md                  the readable report
@@ -124,14 +95,13 @@ Checked against each tool's own documentation.
 | [Bencher](https://bencher.dev/docs/explanation/thresholds) | CI thresholds with a t-test or z-score against history, alerts | Compares against history, not a paired run; no correctness gate |
 | CodSpeed | Low-noise CI measurement through CPU simulation | A hosted CI service; no correctness gate or agent loop |
 
-perfproof reuses their lessons: warmup, calibrated inner loops for
-in-process timing (the `reported` metric), outlier reporting, system
-tuning advice in `doctor`, and instruction counts on Linux. What it adds,
-and what none of them does:
+perfproof reuses their lessons: warmup, calibrated inner loops for `reported`
+timing, outlier reporting, tuning advice in `doctor`, and instruction counts
+on Linux. What none of them does:
 
-- old and new interleaved in randomly ordered pairs on one machine;
-- a verdict with a minimum effect and an honest INCONCLUSIVE, with
-  calibrated error rates under sequential looks;
+- old and new interleaved in random pairs on one machine;
+- a verdict with a minimum effect, an honest INCONCLUSIVE and calibrated
+  error rates under sequential looks;
 - gates that make "faster but wrong" and "faster by cheating" a REJECT;
 - choose-then-confirm when many candidates are tried;
-- the agent loop that finds what to try.
+- an agent loop that finds what to try.

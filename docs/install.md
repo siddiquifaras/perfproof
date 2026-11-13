@@ -4,18 +4,11 @@ perfproof is a `perfproof` command plus the `/perfproof` skill. One
 line per agent installs both. It isn't on PyPI yet, so everything below
 installs straight from the public GitHub repo.
 
-Nothing is added to your project's dependencies. A run keeps its
-working files in `.perfproof/`, and perfproof adds that to
-`.git/info/exclude`, so no tracked file changes.
-
-## What it touches
-
-- **In your repo:** `.perfproof/`, the exclude line, and entries under
-  `.git/worktrees/` for the baseline snapshots.
-- **Branches:** the only ref it adds is a `perfproof/<name>` branch for
-  kept changes, and only after you agree.
-- **Outside it:** the agent's own skill or plugin directory (below), and
-  uv's cache.
+Nothing is added to your project's dependencies. Working files live in
+`.perfproof/`, which perfproof adds to `.git/info/exclude`, so no tracked
+file changes. It also adds entries under `.git/worktrees/` for baseline
+snapshots, and a `perfproof/<name>` branch for kept changes, only after you
+agree.
 
 ## Requirements
 
@@ -53,16 +46,12 @@ perfproof@perfproof`. Then say `/perfproof`, or in plain words "make
 this faster".
 
 I use the HTTPS URL on purpose. The `siddiquifaras/perfproof` shorthand
-clones over SSH, so it needs a GitHub SSH key, and a stranger might not
-have one.
+clones over SSH, which needs a GitHub SSH key.
 
-What it writes:
-
-- **Plugin files** in Claude Code's own directory (`~/.claude/plugins/`).
-- **Two settings entries** in `~/.claude/settings.json`:
-  `extraKnownMarketplaces` and `enabledPlugins`.
-- **Nothing else.** The plugin ships the skill and `bin/perfproof`,
-  which Claude Code puts on the agent's PATH.
+It writes the plugin to `~/.claude/plugins/` and two entries in
+`~/.claude/settings.json` (`extraKnownMarketplaces`, `enabledPlugins`).
+The plugin ships the skill and `bin/perfproof`, which Claude Code puts on
+the agent's PATH.
 
 That wrapper runs the CLI through `uvx --python 3.12 --from <plugin
 directory> perfproof`. So the CLI lives in uv's cache, not in your
@@ -78,26 +67,22 @@ doctor` through the plugin wrapper, on this Mac) and about 43 s (a cold
 uv tool install --python 3.12 git+https://github.com/siddiquifaras/perfproof && perfproof install-skills --client codex
 ```
 
-The `uv tool install` step took 22 s on this Mac with a cold cache.
-What it writes:
+The `uv tool install` step took 22 s on this Mac with a cold cache. It puts
+`perfproof` on your PATH in its own uv environment. `install-skills` copies
+the skill to `~/.agents/skills/perfproof/` (`codex debug prompt-input` lists
+it under its skill roots).
 
-- **`perfproof` on your PATH**, in its own uv environment.
-- **The skill** copied to `~/.agents/skills/perfproof/`, the Codex
-  personal skills directory. `codex debug prompt-input` lists it under
-  its skill roots.
-
-Start `codex` in the repo and ask it to make the code faster.
-`perfproof install-skills` with no `--client` installs for both agents.
-Run it again after `uv tool upgrade perfproof` to update the copy.
+Start `codex` in the repo and ask it to make the code faster. With no
+`--client`, `install-skills` installs for both agents. Rerun it after `uv
+tool upgrade perfproof` to update the copy.
 
 The skill directory carries a marker file. A directory of that name that
-perfproof didn't create is never replaced or removed unless you pass
-`--force`.
+perfproof didn't create is never replaced or removed without `--force`.
 
 ### Any other agent that can run shell commands
 
-Install the CLI as for Codex, then point the agent at
-`skills/perfproof/SKILL.md`. No other client has been tried.
+Install the CLI as for Codex, then point the agent at `skills/perfproof/SKILL.md`.
+No other client has been tried.
 
 ## Check it
 
@@ -111,18 +96,10 @@ skill is installed and current for each, with a fix for every gap. A
 client that isn't on PATH is shown, not flagged: it may live on another
 machine.
 
-A few rules `doctor` follows:
-
-- **Plugin installs:** it reads the plugin records under
-  `~/.claude/plugins/` and reports "skill installed through the plugin
-  perfproof@perfproof 0.1.0". It doesn't ask for `perfproof` on PATH,
-  because the wrapper provides it.
-- **Two copies:** if a plugin and an `install-skills` copy both exist,
-  it says so (it can't tell which one Claude Code uses) and offers to
-  remove the copy.
-- **Disabled plugin:** it's reported with
-  `claude plugin enable perfproof@perfproof`.
-
+Two rules it follows. With a plugin install it doesn't ask for `perfproof`
+on PATH, because the wrapper provides it. If a plugin and an `install-skills`
+copy both exist, it says so and offers to remove the copy. A disabled plugin
+is reported with `claude plugin enable perfproof@perfproof`.
 `claude plugin list` is the other check.
 
 ## First run
@@ -156,12 +133,11 @@ Delete `.perfproof/` in a repo to forget what perfproof learned there.
 ## Known rough edges
 
 - **PyPI:** not published yet. When it is, the Codex line becomes
-  `uv tool install --python 3.12 perfproof`, and the plugin wrapper
-  switches from `--from "$root"` to a pinned `perfproof==<version>`.
-- **Plugin size:** the plugin cache holds the whole repo, about 70 MB
-  at last count, mostly `reference/` and `studies/`. A smaller
-  marketplace source would fix it.
+  `uv tool install --python 3.12 perfproof` and the wrapper pins
+  `perfproof==<version>`.
+- **Plugin size:** I measured the plugin cache at 78 MB, plus a 115 MB
+  clone of the marketplace, in a scratch `HOME`. Most of it is
+  `reference/` and `studies/`, so a smaller marketplace source would fix it.
 
-I ran the install, `doctor` and uninstall commands above against the
-public repo in a scratch `HOME`. `perfproof --version` isn't a flag, so
-use `doctor`.
+I ran the install, `doctor` and uninstall commands above against the public
+repo in a scratch `HOME`. There's no `perfproof --version`, so use `doctor`.

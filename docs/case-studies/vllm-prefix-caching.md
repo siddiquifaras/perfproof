@@ -21,8 +21,7 @@ model is a hybrid: 30 of its 40 layers are Gated DeltaNet.
   `--ignore-eos`, concurrency 40, 400 prompts
 - One warmup run, then three measured runs. Tables show the median.
 - Prefix-cache hit rate read from `/metrics` before and after each run
-- Scripts: [`reference/vllm-case-study/`](../../reference/vllm-case-study/),
-  also in a [public gist](https://gist.github.com/siddiquifaras/16543eddb933800734674debe11f5573)
+- Scripts: [`reference/vllm-case-study/`](../../reference/vllm-case-study/), also in a [public gist](https://gist.github.com/siddiquifaras/16543eddb933800734674debe11f5573)
 
 ## Results
 
