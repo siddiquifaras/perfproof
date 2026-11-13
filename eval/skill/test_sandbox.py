@@ -1983,67 +1983,13 @@ _REPO = Path(__file__).resolve().parents[2]
 _BUSY = "import time\nt=time.time()\nwhile time.time()-t<3: pass\n"
 
 
-def _sample_can_attach() -> bool:
-    """Whether ``sample`` may examine a sandboxed child of this process.
-
-    The child runs under ``sandbox-exec`` with a profile that allows
-    everything, so the project's profile is not what is tested. A hosted
-    CI runner refuses ("cannot examine process"); where even this
-    control fails, a failure under the real profile says nothing about
-    it.
-    """
-    if shutil.which("sample") is None:
-        return False
-    child = subprocess.Popen(
-        [
-            "sandbox-exec",
-            "-p",
-            "(version 1)(allow default)",
-            sys.executable,
-            "-I",
-            "-c",
-            "import time\ntime.sleep(10)",
-        ]
-    )
-    try:
-        time.sleep(1)
-        done = subprocess.run(
-            ["sample", str(child.pid), "1"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        return False
-    finally:
-        child.kill()
-        child.wait()
-    said = done.stdout + done.stderr
-    return done.returncode == 0 and "cannot examine" not in said
-
-
-@confinement
-def test_perfproof_native_recorder_works_under_the_profile(
-    tmp_path: Path,
-) -> None:
-    """``sample`` of the recorder's own child needs no extra Mach name.
-
-    Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
-    ``pgrep``, which list processes. The recorder samples by pid.
-    """
-    if not _sample_can_attach():
-        pytest.skip("sample cannot attach to a sandboxed process here")
-    text = sandbox.profile(
-        Path.home(),
-        tmp_path / "pp",
-        False,
-        read=[Path(sys.prefix), _REPO / "src"],
-        write=[tmp_path],
-    )
-    out = tmp_path / "out.folded"
+def _record_under(
+    profile_text: str, tmp_path: Path, name: str
+) -> tuple[subprocess.CompletedProcess[str], Path]:
+    """Run the native recorder on a busy child under the profile."""
+    out = tmp_path / name
     got = _in_new_session(
-        text,
+        profile_text,
         tmp_path,
         [
             sys.executable,
@@ -2063,6 +2009,37 @@ def test_perfproof_native_recorder_works_under_the_profile(
             _BUSY,
         ],
     )
+    return got, out
+
+
+@confinement
+def test_perfproof_native_recorder_works_under_the_profile(
+    tmp_path: Path,
+) -> None:
+    """``sample`` of the recorder's own child needs no extra Mach name.
+
+    Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
+    ``pgrep``, which list processes. The recorder samples by pid.
+    """
+    # Control: the same run under a profile that allows everything. A
+    # hosted CI runner refuses `sample` there too ("cannot examine
+    # process"), and then a failure under the real profile says nothing
+    # about it. Where the control works, the real profile must too.
+    control, _ = _record_under(
+        "(version 1)(allow default)", tmp_path, "control.folded"
+    )
+    if control.returncode != 0:
+        pytest.skip(
+            f"sample fails under sandbox-exec: {control.stderr[-200:]}"
+        )
+    text = sandbox.profile(
+        Path.home(),
+        tmp_path / "pp",
+        False,
+        read=[Path(sys.prefix), _REPO / "src"],
+        write=[tmp_path],
+    )
+    got, out = _record_under(text, tmp_path, "out.folded")
     assert got.returncode == 0, got.stderr
     assert out.is_file(), got.stderr
     assert out.read_text(encoding="utf-8").strip()
