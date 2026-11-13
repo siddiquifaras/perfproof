@@ -134,8 +134,6 @@ not tuned after seeing results. If the pilot shows a small gap, the next
 step is an explanation and a proposed new draw, run only once I've
 agreed to it.
 
-
-
 ## Splits
 
 - **Development tasks**: used while writing the skills and playbooks.
