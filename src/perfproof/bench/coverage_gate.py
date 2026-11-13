@@ -17,14 +17,17 @@ baseline's commit and the candidate's working tree (``--text``, so a
 untracked file git does not ignore, except the spec's declared
 outputs: an untracked file is part of the candidate, a ``.py`` one as
 a new module and any other one (an untracked ``.gitattributes``
-included) as a non-Python change, except validated Python bytecode
-(a timestamp-based or checked-hash ``.pyc`` in ``__pycache__``). The
-candidate is the tree as it was handed to perfproof, so the untracked
-files are listed (`untracked_files`) before anything runs in it, and
-files the runs create (test caches, coverage data) are never taken for
-changes. ``compare`` must list them before its first run and pass
-them in; the gate lists them itself, before its own run, only when it
-is the first thing to run. For each changed ``.py`` file it reads one
+included) as a non-Python change, whatever its name or content (a
+planted ``.pyc`` or test cache included). A file that is not a regular
+file (a FIFO, socket, device or symbolic link) is checked with
+``lstat`` and never opened or followed; it counts as a change that
+cannot be checked. The candidate is the tree as it was handed to
+perfproof, so the untracked files are listed (`untracked_files`)
+before anything runs in it, and files the runs create (``__pycache__``,
+test caches, coverage data) are never taken for changes. ``compare``
+must list them before its first run and pass them in; the gate lists
+them itself, before its own run, only when it is the first thing to run.
+For each changed ``.py`` file it reads one
 ``git diff -U0``:
 
 - **Changed lines.** A line the candidate added or changed counts when
@@ -161,6 +164,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import string
 import subprocess
 import tempfile
@@ -854,12 +858,9 @@ def untracked_files(
 
     Call it before anything runs in the candidate tree: the files the
     runs create (test caches, coverage data) are then never taken for
-    the candidate's changes. Python bytecode that Python validates
-    against its source (a ``.pyc`` directly in a ``__pycache__`` whose
-    header is timestamp-based or checked-hash) is never listed, run
-    before or after: the interpreter builds it from source, so a tree
-    that does not ignore it is not changed by it. Anything else there
-    is listed.
+    the candidate's changes. Every untracked file present at that
+    moment is listed whatever its name or content (a planted ``.pyc``
+    or test cache included).
 
     Parameters
     ----------
@@ -888,45 +889,19 @@ def untracked_files(
         "--full-name",
         timeout=timeout,
     ).split(b"\0")
-    return tuple(
-        name
-        for name in (os.fsdecode(path) for path in listing if path)
-        if not _is_validated_bytecode(candidate, name)
-    )
+    return tuple(os.fsdecode(path) for path in listing if path)
 
 
-_PYC_HEADER_BYTES: Final = 8
-"""Bytes of a ``.pyc`` that hold its magic number and flags."""
-_PYC_HASH_BASED: Final = 0b01
-_PYC_CHECK_SOURCE: Final = 0b10
+def _is_regular(root: Path, name: str) -> bool:
+    """Say whether ``name`` is a regular file, without following links.
 
-
-def _is_validated_bytecode(root: Path, name: str) -> bool:
-    """Say whether an untracked file is bytecode Python checks.
-
-    Only a ``.pyc`` directly in a ``__pycache__`` whose header says it
-    is timestamp-based or checked-hash qualifies: Python compares both
-    with the source it was built from, so it cannot carry a change the
-    source does not. Any other file there (a ``.py`` module, data), an
-    unchecked-hash ``.pyc`` and a file whose header cannot be read
-    stay changes.
+    A FIFO, socket, device or symbolic link is never opened: reading a
+    FIFO blocks, and a link may point out of the tree.
     """
-    parts = name.split("/")
-    if len(parts) < 2 or parts[-2] != "__pycache__":
-        return False
-    if not parts[-1].endswith(".pyc"):
-        return False
     try:
-        with (root / name).open("rb") as handle:
-            header = handle.read(_PYC_HEADER_BYTES)
+        return stat.S_ISREG((root / name).lstat().st_mode)
     except OSError:
         return False
-    if len(header) < _PYC_HEADER_BYTES or header[2:4] != b"\r\n":
-        return False
-    flags = int.from_bytes(header[4:8], "little")
-    if flags & ~(_PYC_HASH_BASED | _PYC_CHECK_SOURCE):
-        return False
-    return not flags & _PYC_HASH_BASED or bool(flags & _PYC_CHECK_SOURCE)
 
 
 def changed_lines(
@@ -1020,6 +995,9 @@ def changed_lines(
     deleted: list[str] = []
     other: list[OtherChange] = []
     for status, path in sorted(entries, key=lambda e: e[1]):
+        if status == "A" and not _is_regular(candidate, path):
+            not_checked.append(path)
+            continue
         if not path.endswith(".py"):
             not_checked.append(path)
             if status == "D":

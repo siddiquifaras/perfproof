@@ -184,10 +184,16 @@ in code no check executed is unverified, and an unverified change is
 not kept. It is not rejected either: the gate is `not_available`, with
 the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
-perfproof only cannot show it. Python bytecode that Python checks against its source (a
-`.pyc` in `__pycache__` with a timestamp-based or checked-hash header)
-is generated, never a change, even where the tree does not ignore it;
-any other file there, and an unchecked-hash `.pyc`, is a change. For a target where perfproof cannot measure coverage, a
+perfproof only cannot show it. The change set is fixed before perfproof
+runs anything in a tree: the committed diff, plus the untracked files
+present in the candidate at that moment (`git ls-files --others`
+before any setup, test, benchmark or coverage command). Every one of
+them counts, whatever its name or content, so a planted `.pyc`, test
+cache or data file is a change; files that appear later were made by
+perfproof's own runs (bytecode, caches, coverage data) and are not.
+A file that is not a regular file (FIFO, socket, device, symbolic
+link) is read with `lstat` only, never opened or followed, and counts
+as a change that cannot be checked. For a target where perfproof cannot measure coverage, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
 "coverage not checked", with the reason: no coverage command is
 declared, it wrote no report, or the report does not list the changed

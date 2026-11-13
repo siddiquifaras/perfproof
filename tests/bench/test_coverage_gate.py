@@ -1,11 +1,12 @@
 import os
+import py_compile
 import shutil
 import subprocess
 import sys
 import sysconfig
 from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import coverage.parser
 import pytest
@@ -783,38 +784,59 @@ def test_files_the_runs_create_are_not_the_candidates(tmp_path: Path) -> None:
     result = gate(trees, spec, known=NOT_TRACED, untracked=before)
     assert result.status == "passed", result.detail
     assert "in 2 Python files" in result.detail
-    # Bytecode is generated, so listed after the runs it is no change.
-    assert untracked_files(cand) == ("pkg/fast.py",)
+    # Listed only after the runs, their bytecode is taken for a change:
+    # the snapshot has to come first.
     late = gate(trees, spec, known=NOT_TRACED)
-    assert late.status == "passed", late.detail
-    assert "__pycache__" not in late.detail
+    assert late.status == "not_available"
+    assert "__pycache__" in late.detail
 
 
-def _pyc(flags: int) -> bytes:
-    """A ``.pyc`` header with ``flags`` and a body nobody validated."""
-    return b"\xa7\x0d\x0d\x0a" + flags.to_bytes(4, "little") + b"\0" * 8
+def _compiled(tmp_path: Path, mode: str) -> bytes:
+    """Bytecode Python made for a module, by invalidation mode."""
+    source = tmp_path / "forged.py"
+    source.write_text("x = 1\n")
+    target = tmp_path / "forged.pyc"
+    py_compile.compile(
+        str(source),
+        cfile=str(target),
+        invalidation_mode=py_compile.PycInvalidationMode[mode],
+    )
+    return target.read_bytes()
 
 
-@pytest.mark.parametrize(
-    ("name", "data", "listed"),
-    [
-        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0), False),
-        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0b11), False),
-        ("pkg/__pycache__/calc.cpython-312.pyc", _pyc(0b01), True),
-        ("pkg/__pycache__/calc.cpython-312.pyc", b"\xa7\x0d", True),
-        ("pkg/__pycache__/scale.txt", b"2\n", True),
-        ("pkg/__pycache__/fast.py", b"def one():\n    return 1\n", True),
-        ("pkg/__pycache__/sub/calc.cpython-312.pyc", _pyc(0), True),
-    ],
+PLANTED: Final = (
+    ("pkg/__pycache__/calc.cpython-312.pyc", "TIMESTAMP"),
+    ("pkg/__pycache__/calc.cpython-312.pyc", "CHECKED_HASH"),
+    ("pkg/__pycache__/calc.cpython-312.pyc", "UNCHECKED_HASH"),
+    ("pkg/__pycache__/calc.cpython-312.pyc", "NOT_BYTECODE"),
+    ("pkg/__pycache__/scale.txt", "DATA"),
+    (".pytest_cache/v/cache/lastfailed", "DATA"),
 )
-def test_only_validated_bytecode_is_left_out_of_the_changes(
-    tmp_path: Path, name: str, data: bytes, listed: bool
+
+
+def _planted(tmp_path: Path, kind: str) -> bytes:
+    if kind == "NOT_BYTECODE":
+        return b"\xa7\x0d\x0d\x0a" + b"\0" * 12 + b"not bytecode"
+    if kind == "DATA":
+        return b"{}\n"
+    return _compiled(tmp_path, kind)
+
+
+@pytest.mark.parametrize(("name", "kind"), PLANTED)
+def test_any_file_present_before_the_runs_is_a_change(
+    tmp_path: Path, name: str, kind: str
 ) -> None:
-    trees = make_trees(tmp_path, {".gitignore": ""})
+    """A planted pyc, cache or data file is the candidate's, by name or
+    header, because nothing about it is trusted."""
+    trees = make_trees(tmp_path / "t", {".gitignore": ""})
     target = trees["candidate"] / name
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(data)
-    assert (name in untracked_files(trees["candidate"])) is listed
+    target.write_bytes(_planted(tmp_path, kind))
+    before = untracked_files(trees["candidate"])
+    assert name in before
+    result = gate(trees, make_spec(PYTEST), known=NOT_TRACED, untracked=before)
+    assert result.status == "not_available", result.detail
+    assert name in result.detail
 
 
 def test_a_python_file_hidden_in_pycache_is_checked(tmp_path: Path) -> None:
@@ -825,6 +847,22 @@ def test_a_python_file_hidden_in_pycache_is_checked(tmp_path: Path) -> None:
     result = gate(trees, make_spec(PYTEST), known=NOT_TRACED)
     assert result.status == "not_available", result.detail
     assert "fast.py" in result.detail
+
+
+def test_a_fifo_is_a_change_that_is_never_opened(tmp_path: Path) -> None:
+    trees = make_trees(tmp_path, {".gitignore": ""})
+    cand = trees["candidate"]
+    pycache = cand / "pkg" / "__pycache__"
+    pycache.mkdir()
+    os.mkfifo(pycache / "calc.cpython-312.pyc")
+    os.mkfifo(cand / "pipe.py")
+    (cand / "link.pyc").symlink_to(pycache / "calc.cpython-312.pyc")
+    before = untracked_files(cand)
+    result = gate(trees, make_spec(PYTEST), known=NOT_TRACED, untracked=before)
+    assert result.status == "not_available", result.detail
+    # Git lists no FIFO at all; the symbolic link to one it does list.
+    assert before == ("link.pyc",)
+    assert "link.pyc" in result.detail
 
 
 def test_no_change_passes_without_running_anything(tmp_path: Path) -> None:
