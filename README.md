@@ -1,12 +1,12 @@
 # perfproof
 
-Evals and guardrails that stop a coding agent from making false claims,
-with performance as the proving ground.
+Evals and guardrails that make a coding agent prove a claim before it
+makes it, with performance as the proving ground.
 
 Ask an agent to make your code faster and it will often tell you it did.
 Benchmarks are noisy, so a single before-and-after run can show a win
-that is only the machine moving. I built perfproof so the agent can't
-say "it's faster" until something exact has said so.
+that is only the machine moving. I built perfproof so an agent has to
+prove a speedup before it says "it's faster".
 
 It is two parts. The `perfproof` CLI is the exact core: statistics,
 gates and run records. The `/perfproof` skill is how an agent drives it
@@ -70,11 +70,9 @@ claude plugin marketplace add https://github.com/siddiquifaras/perfproof.git
 claude plugin install perfproof@perfproof
 ```
 
-Then say `/perfproof` in a repository, or "make this faster". I ran
-both lines in a fresh, empty home directory, and the plugin showed as
-installed and enabled. I used the full HTTPS URL on purpose: the
-`siddiquifaras/perfproof` shorthand clones over SSH, so it needs a
-GitHub SSH key.
+Then say `/perfproof` in a repository, or "make this faster". Use the
+full HTTPS URL: the `siddiquifaras/perfproof` shorthand clones over
+SSH, so it needs a GitHub SSH key.
 
 The CLI on its own, with no install:
 
@@ -82,8 +80,8 @@ The CLI on its own, with no install:
 uvx --python 3.12 --from git+https://github.com/siddiquifaras/perfproof perfproof doctor
 ```
 
-On a cold uv cache that took 43 s on my Mac, and `doctor` reported the
-host and what it could not find. Codex and other agents:
+`doctor` reports the host and what it could not find. Codex and other
+agents:
 [docs/install.md](docs/install.md). Codex installs the skill, but I have
 not run a Codex model through it, so treat that as untested.
 
@@ -151,23 +149,34 @@ shows the loop works, not that it generalises.
 [Summary and verdict records](results/prove-examples/summary.md). The
 membership KEEP is 491x on the timed section and about 3x end to end,
 on an example with a planted bottleneck; the summary explains both.
+Its KEEP JSON cites the earlier run-of-record seed 661371947387106328,
+and both seeds are in [docs/method.md](docs/method.md).
 
 **Mixed-language repositories.** On 5 Python-over-native tasks, with
-detailed prompts, the skill found the known function in 4, 4 and 3 of
-5 runs against 3 of 5 for Claude Code alone. One KEEP in the last
-run was for a different real bug than the task's hidden one, so the
-harness's timing of the task's own bottleneck read 1.00x; the task
-scored "not found" ([details](results/mixed-stack/summary.md)). On vague prompts it found 2, 2 and 0 of 5
-(the last run only ran 4), against 1 of 5 alone. It also cost several
-times more per task.
+detailed prompts, the skill found the known function in 4, 4 and 3 of 5
+tasks across three runs, against 3 of 5 for Claude Code alone. On vague
+prompts it found 2, 2 and 0 of 5 (the last run only ran 4), against 1 of
+5 alone. It also cost several times more per task.
 [Summary](results/mixed-stack/summary.md).
 
-**Discovery on code held out from tuning.** The known bottleneck of a
-real merged fix was found in 2 of 8 tasks, and 0 of 8 passed in full,
-at `light` depth only, not the default medium
+One KEEP in the last run was for a different real bug than the task's
+hidden one, so the harness's timing of the task's own bottleneck read
+1.00x and the task scored "not found". That KEEP was 371x on a
+pathological 64 KB body of unclosed `<meta` tags in mitmproxy. It is a
+worst case, not a typical page.
+[Run excerpt with the verdict](results/mixed-stack/mitmproxy-run4-excerpt.md).
+
+This evidence is weak. There is one run per cell, the skill changed
+between runs, and the baseline ran once.
+
+**Discovery on 8 tasks that were held out when I ran them.** The known
+bottleneck of a real merged fix was found in 2 of 8 tasks, and 0 of 8
+passed in full, at
+[`light` depth only](eval/skill/tasks-heldout-discovery.json), not the
+default medium
 ([heldout-1](eval/skill/runs/heldout-1/report.md),
-[heldout-2](eval/skill/runs/heldout-2/report.md)). Those tasks have
-since been used for tuning, so they no longer count as held out.
+[heldout-2](eval/skill/runs/heldout-2/report.md)). I have looked at
+those tasks since, so they no longer count as held out.
 
 **Held-out evaluation: coming.** About 30 tasks, perfproof against the
 same agent alone, scored by the rules in
@@ -178,7 +187,8 @@ numbers here.
 ## What a run does
 
 `/perfproof` takes a depth word: `light`, medium (the default) or
-`deep`. It ends with what was slow and why, what changed, the evidence,
+`deep`. The tiers and `perfproof find` are experimental (see the `find`
+row above); only `light` has a recorded discovery run. It ends with what was slow and why, what changed, the evidence,
 and what was not checked. A kept change goes on a `perfproof/<name>`
 branch for you to merge. perfproof also writes `.perfproof/`, which it
 excludes through `.git/info/exclude`, and baseline snapshots under

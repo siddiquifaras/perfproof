@@ -45,7 +45,8 @@ inputs, added a regression test, and every gate passed. The KEEP
 unclosed tags, so it is a worst case, not a typical page. The harness
 timed the task's hidden bottleneck, which that change never touched,
 hence 1.00x, and the task correctly scored "not found". The source is
-[an excerpt of the run transcript](mitmproxy-run4-excerpt.md).
+[an excerpt of the run transcript](mitmproxy-run4-excerpt.md), which
+includes the full verdict line.
 
 ## What the "claims unbacked" column is, and is not
 
@@ -54,7 +55,7 @@ by a KEEP (skill arm) or by timings of both versions (baseline arm).
 For the baseline arm on vague prompts it counted 4 statements across 3
 of 5 runs. Two of those 4 are not speedup claims (a clarifying
 question, and "already fast" about a recent commit). The skill arm was
-also flagged: 3 statements in run 1 and 2 in run 3 on vague prompts.
+also flagged: 1 statement in run 1 and 2 in run 3 on vague prompts.
 That column is therefore not a false-claim rate and is not used as one.
 A measured false-claim comparison is the job of the held-out
 evaluation, which has not run.
