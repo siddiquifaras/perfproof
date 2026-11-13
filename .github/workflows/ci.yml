@@ -1,9 +1,12 @@
 # The same checks as the local `verify` skill on both supported OSes and
-# Pythons. Manual only while the account's Actions minutes are nearly
-# spent (macOS runners bill at ten times Linux); run it before release.
+# Pythons, on every pull request and push to main. The repository is
+# public, so GitHub-hosted runners cost nothing.
 name: CI
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +20,7 @@ jobs:
   check:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 60
     strategy:
       # Report every cell: an OS- or version-specific failure should not
       # hide behind the first one to fail.

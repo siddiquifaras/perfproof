@@ -705,6 +705,30 @@ def test_doctor_shows_unknowns_as_unknown(
     assert as_json(out)["result"]["warnings"] == []
 
 
+def test_doctor_keeps_a_multiline_tool_detail_on_one_line(
+    cli: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paragraph = "perf says:\nsetting is 4:\n  raise it"
+    monkeypatch.setattr(
+        doctor,
+        "_tools",
+        lambda: {
+            "perf": {
+                "available": False,
+                "used_for": "counters",
+                "detail": paragraph,
+            }
+        },
+    )
+    _, out, _ = cli("doctor")
+    rows = out.splitlines()
+    start = rows.index("Tools")
+    assert rows[start + 1].endswith(": perf says: setting is 4: raise it")
+    assert rows[start + 2] == ""
+    _, out, _ = cli("doctor", "--json")
+    assert as_json(out)["result"]["tools"]["perf"]["detail"] == paragraph
+
+
 @pytest.mark.parametrize(
     ("values", "codes"),
     [
