@@ -191,6 +191,12 @@ before any setup, test, benchmark or coverage command). Every one of
 them counts, whatever its name or content, so a planted `.pyc`, test
 cache or data file is a change; files that appear later were made by
 perfproof's own runs (bytecode, caches, coverage data) and are not.
+The list is saved in the run directory (`untracked.json`, with its
+hash) by the first attempt, and a resumed run reads it back instead of
+listing again, since the first attempt's runs have left files in the
+tree by then. A saved list that is missing or fails its hash leaves the
+change set unknown: the gate is `not_available` and the verdict is
+never KEEP.
 A file that is not a regular file (FIFO, socket, device, symbolic
 link) is read with `lstat` only, never opened or followed, and counts
 as a change that cannot be checked. For a target where perfproof cannot measure coverage, a
