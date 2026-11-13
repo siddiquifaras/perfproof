@@ -113,10 +113,10 @@ disagreement is reported as run-to-run variance of the agent.
 
 ## Headline bars
 
-Fixed on 2026-11-13, before any agent run on the per-class held-out
-set. A number goes in
-the README or a post as a headline only if it clears its bar. Anything
-that doesn't is still published, in the same table, as a miss.
+Fixed on 2026-11-13, before any agent run on the per-class held-out set.
+A number goes in the README or a post as a headline only if it clears
+its bar. Anything that doesn't is still published, in the same table, as
+a miss.
 
 | Metric | Measured as | Bar |
 |---|---|---|
@@ -124,14 +124,17 @@ that doesn't is still published, in the same table, as a miss.
 | Precision of claimed wins | Share of perfproof's KEEPs that independent measurement confirms, with a 95% Clopper-Pearson interval | At least 95% |
 | Upstream pull requests | A perfproof KEEP on the project's own benchmark | Only for a KEEP of 1.5x or more |
 
-Small counts give wide intervals: with 5 runs, 0 false claims still
-has an upper bound of about 52%. The interval is published next to
-every rate, and a bar met only by the point estimate says so.
+Small counts give wide intervals: with 5 runs, 0 false claims still has
+an upper bound of about 52%. The interval is published next to every
+rate, and a bar met only by the point estimate says so.
 
-The pilot runs on development tasks only (10 tasks, both arms), so
-the held-out set stays unseen for its one run. The bars and the task
-set are not tuned after seeing results. If the pilot shows a small gap, the next step is an explanation and a proposed
-new draw, run only once I've agreed to it.
+The pilot runs on development tasks only (10 tasks, both arms), so the
+held-out set stays unseen for its one run. The bars and the task set are
+not tuned after seeing results. If the pilot shows a small gap, the next
+step is an explanation and a proposed new draw, run only once I've
+agreed to it.
+
+
 
 ## Splits
 
