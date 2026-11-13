@@ -112,6 +112,13 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
    excluding `.perfproof/`. A stale probe's old profile runs are deleted before
    it is re-profiled, because `rank` reads every run of a name.
 
+   `state.json` is written through a unique temporary file and renamed, and a
+   call holds an exclusive lock (`state.lock`) from its first read to its last
+   write. A second call waits up to 5 seconds, then fails with `find_busy`. A
+   probe that failed only because the profiler or recorder was missing runs
+   again once the tool is there. On a file system without working locks the
+   call fails with `find_lock_unavailable` and never runs unlocked.
+
    A failed or timed-out probe leaves no partial profile. It goes to
    `skipped[]` with the reason and the log tail, and never stops the others.
 4. **Map.** `profile show --rank` with the **explicit list of user-workload
