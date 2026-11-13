@@ -161,9 +161,10 @@ prompts it found 2, 2 and 0 of 5 (the last run only ran 4), against 1 of
 
 One KEEP in the last run was for a different real bug than the task's
 hidden one, so the harness's timing of the task's own bottleneck read
-1.00x and the task scored "not found". That KEEP was 371x on a
-pathological 64 KB body of unclosed `<meta` tags in mitmproxy. It is a
-worst case, not a typical page.
+1.00x and the task scored "not found". That KEEP was 371x on the
+timed section and about 1.7x end to end, on a pathological 64 KB body
+of unclosed `<meta` tags in mitmproxy. It is a worst case, not a
+typical page.
 [Run excerpt with the verdict](results/mixed-stack/mitmproxy-run4-excerpt.md).
 
 This evidence is weak. There is one run per cell, the skill changed
@@ -188,8 +189,9 @@ numbers here.
 
 `/perfproof` takes a depth word: `light`, medium (the default) or
 `deep`. The tiers and `perfproof find` are experimental (see the `find`
-row above); only `light` has a recorded discovery run. It ends with what was slow and why, what changed, the evidence,
-and what was not checked. A kept change goes on a `perfproof/<name>`
+row above); only `light` has a recorded discovery run. It ends with
+what was slow and why, what changed, the evidence, and what was not
+checked. A kept change goes on a `perfproof/<name>`
 branch for you to merge. perfproof also writes `.perfproof/`, which it
 excludes through `.git/info/exclude`, and baseline snapshots under
 `.git/worktrees/` ([docs/install.md](docs/install.md)).
