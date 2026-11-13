@@ -1,4 +1,5 @@
 import argparse
+import ast
 import json
 import subprocess
 import sys
@@ -14,6 +15,7 @@ from perfproof.commands import log as log_command
 from perfproof.hypotheses import (
     MAX_LINE_BYTES,
     HypothesisLogError,
+    SourceCache,
     code_state,
     current_workload_spec_hash,
     definition_hash,
@@ -953,3 +955,33 @@ def test_a_new_cheap_test_after_a_refutation_must_correct_it(
         ),
     )
     assert status == 0
+
+
+def test_a_file_is_parsed_once_for_every_anchor_in_it(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    names = ["Writer.write", "Writer.missing", "nope"]
+    anchors = [
+        CodeAnchor(
+            file="pkg/tiles.py",
+            qualified_name=names[i % 3],
+            source_hash=HASH_A,
+        )
+        for i in range(30)
+    ]
+    expected = [code_state(repo, a) for a in anchors]
+    parses: list[int] = []
+    real = ast.parse
+
+    def counting(*args: Any, **kwargs: Any) -> ast.Module:
+        parses.append(1)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(ast, "parse", counting)
+    cache = SourceCache()
+
+    assert [code_state(repo, a, cache) for a in anchors] == expected
+    assert len(parses) == 1
+    parses.clear()
+    code_state(repo, anchors[0])
+    assert len(parses) == 1

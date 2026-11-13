@@ -10,9 +10,11 @@ changes with every probe.
 
 import hashlib
 import subprocess
+import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
+from typing import IO, Final, cast
 
 from perfproof.bench.snapshot import GIT_TIMEOUT_SECONDS
 from perfproof.bench.spec import STATE_DIR
@@ -53,6 +55,39 @@ def _git(root: Path, *args: str, check: bool = True) -> bytes:
         msg = f"git {args[0]} failed: {detail}"
         raise GitError(msg)
     return done.stdout if done.returncode == 0 else b""
+
+
+def _git_sha256(root: Path, *args: str) -> bytes:
+    """Run git in ``root`` and return the SHA-256 digest of its stdout.
+
+    Streams the output, so a large diff is never held in memory.
+    """
+    argv = ["git", "-C", str(root), *args]
+    try:
+        with tempfile.TemporaryFile() as err:
+            with subprocess.Popen(
+                argv, stdout=subprocess.PIPE, stderr=err
+            ) as proc:
+                # Killing a stalled git ends the blocked read.
+                timer = threading.Timer(_GIT_BIG_TIMEOUT, proc.kill)
+                timer.start()
+                digest = hashlib.sha256()
+                try:
+                    out = cast("IO[bytes]", proc.stdout)
+                    while chunk := out.read(_CHUNK):
+                        digest.update(chunk)
+                    code = proc.wait()
+                finally:
+                    timer.cancel()
+            if code != 0:
+                err.seek(0)
+                detail = err.read().decode("utf-8", "replace").strip()
+                msg = f"git {args[0]} failed: {detail or 'timed out'}"
+                raise GitError(msg)
+    except OSError as exc:
+        msg = f"git {args[0]} failed: {exc}"
+        raise GitError(msg) from exc
+    return digest.digest()
 
 
 def _file_hash(path: Path) -> str:
@@ -166,7 +201,7 @@ def tree_id(root: Path) -> str:
     digest.update(head.strip() or _NO_HEAD)
     digest.update(b"\0")
     if head.strip():
-        diff = _git(
+        diff = _git_sha256(
             root,
             "diff",
             "HEAD",
@@ -177,7 +212,7 @@ def tree_id(root: Path) -> str:
             ".",
             f":(exclude){STATE_DIR}",
         )
-        digest.update(hashlib.sha256(diff).digest())
+        digest.update(diff)
     digest.update(b"\0")
     listing = _git(root, "ls-files", "-o", "--exclude-standard", "-z")
     names = sorted(

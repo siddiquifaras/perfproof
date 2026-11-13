@@ -324,6 +324,8 @@ def _scan(
     weights: dict[tuple[tuple[str, str | None], str], float],
     prefixes: Sequence[str],
 ) -> None:
+    # Deep stacks repeat frames; parse each distinct frame text once.
+    parsed: dict[str, tuple[str, str | None]] = {}
     with path.open(encoding="utf-8", errors="replace") as f:
         for line in f:
             stack, _, count = line.rstrip("\n").rpartition(" ")
@@ -331,15 +333,16 @@ def _scan(
                 weight = float(count)
             except ValueError:
                 continue
-            frames = [_frame(t, prefixes) for t in stack.split(";")]
-            for index, frame in enumerate(frames):
-                if frame not in wanted:
-                    continue
-                for above in reversed(frames[:index]):
-                    if above[1] is not None and _is_test(above[1]):
-                        key = (frame, f"{above[1]}::{above[0]}")
-                        weights[key] = weights.get(key, 0.0) + weight
-                        break
+            test_frame: str | None = None
+            for text in stack.split(";"):
+                frame = parsed.get(text)
+                if frame is None:
+                    frame = parsed[text] = _frame(text, prefixes)
+                if test_frame is not None and frame in wanted:
+                    key = (frame, test_frame)
+                    weights[key] = weights.get(key, 0.0) + weight
+                if frame[1] is not None and _is_test(frame[1]):
+                    test_frame = f"{frame[1]}::{frame[0]}"
 
 
 def build(
