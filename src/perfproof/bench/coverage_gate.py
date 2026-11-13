@@ -1375,24 +1375,27 @@ def _read_one(
         If the file cannot be read.
     """
     data = coverage.CoverageData(basename=str(file))
-    data.read()
-    for name in data.measured_files():
-        path = wanted.get(os.path.realpath(name))
-        if path is None:
-            continue
-        source, starts = sources[path]
-        into = lines.setdefault(path, {})
-        for line, labels in data.contexts_by_lineno(name).items():
-            into.setdefault(source.first_line(line), set()).update(labels)
-        if not starts:
-            continue
-        found = entries.setdefault(path, {})
-        for label in sorted(data.measured_contexts()):
-            data.set_query_context(label)
-            for start, _ in data.arcs(name) or ():
-                if -start in starts:
-                    found.setdefault(-start, set()).add(label)
-        data.set_query_contexts(None)
+    try:
+        data.read()
+        for name in data.measured_files():
+            path = wanted.get(os.path.realpath(name))
+            if path is None:
+                continue
+            source, starts = sources[path]
+            into = lines.setdefault(path, {})
+            for line, labels in data.contexts_by_lineno(name).items():
+                into.setdefault(source.first_line(line), set()).update(labels)
+            if not starts:
+                continue
+            found = entries.setdefault(path, {})
+            for label in sorted(data.measured_contexts()):
+                data.set_query_context(label)
+                for start, _ in data.arcs(name) or ():
+                    if -start in starts:
+                        found.setdefault(-start, set()).add(label)
+            data.set_query_contexts(None)
+    finally:
+        data.close()
 
 
 def _freeze(
