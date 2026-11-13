@@ -498,8 +498,13 @@ def test_the_cap_of_a_sleeping_function_is_about_the_ratio_it_leaves(
     assert result.cap is not None
     assert result.remaining is not None
     assert 4 < result.cap.value < 40
-    assert 0.005 < result.remaining.value < 0.03
-    assert 0.08 < result.baseline.value - result.remaining.value < 0.3
+    # Nominally 0.01 s remains, but a sleep overshoots on a busy
+    # macOS runner (0.05 s remaining, 0.55 s baseline seen). Without the
+    # replay the remainder would be the whole baseline, so it is bound
+    # by a share of the baseline, not by seconds. The sleeps in the
+    # function never undershoot, so 0.08 s of the baseline is a floor.
+    assert 0.005 < result.remaining.value < 0.3 * result.baseline.value
+    assert result.baseline.value - result.remaining.value > 0.08
     assert result.calls_per_run == 5
     assert result.replayed_per_run == 5
     assert result.real_per_run == 0

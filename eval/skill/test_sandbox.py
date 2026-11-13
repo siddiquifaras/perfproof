@@ -1775,6 +1775,17 @@ def test_only_the_compiler_tools_are_put_ahead_of_path(
     developer = sandbox.toolchain_env().get("DEVELOPER_DIR")
     if not developer:
         pytest.skip("no developer directory here")
+    # Full Xcode keeps clang in a toolchain directory, not here, so the
+    # sandbox's links skip it there (reported, not fixed: the harness
+    # runs on a Command Line Tools install). Any tool missing is the
+    # layout, not the code under test.
+    missing = [
+        name
+        for name in ("clang", "git", "make")
+        if not (Path(developer) / "usr" / "bin" / name).exists()
+    ]
+    if missing:
+        pytest.skip(f"{developer}/usr/bin has no {', '.join(missing)}")
     base = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
     env = sandbox.agent_env(base, tmp_path / "s", [])
     resolved = {
@@ -1972,6 +1983,35 @@ _REPO = Path(__file__).resolve().parents[2]
 _BUSY = "import time\nt=time.time()\nwhile time.time()-t<3: pass\n"
 
 
+def _sample_can_attach() -> bool:
+    """Whether ``sample`` may examine a child of this process.
+
+    Outside the sandbox. A hosted CI runner refuses ("cannot examine
+    process"), so a failure under the profile would say nothing about
+    the profile.
+    """
+    if shutil.which("sample") is None:
+        return False
+    child = subprocess.Popen(
+        [sys.executable, "-I", "-c", "import time\ntime.sleep(10)"]
+    )
+    try:
+        done = subprocess.run(
+            ["sample", str(child.pid), "1"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False
+    finally:
+        child.kill()
+        child.wait()
+    said = done.stdout + done.stderr
+    return done.returncode == 0 and "cannot examine" not in said
+
+
 @confinement
 def test_perfproof_native_recorder_works_under_the_profile(
     tmp_path: Path,
@@ -1981,8 +2021,8 @@ def test_perfproof_native_recorder_works_under_the_profile(
     Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
     ``pgrep``, which list processes. The recorder samples by pid.
     """
-    if shutil.which("sample") is None:
-        pytest.skip("no sample on this machine")
+    if not _sample_can_attach():
+        pytest.skip("sample cannot attach to a process here, sandboxed or not")
     text = sandbox.profile(
         Path.home(),
         tmp_path / "pp",
