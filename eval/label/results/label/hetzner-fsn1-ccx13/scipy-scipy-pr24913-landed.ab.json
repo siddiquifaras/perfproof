@@ -1,0 +1,88 @@
+{
+ "schema": "perfproof-eval-label/1",
+ "task_id": "scipy-scipy-pr24913-landed",
+ "split": "held-out",
+ "family": "nothing-to-keep",
+ "target_class": "native",
+ "mode": "ab",
+ "purpose": "label",
+ "machine": {
+  "name": "hetzner-fsn1-ccx13",
+  "cpu_model": "AMD EPYC-Milan Processor",
+  "arch": "x86_64",
+  "system": "Linux",
+  "kernel": "6.8.0-138-generic",
+  "kernel_version": "#138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "logical_cpus": 2,
+  "memory_bytes": 8123707392,
+  "python": "3.12.3",
+  "perf": {
+   "works": true,
+   "reason": "",
+   "version": "perf version 6.8.12"
+  }
+ },
+ "rule": {
+  "readme_sha256": "88942b63f539f8a9b30bdb2004b72c75dee63061a31cec3f9a5e0dd14a834fa1",
+  "files_sha256": {
+   "README.md": "88942b63f539f8a9b30bdb2004b72c75dee63061a31cec3f9a5e0dd14a834fa1",
+   "decide.py": "4ee501698db0ad26b8d92f2d58e1863cf796d5f14f1f0387105b1674ed2b638e",
+   "boot.py": "2ea59c5044678b35051d40a91f786ae9dec76686b9fdb8d2d9179ebbacdc8dd9",
+   "analyse.py": "c042dea50fee586ffa35e3b231f1f0549a36f75c230f80de351badf1819d6d6f",
+   "measure.py": "0bf2c15e28c36ce9d2e3b788e283fc523d1b99bddeee600e5e1441e771b3b260",
+   "pyperf_stats.py": "43c22520991dc3af7e2c0316d332a64323a0b6ee8c431eb22af577cc2a7ece52",
+   "suites.py": "9763121f5937d080011045aee872e8ea731443aa68d0227f4717d4d7d265f0f9",
+   "suites.json": "a148ce04f3f2cbc9b4b8fc2c48eee63fb75335dc3963094b682d323c67f77e89",
+   "label.py": "512240b65e6a67d148c66da12047085433569928aaee91fd86d17ced9f4a49ad",
+   "trees.py": "2dd15d6c7348dc79ae63263b15acafbb5ad788e7f5f4b9e54322f1630fc5da8f",
+   "machine.py": "4eafb77dd8210924109ad28bfb4cdcc70df3497bfb6926ea833d2b891b9e5b44",
+   "../mine/checks.json": "2316411b5fdb939dfda33f04e20653d6d72bff411faa083d5171d2cf1eca91de"
+  },
+  "git_commit": "6650240ecb44899f81a5c19c7432baeb42b56382",
+  "committed_unchanged": true
+ },
+ "task_commit": "ce1f46f895c4e06f4aafcd0bb43f84f93b81cc3a",
+ "reference_commit": "ce1f46f895c4e06f4aafcd0bb43f84f93b81cc3a",
+ "arm_trees": {
+  "a": "task",
+  "b": "reference"
+ },
+ "reference_kind": "pull-request",
+ "workload": "python -c \"import numpy as np; from scipy.linalg import cholesky; a = np.random.default_rng(0).random((512, 512)); a = a @ a.T + 512 * np.eye(512); [cholesky(a, lower=False) for _ in range(300)]\"",
+ "recipe_sha256": "b5fa61d982987246ce94d44e9162b4776585afef7973a5ec0a816dd8a355b088",
+ "valid": false,
+ "problems": [
+  "setup failed"
+ ],
+ "setup": [
+  {
+   "step": "setup",
+   "tree": "task",
+   "command": "uv venv --python 3.13 .venv",
+   "exit_code": 0,
+   "duration_s": 0.01,
+   "date": "2026-11-13T06:08:19+00:00",
+   "output_tail": "Using CPython 3.13.15\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate"
+  },
+  {
+   "step": "setup",
+   "tree": "task",
+   "command": "uv pip install --exclude-newer 2026-04-04 numpy meson-python meson ninja Cython pybind11 pythran pytest hypothesis",
+   "exit_code": 0,
+   "duration_s": 0.22,
+   "date": "2026-11-13T06:08:19+00:00",
+   "output_tail": "Resolved 19 packages in 97ms\nInstalled 19 packages in 102ms\n + beniget==0.4.2.post1\n + cython==3.2.4\n + gast==0.6.0\n + hypothesis==6.151.10\n + iniconfig==2.3.0\n + meson==1.10.2\n + meson-python==0.19.0\n + ninja==1.13.0\n + numpy==2.4.4\n + packaging==26.0\n + pluggy==1.6.0\n + ply==3.11\n + pybind11==3.0.3\n + pygments==2.20.0\n + pyproject-metadata==0.11.0\n + pytest==9.0.2\n + pythran==0.18.1\n + setuptools==82.0.1\n + sortedcontainers==2.4.0"
+  },
+  {
+   "step": "setup",
+   "tree": "task",
+   "command": "uv pip install --exclude-newer 2026-04-04 --no-build-isolation -Csetup-args=-Dblas=accelerate -Csetup-args=-Dlapack=accelerate -Csetup-args=-D_without-fortran=true -e .",
+   "exit_code": 1,
+   "duration_s": 3.16,
+   "date": "2026-11-13T06:08:19+00:00",
+   "output_tail": "         qhull_r| Compiler for C supports arguments\n         -Wno-unused-but-set-variable: YES (cached)\n         qhull_r| Build targets in project: 1\n         qhull_r| Subproject qhull_r finished.\n\n         Run-time dependency threads found: YES\n         Found pkg-config: YES (/usr/bin/pkg-config) 1.8.1\n         numpy-config found: YES\n         (eval/label/work/scipy-scipy-pr24913-landed/task/.venv/bin/numpy-config)\n         2.4.4\n         Run-time dependency numpy found: YES 2.4.4\n         Message: f2py free-threading enabled\n         pybind11-config found: YES\n         (eval/label/work/scipy-scipy-pr24913-landed/task/.venv/bin/pybind11-config)\n         3.0.3\n         Run-time dependency pybind11 found: YES 3.0.3\n         Checking if \"thread_local\" compiles: NO\n         Checking if \"_Thread_local\" compiles: YES\n         Checking if \"__thread\" compiles: YES\n         Configuring scipy_config.h using configuration\n         Program f2py found: YES\n         (eval/label/work/scipy-scipy-pr24913-landed/task/.venv/bin/f2py)\n\n         ../../scipy/meson.build:265:4: ERROR: Problem encountered: macOS\n         Accelerate is only supported on macOS >=13.3\n\n         A full log can be found at\n         eval/label/work/scipy-scipy-pr24913-landed/task/build/cp313/meson-logs/meson-log.txt\n\nhint: Build failures usually indicate a problem with the package or the build environment"
+  }
+ ],
+ "label": null
+}

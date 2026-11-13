@@ -1,0 +1,3652 @@
+{
+ "schema": "perfproof-eval-label/1",
+ "task_id": "crewaiinc-crewai-pr5584",
+ "split": "held-out",
+ "family": "known-change",
+ "target_class": "agentic",
+ "mode": "ab",
+ "purpose": "label",
+ "machine": {
+  "name": "hetzner-fsn1-ccx13",
+  "cpu_model": "AMD EPYC-Milan Processor",
+  "arch": "x86_64",
+  "system": "Linux",
+  "kernel": "6.8.0-138-generic",
+  "kernel_version": "#138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "logical_cpus": 2,
+  "memory_bytes": 8123707392,
+  "python": "3.12.3",
+  "perf": {
+   "works": true,
+   "reason": "",
+   "version": "perf version 6.8.12"
+  }
+ },
+ "rule": {
+  "readme_sha256": "88942b63f539f8a9b30bdb2004b72c75dee63061a31cec3f9a5e0dd14a834fa1",
+  "files_sha256": {
+   "README.md": "88942b63f539f8a9b30bdb2004b72c75dee63061a31cec3f9a5e0dd14a834fa1",
+   "decide.py": "4ee501698db0ad26b8d92f2d58e1863cf796d5f14f1f0387105b1674ed2b638e",
+   "boot.py": "2ea59c5044678b35051d40a91f786ae9dec76686b9fdb8d2d9179ebbacdc8dd9",
+   "analyse.py": "c042dea50fee586ffa35e3b231f1f0549a36f75c230f80de351badf1819d6d6f",
+   "measure.py": "0bf2c15e28c36ce9d2e3b788e283fc523d1b99bddeee600e5e1441e771b3b260",
+   "pyperf_stats.py": "43c22520991dc3af7e2c0316d332a64323a0b6ee8c431eb22af577cc2a7ece52",
+   "suites.py": "9763121f5937d080011045aee872e8ea731443aa68d0227f4717d4d7d265f0f9",
+   "suites.json": "a148ce04f3f2cbc9b4b8fc2c48eee63fb75335dc3963094b682d323c67f77e89",
+   "label.py": "512240b65e6a67d148c66da12047085433569928aaee91fd86d17ced9f4a49ad",
+   "trees.py": "2dd15d6c7348dc79ae63263b15acafbb5ad788e7f5f4b9e54322f1630fc5da8f",
+   "machine.py": "4eafb77dd8210924109ad28bfb4cdcc70df3497bfb6926ea833d2b891b9e5b44",
+   "../mine/checks.json": "2316411b5fdb939dfda33f04e20653d6d72bff411faa083d5171d2cf1eca91de"
+  },
+  "git_commit": "6650240ecb44899f81a5c19c7432baeb42b56382",
+  "committed_unchanged": true
+ },
+ "task_commit": "160e25c1a923e94711f07a7785c9bbda2f05d0cc",
+ "reference_commit": "3be2fb65dc574fad2aa8712c607bbd35f7d91d4d",
+ "arm_trees": {
+  "a": "task",
+  "b": "reference"
+ },
+ "reference_kind": "pull-request",
+ "workload": "python -c \"import crewai\"",
+ "recipe_sha256": "44566b5e036eb5d238822a81c4731a9278ffada2d5e686867891141120da3025",
+ "valid": true,
+ "problems": [],
+ "label": "improvement",
+ "correctness": {
+  "suite_recipe": null,
+  "trees": {
+   "task": {
+    "suite": null,
+    "oracle": {
+     "step": "oracle",
+     "tree": "task",
+     "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+     "exit_code": 0,
+     "duration_s": 7.45,
+     "date": "2026-11-13T08:10:32+00:00",
+     "output_tail": "bringing up nodes...\nbringing up nodes...\n\n........................................................................ [ 65%]\n......................................                                   [100%]\n=============================== warnings summary ===============================\nlib/crewai/tests/events/test_event_ordering.py: 14 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/agent/core.py:340: DeprecationWarning: deprecated\n    if self.allow_code_execution:\n\nlib/crewai/tests/events/test_event_ordering.py: 14 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/agent/core.py:351: DeprecationWarning: deprecated\n    if self.reasoning and self.planning_config is None:\n\nlib/crewai/tests/events/test_event_ordering.py: 24 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1545: DeprecationWarning: deprecated\n    if hasattr(agent, \"allow_code_execution\") and getattr(\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1552: DeprecationWarning: deprecated\n    and hasattr(agent, \"multimodal\")\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/task/lib/crewai/src/crewai/crew.py:1553: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n110 passed, 76 warnings in 6.39s"
+    }
+   },
+   "reference": {
+    "suite": null,
+    "oracle": {
+     "step": "oracle",
+     "tree": "reference",
+     "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true python -m pytest -q -p no:randomly lib/crewai/tests/test_imports.py lib/crewai/tests/events",
+     "exit_code": 0,
+     "duration_s": 6.96,
+     "date": "2026-11-13T08:10:39+00:00",
+     "output_tail": "bringing up nodes...\nbringing up nodes...\n\n........................................................................ [ 65%]\n......................................                                   [100%]\n=============================== warnings summary ===============================\nlib/crewai/tests/events/test_event_ordering.py: 14 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/agent/core.py:340: DeprecationWarning: deprecated\n    if self.allow_code_execution:\n\nlib/crewai/tests/events/test_event_ordering.py: 14 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/agent/core.py:351: DeprecationWarning: deprecated\n    if self.reasoning and self.planning_config is None:\n\nlib/crewai/tests/events/test_event_ordering.py: 24 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1545: DeprecationWarning: deprecated\n    if hasattr(agent, \"allow_code_execution\") and getattr(\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1552: DeprecationWarning: deprecated\n    and hasattr(agent, \"multimodal\")\n\nlib/crewai/tests/events/test_event_ordering.py: 12 warnings\n  eval/label/work/crewaiinc-crewai-pr5584/reference/lib/crewai/src/crewai/crew.py:1553: DeprecationWarning: deprecated\n    and getattr(agent, \"multimodal\", False)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n110 passed, 76 warnings in 5.97s"
+    }
+   }
+  },
+  "label": {
+   "label": "unknown",
+   "reason": "no full-suite recipe"
+  }
+ },
+ "setup": {
+  "records": [
+   {
+    "step": "setup",
+    "tree": "task",
+    "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+    "exit_code": 0,
+    "duration_s": 3.0,
+    "date": "2026-11-13T07:57:26+00:00",
+    "output_tail": " + tomli==2.0.2\n + tomli-w==1.1.0\n + tomlkit==0.13.3\n + tqdm==4.67.3\n + typer==0.21.2\n + types-aiofiles==25.1.0.20260409\n + types-appdirs==1.4.3.5\n + types-awscrt==0.31.3\n + types-psycopg2==2.9.21.20251012\n + types-pymysql==1.1.0.20250916\n + types-pyyaml==6.0.12.20260408\n + types-regex==2026.1.15.20260116\n + types-requests==2.31.0.20240406\n + types-s3transfer==0.16.0\n + typing-extensions==4.15.0\n + typing-inspection==0.4.2\n + uc-micro-py==2.0.0\n + urllib3==2.6.3\n + uv==0.11.7\n + uvicorn==0.44.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==21.2.4\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==2.1.2\n + yarl==1.23.0\n + zipp==3.23.1"
+   },
+   {
+    "step": "setup",
+    "tree": "reference",
+    "command": "CREWAI_DISABLE_TELEMETRY=true OTEL_SDK_DISABLED=true uv sync --frozen --package crewai --group dev",
+    "exit_code": 0,
+    "duration_s": 0.54,
+    "date": "2026-11-13T07:57:30+00:00",
+    "output_tail": " + tomli==2.0.2\n + tomli-w==1.1.0\n + tomlkit==0.13.3\n + tqdm==4.67.3\n + typer==0.21.2\n + types-aiofiles==25.1.0.20260409\n + types-appdirs==1.4.3.5\n + types-awscrt==0.31.3\n + types-psycopg2==2.9.21.20251012\n + types-pymysql==1.1.0.20250916\n + types-pyyaml==6.0.12.20260408\n + types-regex==2026.1.15.20260116\n + types-requests==2.31.0.20240406\n + types-s3transfer==0.16.0\n + typing-extensions==4.15.0\n + typing-inspection==0.4.2\n + uc-micro-py==2.0.0\n + urllib3==2.6.3\n + uv==0.11.7\n + uvicorn==0.44.0\n + uvloop==0.22.1\n + vcrpy==7.0.0\n + virtualenv==21.2.4\n + watchfiles==1.1.1\n + wcwidth==0.6.0\n + websocket-client==1.9.0\n + websockets==15.0.1\n + wrapt==2.1.2\n + yarl==1.23.0\n + zipp==3.23.1"
+   }
+  ],
+  "notes": [],
+  "seconds": 18.2
+ },
+ "performance": {
+  "seed": 6422317837883035836,
+  "pairs_requested": 200,
+  "pairs_done": 200,
+  "warmup_per_arm": 2,
+  "perf_counters": {
+   "used": true,
+   "reason": ""
+  },
+  "segments": [
+   {
+    "started": "2026-11-13T07:59:01+00:00",
+    "quiet": {
+     "passed": true,
+     "threshold": 0.5,
+     "samples": [
+      [
+       0.0,
+       2.0830078125
+      ],
+      [
+       30.0,
+       1.26123046875
+      ],
+      [
+       60.0,
+       0.76318359375
+      ],
+      [
+       90.0,
+       0.4609375
+      ]
+     ],
+     "reason": ""
+    },
+    "load1_before": 0.4609375,
+    "first_pair": 0,
+    "warmup": [
+     {
+      "arm": "a",
+      "wall_s": 4.228849672,
+      "cpu_s": 4.284689999999955,
+      "exit_code": 0,
+      "instructions": 19940605280
+     },
+     {
+      "arm": "b",
+      "wall_s": 3.725302785,
+      "cpu_s": 3.801985000000286,
+      "exit_code": 0,
+      "instructions": 17677099955
+     },
+     {
+      "arm": "a",
+      "wall_s": 2.223434659,
+      "cpu_s": 2.3004369999998744,
+      "exit_code": 0,
+      "instructions": 8805251064
+     },
+     {
+      "arm": "b",
+      "wall_s": 1.920537213,
+      "cpu_s": 2.001381000000265,
+      "exit_code": 0,
+      "instructions": 8000314255
+     }
+    ],
+    "failed": null,
+    "seconds": 690.8,
+    "load1_after": 1.02783203125
+   }
+  ],
+  "analysis": {
+   "metric": "wall_s",
+   "bar": 1.03,
+   "bootstrap": {
+    "estimate": 1.1268296149070898,
+    "lower": 1.1210190716913824,
+    "upper": 1.133621081296202,
+    "n": 200,
+    "block": 6,
+    "resamples": 10000,
+    "seed": 6422317837883035836
+   },
+   "pyperf": {
+    "version": "2.10.0",
+    "mean_a": 1.79725427816,
+    "mean_b": 1.59549050294,
+    "stdev_a": 0.1380869541278532,
+    "stdev_b": 0.13009680342422508,
+    "ratio": 1.1264587754350222,
+    "significant": true,
+    "t_score": 15.040007505090248,
+    "compare_to": "Mean +- std dev: [crewaiinc-crewai-pr5584.ab.a.pyperf] 1.80 sec +- 0.14 sec -> [crewaiinc-crewai-pr5584.ab.b.pyperf] 1.60 sec +- 0.13 sec: 1.13x faster",
+    "check_a": "The benchmark seems to be stable",
+    "check_b": "The benchmark seems to be stable",
+    "files": {
+     "a": "crewaiinc-crewai-pr5584.ab.a.pyperf.json",
+     "b": "crewaiinc-crewai-pr5584.ab.b.pyperf.json"
+    }
+   },
+   "halves": [
+    1.120983844146634,
+    1.1327058705277533
+   ],
+   "machine_label": {
+    "label": "improvement",
+    "reason": "",
+    "bootstrap": "improvement",
+    "pyperf": "improvement",
+    "reproduced": true
+   },
+   "instructions": {
+    "estimate": 1.1031568038311255,
+    "lower": 1.1028948823148814,
+    "upper": 1.103368096271613,
+    "n": 200,
+    "block": 6,
+    "resamples": 10000,
+    "seed": 6422317837883035836
+   },
+   "summary": {
+    "a_median_s": 1.769904297,
+    "b_median_s": 1.5695295439999999,
+    "a_cpu_median_s": 1.8450705000002472,
+    "b_cpu_median_s": 1.647603000000231
+   }
+  },
+  "pairs": [
+   {
+    "i": 0,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.172778351,
+     "cpu_s": 2.2919479999998202,
+     "exit_code": 0,
+     "instructions": 8819873288
+    },
+    "b": {
+     "wall_s": 1.971128465,
+     "cpu_s": 2.0571860000000015,
+     "exit_code": 0,
+     "instructions": 7972906530
+    },
+    "load1": 0.5810546875
+   },
+   {
+    "i": 1,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.122767323,
+     "cpu_s": 2.242477000000008,
+     "exit_code": 0,
+     "instructions": 8832587675
+    },
+    "b": {
+     "wall_s": 1.922620496,
+     "cpu_s": 2.033517999999958,
+     "exit_code": 0,
+     "instructions": 7990577910
+    },
+    "load1": 0.61474609375
+   },
+   {
+    "i": 2,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.173004103,
+     "cpu_s": 2.2483169999998154,
+     "exit_code": 0,
+     "instructions": 8841788336
+    },
+    "b": {
+     "wall_s": 1.972027428,
+     "cpu_s": 2.0664820000001782,
+     "exit_code": 0,
+     "instructions": 8021554381
+    },
+    "load1": 0.64599609375
+   },
+   {
+    "i": 3,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.171219093,
+     "cpu_s": 2.274763000000121,
+     "exit_code": 0,
+     "instructions": 8836909312
+    },
+    "b": {
+     "wall_s": 1.920739762,
+     "cpu_s": 2.004132000000027,
+     "exit_code": 0,
+     "instructions": 8017957501
+    },
+    "load1": 0.6748046875
+   },
+   {
+    "i": 4,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.174575378,
+     "cpu_s": 2.2841269999998985,
+     "exit_code": 0,
+     "instructions": 8837754290
+    },
+    "b": {
+     "wall_s": 1.922386463,
+     "cpu_s": 2.0247619999997823,
+     "exit_code": 0,
+     "instructions": 7982198612
+    },
+    "load1": 0.701171875
+   },
+   {
+    "i": 5,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.173360706,
+     "cpu_s": 2.2706220000002304,
+     "exit_code": 0,
+     "instructions": 8818858036
+    },
+    "b": {
+     "wall_s": 1.922158077,
+     "cpu_s": 2.0213870000000043,
+     "exit_code": 0,
+     "instructions": 8005051673
+    },
+    "load1": 0.701171875
+   },
+   {
+    "i": 6,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.172609877,
+     "cpu_s": 2.26304099999993,
+     "exit_code": 0,
+     "instructions": 8818539477
+    },
+    "b": {
+     "wall_s": 1.921449336,
+     "cpu_s": 1.9965969999998379,
+     "exit_code": 0,
+     "instructions": 7997114578
+    },
+    "load1": 0.7255859375
+   },
+   {
+    "i": 7,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.223089161,
+     "cpu_s": 2.2937209999997776,
+     "exit_code": 0,
+     "instructions": 8816465010
+    },
+    "b": {
+     "wall_s": 1.922263053,
+     "cpu_s": 2.017198000000235,
+     "exit_code": 0,
+     "instructions": 7964673708
+    },
+    "load1": 0.748046875
+   },
+   {
+    "i": 8,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.173531373,
+     "cpu_s": 2.2889580000000933,
+     "exit_code": 0,
+     "instructions": 8854804218
+    },
+    "b": {
+     "wall_s": 1.921197527,
+     "cpu_s": 2.0018079999999827,
+     "exit_code": 0,
+     "instructions": 7987809133
+    },
+    "load1": 0.7685546875
+   },
+   {
+    "i": 9,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.072069437,
+     "cpu_s": 2.14262100000019,
+     "exit_code": 0,
+     "instructions": 8839375487
+    },
+    "b": {
+     "wall_s": 1.921588911,
+     "cpu_s": 2.0271000000000186,
+     "exit_code": 0,
+     "instructions": 7998001066
+    },
+    "load1": 0.787109375
+   },
+   {
+    "i": 10,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.121607088,
+     "cpu_s": 2.2231619999997747,
+     "exit_code": 0,
+     "instructions": 8816851743
+    },
+    "b": {
+     "wall_s": 1.871477805,
+     "cpu_s": 1.9849240000000918,
+     "exit_code": 0,
+     "instructions": 8028194654
+    },
+    "load1": 0.787109375
+   },
+   {
+    "i": 11,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.122032728,
+     "cpu_s": 2.2188730000000305,
+     "exit_code": 0,
+     "instructions": 8804751589
+    },
+    "b": {
+     "wall_s": 1.971583463,
+     "cpu_s": 2.052421000000095,
+     "exit_code": 0,
+     "instructions": 7984854356
+    },
+    "load1": 0.80419921875
+   },
+   {
+    "i": 12,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.272979051,
+     "cpu_s": 2.372442000000092,
+     "exit_code": 0,
+     "instructions": 8806343560
+    },
+    "b": {
+     "wall_s": 1.97261358,
+     "cpu_s": 2.071324999999888,
+     "exit_code": 0,
+     "instructions": 7976058010
+    },
+    "load1": 0.8203125
+   },
+   {
+    "i": 13,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.172942439,
+     "cpu_s": 2.244899999999916,
+     "exit_code": 0,
+     "instructions": 8837394105
+    },
+    "b": {
+     "wall_s": 1.920536172,
+     "cpu_s": 2.0007349999998496,
+     "exit_code": 0,
+     "instructions": 7983945097
+    },
+    "load1": 0.8349609375
+   },
+   {
+    "i": 14,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.123439056,
+     "cpu_s": 2.207364000000098,
+     "exit_code": 0,
+     "instructions": 8824251743
+    },
+    "b": {
+     "wall_s": 1.921010569,
+     "cpu_s": 2.0355930000000626,
+     "exit_code": 0,
+     "instructions": 7998401806
+    },
+    "load1": 0.8486328125
+   },
+   {
+    "i": 15,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.87039933,
+     "cpu_s": 1.9831369999999424,
+     "exit_code": 0,
+     "instructions": 8819431298
+    },
+    "b": {
+     "wall_s": 1.820672329,
+     "cpu_s": 1.9087660000000142,
+     "exit_code": 0,
+     "instructions": 7991007345
+    },
+    "load1": 0.8486328125
+   },
+   {
+    "i": 16,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.872376308,
+     "cpu_s": 1.9886410000001433,
+     "exit_code": 0,
+     "instructions": 8818490749
+    },
+    "b": {
+     "wall_s": 1.921584525,
+     "cpu_s": 1.9879649999998037,
+     "exit_code": 0,
+     "instructions": 8002572554
+    },
+    "load1": 0.86083984375
+   },
+   {
+    "i": 17,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.224070288,
+     "cpu_s": 2.3059699999998884,
+     "exit_code": 0,
+     "instructions": 8821352853
+    },
+    "b": {
+     "wall_s": 1.921543977,
+     "cpu_s": 2.0065420000000813,
+     "exit_code": 0,
+     "instructions": 7989000723
+    },
+    "load1": 0.8720703125
+   },
+   {
+    "i": 18,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.123099115,
+     "cpu_s": 2.2027080000000296,
+     "exit_code": 0,
+     "instructions": 8806718817
+    },
+    "b": {
+     "wall_s": 1.971324585,
+     "cpu_s": 2.055921000000126,
+     "exit_code": 0,
+     "instructions": 7999400386
+    },
+    "load1": 0.88232421875
+   },
+   {
+    "i": 19,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.122358919,
+     "cpu_s": 2.2231990000000224,
+     "exit_code": 0,
+     "instructions": 8828381007
+    },
+    "b": {
+     "wall_s": 1.922150698,
+     "cpu_s": 2.007257999999865,
+     "exit_code": 0,
+     "instructions": 8019292196
+    },
+    "load1": 0.89208984375
+   },
+   {
+    "i": 20,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.122143883,
+     "cpu_s": 2.2185249999997723,
+     "exit_code": 0,
+     "instructions": 8827008992
+    },
+    "b": {
+     "wall_s": 1.921105121,
+     "cpu_s": 2.019512000000077,
+     "exit_code": 0,
+     "instructions": 8004736759
+    },
+    "load1": 0.89208984375
+   },
+   {
+    "i": 21,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.122408329,
+     "cpu_s": 2.228080000000091,
+     "exit_code": 0,
+     "instructions": 8821554247
+    },
+    "b": {
+     "wall_s": 1.871911814,
+     "cpu_s": 1.9898070000001553,
+     "exit_code": 0,
+     "instructions": 7998218496
+    },
+    "load1": 0.8203125
+   },
+   {
+    "i": 22,
+    "a_first": true,
+    "a": {
+     "wall_s": 2.172468453,
+     "cpu_s": 2.2710429999999633,
+     "exit_code": 0,
+     "instructions": 8807241788
+    },
+    "b": {
+     "wall_s": 1.971594768,
+     "cpu_s": 2.077009999999973,
+     "exit_code": 0,
+     "instructions": 8010535273
+    },
+    "load1": 0.8349609375
+   },
+   {
+    "i": 23,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.176864407,
+     "cpu_s": 2.288193000000092,
+     "exit_code": 0,
+     "instructions": 8812411034
+    },
+    "b": {
+     "wall_s": 1.922169043,
+     "cpu_s": 2.0401359999998476,
+     "exit_code": 0,
+     "instructions": 7996954262
+    },
+    "load1": 0.8486328125
+   },
+   {
+    "i": 24,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.72064542,
+     "cpu_s": 1.8243059999999787,
+     "exit_code": 0,
+     "instructions": 8807505759
+    },
+    "b": {
+     "wall_s": 1.770777125,
+     "cpu_s": 1.845152999999982,
+     "exit_code": 0,
+     "instructions": 8014415599
+    },
+    "load1": 0.86083984375
+   },
+   {
+    "i": 25,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.821050531,
+     "cpu_s": 1.910470000000032,
+     "exit_code": 0,
+     "instructions": 8809244191
+    },
+    "b": {
+     "wall_s": 1.720582682,
+     "cpu_s": 1.78311100000019,
+     "exit_code": 0,
+     "instructions": 7990678911
+    },
+    "load1": 0.86083984375
+   },
+   {
+    "i": 26,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.871679064,
+     "cpu_s": 1.948502999999846,
+     "exit_code": 0,
+     "instructions": 8807429412
+    },
+    "b": {
+     "wall_s": 1.620073948,
+     "cpu_s": 1.7301680000000488,
+     "exit_code": 0,
+     "instructions": 7981146805
+    },
+    "load1": 0.8720703125
+   },
+   {
+    "i": 27,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.870627038,
+     "cpu_s": 1.9527490000000398,
+     "exit_code": 0,
+     "instructions": 8813090996
+    },
+    "b": {
+     "wall_s": 1.570747098,
+     "cpu_s": 1.6844199999998182,
+     "exit_code": 0,
+     "instructions": 7985217947
+    },
+    "load1": 0.88232421875
+   },
+   {
+    "i": 28,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720811992,
+     "cpu_s": 1.8396520000001146,
+     "exit_code": 0,
+     "instructions": 8817700017
+    },
+    "b": {
+     "wall_s": 1.569861903,
+     "cpu_s": 1.6421270000000732,
+     "exit_code": 0,
+     "instructions": 8000550125
+    },
+    "load1": 0.88232421875
+   },
+   {
+    "i": 29,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.669404401,
+     "cpu_s": 1.7850099999998292,
+     "exit_code": 0,
+     "instructions": 8817094716
+    },
+    "b": {
+     "wall_s": 1.568910915,
+     "cpu_s": 1.650146000000177,
+     "exit_code": 0,
+     "instructions": 7991811135
+    },
+    "load1": 0.89208984375
+   },
+   {
+    "i": 30,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719901792,
+     "cpu_s": 1.817438999999922,
+     "exit_code": 0,
+     "instructions": 8846256011
+    },
+    "b": {
+     "wall_s": 1.570285078,
+     "cpu_s": 1.6449669999999514,
+     "exit_code": 0,
+     "instructions": 7996060376
+    },
+    "load1": 0.90087890625
+   },
+   {
+    "i": 31,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.721087679,
+     "cpu_s": 1.815616000000091,
+     "exit_code": 0,
+     "instructions": 8855599677
+    },
+    "b": {
+     "wall_s": 1.570556166,
+     "cpu_s": 1.6479950000000372,
+     "exit_code": 0,
+     "instructions": 7993918159
+    },
+    "load1": 0.90087890625
+   },
+   {
+    "i": 32,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719720761,
+     "cpu_s": 1.827985000000126,
+     "exit_code": 0,
+     "instructions": 8804508377
+    },
+    "b": {
+     "wall_s": 1.520419873,
+     "cpu_s": 1.6398049999997966,
+     "exit_code": 0,
+     "instructions": 8011018811
+    },
+    "load1": 0.9091796875
+   },
+   {
+    "i": 33,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720149906,
+     "cpu_s": 1.8068180000000211,
+     "exit_code": 0,
+     "instructions": 8814359417
+    },
+    "b": {
+     "wall_s": 1.519266146,
+     "cpu_s": 1.626700000000028,
+     "exit_code": 0,
+     "instructions": 8012755944
+    },
+    "load1": 0.91650390625
+   },
+   {
+    "i": 34,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769648662,
+     "cpu_s": 1.8649779999998373,
+     "exit_code": 0,
+     "instructions": 8820434992
+    },
+    "b": {
+     "wall_s": 1.51876862,
+     "cpu_s": 1.6282770000002529,
+     "exit_code": 0,
+     "instructions": 7982056313
+    },
+    "load1": 0.91650390625
+   },
+   {
+    "i": 35,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.670312438,
+     "cpu_s": 1.7898350000000391,
+     "exit_code": 0,
+     "instructions": 8815653405
+    },
+    "b": {
+     "wall_s": 1.519625955,
+     "cpu_s": 1.6244449999999233,
+     "exit_code": 0,
+     "instructions": 7999497270
+    },
+    "load1": 0.92333984375
+   },
+   {
+    "i": 36,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720526615,
+     "cpu_s": 1.825345999999854,
+     "exit_code": 0,
+     "instructions": 8833951288
+    },
+    "b": {
+     "wall_s": 1.469364902,
+     "cpu_s": 1.582801000000245,
+     "exit_code": 0,
+     "instructions": 7988657742
+    },
+    "load1": 0.9296875
+   },
+   {
+    "i": 37,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770826894,
+     "cpu_s": 1.8419839999999112,
+     "exit_code": 0,
+     "instructions": 8814775248
+    },
+    "b": {
+     "wall_s": 1.569080131,
+     "cpu_s": 1.671591000000035,
+     "exit_code": 0,
+     "instructions": 8000011727
+    },
+    "load1": 0.9296875
+   },
+   {
+    "i": 38,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771038306,
+     "cpu_s": 1.8544460000000527,
+     "exit_code": 0,
+     "instructions": 8812607369
+    },
+    "b": {
+     "wall_s": 1.519539984,
+     "cpu_s": 1.6337189999999282,
+     "exit_code": 0,
+     "instructions": 7991685838
+    },
+    "load1": 0.935546875
+   },
+   {
+    "i": 39,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719534652,
+     "cpu_s": 1.798528000000033,
+     "exit_code": 0,
+     "instructions": 8813518854
+    },
+    "b": {
+     "wall_s": 1.5191591,
+     "cpu_s": 1.6334259999998721,
+     "exit_code": 0,
+     "instructions": 8009241105
+    },
+    "load1": 0.94091796875
+   },
+   {
+    "i": 40,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.670432905,
+     "cpu_s": 1.7751619999999093,
+     "exit_code": 0,
+     "instructions": 8811291675
+    },
+    "b": {
+     "wall_s": 1.619218665,
+     "cpu_s": 1.6995130000000245,
+     "exit_code": 0,
+     "instructions": 7992621464
+    },
+    "load1": 0.94091796875
+   },
+   {
+    "i": 41,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720880644,
+     "cpu_s": 1.8059380000001966,
+     "exit_code": 0,
+     "instructions": 8829799939
+    },
+    "b": {
+     "wall_s": 1.61974263,
+     "cpu_s": 1.6984390000000076,
+     "exit_code": 0,
+     "instructions": 7995224902
+    },
+    "load1": 0.94580078125
+   },
+   {
+    "i": 42,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720695181,
+     "cpu_s": 1.799342999999908,
+     "exit_code": 0,
+     "instructions": 8837034959
+    },
+    "b": {
+     "wall_s": 1.520297462,
+     "cpu_s": 1.6108629999998811,
+     "exit_code": 0,
+     "instructions": 8005448224
+    },
+    "load1": 1.0302734375
+   },
+   {
+    "i": 43,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720806103,
+     "cpu_s": 1.8205239999999776,
+     "exit_code": 0,
+     "instructions": 8811189849
+    },
+    "b": {
+     "wall_s": 1.519837789,
+     "cpu_s": 1.6160310000000209,
+     "exit_code": 0,
+     "instructions": 8000096288
+    },
+    "load1": 1.0302734375
+   },
+   {
+    "i": 44,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770096114,
+     "cpu_s": 1.8419410000001335,
+     "exit_code": 0,
+     "instructions": 8799623138
+    },
+    "b": {
+     "wall_s": 1.570349348,
+     "cpu_s": 1.6482069999999567,
+     "exit_code": 0,
+     "instructions": 7994680788
+    },
+    "load1": 1.02783203125
+   },
+   {
+    "i": 45,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771218635,
+     "cpu_s": 1.8833419999996295,
+     "exit_code": 0,
+     "instructions": 8811611919
+    },
+    "b": {
+     "wall_s": 1.569849103,
+     "cpu_s": 1.6811380000001463,
+     "exit_code": 0,
+     "instructions": 8012090116
+    },
+    "load1": 1.025390625
+   },
+   {
+    "i": 46,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.722260055,
+     "cpu_s": 1.8391619999999875,
+     "exit_code": 0,
+     "instructions": 8850286342
+    },
+    "b": {
+     "wall_s": 1.570189386,
+     "cpu_s": 1.690434000000323,
+     "exit_code": 0,
+     "instructions": 7998096796
+    },
+    "load1": 1.025390625
+   },
+   {
+    "i": 47,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769569833,
+     "cpu_s": 1.8674690000000282,
+     "exit_code": 0,
+     "instructions": 8832576647
+    },
+    "b": {
+     "wall_s": 1.569183293,
+     "cpu_s": 1.6648529999999937,
+     "exit_code": 0,
+     "instructions": 7991721301
+    },
+    "load1": 1.02294921875
+   },
+   {
+    "i": 48,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.721007002,
+     "cpu_s": 1.8232459999999264,
+     "exit_code": 0,
+     "instructions": 8827385097
+    },
+    "b": {
+     "wall_s": 1.570745995,
+     "cpu_s": 1.6591499999999542,
+     "exit_code": 0,
+     "instructions": 8008967394
+    },
+    "load1": 1.02099609375
+   },
+   {
+    "i": 49,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.921277743,
+     "cpu_s": 2.009555999999975,
+     "exit_code": 0,
+     "instructions": 8848486969
+    },
+    "b": {
+     "wall_s": 1.519646192,
+     "cpu_s": 1.6211189999999078,
+     "exit_code": 0,
+     "instructions": 8006692473
+    },
+    "load1": 1.02099609375
+   },
+   {
+    "i": 50,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.87091016,
+     "cpu_s": 1.951970000000074,
+     "exit_code": 0,
+     "instructions": 8837510974
+    },
+    "b": {
+     "wall_s": 1.520204616,
+     "cpu_s": 1.6313800000000356,
+     "exit_code": 0,
+     "instructions": 8018960184
+    },
+    "load1": 1.01904296875
+   },
+   {
+    "i": 51,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720213282,
+     "cpu_s": 1.8152160000001913,
+     "exit_code": 0,
+     "instructions": 8835311069
+    },
+    "b": {
+     "wall_s": 1.520566798,
+     "cpu_s": 1.6176869999999326,
+     "exit_code": 0,
+     "instructions": 7989396077
+    },
+    "load1": 1.01708984375
+   },
+   {
+    "i": 52,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719481942,
+     "cpu_s": 1.8260689999999613,
+     "exit_code": 0,
+     "instructions": 8819774671
+    },
+    "b": {
+     "wall_s": 1.519180659,
+     "cpu_s": 1.6194569999997839,
+     "exit_code": 0,
+     "instructions": 8007384671
+    },
+    "load1": 1.01708984375
+   },
+   {
+    "i": 53,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769790468,
+     "cpu_s": 1.8828690000002553,
+     "exit_code": 0,
+     "instructions": 8840004721
+    },
+    "b": {
+     "wall_s": 1.62327595,
+     "cpu_s": 1.7326739999998608,
+     "exit_code": 0,
+     "instructions": 7998061420
+    },
+    "load1": 1.015625
+   },
+   {
+    "i": 54,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.771153223,
+     "cpu_s": 1.8583149999999478,
+     "exit_code": 0,
+     "instructions": 8814963245
+    },
+    "b": {
+     "wall_s": 1.569364666,
+     "cpu_s": 1.6753870000000006,
+     "exit_code": 0,
+     "instructions": 8006098592
+    },
+    "load1": 1.01416015625
+   },
+   {
+    "i": 55,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720934362,
+     "cpu_s": 1.8411869999997634,
+     "exit_code": 0,
+     "instructions": 8803774722
+    },
+    "b": {
+     "wall_s": 1.520506113,
+     "cpu_s": 1.6019440000002305,
+     "exit_code": 0,
+     "instructions": 8018239596
+    },
+    "load1": 1.01416015625
+   },
+   {
+    "i": 56,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.821885522,
+     "cpu_s": 1.9374970000001213,
+     "exit_code": 0,
+     "instructions": 8834715749
+    },
+    "b": {
+     "wall_s": 1.522159512,
+     "cpu_s": 1.6077279999999519,
+     "exit_code": 0,
+     "instructions": 7992239807
+    },
+    "load1": 1.0126953125
+   },
+   {
+    "i": 57,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721050332,
+     "cpu_s": 1.8283950000000004,
+     "exit_code": 0,
+     "instructions": 8856441706
+    },
+    "b": {
+     "wall_s": 1.570602837,
+     "cpu_s": 1.643777,
+     "exit_code": 0,
+     "instructions": 8002532864
+    },
+    "load1": 1.0126953125
+   },
+   {
+    "i": 58,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770791924,
+     "cpu_s": 1.8472520000000259,
+     "exit_code": 0,
+     "instructions": 8856891301
+    },
+    "b": {
+     "wall_s": 1.571949134,
+     "cpu_s": 1.6559409999999843,
+     "exit_code": 0,
+     "instructions": 8017552937
+    },
+    "load1": 1.01123046875
+   },
+   {
+    "i": 59,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.669438891,
+     "cpu_s": 1.7884480000000167,
+     "exit_code": 0,
+     "instructions": 8799062408
+    },
+    "b": {
+     "wall_s": 1.569764158,
+     "cpu_s": 1.672514000000092,
+     "exit_code": 0,
+     "instructions": 7992542429
+    },
+    "load1": 1.01025390625
+   },
+   {
+    "i": 60,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.773341984,
+     "cpu_s": 1.866713000000118,
+     "exit_code": 0,
+     "instructions": 8832118409
+    },
+    "b": {
+     "wall_s": 1.569574266,
+     "cpu_s": 1.6507349999999406,
+     "exit_code": 0,
+     "instructions": 8008401443
+    },
+    "load1": 1.01025390625
+   },
+   {
+    "i": 61,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.777004693,
+     "cpu_s": 1.8476639999998952,
+     "exit_code": 0,
+     "instructions": 8826006668
+    },
+    "b": {
+     "wall_s": 1.521841912,
+     "cpu_s": 1.614744999999857,
+     "exit_code": 0,
+     "instructions": 7989397606
+    },
+    "load1": 1.169921875
+   },
+   {
+    "i": 62,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.820452436,
+     "cpu_s": 1.9202949999998964,
+     "exit_code": 0,
+     "instructions": 8834122469
+    },
+    "b": {
+     "wall_s": 1.520334736,
+     "cpu_s": 1.604533000000174,
+     "exit_code": 0,
+     "instructions": 7991817726
+    },
+    "load1": 1.15625
+   },
+   {
+    "i": 63,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720409086,
+     "cpu_s": 1.7990720000000238,
+     "exit_code": 0,
+     "instructions": 8839879416
+    },
+    "b": {
+     "wall_s": 1.570870208,
+     "cpu_s": 1.6540390000000116,
+     "exit_code": 0,
+     "instructions": 7989297423
+    },
+    "load1": 1.15625
+   },
+   {
+    "i": 64,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.7702181,
+     "cpu_s": 1.8546770000000379,
+     "exit_code": 0,
+     "instructions": 8824998663
+    },
+    "b": {
+     "wall_s": 1.569367898,
+     "cpu_s": 1.648283999999876,
+     "exit_code": 0,
+     "instructions": 8012480914
+    },
+    "load1": 1.1435546875
+   },
+   {
+    "i": 65,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770756094,
+     "cpu_s": 1.8529469999998582,
+     "exit_code": 0,
+     "instructions": 8835332896
+    },
+    "b": {
+     "wall_s": 1.620394973,
+     "cpu_s": 1.7085940000001756,
+     "exit_code": 0,
+     "instructions": 7998557467
+    },
+    "load1": 1.1318359375
+   },
+   {
+    "i": 66,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770879106,
+     "cpu_s": 1.8517790000000787,
+     "exit_code": 0,
+     "instructions": 8822045282
+    },
+    "b": {
+     "wall_s": 1.569536904,
+     "cpu_s": 1.6527229999999236,
+     "exit_code": 0,
+     "instructions": 7999750833
+    },
+    "load1": 1.1318359375
+   },
+   {
+    "i": 67,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720546082,
+     "cpu_s": 1.8342400000001362,
+     "exit_code": 0,
+     "instructions": 8831400583
+    },
+    "b": {
+     "wall_s": 1.569666462,
+     "cpu_s": 1.6735489999998663,
+     "exit_code": 0,
+     "instructions": 7997296535
+    },
+    "load1": 1.12109375
+   },
+   {
+    "i": 68,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719186784,
+     "cpu_s": 1.788005000000112,
+     "exit_code": 0,
+     "instructions": 8801598759
+    },
+    "b": {
+     "wall_s": 1.519458243,
+     "cpu_s": 1.5959009999999125,
+     "exit_code": 0,
+     "instructions": 8001589148
+    },
+    "load1": 1.43212890625
+   },
+   {
+    "i": 69,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719856508,
+     "cpu_s": 1.8296410000000378,
+     "exit_code": 0,
+     "instructions": 8802861365
+    },
+    "b": {
+     "wall_s": 1.570586997,
+     "cpu_s": 1.6741440000000694,
+     "exit_code": 0,
+     "instructions": 7994497558
+    },
+    "load1": 1.43212890625
+   },
+   {
+    "i": 70,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.72001582,
+     "cpu_s": 1.8308890000002975,
+     "exit_code": 0,
+     "instructions": 8826533392
+    },
+    "b": {
+     "wall_s": 1.620509481,
+     "cpu_s": 1.7363259999997354,
+     "exit_code": 0,
+     "instructions": 8010643304
+    },
+    "load1": 1.47802734375
+   },
+   {
+    "i": 71,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.773268034,
+     "cpu_s": 1.8637519999997494,
+     "exit_code": 0,
+     "instructions": 8838215321
+    },
+    "b": {
+     "wall_s": 1.569951177,
+     "cpu_s": 1.6491620000001603,
+     "exit_code": 0,
+     "instructions": 7996693923
+    },
+    "load1": 1.439453125
+   },
+   {
+    "i": 72,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.67071049,
+     "cpu_s": 1.7873469999999543,
+     "exit_code": 0,
+     "instructions": 8803974906
+    },
+    "b": {
+     "wall_s": 1.569561905,
+     "cpu_s": 1.670278000000053,
+     "exit_code": 0,
+     "instructions": 8012825159
+    },
+    "load1": 1.439453125
+   },
+   {
+    "i": 73,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770246843,
+     "cpu_s": 1.848609000000124,
+     "exit_code": 0,
+     "instructions": 8821177507
+    },
+    "b": {
+     "wall_s": 1.569704536,
+     "cpu_s": 1.6526389999999083,
+     "exit_code": 0,
+     "instructions": 8010700954
+    },
+    "load1": 1.40380859375
+   },
+   {
+    "i": 74,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769746227,
+     "cpu_s": 1.862278999999944,
+     "exit_code": 0,
+     "instructions": 8826029143
+    },
+    "b": {
+     "wall_s": 1.520082196,
+     "cpu_s": 1.6379590000001372,
+     "exit_code": 0,
+     "instructions": 8005169685
+    },
+    "load1": 1.45166015625
+   },
+   {
+    "i": 75,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720992841,
+     "cpu_s": 1.8405939999997827,
+     "exit_code": 0,
+     "instructions": 8851482660
+    },
+    "b": {
+     "wall_s": 1.519473966,
+     "cpu_s": 1.6201820000001135,
+     "exit_code": 0,
+     "instructions": 8017098279
+    },
+    "load1": 1.45166015625
+   },
+   {
+    "i": 76,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720730337,
+     "cpu_s": 1.8314299999999548,
+     "exit_code": 0,
+     "instructions": 8848366039
+    },
+    "b": {
+     "wall_s": 1.569985036,
+     "cpu_s": 1.642182000000048,
+     "exit_code": 0,
+     "instructions": 7997398190
+    },
+    "load1": 1.4150390625
+   },
+   {
+    "i": 77,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770338107,
+     "cpu_s": 1.8721020000000408,
+     "exit_code": 0,
+     "instructions": 8841788425
+    },
+    "b": {
+     "wall_s": 1.519434251,
+     "cpu_s": 1.623730999999907,
+     "exit_code": 0,
+     "instructions": 8011799900
+    },
+    "load1": 1.38134765625
+   },
+   {
+    "i": 78,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770426372,
+     "cpu_s": 1.8397959999999784,
+     "exit_code": 0,
+     "instructions": 8840008751
+    },
+    "b": {
+     "wall_s": 1.51999712,
+     "cpu_s": 1.6224069999998392,
+     "exit_code": 0,
+     "instructions": 8001144681
+    },
+    "load1": 1.38134765625
+   },
+   {
+    "i": 79,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.72046527,
+     "cpu_s": 1.8231030000001738,
+     "exit_code": 0,
+     "instructions": 8806202464
+    },
+    "b": {
+     "wall_s": 1.569522184,
+     "cpu_s": 1.6454530000000887,
+     "exit_code": 0,
+     "instructions": 7987321087
+    },
+    "load1": 1.3505859375
+   },
+   {
+    "i": 80,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720235865,
+     "cpu_s": 1.8167770000000019,
+     "exit_code": 0,
+     "instructions": 8804304436
+    },
+    "b": {
+     "wall_s": 1.520375482,
+     "cpu_s": 1.633154999999988,
+     "exit_code": 0,
+     "instructions": 7988987648
+    },
+    "load1": 1.322265625
+   },
+   {
+    "i": 81,
+    "a_first": false,
+    "a": {
+     "wall_s": 2.024925361,
+     "cpu_s": 2.097698000000264,
+     "exit_code": 0,
+     "instructions": 8823319671
+    },
+    "b": {
+     "wall_s": 1.520343089,
+     "cpu_s": 1.6380459999998038,
+     "exit_code": 0,
+     "instructions": 7993821138
+    },
+    "load1": 1.322265625
+   },
+   {
+    "i": 82,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719657914,
+     "cpu_s": 1.8179729999997107,
+     "exit_code": 0,
+     "instructions": 8830708736
+    },
+    "b": {
+     "wall_s": 1.671048448,
+     "cpu_s": 1.7565369999999803,
+     "exit_code": 0,
+     "instructions": 7993299041
+    },
+    "load1": 1.29638671875
+   },
+   {
+    "i": 83,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.872104614,
+     "cpu_s": 1.9453220000000329,
+     "exit_code": 0,
+     "instructions": 8811227699
+    },
+    "b": {
+     "wall_s": 1.520134421,
+     "cpu_s": 1.6289690000000974,
+     "exit_code": 0,
+     "instructions": 8010129373
+    },
+    "load1": 1.2724609375
+   },
+   {
+    "i": 84,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.774178915,
+     "cpu_s": 1.8566459999999552,
+     "exit_code": 0,
+     "instructions": 8844771950
+    },
+    "b": {
+     "wall_s": 1.520224263,
+     "cpu_s": 1.608261000000084,
+     "exit_code": 0,
+     "instructions": 7985196580
+    },
+    "load1": 1.2724609375
+   },
+   {
+    "i": 85,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719590383,
+     "cpu_s": 1.797598999999991,
+     "exit_code": 0,
+     "instructions": 8802858347
+    },
+    "b": {
+     "wall_s": 1.569789582,
+     "cpu_s": 1.6541040000001885,
+     "exit_code": 0,
+     "instructions": 8004695601
+    },
+    "load1": 1.25048828125
+   },
+   {
+    "i": 86,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720724769,
+     "cpu_s": 1.8280559999998331,
+     "exit_code": 0,
+     "instructions": 8844022928
+    },
+    "b": {
+     "wall_s": 1.569581738,
+     "cpu_s": 1.6523489999999583,
+     "exit_code": 0,
+     "instructions": 7990932006
+    },
+    "load1": 1.22998046875
+   },
+   {
+    "i": 87,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.769860947,
+     "cpu_s": 1.845618000000286,
+     "exit_code": 0,
+     "instructions": 8822701257
+    },
+    "b": {
+     "wall_s": 1.470329629,
+     "cpu_s": 1.5869109999998727,
+     "exit_code": 0,
+     "instructions": 7990612305
+    },
+    "load1": 1.22998046875
+   },
+   {
+    "i": 88,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.771973259,
+     "cpu_s": 1.8734589999999116,
+     "exit_code": 0,
+     "instructions": 8811630943
+    },
+    "b": {
+     "wall_s": 1.569722611,
+     "cpu_s": 1.6411739999998645,
+     "exit_code": 0,
+     "instructions": 8004597711
+    },
+    "load1": 1.21142578125
+   },
+   {
+    "i": 89,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770344566,
+     "cpu_s": 1.857597999999598,
+     "exit_code": 0,
+     "instructions": 8819073580
+    },
+    "b": {
+     "wall_s": 1.5695554,
+     "cpu_s": 1.6872980000002826,
+     "exit_code": 0,
+     "instructions": 7984031865
+    },
+    "load1": 1.1943359375
+   },
+   {
+    "i": 90,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719789759,
+     "cpu_s": 1.8233210000000781,
+     "exit_code": 0,
+     "instructions": 8824166054
+    },
+    "b": {
+     "wall_s": 1.570274234,
+     "cpu_s": 1.650775000000067,
+     "exit_code": 0,
+     "instructions": 8011232600
+    },
+    "load1": 1.1943359375
+   },
+   {
+    "i": 91,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719693324,
+     "cpu_s": 1.8240509999998267,
+     "exit_code": 0,
+     "instructions": 8841895207
+    },
+    "b": {
+     "wall_s": 1.519489768,
+     "cpu_s": 1.6325750000003154,
+     "exit_code": 0,
+     "instructions": 8002976696
+    },
+    "load1": 1.1787109375
+   },
+   {
+    "i": 92,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.871465869,
+     "cpu_s": 1.9494019999997363,
+     "exit_code": 0,
+     "instructions": 8828254588
+    },
+    "b": {
+     "wall_s": 1.570667339,
+     "cpu_s": 1.6559850000001006,
+     "exit_code": 0,
+     "instructions": 8003478644
+    },
+    "load1": 1.1640625
+   },
+   {
+    "i": 93,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.821079155,
+     "cpu_s": 1.9143760000001748,
+     "exit_code": 0,
+     "instructions": 8811174141
+    },
+    "b": {
+     "wall_s": 1.621373577,
+     "cpu_s": 1.695948000000044,
+     "exit_code": 0,
+     "instructions": 8014939573
+    },
+    "load1": 1.1640625
+   },
+   {
+    "i": 94,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.769947647,
+     "cpu_s": 1.8527389999999286,
+     "exit_code": 0,
+     "instructions": 8835011163
+    },
+    "b": {
+     "wall_s": 1.570101977,
+     "cpu_s": 1.6585929999998825,
+     "exit_code": 0,
+     "instructions": 7982041757
+    },
+    "load1": 1.15087890625
+   },
+   {
+    "i": 95,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719674356,
+     "cpu_s": 1.838739999999916,
+     "exit_code": 0,
+     "instructions": 8835437817
+    },
+    "b": {
+     "wall_s": 1.569378757,
+     "cpu_s": 1.6616300000000592,
+     "exit_code": 0,
+     "instructions": 8016605869
+    },
+    "load1": 1.138671875
+   },
+   {
+    "i": 96,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.719296224,
+     "cpu_s": 1.8198039999999764,
+     "exit_code": 0,
+     "instructions": 8817750152
+    },
+    "b": {
+     "wall_s": 1.519500001,
+     "cpu_s": 1.6320660000001226,
+     "exit_code": 0,
+     "instructions": 7994888949
+    },
+    "load1": 1.138671875
+   },
+   {
+    "i": 97,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720060452,
+     "cpu_s": 1.826242000000093,
+     "exit_code": 0,
+     "instructions": 8832931499
+    },
+    "b": {
+     "wall_s": 1.570208394,
+     "cpu_s": 1.639304999999922,
+     "exit_code": 0,
+     "instructions": 7977898413
+    },
+    "load1": 1.12744140625
+   },
+   {
+    "i": 98,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720579801,
+     "cpu_s": 1.8221940000000814,
+     "exit_code": 0,
+     "instructions": 8811305233
+    },
+    "b": {
+     "wall_s": 1.56970014,
+     "cpu_s": 1.6673409999996238,
+     "exit_code": 0,
+     "instructions": 7999857194
+    },
+    "load1": 1.1171875
+   },
+   {
+    "i": 99,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770750398,
+     "cpu_s": 1.8757400000004054,
+     "exit_code": 0,
+     "instructions": 8847003157
+    },
+    "b": {
+     "wall_s": 1.569933692,
+     "cpu_s": 1.6510450000000674,
+     "exit_code": 0,
+     "instructions": 7996796645
+    },
+    "load1": 1.1171875
+   },
+   {
+    "i": 100,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769990296,
+     "cpu_s": 1.8802319999999781,
+     "exit_code": 0,
+     "instructions": 8805605535
+    },
+    "b": {
+     "wall_s": 1.619381721,
+     "cpu_s": 1.7070049999997536,
+     "exit_code": 0,
+     "instructions": 8006006622
+    },
+    "load1": 1.107421875
+   },
+   {
+    "i": 101,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770812984,
+     "cpu_s": 1.8883450000002995,
+     "exit_code": 0,
+     "instructions": 8829610372
+    },
+    "b": {
+     "wall_s": 1.569410169,
+     "cpu_s": 1.6409899999998743,
+     "exit_code": 0,
+     "instructions": 7989485433
+    },
+    "load1": 1.0986328125
+   },
+   {
+    "i": 102,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770133156,
+     "cpu_s": 1.8509540000000015,
+     "exit_code": 0,
+     "instructions": 8826725823
+    },
+    "b": {
+     "wall_s": 1.573091603,
+     "cpu_s": 1.6493659999996453,
+     "exit_code": 0,
+     "instructions": 7990884372
+    },
+    "load1": 1.0986328125
+   },
+   {
+    "i": 103,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770490367,
+     "cpu_s": 1.8690710000000763,
+     "exit_code": 0,
+     "instructions": 8821575718
+    },
+    "b": {
+     "wall_s": 1.570625882,
+     "cpu_s": 1.6550830000001042,
+     "exit_code": 0,
+     "instructions": 8022525743
+    },
+    "load1": 1.09033203125
+   },
+   {
+    "i": 104,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770017613,
+     "cpu_s": 1.8710139999998319,
+     "exit_code": 0,
+     "instructions": 8817428784
+    },
+    "b": {
+     "wall_s": 1.519999052,
+     "cpu_s": 1.6262209999999868,
+     "exit_code": 0,
+     "instructions": 7984491897
+    },
+    "load1": 1.0830078125
+   },
+   {
+    "i": 105,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720521351,
+     "cpu_s": 1.8319019999999,
+     "exit_code": 0,
+     "instructions": 8825427082
+    },
+    "b": {
+     "wall_s": 1.569790015,
+     "cpu_s": 1.6781510000005255,
+     "exit_code": 0,
+     "instructions": 7987171218
+    },
+    "load1": 1.0830078125
+   },
+   {
+    "i": 106,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770829067,
+     "cpu_s": 1.875557999999728,
+     "exit_code": 0,
+     "instructions": 8818481079
+    },
+    "b": {
+     "wall_s": 1.569576221,
+     "cpu_s": 1.6425680000002103,
+     "exit_code": 0,
+     "instructions": 8003327203
+    },
+    "load1": 1.076171875
+   },
+   {
+    "i": 107,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720833822,
+     "cpu_s": 1.798041000000012,
+     "exit_code": 0,
+     "instructions": 8845210866
+    },
+    "b": {
+     "wall_s": 1.569631825,
+     "cpu_s": 1.6457799999998315,
+     "exit_code": 0,
+     "instructions": 8015166586
+    },
+    "load1": 1.06982421875
+   },
+   {
+    "i": 108,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.7707957,
+     "cpu_s": 1.846125999999913,
+     "exit_code": 0,
+     "instructions": 8825911368
+    },
+    "b": {
+     "wall_s": 1.520897046,
+     "cpu_s": 1.6410759999998845,
+     "exit_code": 0,
+     "instructions": 7995745792
+    },
+    "load1": 1.06982421875
+   },
+   {
+    "i": 109,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.772293253,
+     "cpu_s": 1.8614200000001802,
+     "exit_code": 0,
+     "instructions": 8811561016
+    },
+    "b": {
+     "wall_s": 1.520125258,
+     "cpu_s": 1.618902000000162,
+     "exit_code": 0,
+     "instructions": 7991712367
+    },
+    "load1": 1.06396484375
+   },
+   {
+    "i": 110,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.819819703,
+     "cpu_s": 1.8909859999998844,
+     "exit_code": 0,
+     "instructions": 8817124673
+    },
+    "b": {
+     "wall_s": 1.569306374,
+     "cpu_s": 1.6621709999999439,
+     "exit_code": 0,
+     "instructions": 8003174879
+    },
+    "load1": 1.05859375
+   },
+   {
+    "i": 111,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.77312018,
+     "cpu_s": 1.8584900000000744,
+     "exit_code": 0,
+     "instructions": 8821843811
+    },
+    "b": {
+     "wall_s": 1.519405172,
+     "cpu_s": 1.6279130000002624,
+     "exit_code": 0,
+     "instructions": 7996755216
+    },
+    "load1": 1.05859375
+   },
+   {
+    "i": 112,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.72081156,
+     "cpu_s": 1.819894999999633,
+     "exit_code": 0,
+     "instructions": 8824815347
+    },
+    "b": {
+     "wall_s": 1.569217412,
+     "cpu_s": 1.659059999999954,
+     "exit_code": 0,
+     "instructions": 8009179340
+    },
+    "load1": 1.0537109375
+   },
+   {
+    "i": 113,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720006518,
+     "cpu_s": 1.8216630000001715,
+     "exit_code": 0,
+     "instructions": 8836397475
+    },
+    "b": {
+     "wall_s": 1.520366805,
+     "cpu_s": 1.592420999999831,
+     "exit_code": 0,
+     "instructions": 8002925796
+    },
+    "load1": 1.04931640625
+   },
+   {
+    "i": 114,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719285609,
+     "cpu_s": 1.813180999999986,
+     "exit_code": 0,
+     "instructions": 8813287864
+    },
+    "b": {
+     "wall_s": 1.570356698,
+     "cpu_s": 1.646921999999904,
+     "exit_code": 0,
+     "instructions": 8001370618
+    },
+    "load1": 1.04931640625
+   },
+   {
+    "i": 115,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770240452,
+     "cpu_s": 1.8618719999999485,
+     "exit_code": 0,
+     "instructions": 8837698822
+    },
+    "b": {
+     "wall_s": 1.473253828,
+     "cpu_s": 1.5709630000001198,
+     "exit_code": 0,
+     "instructions": 8013694350
+    },
+    "load1": 1.044921875
+   },
+   {
+    "i": 116,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719642804,
+     "cpu_s": 1.8343480000003183,
+     "exit_code": 0,
+     "instructions": 8815425142
+    },
+    "b": {
+     "wall_s": 1.519258838,
+     "cpu_s": 1.6265699999999015,
+     "exit_code": 0,
+     "instructions": 7996291941
+    },
+    "load1": 1.041015625
+   },
+   {
+    "i": 117,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.72096118,
+     "cpu_s": 1.8157820000001266,
+     "exit_code": 0,
+     "instructions": 8809792747
+    },
+    "b": {
+     "wall_s": 1.569945811,
+     "cpu_s": 1.681641000000127,
+     "exit_code": 0,
+     "instructions": 7997601296
+    },
+    "load1": 1.041015625
+   },
+   {
+    "i": 118,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719912366,
+     "cpu_s": 1.832709999999679,
+     "exit_code": 0,
+     "instructions": 8829962903
+    },
+    "b": {
+     "wall_s": 1.61961286,
+     "cpu_s": 1.698019999999815,
+     "exit_code": 0,
+     "instructions": 7980661054
+    },
+    "load1": 1.03759765625
+   },
+   {
+    "i": 119,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770942435,
+     "cpu_s": 1.8673910000002252,
+     "exit_code": 0,
+     "instructions": 8826391519
+    },
+    "b": {
+     "wall_s": 1.570360684,
+     "cpu_s": 1.6772839999998723,
+     "exit_code": 0,
+     "instructions": 8003462549
+    },
+    "load1": 1.0341796875
+   },
+   {
+    "i": 120,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.722041803,
+     "cpu_s": 1.8285869999999704,
+     "exit_code": 0,
+     "instructions": 8825569919
+    },
+    "b": {
+     "wall_s": 1.570462577,
+     "cpu_s": 1.6483769999999822,
+     "exit_code": 0,
+     "instructions": 8006706261
+    },
+    "load1": 1.0341796875
+   },
+   {
+    "i": 121,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770154937,
+     "cpu_s": 1.8507689999996728,
+     "exit_code": 0,
+     "instructions": 8835528493
+    },
+    "b": {
+     "wall_s": 1.520454112,
+     "cpu_s": 1.6013740000003054,
+     "exit_code": 0,
+     "instructions": 8005298384
+    },
+    "load1": 1.03125
+   },
+   {
+    "i": 122,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.774227742,
+     "cpu_s": 1.8737779999996746,
+     "exit_code": 0,
+     "instructions": 8816424854
+    },
+    "b": {
+     "wall_s": 1.571257794,
+     "cpu_s": 1.6614470000004076,
+     "exit_code": 0,
+     "instructions": 7998316258
+    },
+    "load1": 1.0283203125
+   },
+   {
+    "i": 123,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.823837013,
+     "cpu_s": 1.9022310000000289,
+     "exit_code": 0,
+     "instructions": 8817441437
+    },
+    "b": {
+     "wall_s": 1.569178758,
+     "cpu_s": 1.6765080000000125,
+     "exit_code": 0,
+     "instructions": 8019238562
+    },
+    "load1": 1.0283203125
+   },
+   {
+    "i": 124,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.822849003,
+     "cpu_s": 1.908078000000387,
+     "exit_code": 0,
+     "instructions": 8839464629
+    },
+    "b": {
+     "wall_s": 1.571459136,
+     "cpu_s": 1.6898339999997916,
+     "exit_code": 0,
+     "instructions": 7981865184
+    },
+    "load1": 1.02587890625
+   },
+   {
+    "i": 125,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.820365501,
+     "cpu_s": 1.8918260000000373,
+     "exit_code": 0,
+     "instructions": 8827747728
+    },
+    "b": {
+     "wall_s": 1.469787777,
+     "cpu_s": 1.58887999999979,
+     "exit_code": 0,
+     "instructions": 8020276729
+    },
+    "load1": 1.0234375
+   },
+   {
+    "i": 126,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.820533647,
+     "cpu_s": 1.9127220000000307,
+     "exit_code": 0,
+     "instructions": 8842938688
+    },
+    "b": {
+     "wall_s": 1.720635872,
+     "cpu_s": 1.7914749999999913,
+     "exit_code": 0,
+     "instructions": 7991820643
+    },
+    "load1": 1.0234375
+   },
+   {
+    "i": 127,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.82144388,
+     "cpu_s": 1.9172080000003007,
+     "exit_code": 0,
+     "instructions": 8806675501
+    },
+    "b": {
+     "wall_s": 1.569869526,
+     "cpu_s": 1.641642999999931,
+     "exit_code": 0,
+     "instructions": 7991134026
+    },
+    "load1": 1.021484375
+   },
+   {
+    "i": 128,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.820605328,
+     "cpu_s": 1.916838000000098,
+     "exit_code": 0,
+     "instructions": 8803878034
+    },
+    "b": {
+     "wall_s": 1.570911057,
+     "cpu_s": 1.6741709999996601,
+     "exit_code": 0,
+     "instructions": 8000826328
+    },
+    "load1": 1.01953125
+   },
+   {
+    "i": 129,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.72141033,
+     "cpu_s": 1.828201999999692,
+     "exit_code": 0,
+     "instructions": 8840642891
+    },
+    "b": {
+     "wall_s": 1.56943923,
+     "cpu_s": 1.647211000000425,
+     "exit_code": 0,
+     "instructions": 8005748026
+    },
+    "load1": 1.01953125
+   },
+   {
+    "i": 130,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.820480929,
+     "cpu_s": 1.8963159999998425,
+     "exit_code": 0,
+     "instructions": 8808456806
+    },
+    "b": {
+     "wall_s": 1.570267103,
+     "cpu_s": 1.6864169999998921,
+     "exit_code": 0,
+     "instructions": 7985028977
+    },
+    "load1": 1.017578125
+   },
+   {
+    "i": 131,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770299505,
+     "cpu_s": 1.879852000000028,
+     "exit_code": 0,
+     "instructions": 8839051396
+    },
+    "b": {
+     "wall_s": 1.52128323,
+     "cpu_s": 1.6129550000000563,
+     "exit_code": 0,
+     "instructions": 7990619920
+    },
+    "load1": 1.01611328125
+   },
+   {
+    "i": 132,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.830052754,
+     "cpu_s": 1.9308860000001005,
+     "exit_code": 0,
+     "instructions": 8821288761
+    },
+    "b": {
+     "wall_s": 1.568919869,
+     "cpu_s": 1.6624769999998534,
+     "exit_code": 0,
+     "instructions": 8014349553
+    },
+    "load1": 1.01611328125
+   },
+   {
+    "i": 133,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.671999566,
+     "cpu_s": 1.7908590000001823,
+     "exit_code": 0,
+     "instructions": 8801826657
+    },
+    "b": {
+     "wall_s": 1.519208148,
+     "cpu_s": 1.6072149999999965,
+     "exit_code": 0,
+     "instructions": 8000277021
+    },
+    "load1": 1.0146484375
+   },
+   {
+    "i": 134,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720215268,
+     "cpu_s": 1.8344999999999345,
+     "exit_code": 0,
+     "instructions": 8830229287
+    },
+    "b": {
+     "wall_s": 1.519203282,
+     "cpu_s": 1.6132489999999962,
+     "exit_code": 0,
+     "instructions": 7998163787
+    },
+    "load1": 1.01318359375
+   },
+   {
+    "i": 135,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771097549,
+     "cpu_s": 1.8644560000002457,
+     "exit_code": 0,
+     "instructions": 8827542699
+    },
+    "b": {
+     "wall_s": 1.623181089,
+     "cpu_s": 1.7046089999998912,
+     "exit_code": 0,
+     "instructions": 7989800542
+    },
+    "load1": 1.01318359375
+   },
+   {
+    "i": 136,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771159497,
+     "cpu_s": 1.8721000000000458,
+     "exit_code": 0,
+     "instructions": 8830463670
+    },
+    "b": {
+     "wall_s": 1.519024254,
+     "cpu_s": 1.6106519999998454,
+     "exit_code": 0,
+     "instructions": 7998177452
+    },
+    "load1": 1.01171875
+   },
+   {
+    "i": 137,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.772021567,
+     "cpu_s": 1.8521960000002764,
+     "exit_code": 0,
+     "instructions": 8809744748
+    },
+    "b": {
+     "wall_s": 1.519930268,
+     "cpu_s": 1.638658999999734,
+     "exit_code": 0,
+     "instructions": 8013984317
+    },
+    "load1": 1.0107421875
+   },
+   {
+    "i": 138,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.72019647,
+     "cpu_s": 1.804055999999946,
+     "exit_code": 0,
+     "instructions": 8806758728
+    },
+    "b": {
+     "wall_s": 1.570709287,
+     "cpu_s": 1.686717999999928,
+     "exit_code": 0,
+     "instructions": 7990761168
+    },
+    "load1": 1.0107421875
+   },
+   {
+    "i": 139,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771014002,
+     "cpu_s": 1.8625720000000001,
+     "exit_code": 0,
+     "instructions": 8844242590
+    },
+    "b": {
+     "wall_s": 1.573914025,
+     "cpu_s": 1.657654999999977,
+     "exit_code": 0,
+     "instructions": 7989093298
+    },
+    "load1": 1.009765625
+   },
+   {
+    "i": 140,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719944642,
+     "cpu_s": 1.8104739999998856,
+     "exit_code": 0,
+     "instructions": 8815084690
+    },
+    "b": {
+     "wall_s": 1.519408856,
+     "cpu_s": 1.6104190000000926,
+     "exit_code": 0,
+     "instructions": 7996775362
+    },
+    "load1": 1.0087890625
+   },
+   {
+    "i": 141,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.769307953,
+     "cpu_s": 1.8832320000001346,
+     "exit_code": 0,
+     "instructions": 8816845938
+    },
+    "b": {
+     "wall_s": 1.520396844,
+     "cpu_s": 1.627089000000069,
+     "exit_code": 0,
+     "instructions": 7981787065
+    },
+    "load1": 1.0087890625
+   },
+   {
+    "i": 142,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771006704,
+     "cpu_s": 1.8785139999999956,
+     "exit_code": 0,
+     "instructions": 8810409777
+    },
+    "b": {
+     "wall_s": 1.619838813,
+     "cpu_s": 1.6917770000000019,
+     "exit_code": 0,
+     "instructions": 7988975033
+    },
+    "load1": 1.0078125
+   },
+   {
+    "i": 143,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720125743,
+     "cpu_s": 1.8051319999999578,
+     "exit_code": 0,
+     "instructions": 8818540741
+    },
+    "b": {
+     "wall_s": 1.520120102,
+     "cpu_s": 1.6283109999999397,
+     "exit_code": 0,
+     "instructions": 7996538332
+    },
+    "load1": 1.0068359375
+   },
+   {
+    "i": 144,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770272697,
+     "cpu_s": 1.8727560000002086,
+     "exit_code": 0,
+     "instructions": 8816735223
+    },
+    "b": {
+     "wall_s": 1.519217362,
+     "cpu_s": 1.602296000000024,
+     "exit_code": 0,
+     "instructions": 8007275181
+    },
+    "load1": 1.0068359375
+   },
+   {
+    "i": 145,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770419362,
+     "cpu_s": 1.8568119999999908,
+     "exit_code": 0,
+     "instructions": 8830748044
+    },
+    "b": {
+     "wall_s": 1.519111744,
+     "cpu_s": 1.620817999999872,
+     "exit_code": 0,
+     "instructions": 8005969452
+    },
+    "load1": 1.005859375
+   },
+   {
+    "i": 146,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719474491,
+     "cpu_s": 1.8112310000001344,
+     "exit_code": 0,
+     "instructions": 8806261978
+    },
+    "b": {
+     "wall_s": 1.619643612,
+     "cpu_s": 1.6989109999999528,
+     "exit_code": 0,
+     "instructions": 8004491229
+    },
+    "load1": 1.00537109375
+   },
+   {
+    "i": 147,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.77026768,
+     "cpu_s": 1.8511650000000373,
+     "exit_code": 0,
+     "instructions": 8835785114
+    },
+    "b": {
+     "wall_s": 1.570344763,
+     "cpu_s": 1.6526340000000346,
+     "exit_code": 0,
+     "instructions": 8002389227
+    },
+    "load1": 1.00537109375
+   },
+   {
+    "i": 148,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.769998801,
+     "cpu_s": 1.8445230000002084,
+     "exit_code": 0,
+     "instructions": 8814657909
+    },
+    "b": {
+     "wall_s": 1.569391245,
+     "cpu_s": 1.6529149999996662,
+     "exit_code": 0,
+     "instructions": 8001558073
+    },
+    "load1": 1.0048828125
+   },
+   {
+    "i": 149,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719548353,
+     "cpu_s": 1.8184739999996964,
+     "exit_code": 0,
+     "instructions": 8835781165
+    },
+    "b": {
+     "wall_s": 1.520128754,
+     "cpu_s": 1.6196490000002086,
+     "exit_code": 0,
+     "instructions": 8013742844
+    },
+    "load1": 1.00439453125
+   },
+   {
+    "i": 150,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.769833513,
+     "cpu_s": 1.8423530000004575,
+     "exit_code": 0,
+     "instructions": 8834931477
+    },
+    "b": {
+     "wall_s": 1.520817595,
+     "cpu_s": 1.6174459999997453,
+     "exit_code": 0,
+     "instructions": 7993648716
+    },
+    "load1": 1.00439453125
+   },
+   {
+    "i": 151,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.770176161,
+     "cpu_s": 1.8516049999998359,
+     "exit_code": 0,
+     "instructions": 8836077537
+    },
+    "b": {
+     "wall_s": 1.520206861,
+     "cpu_s": 1.6406050000000505,
+     "exit_code": 0,
+     "instructions": 7983080857
+    },
+    "load1": 1.00390625
+   },
+   {
+    "i": 152,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721057763,
+     "cpu_s": 1.8246870000002673,
+     "exit_code": 0,
+     "instructions": 8832731820
+    },
+    "b": {
+     "wall_s": 1.569616394,
+     "cpu_s": 1.6569109999995817,
+     "exit_code": 0,
+     "instructions": 8012982346
+    },
+    "load1": 0.92333984375
+   },
+   {
+    "i": 153,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.821416623,
+     "cpu_s": 1.9216769999998178,
+     "exit_code": 0,
+     "instructions": 8838898499
+    },
+    "b": {
+     "wall_s": 1.570849362,
+     "cpu_s": 1.6730340000003707,
+     "exit_code": 0,
+     "instructions": 8011271110
+    },
+    "load1": 0.92333984375
+   },
+   {
+    "i": 154,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720987777,
+     "cpu_s": 1.8377470000000358,
+     "exit_code": 0,
+     "instructions": 8811939304
+    },
+    "b": {
+     "wall_s": 1.620686007,
+     "cpu_s": 1.703363999999965,
+     "exit_code": 0,
+     "instructions": 8006655944
+    },
+    "load1": 0.9296875
+   },
+   {
+    "i": 155,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.821002108,
+     "cpu_s": 1.904624999999669,
+     "exit_code": 0,
+     "instructions": 8806956693
+    },
+    "b": {
+     "wall_s": 1.519195091,
+     "cpu_s": 1.6385150000005524,
+     "exit_code": 0,
+     "instructions": 7998279504
+    },
+    "load1": 0.935546875
+   },
+   {
+    "i": 156,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721077521,
+     "cpu_s": 1.8374579999995149,
+     "exit_code": 0,
+     "instructions": 8826498375
+    },
+    "b": {
+     "wall_s": 1.519324359,
+     "cpu_s": 1.6130419999999503,
+     "exit_code": 0,
+     "instructions": 8015152939
+    },
+    "load1": 0.935546875
+   },
+   {
+    "i": 157,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.71958772,
+     "cpu_s": 1.8199519999998302,
+     "exit_code": 0,
+     "instructions": 8847250176
+    },
+    "b": {
+     "wall_s": 1.521038602,
+     "cpu_s": 1.6328550000002906,
+     "exit_code": 0,
+     "instructions": 8003279525
+    },
+    "load1": 0.94091796875
+   },
+   {
+    "i": 158,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719708205,
+     "cpu_s": 1.8364590000001044,
+     "exit_code": 0,
+     "instructions": 8809245026
+    },
+    "b": {
+     "wall_s": 1.519399224,
+     "cpu_s": 1.591095000000223,
+     "exit_code": 0,
+     "instructions": 7993235615
+    },
+    "load1": 0.94091796875
+   },
+   {
+    "i": 159,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.821381663,
+     "cpu_s": 1.8917979999996533,
+     "exit_code": 0,
+     "instructions": 8817692774
+    },
+    "b": {
+     "wall_s": 1.519032246,
+     "cpu_s": 1.6252479999998286,
+     "exit_code": 0,
+     "instructions": 7995575814
+    },
+    "load1": 0.94580078125
+   },
+   {
+    "i": 160,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.669888644,
+     "cpu_s": 1.7823600000001534,
+     "exit_code": 0,
+     "instructions": 8818663074
+    },
+    "b": {
+     "wall_s": 1.519841454,
+     "cpu_s": 1.6302010000003975,
+     "exit_code": 0,
+     "instructions": 7990370540
+    },
+    "load1": 1.0302734375
+   },
+   {
+    "i": 161,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.669544097,
+     "cpu_s": 1.7829180000003362,
+     "exit_code": 0,
+     "instructions": 8821663208
+    },
+    "b": {
+     "wall_s": 1.56982238,
+     "cpu_s": 1.6487049999996088,
+     "exit_code": 0,
+     "instructions": 8007028113
+    },
+    "load1": 1.0302734375
+   },
+   {
+    "i": 162,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.821084852,
+     "cpu_s": 1.8916849999995975,
+     "exit_code": 0,
+     "instructions": 8832678435
+    },
+    "b": {
+     "wall_s": 1.469814208,
+     "cpu_s": 1.5872400000002926,
+     "exit_code": 0,
+     "instructions": 8009125052
+    },
+    "load1": 1.02783203125
+   },
+   {
+    "i": 163,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.67032669,
+     "cpu_s": 1.771617999999762,
+     "exit_code": 0,
+     "instructions": 8811197334
+    },
+    "b": {
+     "wall_s": 1.519290794,
+     "cpu_s": 1.5913439999999355,
+     "exit_code": 0,
+     "instructions": 7988284564
+    },
+    "load1": 1.025390625
+   },
+   {
+    "i": 164,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.669822402,
+     "cpu_s": 1.7609600000000682,
+     "exit_code": 0,
+     "instructions": 8843765718
+    },
+    "b": {
+     "wall_s": 1.518857582,
+     "cpu_s": 1.634621000000152,
+     "exit_code": 0,
+     "instructions": 8005836113
+    },
+    "load1": 1.025390625
+   },
+   {
+    "i": 165,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.721191227,
+     "cpu_s": 1.8109709999998813,
+     "exit_code": 0,
+     "instructions": 8822015281
+    },
+    "b": {
+     "wall_s": 1.519497899,
+     "cpu_s": 1.6139560000001438,
+     "exit_code": 0,
+     "instructions": 8001285513
+    },
+    "load1": 1.02294921875
+   },
+   {
+    "i": 166,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719525733,
+     "cpu_s": 1.826383000000078,
+     "exit_code": 0,
+     "instructions": 8835051292
+    },
+    "b": {
+     "wall_s": 1.470354774,
+     "cpu_s": 1.5892389999999068,
+     "exit_code": 0,
+     "instructions": 8004151133
+    },
+    "load1": 1.02099609375
+   },
+   {
+    "i": 167,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.669972341,
+     "cpu_s": 1.7803890000000138,
+     "exit_code": 0,
+     "instructions": 8844008244
+    },
+    "b": {
+     "wall_s": 1.51985282,
+     "cpu_s": 1.6141529999999875,
+     "exit_code": 0,
+     "instructions": 8014777693
+    },
+    "load1": 1.02099609375
+   },
+   {
+    "i": 168,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720584431,
+     "cpu_s": 1.8080690000001596,
+     "exit_code": 0,
+     "instructions": 8820714965
+    },
+    "b": {
+     "wall_s": 1.469199045,
+     "cpu_s": 1.5552889999999024,
+     "exit_code": 0,
+     "instructions": 8005357471
+    },
+    "load1": 1.01904296875
+   },
+   {
+    "i": 169,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.671079282,
+     "cpu_s": 1.7780870000001414,
+     "exit_code": 0,
+     "instructions": 8809503973
+    },
+    "b": {
+     "wall_s": 1.519013128,
+     "cpu_s": 1.6170959999999468,
+     "exit_code": 0,
+     "instructions": 7994708736
+    },
+    "load1": 1.01708984375
+   },
+   {
+    "i": 170,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720307026,
+     "cpu_s": 1.8171860000002198,
+     "exit_code": 0,
+     "instructions": 8826427044
+    },
+    "b": {
+     "wall_s": 1.469292574,
+     "cpu_s": 1.580529999999726,
+     "exit_code": 0,
+     "instructions": 8021853476
+    },
+    "load1": 1.01708984375
+   },
+   {
+    "i": 171,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770639476,
+     "cpu_s": 1.8636019999999007,
+     "exit_code": 0,
+     "instructions": 8826163502
+    },
+    "b": {
+     "wall_s": 1.520069542,
+     "cpu_s": 1.5995669999997517,
+     "exit_code": 0,
+     "instructions": 8002058894
+    },
+    "load1": 1.015625
+   },
+   {
+    "i": 172,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.72036886,
+     "cpu_s": 1.810867000000144,
+     "exit_code": 0,
+     "instructions": 8834425135
+    },
+    "b": {
+     "wall_s": 1.570519063,
+     "cpu_s": 1.6796380000000681,
+     "exit_code": 0,
+     "instructions": 7992193233
+    },
+    "load1": 1.01416015625
+   },
+   {
+    "i": 173,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.719762472,
+     "cpu_s": 1.834508999999798,
+     "exit_code": 0,
+     "instructions": 8827214910
+    },
+    "b": {
+     "wall_s": 1.519550463,
+     "cpu_s": 1.6325470000001587,
+     "exit_code": 0,
+     "instructions": 8003296280
+    },
+    "load1": 1.01416015625
+   },
+   {
+    "i": 174,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.769785294,
+     "cpu_s": 1.8439030000004095,
+     "exit_code": 0,
+     "instructions": 8828431234
+    },
+    "b": {
+     "wall_s": 1.569944038,
+     "cpu_s": 1.6616439999997965,
+     "exit_code": 0,
+     "instructions": 7982696600
+    },
+    "load1": 1.0126953125
+   },
+   {
+    "i": 175,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.770486693,
+     "cpu_s": 1.841056999999637,
+     "exit_code": 0,
+     "instructions": 8814979175
+    },
+    "b": {
+     "wall_s": 1.520288576,
+     "cpu_s": 1.594532000000072,
+     "exit_code": 0,
+     "instructions": 8014467942
+    },
+    "load1": 1.0126953125
+   },
+   {
+    "i": 176,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.77049104,
+     "cpu_s": 1.8530799999998635,
+     "exit_code": 0,
+     "instructions": 8841875966
+    },
+    "b": {
+     "wall_s": 1.520984168,
+     "cpu_s": 1.624815000000126,
+     "exit_code": 0,
+     "instructions": 7997205839
+    },
+    "load1": 1.01123046875
+   },
+   {
+    "i": 177,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720327051,
+     "cpu_s": 1.8178750000001855,
+     "exit_code": 0,
+     "instructions": 8834775689
+    },
+    "b": {
+     "wall_s": 1.569578113,
+     "cpu_s": 1.6675609999997505,
+     "exit_code": 0,
+     "instructions": 8011540878
+    },
+    "load1": 1.01025390625
+   },
+   {
+    "i": 178,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720097866,
+     "cpu_s": 1.8250120000002426,
+     "exit_code": 0,
+     "instructions": 8808344287
+    },
+    "b": {
+     "wall_s": 1.520234501,
+     "cpu_s": 1.5954940000001443,
+     "exit_code": 0,
+     "instructions": 8009080299
+    },
+    "load1": 1.01025390625
+   },
+   {
+    "i": 179,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720723902,
+     "cpu_s": 1.804392999999891,
+     "exit_code": 0,
+     "instructions": 8825531536
+    },
+    "b": {
+     "wall_s": 1.470184179,
+     "cpu_s": 1.5882449999999153,
+     "exit_code": 0,
+     "instructions": 8001741795
+    },
+    "load1": 1.08984375
+   },
+   {
+    "i": 180,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721160577,
+     "cpu_s": 1.8103940000000875,
+     "exit_code": 0,
+     "instructions": 8845798683
+    },
+    "b": {
+     "wall_s": 1.570426269,
+     "cpu_s": 1.6434309999999641,
+     "exit_code": 0,
+     "instructions": 8008972434
+    },
+    "load1": 1.08251953125
+   },
+   {
+    "i": 181,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.668853392,
+     "cpu_s": 1.7749940000003335,
+     "exit_code": 0,
+     "instructions": 8836201813
+    },
+    "b": {
+     "wall_s": 1.569866649,
+     "cpu_s": 1.6468189999995957,
+     "exit_code": 0,
+     "instructions": 7993455335
+    },
+    "load1": 1.08251953125
+   },
+   {
+    "i": 182,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.771110076,
+     "cpu_s": 1.8422030000001541,
+     "exit_code": 0,
+     "instructions": 8843731423
+    },
+    "b": {
+     "wall_s": 1.519046526,
+     "cpu_s": 1.6239299999997456,
+     "exit_code": 0,
+     "instructions": 8013997210
+    },
+    "load1": 1.07568359375
+   },
+   {
+    "i": 183,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721393298,
+     "cpu_s": 1.8380150000002686,
+     "exit_code": 0,
+     "instructions": 8824511911
+    },
+    "b": {
+     "wall_s": 1.620820623,
+     "cpu_s": 1.6882649999997739,
+     "exit_code": 0,
+     "instructions": 8024582773
+    },
+    "load1": 1.0693359375
+   },
+   {
+    "i": 184,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.67302197,
+     "cpu_s": 1.7727709999999206,
+     "exit_code": 0,
+     "instructions": 8829098133
+    },
+    "b": {
+     "wall_s": 1.519510237,
+     "cpu_s": 1.6197870000000876,
+     "exit_code": 0,
+     "instructions": 7996925967
+    },
+    "load1": 1.0693359375
+   },
+   {
+    "i": 185,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720987448,
+     "cpu_s": 1.7920780000004015,
+     "exit_code": 0,
+     "instructions": 8812012576
+    },
+    "b": {
+     "wall_s": 1.520200171,
+     "cpu_s": 1.6062339999994037,
+     "exit_code": 0,
+     "instructions": 7991639394
+    },
+    "load1": 1.0634765625
+   },
+   {
+    "i": 186,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.669893009,
+     "cpu_s": 1.781423000000359,
+     "exit_code": 0,
+     "instructions": 8826992665
+    },
+    "b": {
+     "wall_s": 1.469392511,
+     "cpu_s": 1.5531489999998485,
+     "exit_code": 0,
+     "instructions": 7989667591
+    },
+    "load1": 1.05810546875
+   },
+   {
+    "i": 187,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.72022466,
+     "cpu_s": 1.8218550000001414,
+     "exit_code": 0,
+     "instructions": 8818476770
+    },
+    "b": {
+     "wall_s": 1.520718481,
+     "cpu_s": 1.6179889999998522,
+     "exit_code": 0,
+     "instructions": 8003562959
+    },
+    "load1": 1.05810546875
+   },
+   {
+    "i": 188,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.721321167,
+     "cpu_s": 1.8024940000000242,
+     "exit_code": 0,
+     "instructions": 8828975295
+    },
+    "b": {
+     "wall_s": 1.569730815,
+     "cpu_s": 1.6830360000003566,
+     "exit_code": 0,
+     "instructions": 8007816927
+    },
+    "load1": 1.05322265625
+   },
+   {
+    "i": 189,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.721405014,
+     "cpu_s": 1.8051049999999123,
+     "exit_code": 0,
+     "instructions": 8852947274
+    },
+    "b": {
+     "wall_s": 1.520598165,
+     "cpu_s": 1.5966319999997722,
+     "exit_code": 0,
+     "instructions": 7991965501
+    },
+    "load1": 1.048828125
+   },
+   {
+    "i": 190,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.72027466,
+     "cpu_s": 1.8325129999998353,
+     "exit_code": 0,
+     "instructions": 8827405188
+    },
+    "b": {
+     "wall_s": 1.520033469,
+     "cpu_s": 1.617819000000054,
+     "exit_code": 0,
+     "instructions": 7989879383
+    },
+    "load1": 1.048828125
+   },
+   {
+    "i": 191,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.820417921,
+     "cpu_s": 1.9041160000001582,
+     "exit_code": 0,
+     "instructions": 8830775014
+    },
+    "b": {
+     "wall_s": 1.519328607,
+     "cpu_s": 1.6127289999999448,
+     "exit_code": 0,
+     "instructions": 8005668360
+    },
+    "load1": 1.04443359375
+   },
+   {
+    "i": 192,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.870058634,
+     "cpu_s": 1.9573009999999158,
+     "exit_code": 0,
+     "instructions": 8821207007
+    },
+    "b": {
+     "wall_s": 1.519864287,
+     "cpu_s": 1.634994000000006,
+     "exit_code": 0,
+     "instructions": 7996724703
+    },
+    "load1": 1.04052734375
+   },
+   {
+    "i": 193,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.771331173,
+     "cpu_s": 1.8457899999998517,
+     "exit_code": 0,
+     "instructions": 8818587878
+    },
+    "b": {
+     "wall_s": 1.569483851,
+     "cpu_s": 1.6550380000003315,
+     "exit_code": 0,
+     "instructions": 7986520993
+    },
+    "load1": 1.04052734375
+   },
+   {
+    "i": 194,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.821460853,
+     "cpu_s": 1.91933999999992,
+     "exit_code": 0,
+     "instructions": 8812876389
+    },
+    "b": {
+     "wall_s": 1.518994415,
+     "cpu_s": 1.6253349999997226,
+     "exit_code": 0,
+     "instructions": 7987170826
+    },
+    "load1": 1.037109375
+   },
+   {
+    "i": 195,
+    "a_first": true,
+    "a": {
+     "wall_s": 1.720379565,
+     "cpu_s": 1.820430000000215,
+     "exit_code": 0,
+     "instructions": 8841535267
+    },
+    "b": {
+     "wall_s": 1.521136098,
+     "cpu_s": 1.6028459999997722,
+     "exit_code": 0,
+     "instructions": 7987042689
+    },
+    "load1": 1.03369140625
+   },
+   {
+    "i": 196,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720412861,
+     "cpu_s": 1.8113859999998567,
+     "exit_code": 0,
+     "instructions": 8816949177
+    },
+    "b": {
+     "wall_s": 1.468786095,
+     "cpu_s": 1.5724440000003597,
+     "exit_code": 0,
+     "instructions": 8016778162
+    },
+    "load1": 1.03369140625
+   },
+   {
+    "i": 197,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720965266,
+     "cpu_s": 1.8406160000004093,
+     "exit_code": 0,
+     "instructions": 8841757184
+    },
+    "b": {
+     "wall_s": 1.570222284,
+     "cpu_s": 1.6758009999998649,
+     "exit_code": 0,
+     "instructions": 7995842525
+    },
+    "load1": 1.03076171875
+   },
+   {
+    "i": 198,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.670743038,
+     "cpu_s": 1.7889000000000124,
+     "exit_code": 0,
+     "instructions": 8836993831
+    },
+    "b": {
+     "wall_s": 1.518378611,
+     "cpu_s": 1.6198479999998199,
+     "exit_code": 0,
+     "instructions": 8029405752
+    },
+    "load1": 1.03076171875
+   },
+   {
+    "i": 199,
+    "a_first": false,
+    "a": {
+     "wall_s": 1.720790024,
+     "cpu_s": 1.8281210000004648,
+     "exit_code": 0,
+     "instructions": 8824954452
+    },
+    "b": {
+     "wall_s": 1.620816727,
+     "cpu_s": 1.6985619999995833,
+     "exit_code": 0,
+     "instructions": 7986383433
+    },
+    "load1": 1.02783203125
+   }
+  ]
+ },
+ "timing_s": {
+  "setup": 18.2,
+  "pairs": 690.8,
+  "correctness": 14.4,
+  "total_this_invocation": 813.7
+ },
+ "written": "2026-11-13T08:10:46+00:00"
+}
