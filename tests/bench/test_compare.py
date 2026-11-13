@@ -453,6 +453,10 @@ def twelve_rounds() -> BenchmarkSpec:
     )
 
 
+NO_INTERVAL_CODES = {"coarse_resolution", "interval_unrepresentable"}
+"""Warnings that explain a rule 5 record with no interval."""
+
+
 def test_passing_gates_end_inconclusive_with_the_interval(
     project: Project,
 ) -> None:
@@ -476,11 +480,13 @@ def test_passing_gates_end_inconclusive_with_the_interval(
     assert v.procedure == "t_log_ratio_batch_means"
     assert v.rule in (2, 5)
     if v.interval is None:
-        # Rule 5 on a runner whose timings the look cannot bound (seen
-        # on GitHub's Linux 3.13, not reproduced locally): the record
-        # then holds no interval and no estimate.
+        # Seen on GitHub's Linux 3.13 and not reproduced locally; the
+        # mechanism is unexplained (the record had autocorrelated_rounds
+        # False and coarse_resolution None). Rule 5 has no interval only
+        # with a warning that says why, so a bare loss still fails.
         assert v.rule == 5
         assert v.estimate is None
+        assert {w.code for w in record.warnings} & NO_INTERVAL_CODES
     else:
         assert v.estimate is not None
         # Two blocks leave one degree of freedom, so under load the
@@ -861,10 +867,12 @@ def test_reset_runs_before_every_execution_end_to_end(
     v = result.record.verdict
     # The KEEP is withheld (spec outside the domain): INCONCLUSIVE under
     # rule 2 or 5, which load decides, so the rule is not pinned.
-    # No interval is asserted: on a runner with autocorrelated timing
-    # (lag-1 0.45 seen on GitHub's) the interval is unbounded and rule 5
-    # records none. The test is about the reset, not the statistics.
     assert (v.outcome, v.rounds) == ("INCONCLUSIVE", 12)
+    # Seen without an interval on GitHub's Linux 3.13, mechanism
+    # unexplained; rule 5 may lack one only with a warning saying why.
+    if v.interval is None:
+        codes = {w.code for w in result.record.warnings}
+        assert codes & NO_INTERVAL_CODES
     assert set(gates(result.record).values()) <= {"passed", "not_available"}
     # Per tree: the output-producing execution, one warmup, 12 rounds.
     for tree in (project.root, candidate):
