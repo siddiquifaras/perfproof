@@ -1,13 +1,13 @@
 # /perfproof contract: rationale and evidence
 
 Why each row of [skill.md](skill.md) exists, which study row motivated
-it, and what the CLI still lacks. Messages are in
+it, and what the CLI still lacks. Wording is in
 [skill-messages.md](skill-messages.md).
 
 ## Evidence keys
 
-`§` is a numbered section of a transcript; "Step" is the transcript's
-own step number.
+`§` is a numbered transcript section. "Step" is the transcript's own
+step number.
 
 | Key | Where |
 |---|---|
@@ -26,16 +26,16 @@ own step number.
 
 ## What this contract does not rest on
 
-- No study row exercised a dirty working tree (BS-2) or a run outside a
-  repository (BS-1): those come from failure 15, the plan and the CLI's
-  error codes.
-- No study ran on a calibrated procedure, so R-1 to R-3 and R-12 follow
-  `docs/method.md` and the schema, not a transcript. R-11 follows the
-  method's guardrail row and the gate statuses.
-- The studies' user replies were simulated by the hand-runner.
-- No run used the skill itself; every transcript is a person playing it
-  with the CLI as it stood. T3.8 and T3.13 test whether an agent given
-  this contract behaves as written.
+- **BS-1 and BS-2:** no study row exercised a dirty tree or a run
+  outside a repository. They come from failure 15, the plan and the
+  CLI's error codes.
+- **R-1 to R-3, R-11, R-12:** no study ran on a calibrated procedure, so
+  these follow `docs/method.md` and the schema (R-11: the guardrail row
+  and the gate statuses), not a transcript.
+- **User replies** in the studies were simulated by the hand-runner.
+- **The skill itself:** no run used it. Every transcript is a person
+  playing it with the CLI as it stood. T3.8 and T3.13 test whether an
+  agent given this contract behaves as written.
 
 ## Why: words and conventions (skill.md, sections 1 and 2)
 
@@ -57,31 +57,28 @@ own step number.
   time, `total_fraction` includes callees, and `basis` says what the
   fraction is of (`src/perfproof/schema.py`, `Hotspot`;
   `commands/profile.py`).
-- Rule 5. pl:finding 2 (a prediction matched a confounded run).
-- Rule 6. nb:F-24, pr:§2 (X2, X3 and P5 claimed a speedup with no
-  measurement).
+- Rules 5 and 6. pl:finding 2 (a prediction matched a confounded run);
+  nb:F-24, pr:§2 (X2, X3 and P5 claimed a speedup with no measurement).
 - Rule 7. nb:F-15 (577.8 ms then 1,324.1 ms for the same measurement);
   fp:finding 17; pr:§3.
-- Rule 8. Failure 5 (rounding at the bar).
-- Rule 9. cli.md: "a gate that isn't available on this target blocks
-  KEEP; it never passes". pl:finding 3 and fp:finding 2: a waived
+- Rule 8: failure 5 (rounding at the bar). Rule 9: cli.md, "a gate that
+  isn't available on this target blocks KEEP; it never passes". pl:finding 3 and fp:finding 2: a waived
   runtime gate and an unmeasurable memory guardrail were easy to miss.
-- Result line. pr:§2 (a speed question that cannot be measured must not
-  end in prose that sounds like an answer). A session with no run has no
-  verdict, so it does not claim INCONCLUSIVE (C-25).
+- Result line. pr:§2 (an unmeasurable speed question must not end in
+  prose that sounds like an answer). A session with no run has no
+  verdict, so it doesn't claim INCONCLUSIVE (C-25).
 - Permission and writes. `.perfproof/` is excluded through
   `.git/info/exclude` (`bench/snapshot.py`, `exclude_state_dir`);
   nb:F-04 (the harness must be committed to a branch of the user's
   repo, a commit the user did not ask for); pr:C3 (a second environment
   and two containers outlived the session); failure 15.
-- Token reading. T3.17 (`tok`): in the T3.10 hand-runs about 70% of
-  cost was cache re-reads of a growing context, and perfproof CLI
-  output was about 3%; file reads and search about 22%, shell commands
-  the agent wrote about 20%. So the contract's levers are fewer turns,
-  targeted reads and CLI commands in place of scripts; brief output
-  stays but is not the main lever (plan T3.15). fp:T1 Step 7 and the
-  `samples.npz` reads are the hand-written steps C-09 and C-13 would
-  replace.
+- Token reading. T3.17 (`tok`), in the T3.10 hand-runs: about 70% of
+  cost was cache re-reads of a growing context, perfproof CLI output
+  about 3%, file reads and search about 22%, agent-written shell
+  commands about 20%. So the levers are fewer turns, targeted reads and
+  CLI commands in place of scripts. Brief output stays but isn't the
+  main lever (plan T3.15). fp:T1 Step 7 and the `samples.npz` reads are
+  the hand-written steps C-09 and C-13 would replace.
 
 ## Why: input router (section 3)
 
@@ -103,7 +100,7 @@ own step number.
   redundant made the scatter about 17x as long); pl:T3 and pl:finding
   19.
 - Whole-argument rule. A phrase that merely contains a word that
-  resolves as a branch or identifier (an English word that is also a
+  resolves as a branch or identifier (an English word that's also a
   function name) would otherwise start the wrong path.
 
 ## Why: prove path (section 4)
@@ -119,9 +116,11 @@ own step number.
   developer moved off bincount on purpose); pr:§1.
 - PF-5. fp:finding 28 (no command says which benchmark covers a diff);
   failure 17.
-- PF-6. pr:§7 (P5's first tests passed on an empty registry; P8's passed
-  with the mask deleted); cli.md session (coverage REJECT).
-- PF-7. nb:F-28 (4.73x to 5.44x and 5.17x to 6.37x ten minutes apart).
+
+- PF-6, PF-7. PF-6: pr:§7 (P5's first tests passed on an empty
+  registry; P8's passed with the mask deleted); cli.md session (coverage
+  REJECT). PF-7: nb:F-28 (4.73x to 5.44x and 5.17x to 6.37x ten minutes
+  apart).
 - PF-8. pr:§12 (what maintainers ask for in every thread), plan M3
   intro (time to a verdict is measured), pr:X1 and pr:X3 (a claim
   written without a measurement).
@@ -141,7 +140,7 @@ own step number.
 
 ## Why: bad states (section 6)
 
-- BS-1, BS-2. Failure 15; plan T3.8 ("dirty-tree refusal"); the prove
+- BS-1, BS-2 (BS-9 follows PF-2 and PF-3). Failure 15; plan T3.8 ("dirty-tree refusal"); the prove
   path needs no clean tree because candidates and baselines are checked
   out into `.perfproof/worktrees/`; `profile` runs in the working tree
   as it is and leaves `perfproof-out/` there (fp:finding 8, fp:T1
@@ -176,7 +175,7 @@ own step number.
 - BS-8. nb:F-02 and nb:e1 §7 to §8 (1,982 differences, all a port in a
   URL); pl:finding 18 and pl:T1 Step 3 (end-of-text after one token);
   fp:T3 Step 5 and fp:finding 20.
-- BS-9. As PF-2 and PF-3.
+
 - BS-10. fp:T1 Step 10 and fp:finding 16 (load 40.5: cv 0.54 to 0.66,
   425 s; load 2.7: cv 0.08 to 0.11, 99.5 s); nb:e1 §1; pl:finding 23
   and pl:finding 13 (load rose to 87 mid-run, the warning showed
@@ -202,15 +201,14 @@ own step number.
   pins); pr:§4; fp:finding 15; pr:X3 (19 to 13 queries tripped the
   project's own baseline test while the list got slower).
 - R-5. cli.md session (`io.py:152-158`); failure 11; pr:§7.
-- R-6. pl:T4 PR B and pl:finding 7 (a locked Makefile; a flags PR can
-  never pass).
-- R-7. nb:F-18.
+- R-6, R-7. pl:T4 PR B and pl:finding 7 (a locked Makefile; a flags PR
+  can never pass); nb:F-18.
 - R-8, R-9. method.md: an integrity REJECT is "the experiment itself is
   not valid". `verdict.reason == "integrity"` with `verdict.gate`
   naming `lock`, `side_effects`, `runtime`, `procedure` or `same_host`.
   Waiver label: `allow_runtime_change` (pl:finding 3).
-- R-10. method.md, "Outcomes and reasons", last row; pl:T1 Step 4.
-- R-11. method.md: a guardrail whose compliance cannot be established is
+- R-10, R-11. R-10: method.md, "Outcomes and reasons", last row; pl:T1
+  Step 4. R-11: method.md: a guardrail whose compliance cannot be established is
   INCONCLUSIVE naming the guardrail; `GateStatus.not_available` blocks
   KEEP. Unexercised in the studies.
 - R-12. cli.md ("INCONCLUSIVE comes with what would settle it"); nb:F-23
@@ -221,7 +219,7 @@ own step number.
 ## Appendix: what the CLI is missing
 
 Proposals for follow-up tasks, not changes made here. The contract
-names C-02, C-04 and C-22; the rest are listed for the lead.
+names C-02, C-04 and C-22; the rest are for the lead.
 
 | ID | What is missing | Study finding | Planned in |
 |---|---|---|---|
