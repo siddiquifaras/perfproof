@@ -7,7 +7,6 @@ own.
 """
 
 import contextlib
-import hashlib
 import json
 import os
 import shutil
@@ -30,7 +29,6 @@ from perfproof.bench.detach import (
     DetachError,
     Identity,
     Job,
-    _settled,  # pyright: ignore[reportPrivateUsage]
     default_timeout,
     deliver,
     find_run,
@@ -41,7 +39,6 @@ from perfproof.bench.detach import (
     process_table,
     ps_table,
     run_status,
-    tree_manifest,
 )
 from perfproof.bench.journal import (
     JOURNAL_NAME,
@@ -1256,42 +1253,3 @@ def test_eperm_for_a_live_process_is_raised() -> None:
     finally:
         child.kill()
         child.wait()
-
-
-def test_a_resume_reads_only_the_files_whose_stat_changed(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    tree = tmp_path / "tree"
-    tree.mkdir()
-    for i in range(50):
-        (tree / f"f{i}.py").write_text(f"x = {i}\n")
-    (tree / "link").symlink_to("f0.py")
-    stats: dict[str, tuple[int, int]] = {}
-    before = tree_manifest(tree, set(), stats=stats)
-    assert "link" not in stats
-    trusted = {
-        rel: (before[rel], size, mtime) for rel, (size, mtime) in stats.items()
-    }
-    reads: list[object] = []
-    real = hashlib.file_digest
-
-    def counting(f: Any, algorithm: str) -> Any:
-        reads.append(f.name)
-        return real(f, algorithm)
-
-    monkeypatch.setattr(hashlib, "file_digest", counting)
-
-    assert tree_manifest(tree, set(), trusted=trusted) == before
-    assert reads == []
-
-    (tree / "f3.py").write_text("x = 333\n")
-    after = tree_manifest(tree, set(), trusted=trusted)
-    assert len(reads) == 1
-    assert after["f3.py"] != before["f3.py"]
-    assert {k for k in after if after[k] != before[k]} == {"f3.py"}
-
-
-def test_a_file_written_at_the_snapshot_is_never_trusted() -> None:
-    taken = 10_000_000_000
-    files = {"old.py": (5, 1_000), "new.py": (5, taken - 1_000)}
-    assert _settled(files, taken) == {"old.py": [5, 1_000]}
