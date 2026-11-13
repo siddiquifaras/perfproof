@@ -1984,18 +1984,29 @@ _BUSY = "import time\nt=time.time()\nwhile time.time()-t<3: pass\n"
 
 
 def _sample_can_attach() -> bool:
-    """Whether ``sample`` may examine a child of this process.
+    """Whether ``sample`` may examine a sandboxed child of this process.
 
-    Outside the sandbox. A hosted CI runner refuses ("cannot examine
-    process"), so a failure under the profile would say nothing about
-    the profile.
+    The child runs under ``sandbox-exec`` with a profile that allows
+    everything, so the project's profile is not what is tested. A hosted
+    CI runner refuses ("cannot examine process"); where even this
+    control fails, a failure under the real profile says nothing about
+    it.
     """
     if shutil.which("sample") is None:
         return False
     child = subprocess.Popen(
-        [sys.executable, "-I", "-c", "import time\ntime.sleep(10)"]
+        [
+            "sandbox-exec",
+            "-p",
+            "(version 1)(allow default)",
+            sys.executable,
+            "-I",
+            "-c",
+            "import time\ntime.sleep(10)",
+        ]
     )
     try:
+        time.sleep(1)
         done = subprocess.run(
             ["sample", str(child.pid), "1"],
             capture_output=True,
@@ -2022,7 +2033,7 @@ def test_perfproof_native_recorder_works_under_the_profile(
     ``pgrep``, which list processes. The recorder samples by pid.
     """
     if not _sample_can_attach():
-        pytest.skip("sample cannot attach to a process here, sandboxed or not")
+        pytest.skip("sample cannot attach to a sandboxed process here")
     text = sandbox.profile(
         Path.home(),
         tmp_path / "pp",

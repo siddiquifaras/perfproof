@@ -186,8 +186,13 @@ def perturb(path: Path) -> None:
             timeout=60,
         )
     else:
-        with path.open("ab") as handle:
-            handle.write(b"\0")
+        # Replace the file rather than append to it: opening a binary
+        # for writing fails with ETXTBSY if anything still executes it
+        # (seen once on a CI runner), and a rename does not.
+        fresh = path.with_name(path.name + ".new")
+        fresh.write_bytes(path.read_bytes() + b"\0")
+        shutil.copymode(path, fresh)
+        os.replace(fresh, path)
 
 
 def probe(
