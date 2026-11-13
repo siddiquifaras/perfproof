@@ -7,9 +7,12 @@ from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import coverage
+import coverage.exceptions
 import coverage.parser
 import pytest
 
+from perfproof.bench import coverage_gate as coverage_gate_module
 from perfproof.bench.correctness import (
     EXIT_STATUS_ID,
     SuiteComparison,
@@ -1240,3 +1243,33 @@ def test_a_report_with_a_nul_path_is_no_report(tmp_path: Path) -> None:
     result = gate(trees, report_spec(), ids=(EXIT_STATUS_ID,))
     assert result.status == "not_available"
     assert "the coverage report is unreadable" in result.detail
+
+
+def test_reading_a_data_file_closes_its_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # An unclosed connection surfaces as an unraisable ResourceWarning
+    # at a later garbage collection (3.13), failing whichever test runs
+    # it, so the close is asserted directly.
+    good = tmp_path / "good"
+    data = coverage.CoverageData(basename=str(good))
+    data.add_lines({str(tmp_path / "a.py"): [1, 2]})
+    data.write()
+    data.close()
+    bad = tmp_path / "bad"
+    bad.write_bytes(b"not a database" * 100)
+    closed: list[str] = []
+    real = coverage.CoverageData.close
+
+    def spy(self: coverage.CoverageData, force: bool = False) -> None:
+        closed.append(self.base_filename())
+        real(self, force)
+
+    monkeypatch.setattr(coverage.CoverageData, "close", spy)
+    read_one(good, {}, {}, {}, {})
+    with pytest.raises(coverage.exceptions.CoverageException):
+        read_one(bad, {}, {}, {}, {})
+    assert closed == [str(good), str(bad)]
+
+
+read_one = coverage_gate_module._read_one  # pyright: ignore[reportPrivateUsage]

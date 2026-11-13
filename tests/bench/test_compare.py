@@ -853,8 +853,10 @@ def test_reset_runs_before_every_execution_end_to_end(
     v = result.record.verdict
     # The KEEP is withheld (spec outside the domain): INCONCLUSIVE under
     # rule 2 or 5, which load decides, so the rule is not pinned.
+    # No interval is asserted: on a runner with autocorrelated timing
+    # (lag-1 0.45 seen on GitHub's) the interval is unbounded and rule 5
+    # records none. The test is about the reset, not the statistics.
     assert (v.outcome, v.rounds) == ("INCONCLUSIVE", 12)
-    assert v.interval is not None
     assert set(gates(result.record).values()) <= {"passed", "not_available"}
     # Per tree: the output-producing execution, one warmup, 12 rounds.
     for tree in (project.root, candidate):
@@ -1347,9 +1349,12 @@ def arm_values(result: CompareResult) -> tuple[Any, Any]:
         return value[~mine[order]], value[mine[order]]
 
 
-def test_the_interval_is_the_batch_means_interval(project: Project) -> None:
-    faster = project.candidate("fast", {"work.py": work(0.005)})
-    result = project.run(faster, twelve_rounds())
+def test_the_interval_is_the_batch_means_interval(tmp_path: Path) -> None:
+    # Printed values on a slow wave, so the batch-means and the plain
+    # interval differ by far more than the resolution widening whatever
+    # the machine's timing noise (a sleep workload on a quiet runner
+    # makes them nearly equal).
+    _, result = wave_run(tmp_path)
     v = result.record.verdict
     assert v.interval is not None
     b, c = arm_values(result)
@@ -4429,7 +4434,10 @@ def test_an_alpha_below_the_calibrated_one_keeps_the_run_alive(
     )
     result = project.run(project.candidate("same", {}), spec)
     assert result.record.verdict.procedure == "t_log_ratio_batch_means"
-    assert result.record.verdict.looks == 3
+    # Identical trees: a quiet machine gets a tight interval and a
+    # legitimate early REJECT at look 2, a noisy one runs all 3 looks.
+    # Either way the first look did not raise.
+    assert 1 <= (result.record.verdict.looks or 0) <= 3
 
 
 def test_hac_lf_does_not_withhold_the_autocorrelated_wave(
