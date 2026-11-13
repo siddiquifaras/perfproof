@@ -1,5 +1,8 @@
 """tree_id, the tree check, and the saved state."""
 
+import errno
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -156,3 +159,144 @@ def test_hash_parts_follows_the_parts() -> None:
     a = make_part("a")
     assert state.hash_parts([a]) == state.hash_parts([make_part("a")])
     assert state.hash_parts([a]) != state.hash_parts([make_part("b")])
+
+
+def test_a_tool_blocked_failure_is_current_only_while_tool_is_missing() -> (
+    None
+):
+    for reason in (
+        "failed: profiler unavailable: py-spy not found",
+        "recorder_unavailable: perf_event_open refused",
+    ):
+        s = state.with_probe(
+            state.fresh_state(ZERO), record("p", "failed", reason=reason)
+        )
+        assert state.current_record(s, "p", ZERO, "t1") is not None
+        assert (
+            state.current_record(s, "p", ZERO, "t1", tool_present=True) is None
+        )
+
+
+def test_other_failures_stay_current_when_the_tool_is_present() -> None:
+    s = state.with_probe(
+        state.fresh_state(ZERO),
+        record("p", "failed", reason="failed: oom: killed"),
+    )
+    assert state.current_record(s, "p", ZERO, "t1", tool_present=True)
+    s = state.with_probe(
+        state.fresh_state(ZERO), record("p", "timeout", reason="timeout: x")
+    )
+    assert state.current_record(s, "p", ZERO, "t1", tool_present=True)
+
+
+_WRITER = """
+import sys
+from pathlib import Path
+from perfproof.find import state
+
+root, n, locked = Path(sys.argv[1]), int(sys.argv[2]), sys.argv[3] == "1"
+tag = sys.argv[4]
+for i in range(n):
+    if locked:
+        with state.state_lock(root, 30.0):
+            s = state.load_state(root) or state.fresh_state("0" * 64)
+            call = {
+                "started_at": "2026-01-01T00:00:00+00:00",
+                "spent_seconds": float(i + 100 * (tag == "b")),
+            }
+            calls = [*s.calls, call]
+            state.save_state(root, state.evolve(s, calls=calls))
+    else:
+        state.save_state(root, state.fresh_state("0" * 64))
+"""
+
+
+def _spawn(root: Path, locked: bool, tag: str) -> "subprocess.Popen[str]":
+    return subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            _WRITER,
+            str(root),
+            "25",
+            str(int(locked)),
+            tag,
+        ],
+        text=True,
+        stderr=subprocess.PIPE,
+    )
+
+
+def test_two_processes_updating_under_the_lock_lose_nothing(
+    tmp_path: Path,
+) -> None:
+    procs = [_spawn(tmp_path, True, "a"), _spawn(tmp_path, True, "b")]
+    errors = [p.communicate(timeout=120)[1] for p in procs]
+    assert [p.returncode for p in procs] == [0, 0], errors
+    loaded = state.load_state(tmp_path)
+    assert loaded is not None
+    spent = sorted(c.spent_seconds for c in loaded.calls)
+    assert spent == sorted([*range(25), *range(100, 125)])
+
+
+def test_concurrent_saves_share_no_temporary_file(tmp_path: Path) -> None:
+    procs = [_spawn(tmp_path, False, "a"), _spawn(tmp_path, False, "b")]
+    errors = [p.communicate(timeout=120)[1] for p in procs]
+    assert [p.returncode for p in procs] == [0, 0], errors
+    assert state.load_state(tmp_path) is not None
+    leftovers = [
+        p.name
+        for p in state.state_path(tmp_path).parent.iterdir()
+        if p.name.endswith(".tmp")
+    ]
+    assert leftovers == []
+
+
+def test_a_second_process_gets_find_busy_while_the_lock_is_held(
+    tmp_path: Path,
+) -> None:
+    holder = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import sys, time\n"
+            "from pathlib import Path\n"
+            "from perfproof.find import state\n"
+            "with state.state_lock(Path(sys.argv[1])):\n"
+            "    print('held', flush=True)\n"
+            "    time.sleep(30)\n",
+            str(tmp_path),
+        ],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert holder.stdout is not None
+        assert holder.stdout.readline().strip() == "held"
+        with (
+            pytest.raises(CommandError) as raised,
+            state.state_lock(tmp_path, 0.2),
+        ):
+            pass
+        assert raised.value.code == "find_busy"
+    finally:
+        holder.kill()
+        assert holder.stdout is not None
+        holder.stdout.close()
+        holder.wait()
+    with state.state_lock(tmp_path, 0.2):
+        pass
+
+
+def test_a_file_system_without_locks_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(fd: int, operation: int) -> None:
+        raise OSError(errno.ENOLCK, "No locks available")
+
+    monkeypatch.setattr(state.fcntl, "flock", refuse)
+    ran = False
+    with pytest.raises(CommandError) as raised, state.state_lock(tmp_path):
+        ran = True
+    assert raised.value.code == "find_lock_unavailable"
+    assert not ran
