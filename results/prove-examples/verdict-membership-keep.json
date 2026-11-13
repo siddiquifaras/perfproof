@@ -1,0 +1,84 @@
+{
+  "gates": [
+    {
+      "gate": "side_effects",
+      "status": "passed"
+    },
+    {
+      "gate": "lock",
+      "status": "passed"
+    },
+    {
+      "gate": "procedure",
+      "status": "passed"
+    },
+    {
+      "gate": "runtime",
+      "status": "passed"
+    },
+    {
+      "gate": "same_host",
+      "status": "passed"
+    },
+    {
+      "gate": "correctness",
+      "status": "passed"
+    },
+    {
+      "gate": "coverage",
+      "status": "passed"
+    }
+  ],
+  "measured_metric": null,
+  "not_verified": [],
+  "verdict": {
+    "calibration": "calibrated",
+    "calibration_conditions": [
+      "interval procedure hac_lf",
+      "look schedule (n0 10, k 10, 6 looks, 60 rounds), the default of python_cpu",
+      "alpha 0.05",
+      "one host",
+      "real A/A traces of the class under its own schedule (10 real traces (rolling, membership)), run of record seed 661371947387106328"
+    ],
+    "cross_host": false,
+    "diagnostics": {
+      "autocorrelated_rounds": null,
+      "coarse_resolution": null,
+      "cv_baseline": 0.031344394011067936,
+      "cv_candidate": 0.04129039698339978,
+      "lag1_autocorrelation": -0.03344119670919669,
+      "metric_disagreement": false,
+      "outlier_rounds": null,
+      "procedure_uncalibrated": false,
+      "resolution_widening": null,
+      "sd_log_ratio": 0.039710011497134164,
+      "wall_interval": {
+        "confidence": 0.9958333333333333,
+        "lower": 2.8178098654426393,
+        "upper": 3.2119310097413725
+      }
+    },
+    "estimate": 491.6746611132206,
+    "gate": null,
+    "interval": {
+      "confidence": 0.9958333333333333,
+      "lower": 470.57167829569147,
+      "upper": 513.7240159806144
+    },
+    "looks": 2,
+    "outcome": "KEEP",
+    "procedure": "hac_lf",
+    "reason": "performance",
+    "regression": false,
+    "rounds": 20,
+    "rule": 2,
+    "session_pairs": null,
+    "target_class": "python_cpu"
+  },
+  "warnings": [
+    {
+      "code": "differential_checks_not_run",
+      "message": "differential checks are not built yet (plan task T2.13); the correctness gate ran the tests and compared the declared outputs only"
+    }
+  ]
+}
