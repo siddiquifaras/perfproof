@@ -1156,10 +1156,44 @@ def test_nothing_left_to_judge_is_not_available(suite: Suite) -> None:
 
     assert result.status == "not_available"
     assert [q.test_id for q in result.quarantined] == [EXIT_STATUS_ID]
-    assert "nothing judged the candidate" in result.detail
+    assert "judged nothing" in result.detail
 
 
-def test_all_tests_quarantined_but_outputs_compared_passes(
+def test_test_command_failing_in_every_run_is_not_passed(
+    suite: Suite,
+) -> None:
+    """A runner crashing on both trees verifies nothing."""
+    suite.plan(
+        report=False,
+        baseline={"exit": "1" * 8},
+        candidate={"exit": "1" * 8},
+    )
+    (suite.baseline / "out.txt").write_text("1\n")
+    (suite.candidate / "out.txt").write_text("1\n")
+    spec = suite.spec.model_copy(
+        update={
+            "correctness": suite.spec.correctness.model_copy(
+                update={
+                    "outputs": (OutputCheck(path="out.txt", compare="text"),)
+                }
+            )
+        }
+    )
+
+    result = correctness_gate(
+        spec,
+        baseline_root=suite.baseline,
+        candidate_root=suite.candidate,
+        env=os.environ,
+    )
+
+    assert result.status == "not_available"
+    assert not result.differences
+    assert "0 tests judged" in result.detail
+    assert "a KEEP is withheld" in result.detail
+
+
+def test_all_tests_quarantined_but_outputs_compared_is_not_passed(
     suite: Suite,
 ) -> None:
     suite.plan(tests=("test_a",), baseline={"test_a": "fpp"})
@@ -1182,8 +1216,48 @@ def test_all_tests_quarantined_but_outputs_compared_passes(
         env=os.environ,
     )
 
-    assert result.status == "passed"
+    assert result.status == "not_available"
     assert "0 tests judged" in result.detail
+
+
+def test_a_suite_where_every_test_is_skipped_is_not_passed(
+    suite: Suite,
+) -> None:
+    suite.plan(
+        tests=("test_a", "test_b"),
+        baseline={"test_a": "s" * 8, "test_b": "s" * 8},
+        candidate={"test_a": "s" * 8, "test_b": "s" * 8},
+    )
+
+    result = suite.gate()
+
+    assert result.status == "not_available"
+    assert "0 tests judged" in result.detail
+    assert "a KEEP is withheld" in result.detail
+
+
+def test_skipped_tests_beside_passing_ones_still_pass(suite: Suite) -> None:
+    suite.plan(
+        tests=("test_a", "test_b"),
+        baseline={"test_b": "s" * 8},
+        candidate={"test_b": "s" * 8},
+    )
+
+    result = suite.gate()
+
+    assert result.status == "passed"
+    assert "1 tests judged" in result.detail
+
+
+def test_one_known_failure_among_passing_tests_still_passes(
+    suite: Suite,
+) -> None:
+    suite.plan(tests=("test_a", "test_b"), baseline={"test_b": "fff"})
+
+    result = suite.gate()
+
+    assert result.status == "passed"
+    assert "1 known failures" in result.detail
 
 
 def test_report_path_reaches_the_runner_and_pytest(

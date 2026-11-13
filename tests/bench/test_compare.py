@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -30,6 +30,7 @@ from perfproof.bench.compare import (
     keep_blocked,
     late_looks,
 )
+from perfproof.bench.journal import Journal, Resumed
 from perfproof.bench.lock import build_manifest
 from perfproof.bench.runner import Round, Runner, RunnerError
 from perfproof.bench.snapshot import add_baseline_worktree
@@ -49,6 +50,7 @@ from perfproof.schema import (
     GoalEntry,
     Interval,
     Invalidation,
+    LockManifest,
     MachineFingerprint,
     ProjectModel,
     Provenance,
@@ -2537,6 +2539,31 @@ def test_a_missing_correctness_check_is_not_available_not_passed(
     assert_measured_but_not_kept(result)
 
 
+def test_a_test_command_that_crashes_in_both_arms_is_not_passed(
+    project: Project,
+) -> None:
+    spec = BenchmarkSpec.model_validate(
+        spec_fields(
+            correctness={
+                "command": [
+                    "python",
+                    "-c",
+                    "import no_such_test_runner_module",
+                ],
+                "timeout_seconds": 60.0,
+            },
+            budget={"max_rounds": 12, "max_seconds": 300.0},
+            looks={"n0": 12, "k": 2, "max_looks": 1},
+        )
+    )
+    result = project.run(project.candidate("same", {}), spec)
+    assert gates(result.record)["correctness"] == "not_available"
+    assert "judged nothing" in unverified(result)["correctness"]
+    assert "no_such_test_runner_module" in unverified(result)["correctness"]
+    assert result.record.verdict.reason != "correctness"
+    assert_measured_but_not_kept(result)
+
+
 def test_a_crash_is_still_rejected_without_a_correctness_check(
     project: Project,
 ) -> None:
@@ -4679,3 +4706,302 @@ def test_a_real_node_run_on_wall_is_not_blocked_by_the_metric_rule(
     result = node_run(tmp_path, monkeypatch, "native", "wall")
     codes = [w.code for w in result.record.warnings]
     assert "metric_not_calibrated" not in codes
+
+
+# The untracked snapshot is the first attempt's, never retaken on resume
+
+
+@dataclass
+class _Fixture:
+    """A candidate that is a full copy of the baseline repository."""
+
+    project: Project
+    candidate: Path
+    spec: BenchmarkSpec
+    lock: LockManifest
+    run_dir: Path
+    model_root: Path | None
+    max_rounds: int
+
+    def attempt(self, resume: Resumed | None, rounds: int) -> CompareResult:
+        journal = Journal(self.run_dir, self.max_rounds, resume_after=rounds)
+        try:
+            return compare(
+                self.spec,
+                self.lock,
+                baseline_root=self.project.root,
+                baseline_commit=self.project.commit,
+                candidate_root=self.candidate,
+                run_dir=self.run_dir,
+                process_env=os.environ,
+                order_seed=7,
+                project_root=self.model_root,
+                journal=journal,
+                resume=resume,
+            )
+        finally:
+            journal.close()
+
+
+def _full_copy_fixture(tmp_path: Path, *, keep: bool) -> _Fixture:
+    """Build the fixture; with `keep` the candidate is 2x faster.
+
+    The faster candidate edits ``work.py`` without committing it, so the
+    coverage gate has a changed line to check, and the model confirms
+    the class: the verdict is KEEP unless a gate withholds it.
+    """
+    if not keep:
+        spec = twelve_rounds()
+        project = make_project(tmp_path)
+        candidate = tmp_path / "candidate-full"
+        shutil.copytree(project.root, candidate)
+        run_dir = project.run_dir()
+        run_dir.mkdir(parents=True)
+        lock = build_manifest(spec, project.root)
+        return _Fixture(project, candidate, spec, lock, run_dir, None, 12)
+    spec = web_spec()
+    project = make_project(tmp_path, bench=WIDE_BENCH, baseline=det_work(1.0))
+    candidate = tmp_path / "candidate-full"
+    shutil.copytree(project.root, candidate)
+    (candidate / "work.py").write_text(det_work(0.5))
+    run_dir = project.run_dir()
+    run_dir.mkdir(parents=True)
+    assert spec.target_class is not None
+    write_model(
+        project.model_root,
+        ((spec.target_class, "confirmed"),),
+        workload=spec,
+    )
+    lock = build_manifest(spec, project.root)
+    return _Fixture(
+        project, candidate, spec, lock, run_dir, project.model_root, 30
+    )
+
+
+def _interrupted_then_resumed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    damage: Callable[[Path], None] | None = None,
+    plant: Callable[[Path], None] | None = None,
+    keep: bool = False,
+    die_in_round: int = 3,
+) -> tuple[RunRecord, Path]:
+    """Die in a round of attempt 0, resume, and return the final record.
+
+    The candidate is a full copy of a repository that has no ignore for
+    bytecode, so attempt 0's own test run leaves ``__pycache__`` in it
+    (unless it dies before the first round). `plant` runs on the
+    candidate before attempt 0 and `damage` on the run directory
+    between the attempts. With `keep` the candidate is a clear win, so
+    the verdict shows whether a gate withheld it.
+    """
+    from perfproof.bench import runner as runner_module
+    from perfproof.bench.journal import (
+        MACHINE_NAME,
+        METRIC_NAME,
+        load_journal,
+        read_json,
+    )
+
+    fx = _full_copy_fixture(tmp_path, keep=keep)
+    real_round = runner_module.Runner.run_round
+
+    def dying(self: Runner, index: int) -> Round:
+        if index == die_in_round:
+            raise KeyboardInterrupt
+        return real_round(self, index)
+
+    if plant is not None:
+        plant(fx.candidate)
+    monkeypatch.setattr(runner_module.Runner, "run_round", dying)
+    with pytest.raises(KeyboardInterrupt):
+        fx.attempt(None, 0)
+    monkeypatch.setattr(runner_module.Runner, "run_round", real_round)
+    if die_in_round > 0:
+        assert list(fx.candidate.rglob("__pycache__"))
+    if damage is not None:
+        damage(fx.run_dir)
+    rounds = load_journal(fx.run_dir, repair=True)
+    doc = read_json(fx.run_dir / MACHINE_NAME)
+    assert doc is not None
+    recorded = read_json(fx.run_dir / METRIC_NAME)
+    kind = None if recorded is None else recorded.get("kind")
+    resumed = Resumed(
+        rounds=tuple(rounds),
+        machine=MachineFingerprint.model_validate(doc["machine"]),
+        started=datetime.fromisoformat(str(doc["started_at"])),
+        attempt=1,
+        metric_kind=kind if isinstance(kind, str) else None,
+    )
+    return fx.attempt(resumed, len(rounds)).record, fx.run_dir
+
+
+def test_a_resume_keeps_the_first_attempts_untracked_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    record, run_dir = _interrupted_then_resumed(tmp_path, monkeypatch)
+    assert (run_dir / UNTRACKED_NAME).is_file()
+    # Attempt 0 left bytecode in the tree; the resume must not count it.
+    assert gates(record)["coverage"] == "passed"
+
+
+def test_the_snapshot_is_saved_at_attempt_zero_and_reused_after_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    seen: list[object] = []
+
+    def change_tree(run_dir: Path) -> None:
+        saved = json.loads((run_dir / UNTRACKED_NAME).read_text())
+        seen.append(saved["files"])
+        candidate = tmp_path / "candidate-full"
+        (candidate / "added_after.py").write_text("x = 1\n")
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, damage=change_tree
+    )
+    # Written by attempt 0, before its runs left bytecode in the tree.
+    assert seen == [[]]
+    # Added between attempts, so not in the snapshot: retaking it would
+    # have counted this file. `resume_run` refuses such a file unless it
+    # is in a directory it does not hash, so this test calls `compare`
+    # on a resume directly and covers the layer below that refusal.
+    coverage = next(g for g in record.gates if g.gate == "coverage")
+    assert coverage.status == "passed"
+    assert "added_after.py" not in coverage.detail
+
+
+def test_a_resume_without_its_snapshot_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    def lose(run_dir: Path) -> None:
+        (run_dir / UNTRACKED_NAME).unlink()
+
+    record, _ = _interrupted_then_resumed(tmp_path, monkeypatch, damage=lose)
+    coverage = next(g for g in record.gates if g.gate == "coverage")
+    assert coverage.status == "not_available"
+    assert "snapshot" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+def test_a_corrupt_snapshot_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    def corrupt(run_dir: Path) -> None:
+        (run_dir / UNTRACKED_NAME).write_text('{"files": [], "sha256": "0"}\n')
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, damage=corrupt
+    )
+    coverage = next(g for g in record.gates if g.gate == "coverage")
+    assert coverage.status == "not_available"
+    assert "corrupt" in coverage.detail
+
+
+def _coverage_gate(record: RunRecord) -> GateResult:
+    return next(g for g in record.gates if g.gate == "coverage")
+
+
+def test_a_file_planted_before_attempt_zero_still_counts_after_a_resume(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def plant(candidate: Path) -> None:
+        (candidate / "data.txt").write_text("planted\n")
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, plant=plant, keep=True, die_in_round=13
+    )
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "data.txt" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+def test_a_resume_with_no_finished_round_still_reads_the_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, keep=True, die_in_round=0
+    )
+    assert _coverage_gate(record).status == "passed"
+
+
+def test_a_snapshot_that_cannot_be_saved_fails_closed(
+    tmp_path: Path,
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    fx = _full_copy_fixture(tmp_path, keep=True)
+    (fx.run_dir / UNTRACKED_NAME).mkdir()
+    record = fx.attempt(None, 0).record
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "could not be saved" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+@pytest.mark.parametrize(
+    "snapshot",
+    [
+        '{"files": [1], "sha256": "0"}\n',
+        '{"files": ["\\ud800"], "sha256": "x"}\n',
+    ],
+    ids=["non_string_entry", "lone_surrogate"],
+)
+def test_a_snapshot_that_cannot_be_trusted_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, snapshot: str
+) -> None:
+    from perfproof.bench.compare import UNTRACKED_NAME
+
+    def damage(run_dir: Path) -> None:
+        (run_dir / UNTRACKED_NAME).write_text(snapshot)
+
+    record, _ = _interrupted_then_resumed(
+        tmp_path, monkeypatch, damage=damage, keep=True, die_in_round=13
+    )
+    coverage = _coverage_gate(record)
+    assert coverage.status == "not_available"
+    assert "corrupt" in coverage.detail
+    assert record.verdict.outcome != "KEEP"
+
+
+def test_nothing_runs_in_the_candidate_before_the_snapshot(
+    project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate = project.candidate("fast", {"work.py": work(0.005)})
+    root = candidate.resolve()
+    events: list[str] = []
+
+    def in_candidate(cwd: object) -> bool:
+        if not isinstance(cwd, (str, Path)):
+            return False
+        return Path(cwd).resolve().is_relative_to(root)
+
+    def watch(name: str, real: Callable[..., object]) -> Callable[..., object]:
+        def wrapper(*args: object, **kwargs: object) -> object:
+            if in_candidate(kwargs.get("cwd")):
+                events.append(name)
+            return real(*args, **kwargs)
+
+        return wrapper
+
+    real_untracked = compare_module.untracked_files
+
+    def snapshot(path: Path) -> tuple[str, ...]:
+        events.append("snapshot")
+        return real_untracked(path)
+
+    monkeypatch.setattr(subprocess, "run", watch("run", subprocess.run))
+    monkeypatch.setattr(subprocess, "Popen", watch("popen", subprocess.Popen))
+    monkeypatch.setattr(compare_module, "untracked_files", snapshot)
+    project.run(candidate, twelve_rounds())
+    assert events[0] == "snapshot"
+    assert len(events) > 1

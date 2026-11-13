@@ -35,7 +35,7 @@ the record, so a tool or an agent never has to parse prose to learn why.
 | Candidate gives wrong results | REJECT | `correctness`, gate `correctness` |
 | Changed code that no check ran | INCONCLUSIVE | `insufficient_evidence`, gate `coverage` `not_available`, naming the lines |
 | The experiment itself is not valid (locked files, procedure, both arms' runtimes identified and different, a candidate that can't be started where the baseline runs, a host identity that changed) | REJECT | `integrity`, with the gate named |
-| Something could not be verified (an unidentified runtime, an unreadable host identity, no correctness check declared, a guardrail not declared) | INCONCLUSIVE | `insufficient_evidence`, naming what was not verified; the comparison is still measured and recorded |
+| Something could not be verified (an unidentified runtime, an unreadable host identity, no correctness check declared, a test command that judged no test, a guardrail not declared) | INCONCLUSIVE | `insufficient_evidence`, naming what was not verified; the comparison is still measured and recorded |
 | The benchmark would reach a service that isn't local | Refused before anything runs | `integrity`, gate `side_effects` |
 | Interval still straddles the bar when the budget runs out | INCONCLUSIVE | `insufficient_evidence` |
 | A value no larger than its resolution, or an undeclared `reported` resolution that can't be trusted | INCONCLUSIVE | `insufficient_evidence`, diagnostic `coarse_resolution` |
@@ -130,6 +130,19 @@ coverage gate. Only a test command that can't run at all on the
 baseline (it times out, is killed, or can't start) stops the
 comparison as a broken baseline.
 
+**Nothing judged.** When a test command is declared and no test is
+left to judge the candidate, because every test is flaky, a known
+failure, or skipped in every baseline run (a skipped test never ran),
+the `correctness` gate is `not_available`, never `passed`, whether or not declared outputs were compared. The usual case is a
+command that fails the same way in every run on both trees (the test
+runner is not installed: `ModuleNotFoundError`, command not found
+inside a shell): its exit status is one known failure, and an
+identical failure on both trees is no evidence that the change broke
+anything, so it is not a REJECT. The detail says "judged nothing and a
+KEEP is withheld" and ends with the last lines of the command's output
+(at most six, each cut to 200 characters), so the cause shows without
+a rerun; the report's "Blocked by:" lines name it.
+
 **Flaky tests.** Before judging the candidate, perfproof runs the
 correctness command on the baseline three times. A test that doesn't
 give the same result every time is flaky: it is quarantined, listed in
@@ -171,7 +184,34 @@ in code no check executed is unverified, and an unverified change is
 not kept. It is not rejected either: the gate is `not_available`, with
 the unverified lines in its record, and the verdict is INCONCLUSIVE
 (`insufficient_evidence`), because the change may well be right and
-perfproof only cannot show it. For a target where perfproof cannot measure coverage, a
+perfproof only cannot show it. The change set is fixed before perfproof
+runs anything in a tree: the committed diff, plus the untracked files
+present in the candidate at that moment (`git ls-files --others
+--exclude-standard` before any setup, test, benchmark or coverage
+command). Every one of them counts, whatever its name or content, so a
+planted `.pyc`, test cache or data file is a change; files that appear
+later were made by perfproof's own runs (bytecode, caches, coverage
+data) and are not.
+The list is saved in the run directory (`untracked.json`, with its
+hash) by the first attempt, and a resumed run reads it back instead of
+listing again, since the first attempt's runs have left files in the
+tree by then (`docs/cli.md`, "Long runs", says what a resume is). That
+is sound because `resume` hashes both trees, except the directories in
+`_SKIP_DIRS`, and refuses a resume if either has changed. A saved list
+that is missing or fails its hash leaves the change set unknown: the
+gate is `not_available` and the verdict is never KEEP. A list that
+cannot be saved leaves attempt 0 `not_available` the same way.
+The gate cannot see two things. Untracked files that git ignores are
+not listed, because `--exclude-standard` skips them, so an ignored
+file the candidate adds is not counted as a change. And a file added
+between a kill and the resume, inside a directory `resume` does not
+hash (`__pycache__`, `.pytest_cache`, `node_modules` and the rest of
+`_SKIP_DIRS`), is neither refused by the resume nor in the saved list,
+so a planted `.pyc` there can pass the gate. Both are known limits,
+not rules.
+A file that is not a regular file (FIFO, socket, device, symbolic
+link) is read with `lstat` only, never opened or followed, and counts
+as a change that cannot be checked. For a target where perfproof cannot measure coverage, a
 KEEP needs the spec's explicit opt-in, and the verdict is labelled
 "coverage not checked", with the reason: no coverage command is
 declared, it wrote no report, or the report does not list the changed
@@ -246,7 +286,13 @@ the spec's own `env`. Anything else the benchmark needs, such as
 the agent's own credentials and service addresses (an API base URL, a
 cloud token) never reach the benchmark's environment, and both
 versions run with
-exactly the declared environment.
+exactly the declared environment. The one change to `PATH`: when
+perfproof itself runs from a uv tool or `uvx` environment (positively
+identified by uv's cache or tool directory), that environment's `bin`
+is taken off, so `python` resolves as in the user's shell and not to
+perfproof's own interpreter. A project virtual environment, with or
+without perfproof in it, is never touched; if the prefix cannot be
+told, nothing is removed.
 
 **The check.** Before anything executes, perfproof checks that
 environment, the commands' arguments and the declared config files for
@@ -2720,7 +2766,8 @@ The first rule that matches decides:
 the opt-in is recorded. `not_available` means the gate couldn't be
 checked here, for example coverage for a language perfproof can't
 instrument, a runtime perfproof can't identify, a host identity it
-can't read, or a spec with no correctness check. It blocks KEEP. When
+can't read, a spec with no correctness check, or a test command that
+judged no test (it failed identically in every run). It blocks KEEP. When
 rule 2 matches with any gate `not_available`, the result is
 **INCONCLUSIVE** (`insufficient_evidence`) at that look, naming the
 gate, because more rounds can't make it available. Rules 1 and 3 still

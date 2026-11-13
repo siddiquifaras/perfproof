@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import sys
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -133,6 +135,46 @@ def test_doctor_has_no_skill_problem_after_install(run: Run) -> None:
     install = doc["result"]["install"]
     assert install["clients"]["codex"]["skill"] == "current"
     assert not [p for p in install["problems"] if "skill" in p["what"]]
+
+
+def _prefix_with_perfproof(prefix: Path) -> Path:
+    exe = prefix / "bin" / "perfproof"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("#!/bin/sh\n")
+    exe.chmod(0o755)
+    return prefix
+
+
+def _not_on_path(doc: dict[str, Any]) -> bool:
+    whats = [p["what"] for p in doc["result"]["install"]["problems"]]
+    return any("not on PATH" in w for w in whats)
+
+
+def test_doctor_does_not_count_perfproofs_own_tool_environment(
+    run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = _prefix_with_perfproof(tmp_path / "archive-v0" / "tool")
+    monkeypatch.setattr(sys, "prefix", str(tool))
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+    monkeypatch.setenv("PATH", os.pathsep.join([str(tool / "bin"), "/bin"]))
+    _, doc = run("doctor")
+    assert _not_on_path(doc)
+
+
+def test_doctor_finds_perfproof_a_users_shell_would(
+    run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = tmp_path / "archive-v0" / "tool"
+    (tool / "bin").mkdir(parents=True)
+    users = _prefix_with_perfproof(tmp_path / "users")
+    monkeypatch.setattr(sys, "prefix", str(tool))
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+    monkeypatch.setenv(
+        "PATH",
+        os.pathsep.join([str(tool / "bin"), str(users / "bin"), "/bin"]),
+    )
+    _, doc = run("doctor")
+    assert not _not_on_path(doc)
 
 
 def test_doctor_warns_on_an_untested_python(
