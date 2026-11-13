@@ -1206,6 +1206,42 @@ def _copy_profile_result(
     return None
 
 
+def _profile_results(profiles: Path, skipped: list[str]) -> list[Path]:
+    """List ``<name>/<id>/result.json`` under ``profiles``, by name.
+
+    Walks by hand because ``Path.glob`` hides a directory it may not
+    search on Python 3.13 and later (3.12 raised), and that skip must be
+    recorded. A missing or non-directory level is silent; any other
+    error is appended to ``skipped`` with the path it came from.
+    """
+    found: list[Path] = []
+    quiet = (FileNotFoundError, NotADirectoryError)
+
+    def children(parent: Path) -> list[Path]:
+        try:
+            return sorted(parent / name for name in os.listdir(parent))
+        except quiet:
+            return []
+        except OSError as exc:
+            label = _printable("/".join(parent.parts[-2:]))[:120]
+            skipped.append(f"{label}: not listable ({exc.strerror})")
+            return []
+
+    for named in children(profiles):
+        for run in children(named):
+            result = run / "result.json"
+            try:
+                result.lstat()
+            except quiet:
+                continue
+            except OSError as exc:
+                label = _printable("/".join(run.parts[-2:]))[:120]
+                skipped.append(f"{label}: not listable ({exc.strerror})")
+                continue
+            found.append(result)
+    return found
+
+
 def save_profile_results(repo: Path, out: Path) -> list[Path]:
     """Copy the agent's saved profile results next to the transcripts.
 
@@ -1234,12 +1270,7 @@ def save_profile_results(repo: Path, out: Path) -> list[Path]:
     """
     saved: list[Path] = []
     skipped: list[str] = []
-    profiles = repo / ".perfproof" / "profiles"
-    try:
-        sources = sorted(profiles.glob("*/*/result.json"))
-    except OSError as exc:
-        sources = []
-        skipped.append(f"profiles: not listable ({exc.strerror})")
+    sources = _profile_results(repo / ".perfproof" / "profiles", skipped)
     for source in sources:
         label = _printable("/".join(source.parts[-3:-1]))[:120]
         try:

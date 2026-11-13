@@ -1775,6 +1775,17 @@ def test_only_the_compiler_tools_are_put_ahead_of_path(
     developer = sandbox.toolchain_env().get("DEVELOPER_DIR")
     if not developer:
         pytest.skip("no developer directory here")
+    # Full Xcode keeps clang in a toolchain directory, not here, so the
+    # sandbox's links skip it there (reported, not fixed: the harness
+    # runs on a Command Line Tools install). Any tool missing is the
+    # layout, not the code under test.
+    missing = [
+        name
+        for name in ("clang", "git", "make")
+        if not (Path(developer) / "usr" / "bin" / name).exists()
+    ]
+    if missing:
+        pytest.skip(f"{developer}/usr/bin has no {', '.join(missing)}")
     base = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
     env = sandbox.agent_env(base, tmp_path / "s", [])
     resolved = {
@@ -1972,27 +1983,13 @@ _REPO = Path(__file__).resolve().parents[2]
 _BUSY = "import time\nt=time.time()\nwhile time.time()-t<3: pass\n"
 
 
-@confinement
-def test_perfproof_native_recorder_works_under_the_profile(
-    tmp_path: Path,
-) -> None:
-    """``sample`` of the recorder's own child needs no extra Mach name.
-
-    Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
-    ``pgrep``, which list processes. The recorder samples by pid.
-    """
-    if shutil.which("sample") is None:
-        pytest.skip("no sample on this machine")
-    text = sandbox.profile(
-        Path.home(),
-        tmp_path / "pp",
-        False,
-        read=[Path(sys.prefix), _REPO / "src"],
-        write=[tmp_path],
-    )
-    out = tmp_path / "out.folded"
+def _record_under(
+    profile_text: str, tmp_path: Path, name: str
+) -> tuple[subprocess.CompletedProcess[str], Path]:
+    """Run the native recorder on a busy child under the profile."""
+    out = tmp_path / name
     got = _in_new_session(
-        text,
+        profile_text,
         tmp_path,
         [
             sys.executable,
@@ -2012,6 +2009,37 @@ def test_perfproof_native_recorder_works_under_the_profile(
             _BUSY,
         ],
     )
+    return got, out
+
+
+@confinement
+def test_perfproof_native_recorder_works_under_the_profile(
+    tmp_path: Path,
+) -> None:
+    """``sample`` of the recorder's own child needs no extra Mach name.
+
+    Round 7's fd task blamed ``sysmond``: that was ``sample <name>`` and
+    ``pgrep``, which list processes. The recorder samples by pid.
+    """
+    # Control: the same run under a profile that allows everything. A
+    # hosted CI runner refuses `sample` there too ("cannot examine
+    # process"), and then a failure under the real profile says nothing
+    # about it. Where the control works, the real profile must too.
+    control, _ = _record_under(
+        "(version 1)(allow default)", tmp_path, "control.folded"
+    )
+    if control.returncode != 0:
+        pytest.skip(
+            f"sample fails under sandbox-exec: {control.stderr[-200:]}"
+        )
+    text = sandbox.profile(
+        Path.home(),
+        tmp_path / "pp",
+        False,
+        read=[Path(sys.prefix), _REPO / "src"],
+        write=[tmp_path],
+    )
+    got, out = _record_under(text, tmp_path, "out.folded")
     assert got.returncode == 0, got.stderr
     assert out.is_file(), got.stderr
     assert out.read_text(encoding="utf-8").strip()

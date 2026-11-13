@@ -1,9 +1,20 @@
 # Monte Carlo calibration of the statistical procedures. Too slow for
-# every PR. Manual only while the account's Actions minutes are nearly
-# spent; run it before release.
+# every PR: it runs on pull requests that touch the statistics or the
+# calibration tests, on pushes to main that do, and by hand.
 name: Calibration
 
 on:
+  pull_request:
+    paths:
+      - "src/perfproof/stats/**"
+      - "tests/calibration/**"
+      - "docs/method.md"
+  push:
+    branches: [main]
+    paths:
+      - "src/perfproof/stats/**"
+      - "tests/calibration/**"
+      - "docs/method.md"
   workflow_dispatch:
 
 permissions:

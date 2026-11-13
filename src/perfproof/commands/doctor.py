@@ -51,8 +51,11 @@ __all__ = ["add_arguments", "run"]
 GIT_TIMEOUT_SECONDS: Final = 10.0
 """Time limit for ``git --version``, in seconds."""
 
-TESTED_PYTHON: Final = ("3.12",)
-"""Python versions perfproof is tested on; doctor warns on others."""
+TESTED_PYTHON: Final = ("3.12", "3.13")
+"""Python versions perfproof is tested on; doctor warns on others.
+
+Keep equal to the Python versions in the CI matrix.
+"""
 
 COUNTER_EVENT: Final = "instructions"
 """``perf`` event checked for the ``counter`` metric."""
@@ -368,9 +371,10 @@ def _tools_text(tools: dict[str, dict[str, JsonValue]]) -> list[str]:
     lines = ["Tools"]
     for name, tool in tools.items():
         state = "available" if tool["available"] else "unavailable"
-        lines.append(
-            f"  {name:<6} {state}, for {tool['used_for']}: {tool['detail']}"
-        )
+        # A probe's stderr can span lines (perf stat prints a
+        # paragraph); one line per tool keeps the section parseable.
+        detail = " ".join(str(tool["detail"]).split())
+        lines.append(f"  {name:<6} {state}, for {tool['used_for']}: {detail}")
     return lines
 
 

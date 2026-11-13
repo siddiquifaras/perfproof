@@ -765,7 +765,10 @@ def _sleep_repo(
 
 
 def test_speed_check_measures_a_real_difference(tmp_path: Path) -> None:
-    repo, base, final = _sleep_repo(tmp_path, 0.06, 0.012)
+    # Sleeps long enough that a busy runner's start-up jitter (a 0.06 s
+    # against 0.012 s gap came out as no_difference on GitHub's macOS)
+    # is unlikely to hide it.
+    repo, base, final = _sleep_repo(tmp_path, 0.5, 0.01)
     result = speedcheck.measure(
         base,
         final,
@@ -782,8 +785,8 @@ def test_speed_check_measures_a_real_difference(tmp_path: Path) -> None:
     assert result.low is not None
     assert result.high is not None
     assert result.low > 1.0
-    # Python start-up (a fixed cost of both) keeps it below 0.06/0.012.
-    assert 1.2 < result.ratio < 6.0
+    # Python start-up (a fixed cost of both) keeps it below 0.5/0.01.
+    assert 1.2 < result.ratio < 50.0
     assert result.low <= result.ratio <= result.high
     assert result.rounds == 5
 
@@ -791,7 +794,7 @@ def test_speed_check_measures_a_real_difference(tmp_path: Path) -> None:
 def test_speed_check_sees_no_difference_and_a_slowdown(
     tmp_path: Path,
 ) -> None:
-    repo, base, final = _sleep_repo(tmp_path / "s", 0.012, 0.06)
+    repo, base, final = _sleep_repo(tmp_path / "s", 0.01, 0.5)
     check = taskset.SpeedCheck(command=f"{sys.executable} work.py")
 
     def git(*a: str) -> str:

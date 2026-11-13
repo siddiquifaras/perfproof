@@ -77,7 +77,7 @@ def _failed_run(
     _git(repo, "config", "user.email", "t@example.com")
     _git(repo, "config", "user.name", "t")
     (repo / ".gitignore").write_text(".perfproof/\n")
-    (repo / "work.py").write_text("import time\ntime.sleep(0.05)\n")
+    (repo / "work.py").write_text("import time\ntime.sleep(0.6)\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "base")
     base = _git(repo, "rev-parse", "HEAD").strip()
