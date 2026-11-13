@@ -31,6 +31,10 @@ from typing import Final, cast, get_args
 from pydantic import BaseModel
 
 from perfproof.schema import (
+    FIXED_GUARDRAIL_STATUSES,
+    KEEP_BLOCKING_GATE_STATUSES,
+    KEEP_BLOCKING_WARNINGS,
+    PENDING_GUARDRAIL_STATUSES,
     CommandOutput,
     DifferentialCheck,
     GateName,
@@ -380,7 +384,7 @@ _WARNING_BLOCKERS: Final[Mapping[str, str]] = {
         "The resolution of a reported value could not be read back"
     ),
 }
-"""Warning codes that name something not verified, with plain words."""
+"""Fixed wording for some `KEEP_BLOCKING_WARNINGS`."""
 
 
 def _blockers(record: RunRecord) -> list[str]:
@@ -389,27 +393,29 @@ def _blockers(record: RunRecord) -> list[str]:
     gates = _gate_status(record)
     for name in _GATE_ORDER:
         gate = gates.get(name)
-        if gate is not None and gate.status == "not_available":
+        if gate is not None and gate.status in KEEP_BLOCKING_GATE_STATUSES:
             lines.append(
                 f"Gate `{name}`: not available ({_text(gate.detail)})"
             )
     for result in record.guardrails:
-        if result.status == "not_established":
+        if result.status in PENDING_GUARDRAIL_STATUSES:
             lines.append(
                 f"Guardrail `{result.metric}`: not established (measured, "
                 "but the data can't tell yet)"
             )
-        elif result.status in ("unmeasurable", "not_declared"):
+        elif result.status in FIXED_GUARDRAIL_STATUSES:
             lines.append(
                 f"Guardrail `{result.metric}`: "
                 f"{_STATUS_TEXT[result.status]} ({_text(result.reason)})"
             )
     for warning in record.warnings:
+        if warning.code not in KEEP_BLOCKING_WARNINGS:
+            continue
         text = _WARNING_BLOCKERS.get(warning.code)
-        if warning.code == "workload_not_confirmed":
-            lines.append(f"{_text(warning.message)} (`{warning.code}`)")
-        elif text is not None:
+        if text is not None:
             lines.append(f"{text} (`{warning.code}`).")
+        else:
+            lines.append(f"{_text(warning.message)} (`{warning.code}`)")
     return lines
 
 

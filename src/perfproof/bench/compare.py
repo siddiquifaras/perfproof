@@ -254,6 +254,9 @@ from perfproof.project.store import load_model
 from perfproof.report import write
 from perfproof.schema import (
     DEFAULT_GUARDRAILS,
+    FIXED_GUARDRAIL_STATUSES,
+    KEEP_BLOCKING_GATE_STATUSES,
+    PENDING_GUARDRAIL_STATUSES,
     Arm,
     BenchmarkSpec,
     CalibrationStatus,
@@ -1435,8 +1438,11 @@ class _Run:
             is not None
             or self.fallback_reason is not None
             or self._resolution_unknown()
-            or any(g.status == "not_available" for g in self.gates.values())
-            or self._guardrails_with("unmeasurable")
+            or any(
+                g.status in KEEP_BLOCKING_GATE_STATUSES
+                for g in self.gates.values()
+            )
+            or any(self._guardrails_with(s) for s in FIXED_GUARDRAIL_STATUSES)
         )
 
     def _guardrails_with(self, status: str) -> bool:
@@ -1466,7 +1472,9 @@ class _Run:
         return (
             self._fixed_blocker()
             or self._guardrails_with("breached")
-            or self._guardrails_with("not_established")
+            or any(
+                self._guardrails_with(s) for s in PENDING_GUARDRAIL_STATUSES
+            )
         )
 
     def _ends_rule_2(self, look: Look) -> bool:
@@ -1483,7 +1491,9 @@ class _Run:
             np.int8(2),
             breached=self._guardrails_with("breached"),
             fixed=self._fixed_blocker(),
-            pending=self._guardrails_with("not_established"),
+            pending=any(
+                self._guardrails_with(s) for s in PENDING_GUARDRAIL_STATUSES
+            ),
             budget_remains=True,
         )
         return str(step.action) in ("REJECT", "INCONCLUSIVE")
