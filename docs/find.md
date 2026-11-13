@@ -116,7 +116,8 @@ perfproof find [--depth light|medium|deep] [--budget SECONDS]
    call holds an exclusive lock (`state.lock`) from its first read to its last
    write. A second call waits up to 5 seconds, then fails with `find_busy`. A
    probe that failed only because the profiler or recorder was missing runs
-   again once the tool is there.
+   again once the tool is there. On a file system without working locks the
+   call fails with `find_lock_unavailable` and never runs unlocked.
 
    A failed or timed-out probe leaves no partial profile. It goes to
    `skipped[]` with the reason and the log tail, and never stops the others.

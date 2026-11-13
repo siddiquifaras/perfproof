@@ -81,8 +81,9 @@ def state_lock(
     ------
     CommandError
         ``find_busy`` if another ``find`` call still holds the lock
-        after ``timeout`` seconds; ``state_write_failed`` if the lock
-        file cannot be opened.
+        after ``timeout`` seconds; ``find_lock_unavailable`` if the
+        file system refuses ``flock`` (the call never runs unlocked);
+        ``state_write_failed`` if the lock file cannot be opened.
     """
     path = state_path(root).with_name(LOCK_FILE)
     try:
@@ -108,6 +109,14 @@ def state_lock(
                         {"path": str(path)},
                     ) from None
                 time.sleep(0.05)
+            except OSError as exc:
+                msg = (
+                    f"cannot lock {path}: {exc}; this file system "
+                    "doesn't support locks"
+                )
+                raise CommandError(
+                    "find_lock_unavailable", msg, {"path": str(path)}
+                ) from exc
         try:
             yield
         finally:

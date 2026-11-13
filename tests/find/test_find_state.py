@@ -1,5 +1,6 @@
 """tree_id, the tree check, and the saved state."""
 
+import errno
 import subprocess
 import sys
 from pathlib import Path
@@ -285,3 +286,17 @@ def test_a_second_process_gets_find_busy_while_the_lock_is_held(
         holder.wait()
     with state.state_lock(tmp_path, 0.2):
         pass
+
+
+def test_a_file_system_without_locks_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(fd: int, operation: int) -> None:
+        raise OSError(errno.ENOLCK, "No locks available")
+
+    monkeypatch.setattr(state.fcntl, "flock", refuse)
+    ran = False
+    with pytest.raises(CommandError) as raised, state.state_lock(tmp_path):
+        ran = True
+    assert raised.value.code == "find_lock_unavailable"
+    assert not ran
