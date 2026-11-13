@@ -6,6 +6,7 @@ profiling is in test_find_integration.py. What is tested here is what
 """
 
 from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +14,7 @@ import pytest
 from find_helpers import copy_fixture, make_part
 
 from perfproof.commands import CommandError
-from perfproof.find import engine, specs
+from perfproof.find import engine, specs, state
 from perfproof.find.engine import FindRequest, FindRun
 from perfproof.find.probes import Outcome, PlannedProbe
 from perfproof.find.state import load_state
@@ -453,3 +454,45 @@ def test_the_profiler_templates_are_reported(repo: Path, fake: Fake) -> None:
 
 def record_less_part() -> Part:
     return make_part("web", root="web", language="javascript")
+
+
+def test_a_probe_blocked_by_a_missing_tool_runs_once_it_is_there(
+    repo: Path, fake: Fake
+) -> None:
+    native = {
+        "kind": "setuptools_ext",
+        "name": "fastsum",
+        "own_module": "fastsum.so",
+        "sources": ["fastsum.c"],
+    }
+    find(
+        repo,
+        [make_part(native=(native,), recorder=False)],
+        confirm_tests=("root",),
+    )
+    blocked = [c for c in fake.calls if c.blocked is not None]
+    assert [c.key for c in blocked] == ["find-tests-root@native"]
+    fake.calls.clear()
+    find(repo, [make_part(native=(native,), recorder=False)])
+    assert fake.calls == []
+    fake.calls.clear()
+    find(repo, [make_part(native=(native,), recorder=True)])
+    assert [c.key for c in fake.calls] == ["find-tests-root@native"]
+    assert fake.calls[0].blocked is None
+    fake.calls.clear()
+    find(repo, [make_part(native=(native,), recorder=True)])
+    assert fake.calls == []
+
+
+def test_a_second_find_call_fails_while_the_first_holds_the_lock(
+    repo: Path, fake: Fake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del fake
+
+    def short_lock(root: Path) -> AbstractContextManager[None]:
+        return state.state_lock(root, 0.1)
+
+    monkeypatch.setattr(engine, "state_lock", short_lock)
+    with state.state_lock(repo), pytest.raises(CommandError) as raised:
+        find(repo, [make_part()], "light")
+    assert raised.value.code == "find_busy"

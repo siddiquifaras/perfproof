@@ -40,6 +40,7 @@ from perfproof.find.state import (
     load_test_commands,
     save_state,
     save_test_commands,
+    state_lock,
     with_probe,
 )
 from perfproof.project.errors import ProjectError
@@ -147,8 +148,19 @@ def run_find(
         ``unknown_part``, ``no_test_command``, ``not_found`` (a size
         knob for an undefined workload), ``invalid_argument``,
         ``tree_check_failed``, the state errors, or the project
-        model's.
+        model's, or ``find_busy`` when another call holds the state
+        lock for more than a few seconds.
     """
+    with state_lock(request.root):
+        return _run_find(request, detect, clock)
+
+
+def _run_find(
+    request: FindRequest,
+    detect: Callable[[Path, ProjectModel], Sequence[Part]] | None,
+    clock: Callable[[], float],
+) -> FindRun:
+    """Run one call with the state lock held."""
     root = request.root
     started = datetime.now(UTC)
     began = clock()
@@ -674,7 +686,13 @@ class _Runner:
     def _attempt(self, planned: PlannedProbe) -> ProbeRecord | None:
         """Use the current record or run the probe; note the view."""
         spec_hash = planned.spec.spec_hash
-        record = current_record(self.state, planned.key, spec_hash, self.tree)
+        record = current_record(
+            self.state,
+            planned.key,
+            spec_hash,
+            self.tree,
+            tool_present=planned.blocked is None,
+        )
         if record is None:
             old = next(
                 (r for r in self.state.probes if r.key == planned.key), None
