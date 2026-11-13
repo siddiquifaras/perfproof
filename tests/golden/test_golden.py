@@ -1,5 +1,6 @@
 """Tests of the golden-set tools: bounds, McNemar, the wrapper."""
 
+import functools
 import json
 import math
 import shutil
@@ -12,6 +13,30 @@ import pytest
 from golden_stats import binom_cdf, cp_upper, mcnemar
 
 WRAP = Path(__file__).resolve().parents[2] / "studies" / "golden" / "wrap.py"
+
+
+@functools.cache
+def perf_unusable() -> bool:
+    """Whether the wrapper's ``perf stat`` cannot run here.
+
+    On Linux the wrapper exits non-zero when ``perf stat`` does, and
+    ``perf`` being on the PATH does not mean it may count: a CI runner
+    has it with ``perf_event_paranoid`` at 4. The probe uses the
+    wrapper's own events.
+    """
+    if sys.platform != "linux":
+        return False
+    if shutil.which("perf") is None:
+        return True
+    try:
+        done = subprocess.run(
+            ["perf", "stat", "-e", "instructions:u", "--", "true"],
+            capture_output=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return True
+    return done.returncode != 0
 
 
 def test_cp_upper_zero_errors_matches_closed_form() -> None:
@@ -56,7 +81,7 @@ def test_mcnemar_no_discordant_pairs() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform == "linux" and shutil.which("perf") is None,
+    perf_unusable(),
     reason="the wrapper counts the child under perf stat on Linux",
 )
 def test_wrapper_spins_the_requested_fraction(tmp_path: Path) -> None:
@@ -83,13 +108,15 @@ def test_wrapper_spins_the_requested_fraction(tmp_path: Path) -> None:
     assert math.isclose(reported / row["work_s"], 1.25, rel_tol=0.02)
 
 
+@pytest.mark.skipif(
+    perf_unusable(),
+    reason="the wrapper counts the child under perf stat on Linux",
+)
 def test_wrapper_candidate_arm_is_not_slowed(tmp_path: Path) -> None:
     (tmp_path / "golden.arm").write_text("B\n")
     cfg = tmp_path / "cfg.json"
     cfg.write_text(json.dumps({"spin_A": 0.5}))
     env = {"GOLDEN_CFG": str(cfg), "PATH": "/usr/bin:/bin"}
-    if sys.platform == "linux" and shutil.which("perf") is None:
-        pytest.skip("the wrapper counts the child under perf stat")
     done = subprocess.run(
         [sys.executable, str(WRAP), "--", sys.executable, "-c", "pass"],
         cwd=tmp_path,
@@ -103,7 +130,7 @@ def test_wrapper_candidate_arm_is_not_slowed(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform == "linux" and shutil.which("perf") is None,
+    perf_unusable(),
     reason="the wrapper counts the child under perf stat on Linux",
 )
 def test_wrapper_overhead_after_exit_is_negligible(tmp_path: Path) -> None:

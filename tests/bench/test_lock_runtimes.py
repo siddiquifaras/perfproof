@@ -75,6 +75,23 @@ def node() -> Path:
 
 
 @pytest.fixture(scope="session")
+def portable_node(
+    node: Path, tmp_path_factory: pytest.TempPathFactory
+) -> Path:
+    """The node, if a lone copy of its executable still runs.
+
+    A Homebrew node loads ``libnode`` from a path relative to itself,
+    so a copy under another directory cannot start; the tests that
+    copy the executable need one that is self-contained.
+    """
+    copy = tmp_path_factory.mktemp("portable-node") / "node"
+    shutil.copy2(node, copy)
+    if node_version(copy) is None:
+        pytest.skip(f"a copy of {node} does not run on its own")
+    return node
+
+
+@pytest.fixture(scope="session")
 def other_node(node: Path) -> Path:
     versions = {node_version(p): p for p in node_binaries()}
     others = [p for v, p in versions.items() if p != node and v is not None]
@@ -97,8 +114,19 @@ def node_version(path: Path) -> str | None:
     return done.stdout.strip() if done.returncode == 0 else None
 
 
+def probe_env() -> dict[str, str]:
+    """The environment :func:`probe` gives a tree's runtime."""
+    return {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
+
+
 def java_report() -> tuple[Path, int, str] | None:
-    """The machine's ``java``, its ``-version`` status and output."""
+    """The machine's ``java``, its ``-version`` status and output.
+
+    Run in the probe's environment: on macOS ``/usr/bin/java`` is a
+    dispatcher that picks a JDK from ``JAVA_HOME``, which the probe's
+    scrubbed environment does not have, so the two can report
+    different JDKs.
+    """
     found = shutil.which("java")
     if found is None:
         return None
@@ -108,8 +136,23 @@ def java_report() -> tuple[Path, int, str] | None:
         text=True,
         timeout=60,
         check=False,
+        env=probe_env(),
     )
     return Path(found), done.returncode, done.stderr + done.stdout
+
+
+def java_home(java: Path) -> Path | None:
+    """The ``java.home`` ``java`` reports in the probe's environment."""
+    done = subprocess.run(
+        [str(java), "-XshowSettings:properties", "-version"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+        env=probe_env(),
+    )
+    found = re.search(r"^\s*java\.home = (.+)$", done.stderr, re.M)
+    return Path(found.group(1)) if found else None
 
 
 def tree(root: Path, name: str) -> Path:
@@ -143,8 +186,13 @@ def perturb(path: Path) -> None:
             timeout=60,
         )
     else:
-        with path.open("ab") as handle:
-            handle.write(b"\0")
+        # Replace the file rather than append to it: opening a binary
+        # for writing fails with ETXTBSY if anything still executes it
+        # (seen once on a CI runner), and a rename does not.
+        fresh = path.with_name(path.name + ".new")
+        fresh.write_bytes(path.read_bytes() + b"\0")
+        shutil.copymode(path, fresh)
+        os.replace(fresh, path)
 
 
 def probe(
@@ -250,7 +298,7 @@ def test_node_version_differing_between_arms_fails(
 
 
 def test_node_binary_differing_only_in_bytes_fails(
-    tmp_path: Path, node: Path
+    tmp_path: Path, portable_node: Path
 ) -> None:
     """Same relative path, same reported version, different bytes.
 
@@ -260,8 +308,8 @@ def test_node_binary_differing_only_in_bytes_fails(
     apart.
     """
     base, cand = tree(tmp_path, "a"), tree(tmp_path, "b")
-    place(base, node, "node", copy=True)
-    place(cand, node, "node", copy=True)
+    place(base, portable_node, "node", copy=True)
+    place(cand, portable_node, "node", copy=True)
     spec = make_spec(NODE_COMMAND)
     assert gate(spec, base, cand).status == "passed"
 
@@ -604,14 +652,14 @@ def test_shim_is_asked_in_the_benchmarks_environment(
 
 
 def test_shim_choosing_binaries_with_one_version_is_told_apart_by_hash(
-    tmp_path: Path, node: Path
+    tmp_path: Path, portable_node: Path
 ) -> None:
     """Same version, same shim, different real binaries behind it."""
     base, cand = tree(tmp_path, "a"), tree(tmp_path, "b")
     shim = pick_shim(tmp_path / "shims")
     for name in ("one", "two"):
         (tmp_path / name).mkdir()
-        shutil.copy2(node, tmp_path / name / "node")
+        shutil.copy2(portable_node, tmp_path / name / "node")
     perturb(tmp_path / "two" / "node")
     (base / ".pick").write_text(str(tmp_path / "one" / "node"))
     (cand / ".pick").write_text(str(tmp_path / "two" / "node"))
@@ -684,7 +732,11 @@ def working_java() -> tuple[Path, str]:
         pytest.skip(f"java is not usable here: {output.strip()[:100]!r}")
     found = re.search(r'version "([^"]+)"', output)
     assert found is not None, output
-    return path.resolve(), found.group(1)
+    # Behind a dispatcher the executable and its home are the JDK's, not
+    # the dispatcher's.
+    home = java_home(path)
+    real = home / "bin" / "java" if home is not None else path
+    return (real if real.exists() else path).resolve(), found.group(1)
 
 
 def test_java_passes_with_the_same_jdk(tmp_path: Path) -> None:
