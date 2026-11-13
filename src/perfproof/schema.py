@@ -360,7 +360,9 @@ round lifts."""
 PENDING_GUARDRAIL_STATUSES: Final = frozenset({"not_established"})
 """`GuardrailStatus` values that withhold a KEEP until a later look
 shows the guardrail."""
-_UNSHOWN: Final = FIXED_GUARDRAIL_STATUSES | PENDING_GUARDRAIL_STATUSES
+UNSHOWN_GUARDRAIL_STATUSES: Final = (
+    FIXED_GUARDRAIL_STATUSES | PENDING_GUARDRAIL_STATUSES
+)
 _MEASURED: Final = frozenset({"passed", "breached", "not_established"})
 KEEP_BLOCKING_WARNINGS: Final = frozenset(
     {
@@ -2785,7 +2787,9 @@ class RunRecord(_Model):
         )
         states = {r.metric: r.status for r in self.guardrails}
         breached = sorted(m for m, s in states.items() if s == "breached")
-        unshown = sorted(m for m, s in states.items() if s in _UNSHOWN)
+        unshown = sorted(
+            m for m, s in states.items() if s in UNSHOWN_GUARDRAIL_STATUSES
+        )
         warned = sorted(
             {w.code for w in self.warnings if w.code in KEEP_BLOCKING_WARNINGS}
         )

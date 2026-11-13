@@ -7,7 +7,12 @@ from typing import cast
 from perfproof.bench.detach import DetachError, find_run
 from perfproof.bench.snapshot import GIT_TIMEOUT_SECONDS
 from perfproof.commands import CommandError, JsonValue
-from perfproof.schema import KEEP_BLOCKING_WARNINGS, RunRecord
+from perfproof.schema import (
+    KEEP_BLOCKING_GATE_STATUSES,
+    KEEP_BLOCKING_WARNINGS,
+    UNSHOWN_GUARDRAIL_STATUSES,
+    RunRecord,
+)
 
 __all__ = [
     "as_command_error",
@@ -47,7 +52,7 @@ def not_verified(record: RunRecord) -> list[JsonValue]:
             "reason": g.detail,
         }
         for g in record.gates
-        if g.status == "not_available"
+        if g.status in KEEP_BLOCKING_GATE_STATUSES
     ]
     guardrails: list[JsonValue] = [
         {
@@ -57,7 +62,7 @@ def not_verified(record: RunRecord) -> list[JsonValue]:
             "reason": r.reason or "measured, but the data can't tell yet",
         }
         for r in record.guardrails
-        if r.status in ("not_declared", "unmeasurable", "not_established")
+        if r.status in UNSHOWN_GUARDRAIL_STATUSES
     ]
     warnings: list[JsonValue] = [
         {

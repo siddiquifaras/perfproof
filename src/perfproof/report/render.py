@@ -31,6 +31,9 @@ from typing import Final, cast, get_args
 from pydantic import BaseModel
 
 from perfproof.schema import (
+    FIXED_GUARDRAIL_STATUSES,
+    KEEP_BLOCKING_GATE_STATUSES,
+    PENDING_GUARDRAIL_STATUSES,
     CommandOutput,
     DifferentialCheck,
     GateName,
@@ -389,17 +392,17 @@ def _blockers(record: RunRecord) -> list[str]:
     gates = _gate_status(record)
     for name in _GATE_ORDER:
         gate = gates.get(name)
-        if gate is not None and gate.status == "not_available":
+        if gate is not None and gate.status in KEEP_BLOCKING_GATE_STATUSES:
             lines.append(
                 f"Gate `{name}`: not available ({_text(gate.detail)})"
             )
     for result in record.guardrails:
-        if result.status == "not_established":
+        if result.status in PENDING_GUARDRAIL_STATUSES:
             lines.append(
                 f"Guardrail `{result.metric}`: not established (measured, "
                 "but the data can't tell yet)"
             )
-        elif result.status in ("unmeasurable", "not_declared"):
+        elif result.status in FIXED_GUARDRAIL_STATUSES:
             lines.append(
                 f"Guardrail `{result.metric}`: "
                 f"{_STATUS_TEXT[result.status]} ({_text(result.reason)})"

@@ -12,6 +12,10 @@ import pytest
 
 from perfproof.bench import compare
 from perfproof.bench.compare import _Run  # pyright: ignore[reportPrivateUsage]
+from perfproof.commands._runs import not_verified
+from perfproof.report.render import (
+    _blockers,  # pyright: ignore[reportPrivateUsage]
+)
 from perfproof.schema import (
     KEEP_BLOCKING_WARNINGS,
     GateResult,
@@ -189,3 +193,37 @@ def test_every_site_agrees_on_a_warning_code(
     elif code not in ("high_load", "workload_not_confirmed"):
         run = _compare_run(monkeypatch, calibration=(code, "x"))
         assert run._fixed_blocker() is True
+
+
+def _record(
+    gate: str = "passed", guardrail: str = "passed", warning: str = "x"
+) -> Any:
+    return SimpleNamespace(
+        gates=[SimpleNamespace(gate="lock", status=gate, detail="d")],
+        guardrails=[
+            SimpleNamespace(metric="peak_memory", status=guardrail, reason="r")
+        ],
+        warnings=[SimpleNamespace(code=warning, message="m")],
+    )
+
+
+@pytest.mark.parametrize("status", sorted(GATE_WITHHOLDS))
+def test_the_report_and_json_list_a_gate_status_alike(status: str) -> None:
+    want = GATE_WITHHOLDS[status]
+    assert bool(not_verified(_record(gate=status))) is want
+    assert bool(_blockers(_record(gate=status))) is want
+
+
+@pytest.mark.parametrize("status", sorted(GUARDRAIL_WITHHOLDS))
+def test_the_report_and_json_list_a_guardrail_status_alike(
+    status: str,
+) -> None:
+    # A breach is a REJECT, which neither list is read for.
+    want = GUARDRAIL_WITHHOLDS[status] and status != "breached"
+    assert bool(not_verified(_record(guardrail=status))) is want
+    assert bool(_blockers(_record(guardrail=status))) is want
+
+
+@pytest.mark.parametrize("code", sorted(WARNING_CODES | {"high_load"}))
+def test_the_json_lists_every_withholding_warning(code: str) -> None:
+    assert bool(not_verified(_record(warning=code))) is (code in WARNING_CODES)
