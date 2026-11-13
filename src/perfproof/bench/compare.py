@@ -177,6 +177,7 @@ What the thin path does not do yet
 """
 
 import functools
+import hashlib
 import itertools
 import json
 import math
@@ -209,7 +210,13 @@ from perfproof.bench.coverage_gate import (
     untracked_files,
 )
 from perfproof.bench.harness import install_harness
-from perfproof.bench.journal import Journal, Resumed, RoundEntry
+from perfproof.bench.journal import (
+    Journal,
+    Resumed,
+    RoundEntry,
+    read_json,
+    write_json,
+)
 from perfproof.bench.lock import (
     environment_warnings,
     fetching_launch,
@@ -358,6 +365,18 @@ REPORTED_MEASURE: Final = (
 _NO_LOOK: Final = (
     "the comparison ended before its first look, so no interval was computed"
 )
+UNTRACKED_NAME: Final = "untracked.json"
+"""File in the run directory holding the candidate's untracked files as
+listed by the first attempt, before anything ran in the tree."""
+
+
+def _names_hash(names: Sequence[str]) -> str:
+    """Hash a sorted list of paths, unambiguously."""
+    return hashlib.sha256(
+        "\0".join(names).encode("utf-8", "surrogateescape")
+    ).hexdigest()
+
+
 _NO_CHECK: Final = (
     "the spec declares no correctness check (no test command and no "
     "output to compare), so nothing was checked and a KEEP is withheld"
@@ -1141,16 +1160,54 @@ class _Run:
             raise self.stop("harness_fault", msg) from exc
 
     def _list_untracked(self) -> None:
-        """List the candidate's untracked files before anything runs.
+        """Fix the candidate's untracked files before anything runs.
 
         The coverage gate counts them as the candidate's changes, and
         the runs create files (caches, build output) it must not count.
-        A failure is kept for the gate to report.
+        The first attempt lists them and saves the list in the run
+        directory; a resumed attempt reads that list back and never
+        lists again, since the first attempt's own runs have left files
+        in the tree by then. A list that is missing or does not match
+        its hash is a failure, kept for the gate to report.
         """
+        path = self.run_dir / UNTRACKED_NAME
+        if self.resume is not None:
+            self._read_untracked(path)
+            return
         try:
             self.untracked = untracked_files(self.trees["candidate"])
+            names = sorted(self.untracked)
+            write_json(path, {"files": names, "sha256": _names_hash(names)})
         except CoverageGateError as exc:
             self.untracked_error = str(exc)
+        except (OSError, ValueError) as exc:
+            self.untracked = None
+            self.untracked_error = f"the snapshot could not be saved: {exc}"
+
+    def _read_untracked(self, path: Path) -> None:
+        """Load the first attempt's snapshot, or fail closed."""
+        saved = read_json(path)
+        raw = None if saved is None else saved.get("files")
+        files: list[str] | None = None
+        if isinstance(raw, list):
+            items = cast("list[object]", raw)
+            if all(isinstance(f, str) for f in items):
+                files = cast("list[str]", items)
+        intact = False
+        if saved is not None and files is not None:
+            try:
+                intact = saved.get("sha256") == _names_hash(files)
+            except ValueError:
+                # A name that cannot be encoded (a lone surrogate).
+                intact = False
+        if files is None or not intact:
+            self.untracked_error = (
+                f"the first attempt's snapshot of the candidate's untracked "
+                f"files ({path.name}) is missing or corrupt, so they cannot "
+                "be told from files the first attempt's runs made"
+            )
+            return
+        self.untracked = tuple(files)
 
     def _coverage(self) -> None:
         """Run the coverage gate on the changed lines.

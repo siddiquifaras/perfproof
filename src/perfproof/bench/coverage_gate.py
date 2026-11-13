@@ -17,13 +17,17 @@ baseline's commit and the candidate's working tree (``--text``, so a
 untracked file git does not ignore, except the spec's declared
 outputs: an untracked file is part of the candidate, a ``.py`` one as
 a new module and any other one (an untracked ``.gitattributes``
-included) as a non-Python change. The candidate is the tree as it was
-handed to perfproof, so the untracked files are listed
-(`untracked_files`) before anything runs in it, and files the runs
-create (``__pycache__``, test caches, coverage data) are never taken
-for changes. ``compare`` must list them before its first run and pass
-them in; the gate lists them itself, before its own run, only when it
-is the first thing to run. For each changed ``.py`` file it reads one
+included) as a non-Python change, whatever its name or content (a
+planted ``.pyc`` or test cache included). A file that is not a regular
+file (a FIFO, socket, device or symbolic link) is checked with
+``lstat`` and never opened or followed; it counts as a change that
+cannot be checked. The candidate is the tree as it was handed to
+perfproof, so the untracked files are listed (`untracked_files`)
+before anything runs in it, and files the runs create (``__pycache__``,
+test caches, coverage data) are never taken for changes. ``compare``
+must list them before its first run and pass them in; the gate lists
+them itself, before its own run, only when it is the first thing to run.
+For each changed ``.py`` file it reads one
 ``git diff -U0``:
 
 - **Changed lines.** A line the candidate added or changed counts when
@@ -160,6 +164,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import string
 import subprocess
 import tempfile
@@ -852,8 +857,10 @@ def untracked_files(
     """List the candidate's untracked files that git does not ignore.
 
     Call it before anything runs in the candidate tree: the files the
-    runs create (``__pycache__``, test caches, coverage data) are then
-    never taken for the candidate's changes.
+    runs create (test caches, coverage data) are then never taken for
+    the candidate's changes. Every untracked file present at that
+    moment is listed whatever its name or content (a planted ``.pyc``
+    or test cache included).
 
     Parameters
     ----------
@@ -883,6 +890,18 @@ def untracked_files(
         timeout=timeout,
     ).split(b"\0")
     return tuple(os.fsdecode(path) for path in listing if path)
+
+
+def _is_regular(root: Path, name: str) -> bool:
+    """Say whether ``name`` is a regular file, without following links.
+
+    A FIFO, socket, device or symbolic link is never opened: reading a
+    FIFO blocks, and a link may point out of the tree.
+    """
+    try:
+        return stat.S_ISREG((root / name).lstat().st_mode)
+    except OSError:
+        return False
 
 
 def changed_lines(
@@ -976,6 +995,9 @@ def changed_lines(
     deleted: list[str] = []
     other: list[OtherChange] = []
     for status, path in sorted(entries, key=lambda e: e[1]):
+        if status == "A" and not _is_regular(candidate, path):
+            not_checked.append(path)
+            continue
         if not path.endswith(".py"):
             not_checked.append(path)
             if status == "D":

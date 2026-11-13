@@ -52,7 +52,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Final, Literal
+from typing import Final, Literal, cast
 
 from pydantic import ValidationError
 
@@ -792,12 +792,24 @@ def definition_hash(source: str, qualified_name: str) -> str | None:
         source order, so a property's setter or an ``overload`` cannot
         hide the others.
     """
+    tree = _parse(source)
+    if tree is None:
+        return None
+    return _hash_definition(tree, source, qualified_name)
+
+
+def _parse(source: str) -> ast.Module | None:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tree = ast.parse(source)
+            return ast.parse(source)
     except (SyntaxError, ValueError):
         return None
+
+
+def _hash_definition(
+    tree: ast.Module, source: str, qualified_name: str
+) -> str | None:
     parts = [p for p in qualified_name.split(".") if p != "<locals>"]
     if not parts:
         return None
@@ -824,7 +836,47 @@ def definition_hash(source: str, qualified_name: str) -> str | None:
     return hashlib.sha256("\n".join(segments).encode("utf-8")).hexdigest()
 
 
-def code_state(root: Path, anchor: CodeAnchor) -> tuple[CodeState, str]:
+class SourceCache:
+    """Source files read and parsed once over a staleness pass.
+
+    Several anchors, and several hypotheses, point into one file; the
+    cache keeps its text and tree so each file costs one read and one
+    ``ast.parse`` per pass, not one per anchor.
+    """
+
+    def __init__(self) -> None:
+        self._files: dict[
+            str, tuple[str, ast.Module] | tuple[CodeState, str]
+        ] = {}
+
+    def load(
+        self, root: Path, file: str
+    ) -> tuple[str, ast.Module] | tuple[CodeState, str]:
+        """Return ``(source, tree)``, or ``(state, detail)``."""
+        found = self._files.get(file)
+        if found is None:
+            found = self._files[file] = self._read(root, file)
+        return found
+
+    @staticmethod
+    def _read(
+        root: Path, file: str
+    ) -> tuple[str, ast.Module] | tuple[CodeState, str]:
+        try:
+            source = (root / file).read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return "missing", f"{file} does not exist"
+        except (OSError, UnicodeDecodeError) as exc:
+            return "unchecked", f"{file} is not readable: {exc}"
+        tree = _parse(source)
+        if tree is None:
+            return "unchecked", f"{file} does not parse"
+        return source, tree
+
+
+def code_state(
+    root: Path, anchor: CodeAnchor, cache: SourceCache | None = None
+) -> tuple[CodeState, str]:
     """Compare a code anchor with the code now.
 
     Parameters
@@ -833,6 +885,8 @@ def code_state(root: Path, anchor: CodeAnchor) -> tuple[CodeState, str]:
         Root of the user's repository.
     anchor : CodeAnchor
         The anchor.
+    cache : SourceCache, optional
+        Files already read in this pass; a fresh one if omitted.
 
     Returns
     -------
@@ -843,19 +897,11 @@ def code_state(root: Path, anchor: CodeAnchor) -> tuple[CodeState, str]:
     """
     if not anchor.file.endswith(".py"):
         return "unchecked", f"{anchor.file} is not a Python file"
-    try:
-        source = (root / anchor.file).read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return "missing", f"{anchor.file} does not exist"
-    except (OSError, UnicodeDecodeError) as exc:
-        return "unchecked", f"{anchor.file} is not readable: {exc}"
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            ast.parse(source)
-    except (SyntaxError, ValueError):
-        return "unchecked", f"{anchor.file} does not parse"
-    now = definition_hash(source, anchor.qualified_name)
+    loaded = (cache or SourceCache()).load(root, anchor.file)
+    if isinstance(loaded[1], str):
+        return cast("tuple[CodeState, str]", loaded)
+    source, tree = cast("tuple[str, ast.Module]", loaded)
+    now = _hash_definition(tree, source, anchor.qualified_name)
     if now is None:
         detail = f"{anchor.qualified_name} is not in {anchor.file}"
         return "missing", detail
@@ -871,6 +917,7 @@ def assess_staleness(
     *,
     workload_spec_hash: str | None,
     entry_versions: Mapping[tuple[str, str], int] | None = None,
+    cache: SourceCache | None = None,
 ) -> tuple[tuple[StaleReason, ...], tuple[StaleReason, ...]]:
     """List why a hypothesis is stale, and what could not be checked.
 
@@ -888,6 +935,8 @@ def assess_staleness(
         ``None`` when the project model could not be read, and then the
         entry anchors are reported as unchecked. An entry missing from a
         given mapping makes the hypothesis stale.
+    cache : SourceCache, optional
+        Share one across hypotheses so each file is parsed once.
 
     Returns
     -------
@@ -901,7 +950,7 @@ def assess_staleness(
     if view.recorded_stale is not None:
         reasons.append(view.recorded_stale)
     for anchor in view.anchors.code:
-        state, detail = code_state(root, anchor)
+        state, detail = code_state(root, anchor, cache)
         if state in ("changed", "missing"):
             reasons.append(StaleReason("code", detail))
         elif state == "unchecked":

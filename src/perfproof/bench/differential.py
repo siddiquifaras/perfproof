@@ -451,15 +451,18 @@ class DifferentialResult:
 # --------------------------------------------------------------------
 
 
-def _git(cwd: Path, *args: str, timeout: float) -> bytes:
+def _git(cwd: Path, *args: str, timeout: float, literal: bool = True) -> bytes:
     """Run git in ``cwd`` and return its raw stdout.
+
+    ``literal`` turns pathspec magic off.
 
     Raises
     ------
     DifferentialError
         If git exits non-zero, cannot be started, or times out.
     """
-    argv = ["git", "--literal-pathspecs", "-C", str(cwd), *args]
+    flags = ["--literal-pathspecs"] if literal else []
+    argv = ["git", *flags, "-C", str(cwd), *args]
     try:
         done = subprocess.run(
             argv,
@@ -591,6 +594,9 @@ def changed_functions(
     DifferentialError
         If git fails.
     """
+    from perfproof.bench.coverage_gate import (
+        _split_patch,  # pyright: ignore[reportPrivateUsage]
+    )
     from perfproof.bench.snapshot import SnapshotError, worktree_commit
 
     try:
@@ -614,6 +620,27 @@ def changed_functions(
     ]
     functions: list[ChangedFunction] = []
     skipped: list[NotChecked] = []
+    patches: dict[str, bytes] = {}
+    if any(p.endswith(".py") and s not in ("A", "D") for s, p in entries):
+        # One diff, not one git call per file.
+        patches = _split_patch(
+            _git(
+                candidate,
+                "diff",
+                "-U0",
+                "--no-color",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--no-renames",
+                "--src-prefix=a/",
+                "--dst-prefix=b/",
+                commit,
+                "--",
+                ":(glob)**/*.py",
+                timeout=timeout,
+                literal=False,
+            )
+        )
     for status, path in sorted(entries, key=lambda e: e[1]):
         if not path.endswith(".py"):
             continue
@@ -626,20 +653,9 @@ def changed_functions(
                 NotChecked(path, "whole file", "deleted in the candidate")
             )
             continue
-        patch = _git(
-            candidate,
-            "diff",
-            "-U0",
-            "--no-color",
-            "--no-ext-diff",
-            "--no-textconv",
-            "--no-renames",
-            commit,
-            "--",
-            path,
-            timeout=timeout,
+        found, missed = _changed_in_file(
+            baseline, candidate, path, patches.get(path, b"")
         )
-        found, missed = _changed_in_file(baseline, candidate, path, patch)
         functions.extend(found)
         skipped.extend(missed)
     return ChangeSet(tuple(functions), tuple(skipped))

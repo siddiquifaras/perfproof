@@ -92,6 +92,7 @@ from perfproof.hypotheses import (
     CorruptLine,
     HypothesisLogError,
     HypothesisView,
+    SourceCache,
     StaleReason,
     assess_staleness,
     current_workload_spec_hash,
@@ -333,7 +334,10 @@ def _add(
             new.anchors,
             exclude=(workload, new.hypothesis_id),
         )
-    shown = [_summary(root, v, brief=brief) for v in past[:PAST_MAX]]
+    cache = SourceCache()
+    shown = [
+        _summary(root, v, brief=brief, cache=cache) for v in past[:PAST_MAX]
+    ]
     warnings = [*_warnings(contents.corrupt), *_violations(after)]
     result: dict[str, JsonValue] = {
         "recorded": {
@@ -380,7 +384,8 @@ def _show(
         if not chosen:
             msg = f"no hypothesis {hypothesis} in the log of {workload}"
             raise CommandError("not_found", msg, {"hypothesis_id": hypothesis})
-    summaries = [_summary(root, v, brief=brief) for v in chosen]
+    cache = SourceCache()
+    summaries = [_summary(root, v, brief=brief, cache=cache) for v in chosen]
     warnings = [*_warnings(contents.corrupt), *_violations(chosen)]
     omitted = 0
     if brief and len(summaries) > BRIEF_MAX_HYPOTHESES:
@@ -466,7 +471,11 @@ def _anchor(root: Path, file: str, name: str) -> Output:
 
 
 def _summary(
-    root: Path, view: HypothesisView, *, brief: bool
+    root: Path,
+    view: HypothesisView,
+    *,
+    brief: bool,
+    cache: SourceCache | None = None,
 ) -> dict[str, JsonValue]:
     """Summarise a hypothesis with the staleness found now.
 
@@ -479,6 +488,7 @@ def _summary(
         root,
         view,
         workload_spec_hash=current_workload_spec_hash(root, view.workload),
+        cache=cache,
     )
     prediction = view.prediction
     falsification = view.falsification

@@ -33,12 +33,14 @@ reason, never as a guessed value.
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
 from typing import Final
 
 from perfproof.bench.runner import counter_unavailable_reason
+from perfproof.bench.side_effects import without_own_environment
 from perfproof.commands import JsonValue, Output
 from perfproof.commands import _skills as skills
 from perfproof.machine import fingerprint, machine_warnings
@@ -164,11 +166,23 @@ def _client_version(exe: str | None) -> str | None:
     return lines[0] if done.returncode == 0 and lines else "version unknown"
 
 
+def _on_users_path() -> bool:
+    """Say whether the user's shell would find ``perfproof``.
+
+    ``uvx`` puts its own tool environment on the ``PATH`` of the process
+    it runs, so that environment is left out of the search.
+    """
+    path = without_own_environment(
+        os.environ.get("PATH", os.defpath), os.environ
+    )
+    return shutil.which("perfproof", path=path) is not None
+
+
 def _install() -> dict[str, JsonValue]:
     """Check that perfproof and its skill are findable."""
     source = skills.skill_source()
     problems: list[JsonValue] = []
-    on_path = shutil.which("perfproof") is not None
+    on_path = _on_users_path()
     plugin = skills.plugin_install()
     via_plugin = plugin is not None and plugin.enabled
     if not on_path and not via_plugin:

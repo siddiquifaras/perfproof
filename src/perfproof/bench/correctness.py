@@ -226,9 +226,13 @@ class SuiteComparison:
         none did or it could not be started.
     judged : int
         Tests used to judge the candidate (the exit status, when no run
-        reported per-test results), neither flaky nor known failures.
+        reported per-test results), neither flaky, known failures nor
+        skipped in every baseline run.
     baseline_runs, candidate_runs : int
         Runs of the command on each tree.
+    last_output : CommandOutput or None
+        Output of the last candidate run that finished; ``None`` when
+        none did.
     """
 
     quarantined: tuple[QuarantinedTest, ...]
@@ -239,6 +243,7 @@ class SuiteComparison:
     judged: int
     baseline_runs: int
     candidate_runs: int
+    last_output: CommandOutput | None = None
 
 
 @dataclass(frozen=True)
@@ -737,10 +742,57 @@ def _judge(
         failures=tuple(failures),
         problem=problem,
         output=output,
-        judged=len(units - {q.test_id for q in quarantined} - set(known)),
+        judged=len(
+            units
+            - {q.test_id for q in quarantined}
+            - set(known)
+            - {t for t in units if _all_skipped(_history(baseline, t))}
+        ),
         baseline_runs=len(baseline),
         candidate_runs=len(candidate),
+        last_output=finished[-1].output if finished else None,
     )
+
+
+_TAIL_LINES: Final = 6
+"""Lines of the command's output quoted when nothing was judged."""
+_TAIL_LINE_CHARS: Final = 200
+"""Longest quoted line, in characters."""
+
+
+def _output_tail(output: CommandOutput | None) -> str:
+    """Quote the last lines of a command's output for a gate detail.
+
+    Parameters
+    ----------
+    output : CommandOutput or None
+        The run's output.
+
+    Returns
+    -------
+    str
+        ``"; its output ended: ..."`` with at most `_TAIL_LINES` lines
+        of ``stderr`` then ``stdout``, each cut to `_TAIL_LINE_CHARS`;
+        empty when the command printed nothing.
+    """
+    if output is None:
+        return ""
+    lines = [
+        line[:_TAIL_LINE_CHARS]
+        for line in f"{output.stdout}\n{output.stderr}".splitlines()
+        if line.strip()
+    ]
+    if not lines:
+        return ""
+    return "; its output ended: " + " | ".join(lines[-_TAIL_LINES:])
+
+
+def _all_skipped(history: Sequence[str]) -> bool:
+    """Say whether a test was skipped in every baseline run.
+
+    Such a test never ran, so it cannot judge the candidate.
+    """
+    return bool(history) and all(r == "skipped" for r in history)
 
 
 def _locate(root: Path, rel: str) -> Path | str:
@@ -1387,12 +1439,12 @@ def check_correctness(
         Gate ``correctness``: failed when an output differs, a test
         fails only on the candidate, or a candidate test run times out,
         is killed or cannot start, with the failing run's output;
-        ``not_available`` when no output is declared and every test
-        is flaky or a known failure, so nothing judged the candidate;
-        passed otherwise. Quarantined tests are listed whatever the
-        status, and known failures are named in ``detail``. Test
-        failures are listed before output differences, at most
-        `MAX_DIFFERENCES` in all.
+        ``not_available`` when a test command is declared and every
+        test is flaky or a known failure (declared outputs or not), so
+        the tests judged nothing; passed otherwise. Quarantined tests
+        are listed whatever the status, and known failures are named
+        in ``detail``. Test failures are listed before output
+        differences, at most `MAX_DIFFERENCES` in all.
 
         A spec with no test command and no declared output has
         nothing to check: ``not_available``, never passed.
@@ -1469,13 +1521,16 @@ def check_correctness(
             output=output,
         )
         return failed, tests
-    if tests is not None and not tests.judged and not outputs.compared:
+    if tests is not None and not tests.judged:
         unjudged = GateResult(
             gate="correctness",
             status="not_available",
-            detail="every test is flaky or a known failure and no output "
-            "is declared, so nothing judged the candidate; "
-            + "; ".join(summary),
+            detail="every test is flaky or a known failure (a test "
+            "command that fails the same way in every run, such as a "
+            "missing test runner, is one known failure), so the tests "
+            "judged nothing and a KEEP is withheld; "
+            + "; ".join(summary)
+            + _output_tail(tests.last_output),
             quarantined=quarantined,
         )
         return unjudged, tests

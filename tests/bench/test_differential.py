@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from perfproof.bench import differential
 from perfproof.bench.differential import (
     CaptureError,
     ChangedFunction,
@@ -1265,3 +1266,29 @@ def test_an_import_in_a_worker_thread_does_not_unguard_the_call(
     c = by_function(result)["pkg.calc:square"]
     assert (c.captured, c.replayed, c.mismatches) == (5, 5, 5)
     assert not marker.exists()
+
+
+def test_changed_functions_runs_one_diff_for_many_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    names = [f"pkg/m{i}.py" for i in range(12)]
+    names += ["pkg/sp ace.py", "pkg/é.py"]
+    files = dict.fromkeys(names, "def f():\n    return 1\n")
+    trees = make_trees(tmp_path, files)
+    for n in names:
+        edit(trees["candidate"], n, "return 1", "return 2")
+    diffs: list[tuple[str, ...]] = []
+    real = differential._git  # pyright: ignore[reportPrivateUsage]
+
+    def counting(cwd: Path, *args: str, **kwargs: object) -> bytes:
+        if "-U0" in args:
+            diffs.append(args)
+        return real(cwd, *args, **kwargs)  # pyright: ignore
+
+    monkeypatch.setattr(differential, "_git", counting)
+
+    changes = changed_functions(trees["baseline"], trees["candidate"])
+
+    assert len(diffs) == 1
+    assert {c.path for c in changes.functions} == set(names)
+    assert not changes.not_checked
