@@ -1,5 +1,9 @@
 """tree_id, the tree check, and the saved state."""
 
+import hashlib
+import os
+import subprocess
+import tracemalloc
 from pathlib import Path
 
 import pytest
@@ -156,3 +160,31 @@ def test_hash_parts_follows_the_parts() -> None:
     a = make_part("a")
     assert state.hash_parts([a]) == state.hash_parts([make_part("a")])
     assert state.hash_parts([a]) != state.hash_parts([make_part("b")])
+
+
+def test_tree_id_streams_a_large_diff_into_the_same_hash(
+    repo: Path,
+) -> None:
+    blob = repo / "big.bin"
+    blob.write_bytes(bytes(1000))
+    git(repo, "add", "big.bin")
+    git(repo, "commit", "-q", "-m", "blob")
+    blob.write_bytes(os.urandom(24 << 20))
+    diff = subprocess.run(
+        ["git", "-C", str(repo), "diff", "HEAD", "--binary", "--", "."],
+        capture_output=True,
+        check=True,
+    ).stdout
+    expected = hashlib.sha256(diff).digest()
+    del diff
+    tracemalloc.start()
+    try:
+        streamed = gittree._git_sha256(  # pyright: ignore[reportPrivateUsage]
+            repo, "diff", "HEAD", "--binary", "--", "."
+        )
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert streamed == expected
+    # Buffering would peak above the 24 MiB output; chunks are 1 MiB.
+    assert peak < 8 << 20
