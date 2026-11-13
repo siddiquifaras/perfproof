@@ -17,7 +17,7 @@ under the rule in `eval/label/README.md`.
   have no label (below).
 - Per-machine results and pyperf files are in
   `eval/label/results/label/<machine>/`, the combined labels in
-  `eval/label/results/label/combined/`, and each machine's pair logs in
+  `eval/label/results/final/`, and each machine's pair logs in
   `pairs.tgz` beside its results.
 
 ## Labels
@@ -50,13 +50,17 @@ Result: 9 improvement, 7 below-bar, 0 unstable, 0 regression.
 
 - **gin-gonic-gin-pr4466 is compile-dominated.** Its workload runs
   `docker run --rm golang:1.25 go test ...` with only the module cache
-  mounted, so every execution recompiles. The mean wall time is about 54 s
+  mounted, so from the command every execution appears to recompile
+  (I didn't time a build on its own). The mean wall time is about 54 s
   per run on fsn1 (54.3 s for the task tree, 53.9 s for the reference), so
   the benchmark is drowned. Treat its `below-bar` as not about the change.
-- **gin-gonic-gin-pr2365** has the same workload pattern, so it was skipped.
+- **gin-gonic-gin-pr2365** has the same workload pattern, so I dropped it
+  from this run rather than spend about 6 h per machine on it.
 - **scipy-scipy-pr24913-landed** fails setup on Linux: its recipe passes
   `-Dblas=accelerate -Dlapack=accelerate`, which is macOS only.
-- **libuv-libuv-pr2064** fails `cmake --build build -j 8` on both machines.
+- **libuv-libuv-pr2064** fails `cmake --build build -j 8` on both machines:
+  the linker reports multiple definitions of `handle` and `sock` in the
+  `uv_run_tests` target.
 - **run-llama-llama-index-pr21755** fails setup on `uv sync --python
   3.14+gil`: uv found no interpreter for `3.14+gil` in managed installations
   or the search path.
